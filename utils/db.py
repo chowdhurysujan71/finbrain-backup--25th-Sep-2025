@@ -154,6 +154,8 @@ def get_monthly_summary(user_identifier, month=None):
 
 def get_user_expenses(user_identifier, limit=10):
     """Get recent expenses for a user"""
+    from models import Expense
+    
     try:
         user_hash = hash_user_id(user_identifier)
         

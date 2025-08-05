@@ -72,6 +72,8 @@ def check_rate_limit(user_identifier, platform):
 
 def get_rate_limit_status(user_identifier, platform):
     """Get current rate limit status for user"""
+    from models import RateLimit
+    
     try:
         user_hash = hash_user_id(user_identifier)
         
