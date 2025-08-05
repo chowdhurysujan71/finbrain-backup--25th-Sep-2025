@@ -1,8 +1,7 @@
 """Rate limiting functionality for message processing"""
+import os
 import logging
 from datetime import datetime, date, timedelta
-from app import db
-from models import RateLimit
 from utils.security import hash_user_id
 
 logger = logging.getLogger(__name__)
@@ -13,6 +12,9 @@ HOURLY_MESSAGE_LIMIT = int(os.environ.get("HOURLY_MESSAGE_LIMIT", "10"))
 
 def check_rate_limit(user_identifier, platform):
     """Check if user has exceeded rate limits"""
+    from models import RateLimit
+    from app import db
+    
     try:
         user_hash = hash_user_id(user_identifier)
         current_date = date.today()

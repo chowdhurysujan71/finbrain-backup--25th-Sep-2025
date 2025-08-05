@@ -1,15 +1,20 @@
 """Database operations and connection utilities"""
 import logging
-from app import db
-from models import Expense, User, MonthlySummary, RateLimit
 from datetime import datetime, date
 from sqlalchemy.exc import SQLAlchemyError
 from utils.security import hash_user_id
 
 logger = logging.getLogger(__name__)
 
-def get_or_create_user(user_identifier, platform):
+def get_or_create_user(user_identifier, platform, db_session=None):
     """Get existing user or create new one with hashed ID"""
+    from models import User
+    from flask import current_app
+    
+    if db_session is None:
+        from app import db
+        db_session = db
+    
     try:
         user_hash = hash_user_id(user_identifier)
         
@@ -22,19 +27,25 @@ def get_or_create_user(user_identifier, platform):
                 total_expenses=0,
                 expense_count=0
             )
-            db.session.add(user)
-            db.session.commit()
+            db_session.session.add(user)
+            db_session.session.commit()
             logger.info(f"Created new user for platform {platform}")
         
         return user
         
     except SQLAlchemyError as e:
         logger.error(f"Database error in get_or_create_user: {str(e)}")
-        db.session.rollback()
+        db_session.session.rollback()
         return None
 
-def save_expense(user_identifier, description, amount, category, platform, original_message, unique_id):
+def save_expense(user_identifier, description, amount, category, platform, original_message, unique_id, db_session=None):
     """Save expense to database and update monthly summaries"""
+    from models import Expense, User, MonthlySummary
+    
+    if db_session is None:
+        from app import db
+        db_session = db
+    
     try:
         user_hash = hash_user_id(user_identifier)
         current_date = date.today()
@@ -55,10 +66,10 @@ def save_expense(user_identifier, description, amount, category, platform, origi
             original_message=original_message
         )
         
-        db.session.add(expense)
+        db_session.session.add(expense)
         
         # Update user totals
-        user = get_or_create_user(user_identifier, platform)
+        user = get_or_create_user(user_identifier, platform, db_session)
         if user:
             user.total_expenses = float(user.total_expenses) + float(amount)
             user.expense_count += 1
@@ -78,7 +89,7 @@ def save_expense(user_identifier, description, amount, category, platform, origi
                 expense_count=1,
                 categories={category: float(amount)}
             )
-            db.session.add(monthly_summary)
+            db_session.session.add(monthly_summary)
         else:
             monthly_summary.total_amount = float(monthly_summary.total_amount) + float(amount)
             monthly_summary.expense_count += 1
@@ -89,7 +100,7 @@ def save_expense(user_identifier, description, amount, category, platform, origi
             monthly_summary.categories = categories
             monthly_summary.updated_at = datetime.utcnow()
         
-        db.session.commit()
+        db_session.session.commit()
         
         return {
             'success': True,
@@ -99,11 +110,13 @@ def save_expense(user_identifier, description, amount, category, platform, origi
         
     except SQLAlchemyError as e:
         logger.error(f"Database error saving expense: {str(e)}")
-        db.session.rollback()
+        db_session.session.rollback()
         return {'success': False, 'error': str(e)}
 
 def get_monthly_summary(user_identifier, month=None):
     """Get monthly summary for a user"""
+    from models import MonthlySummary
+    
     try:
         user_hash = hash_user_id(user_identifier)
         

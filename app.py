@@ -4,10 +4,6 @@ from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
-from utils.whatsapp_handler import handle_whatsapp_message
-from utils.facebook_handler import handle_facebook_message
-from utils.rate_limiter import check_rate_limit
-from utils.scheduler import init_scheduler
 import json
 
 # Configure logging
@@ -39,7 +35,8 @@ with app.app_context():
     import models  # noqa: F401
     db.create_all()
     
-    # Initialize scheduler for automated reports
+    # Initialize scheduler for automated reports (after db setup)
+    from utils.scheduler import init_scheduler
     init_scheduler()
 
 @app.route('/')
@@ -152,11 +149,13 @@ def handle_whatsapp_request(request):
             return "", 200
         
         # Check rate limits
+        from utils.rate_limiter import check_rate_limit
         if not check_rate_limit(from_number, 'whatsapp'):
             logger.warning(f"Rate limit exceeded for WhatsApp user: {from_number}")
             return "", 200
         
         # Process the message
+        from utils.whatsapp_handler import handle_whatsapp_message
         response = handle_whatsapp_message(from_number, message_body, message_sid)
         
         return response, 200
@@ -182,11 +181,13 @@ def handle_facebook_request(request):
                 
                 if sender_id and message_text:
                     # Check rate limits
+                    from utils.rate_limiter import check_rate_limit
                     if not check_rate_limit(sender_id, 'facebook'):
                         logger.warning(f"Rate limit exceeded for Facebook user: {sender_id}")
                         continue
                     
                     # Process the message
+                    from utils.facebook_handler import handle_facebook_message
                     handle_facebook_message(sender_id, message_text)
         
         return jsonify({"status": "ok"}), 200
