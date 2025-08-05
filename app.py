@@ -90,88 +90,69 @@ def health_check():
         "platform_support": ["whatsapp", "facebook_messenger"]
     })
 
-@app.route('/webhook', methods=['GET', 'POST'])
+@app.route("/webhook", methods=["GET", "POST"])
 def webhook():
-    """Unified webhook for WhatsApp and Facebook Messenger"""
-    try:
-        if request.method == 'GET':
-            # Facebook webhook verification
-            return handle_facebook_verification(request)
+    if request.method == "GET":
+        verify_token = request.args.get("hub.verify_token")
+        challenge = request.args.get("hub.challenge")
+        if verify_token == os.getenv("FACEBOOK_VERIFY_TOKEN"):
+            return challenge, 200  # Must return as plain text
+        return "Verification token mismatch", 403
+    elif request.method == "POST":
+        # Detect platform based on content type
+        content_type = request.content_type or ""
         
-        elif request.method == 'POST':
-            # Detect platform based on content type
-            content_type = request.content_type
-            
-            if 'application/x-www-form-urlencoded' in content_type:
-                # WhatsApp via Twilio (form data)
-                logger.debug("Processing WhatsApp message")
-                return handle_whatsapp_request(request)
-            
-            elif 'application/json' in content_type:
-                # Facebook Messenger (JSON)
-                logger.debug("Processing Facebook Messenger message")
-                return handle_facebook_request(request)
-            
-            else:
-                logger.warning(f"Unknown content type: {content_type}")
-                return jsonify({"error": "Unsupported content type"}), 400
-                
-    except Exception as e:
-        logger.error(f"Webhook error: {str(e)}")
-        # Always return 200 to prevent platform retries
-        return jsonify({"status": "error", "message": "Internal error"}), 200
-
-def handle_facebook_verification(request):
-    """Handle Facebook webhook verification"""
-    try:
-        verify_token = os.environ.get("FACEBOOK_VERIFY_TOKEN", "default_verify_token")
+        if 'application/x-www-form-urlencoded' in content_type:
+            # WhatsApp via Twilio (form data)
+            print("📱 WhatsApp message received")
+            return handle_whatsapp_request()
         
-        if request.args.get('hub.verify_token') == verify_token:
-            return request.args.get('hub.challenge')
+        elif 'application/json' in content_type:
+            # Facebook Messenger (JSON)
+            data = request.get_json()
+            print("📩 Facebook webhook:", data)
+            return handle_facebook_request(data)
+        
         else:
-            logger.warning("Facebook verification failed - invalid token")
-            return "Verification failed", 403
-            
-    except Exception as e:
-        logger.error(f"Facebook verification error: {str(e)}")
-        return "Verification failed", 403
+            print(f"❓ Unknown content type: {content_type}")
+            return "EVENT_RECEIVED", 200
 
-def handle_whatsapp_request(request):
-    """Handle WhatsApp message processing with rate limiting"""
+
+
+def handle_whatsapp_request():
+    """Handle WhatsApp message processing"""
     try:
         # Extract message data
         from_number = request.form.get('From', '')
         message_body = request.form.get('Body', '')
         message_sid = request.form.get('SmsMessageSid', '')
         
+        print(f"📱 WhatsApp from {from_number}: {message_body}")
+        
         if not from_number or not message_body:
-            logger.warning("Missing WhatsApp message data")
-            return "", 200
+            return "OK", 200
         
         # Check rate limits
         from utils.rate_limiter import check_rate_limit
         if not check_rate_limit(from_number, 'whatsapp'):
-            logger.warning(f"Rate limit exceeded for WhatsApp user: {from_number}")
-            return "", 200
+            print(f"🚫 Rate limit exceeded for {from_number}")
+            return "OK", 200
         
         # Process the message
         from utils.whatsapp_handler import handle_whatsapp_message
         response = handle_whatsapp_message(from_number, message_body, message_sid)
         
-        return response, 200
+        return "OK", 200
         
     except Exception as e:
-        logger.error(f"WhatsApp processing error: {str(e)}")
-        return "", 200
+        print(f"❌ WhatsApp error: {str(e)}")
+        return "OK", 200
 
-def handle_facebook_request(request):
-    """Handle Facebook Messenger message processing with rate limiting"""
+def handle_facebook_request(data):
+    """Handle Facebook Messenger message processing"""
     try:
-        data = request.get_json()
-        
         if not data or data.get('object') != 'page':
-            logger.warning("Invalid Facebook webhook data")
-            return jsonify({"status": "ok"}), 200
+            return "EVENT_RECEIVED", 200
         
         for entry in data.get('entry', []):
             for messaging in entry.get('messaging', []):
@@ -180,21 +161,23 @@ def handle_facebook_request(request):
                 message_text = message.get('text', '')
                 
                 if sender_id and message_text:
+                    print(f"💬 Facebook from {sender_id}: {message_text}")
+                    
                     # Check rate limits
                     from utils.rate_limiter import check_rate_limit
                     if not check_rate_limit(sender_id, 'facebook'):
-                        logger.warning(f"Rate limit exceeded for Facebook user: {sender_id}")
+                        print(f"🚫 Rate limit exceeded for {sender_id}")
                         continue
                     
                     # Process the message
                     from utils.facebook_handler import handle_facebook_message
                     handle_facebook_message(sender_id, message_text)
         
-        return jsonify({"status": "ok"}), 200
+        return "EVENT_RECEIVED", 200
         
     except Exception as e:
-        logger.error(f"Facebook processing error: {str(e)}")
-        return jsonify({"status": "ok"}), 200
+        print(f"❌ Facebook error: {str(e)}")
+        return "EVENT_RECEIVED", 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
