@@ -12,10 +12,11 @@ Preferred communication style: Simple, everyday language.
 
 ### Web Framework
 - **Flask** serves as the core web framework with SQLAlchemy ORM for database operations
-- **Fast webhook** at `/webhook/messenger` with signature verification, deduplication, and async processing (<300ms response)
+- **Production-hardened webhook** at `/webhook/messenger` with mandatory signature verification, HTTPS enforcement, deduplication, and async processing (<300ms response)
 - **Private dashboard** at `/` protected by HTTP Basic Auth (ADMIN_USER/ADMIN_PASS)
-- **Enhanced health endpoint** at `/health` with uptime_s, queue_depth, ai_status, and cold-start mitigation status
-- **Ops monitoring** at `/ops` for operational metrics (Basic Auth required)
+- **Enhanced health endpoint** at `/health` with uptime_s, queue_depth, ai_status, token monitoring, and security status
+- **Ops monitoring** at `/ops` for operational metrics including Facebook token status (Basic Auth required)
+- **Token refresh monitoring** at `/ops/token-refresh-status` with automated expiry tracking and refresh reminders (Basic Auth required)
 - **PSID explorer** at `/psid/<hash>` for read-only user investigation (Basic Auth required)
 
 ### Database Design
@@ -27,6 +28,9 @@ Preferred communication style: Simple, everyday language.
 - **Connection pooling** with pool recycling and pre-ping for reliability
 
 ### Security Architecture
+- **Production-grade Facebook webhook security** with mandatory X-Hub-Signature-256 verification using FACEBOOK_APP_SECRET
+- **HTTPS enforcement** - rejects HTTP requests as required by Meta's platform policies
+- **Facebook Page Access Token monitoring** with automated expiry tracking and refresh reminders
 - **SHA-256 hashing** for all user identifiers (Facebook PSIDs)
 - **PSID-based identity** - uses Facebook Page-Scoped IDs as primary user identifier
 - **No raw personal data** stored in database

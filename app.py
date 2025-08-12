@@ -187,7 +187,7 @@ def dashboard():
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Health check endpoint - all required envs guaranteed present at boot"""
+    """Health check endpoint with production security monitoring"""
     health_status = "healthy"
     issues = []
     
@@ -201,8 +201,21 @@ def health_check():
         health_status = "degraded"
         issues.append("database_unreachable")
     
-    # All required envs guaranteed to exist (validated at boot)
-    required_envs = ["DATABASE_URL", "ADMIN_USER", "ADMIN_PASS", "FACEBOOK_PAGE_ACCESS_TOKEN", "FACEBOOK_VERIFY_TOKEN"]
+    # Enhanced security: Check Facebook token health
+    try:
+        from utils.token_manager import check_token_health
+        token_healthy, token_message = check_token_health()
+        if not token_healthy:
+            health_status = "degraded"
+            issues.append(f"token_issue")
+    except Exception as e:
+        logger.error(f"Token health check failed: {str(e)}")
+        health_status = "degraded"
+        issues.append("token_check_failed")
+    
+    # Production security: All required envs guaranteed to exist (validated at boot)
+    required_envs = ["DATABASE_URL", "ADMIN_USER", "ADMIN_PASS", "FACEBOOK_PAGE_ACCESS_TOKEN", 
+                    "FACEBOOK_VERIFY_TOKEN", "FACEBOOK_APP_SECRET", "FACEBOOK_APP_ID"]
     
     # Check optional environment variables
     optional_envs = ["SENTRY_DSN"]
@@ -236,6 +249,11 @@ def health_check():
         "cold_start_mitigation": {
             "completed": cold_start_mitigator.warm_up_completed,
             "ai_enabled": cold_start_mitigator.ai_enabled
+        },
+        "security": {
+            "https_enforced": True,
+            "signature_verification": "mandatory",
+            "token_monitoring": "enabled"
         }
     }
     
@@ -268,15 +286,30 @@ def webhook_messenger():
             return "Verification token mismatch", 403
         
     elif request.method == "POST":
-        # Fast webhook processing with signature verification
+        # PRODUCTION SECURITY: Enforce HTTPS
+        if not request.is_secure and not request.headers.get('X-Forwarded-Proto') == 'https':
+            logger.error("Webhook called over HTTP - Facebook requires HTTPS")
+            return "HTTPS required", 400
+        
+        # PRODUCTION SECURITY: Mandatory signature verification
         from utils.webhook_processor import process_webhook_fast
         
         # Get raw payload and signature
         payload_bytes = request.get_data()
         signature = request.headers.get('X-Hub-Signature-256', '')
         
-        # Skip signature verification for MVP (no FACEBOOK_APP_SECRET required)
-        response_text, status_code = process_webhook_fast(payload_bytes, signature, '')
+        # Get app secret - REQUIRED for production
+        app_secret = os.environ.get('FACEBOOK_APP_SECRET', '')
+        
+        if not app_secret:
+            logger.error("FACEBOOK_APP_SECRET is required for webhook signature verification")
+            return "Configuration error", 500
+        
+        if not signature:
+            logger.error("Missing X-Hub-Signature-256 header")
+            return "Missing signature", 400
+        
+        response_text, status_code = process_webhook_fast(payload_bytes, signature, app_secret)
         return response_text, status_code
 
 @app.route('/ops', methods=['GET'])
@@ -311,8 +344,17 @@ def ops_status():
             Expense.created_at >= hour_ago
         ).count()
         
+        # Get Facebook token status
+        try:
+            from utils.token_manager import get_token_status
+            token_status = get_token_status()
+        except Exception as e:
+            logger.error(f"Failed to get token status: {str(e)}")
+            token_status = {"error": "token_status_unavailable"}
+        
         return jsonify({
             "timestamp": datetime.utcnow().isoformat(),
+            "facebook_token": token_status,
             "message_counts": {
                 "today": messages_today,
                 "total": total_messages,
@@ -337,6 +379,28 @@ def ops_status():
         logger.error(f"Ops status error: {str(e)}")
         return jsonify({
             "error": "Failed to retrieve ops status",
+            "timestamp": datetime.utcnow().isoformat()
+        }), 500
+
+@app.route('/ops/token-refresh-status', methods=['GET'])
+@require_basic_auth
+def token_refresh_status():
+    """Token refresh monitoring and reminder endpoint (JSON) - Admin access required"""
+    try:
+        from utils.token_refresh_reminder import get_token_refresh_status
+        
+        refresh_status = get_token_refresh_status()
+        
+        return jsonify({
+            "timestamp": datetime.utcnow().isoformat(),
+            "endpoint": "token-refresh-status",
+            "refresh_monitoring": refresh_status
+        })
+        
+    except Exception as e:
+        logger.error(f"Token refresh status error: {str(e)}")
+        return jsonify({
+            "error": "Failed to retrieve token refresh status",
             "timestamp": datetime.utcnow().isoformat()
         }), 500
 
