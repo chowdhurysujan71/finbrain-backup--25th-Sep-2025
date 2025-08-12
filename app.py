@@ -72,6 +72,11 @@ with app.app_context():
     # Initialize scheduler for automated reports (after db setup)
     from utils.scheduler import init_scheduler
     init_scheduler()
+    
+    # Initialize background processor
+    logger.info("Initializing background processor...")
+    from utils.background_processor import background_processor
+    logger.info(f"Background processor ready: {background_processor.get_stats()}")
 
 def check_basic_auth():
     """Check HTTP Basic Authentication against ADMIN_USER/ADMIN_PASS"""

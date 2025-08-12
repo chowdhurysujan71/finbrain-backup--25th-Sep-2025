@@ -185,23 +185,31 @@ def process_webhook_fast(payload_bytes: bytes, signature: str, app_secret: str) 
             log_event(request_id, "unknown", "unknown", "extract_events", duration_ms, "no_events")
             return "EVENT_RECEIVED", 200
         
-        # Step 4: Process each event
+        # Step 4: Enqueue events for background processing  
+        from .background_processor import background_processor
+        
+        events_queued = 0
         for event in events:
             psid = event['psid']
             mid = event['mid']
+            text = event.get('text', '')
             
             # Check for duplicates
             if is_duplicate_message(mid):
                 log_event(request_id, psid, mid, "dedupe_check", 0, "duplicate")
                 continue
             
-            # Schedule async processing
-            executor.submit(process_message_async, event, request_id)
-            log_event(request_id, psid, mid, "enqueue", 0, "queued")
+            # Enqueue for safe background processing
+            if background_processor.enqueue_message(request_id, psid, mid, text):
+                events_queued += 1
+                log_event(request_id, psid, mid, "enqueue", 0, "queued")
+            else:
+                log_event(request_id, psid, mid, "enqueue", 0, "failed")
         
-        # Return fast response
+        # Return fast response (background processing continues)
         duration_ms = (time.time() - start_time) * 1000
         log_event(request_id, "batch", f"{len(events)}_events", "webhook_complete", duration_ms, "success")
+        logger.info(f"Request {request_id}: Webhook processed in {duration_ms:.2f}ms, {events_queued} events queued")
         return "EVENT_RECEIVED", 200
         
     except Exception as e:

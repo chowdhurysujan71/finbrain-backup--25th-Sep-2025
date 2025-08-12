@@ -35,11 +35,20 @@ Preferred communication style: Simple, everyday language.
 - **Environment variable** configuration for all sensitive credentials
 - **Rate limiting** with daily and hourly message limits per user
 
+### Background Processing System
+- **Thread pool execution** with 3 worker threads for safe background message processing
+- **5-second timeout protection** with automatic fallback replies ("Got it. Try 'summary' for a quick recap.")
+- **AI adapter framework** with failover support (AI_ENABLED=false for MVP, falls back to regex routing)
+- **Keep-alive HTTP sessions** for external API calls with connection pooling
+- **Comprehensive error handling** with Flask app context management and graceful degradation
+
 ### Message Processing Pipeline  
+- **Background job queue** processes {rid, psid, mid, text} after immediate webhook response (<1ms)
 - **MVP Regex Router** with three intent patterns:
   - `^log (\d+) (.*)$`: Store expense with amount and note
   - `^summary$`: Generate 7-day category breakdown with actionable tip
   - Default: Show help with usage examples
+- **AI failover logic**: If AI_ENABLED=true, try AI adapter first, then regex on failover:true
 - **Simple categorization** into 5 categories (food, ride, bill, grocery, other) using keyword matching
 - **Duplicate prevention** using unique message IDs
 - **Response limits** ≤ 280 characters for all replies
@@ -50,9 +59,13 @@ Preferred communication style: Simple, everyday language.
 - **Unified expense processing** for all messages
 
 ### Background Processing
+- **ThreadPoolExecutor** with 3 worker threads for safe message processing
+- **Job queue system** with {rid, psid, mid, text} payload structure
+- **5-second timeout cap** with fallback reply system for processing protection
+- **AI adapter support** with failover to regex routing (AI_ENABLED environment flag)
 - **APScheduler** for background task scheduling (reports disabled for MVP)
 - **24-hour policy compliance** - no scheduled outbound messages
-- **Background task execution** without blocking main application
+- **Flask app context** management for database operations in background threads
 
 ### Modular Architecture
 - **Utils package** with specialized modules:
@@ -62,7 +75,8 @@ Preferred communication style: Simple, everyday language.
   - `db.py`: Database operations and connection utilities
   - `rate_limiter.py`: Message rate limiting functionality
   - `facebook_handler.py`: Facebook Messenger messaging
-  - `webhook_processor.py`: Fast webhook processing with signature verification and async handling
+  - `webhook_processor.py`: Fast webhook processing with signature verification and background job queuing
+  - `background_processor.py`: Thread pool-based background execution with AI adapter and timeout protection
   - `mvp_router.py`: Regex-based intent matching with lightweight job processing
   - `policy_guard.py`: 24-hour messaging window compliance
   - `report_generator.py`: Report creation (scheduled reports disabled for MVP)
@@ -106,6 +120,7 @@ Optional configuration:
 - `SENTRY_DSN`: Error monitoring (if used)
 - `SESSION_SECRET`: Flask session security (auto-generated if not provided)
 - `DAILY_MESSAGE_LIMIT`, `HOURLY_MESSAGE_LIMIT`: Rate limiting configuration (defaults applied)
+- `AI_ENABLED`: Enable AI processing adapter (default: false, uses regex fallback)
 - `ENV=production`: Enables production mode (INFO level logging, structured JSON output)
 
 ### Production Logging
