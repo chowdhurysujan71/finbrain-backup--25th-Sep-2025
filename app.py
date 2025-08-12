@@ -1,5 +1,6 @@
 import os
 import logging
+import sys
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for, make_response
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
@@ -13,6 +14,35 @@ from datetime import datetime, timedelta
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+def validate_required_environment():
+    """Validate all required environment variables are present at boot"""
+    required_envs = [
+        'DATABASE_URL',
+        'ADMIN_USER', 
+        'ADMIN_PASS',
+        'FACEBOOK_PAGE_ACCESS_TOKEN',
+        'FACEBOOK_VERIFY_TOKEN'
+    ]
+    
+    missing_envs = []
+    for env_var in required_envs:
+        if not os.environ.get(env_var):
+            missing_envs.append(env_var)
+    
+    if missing_envs:
+        logger.critical(f"BOOT FAILURE: Missing required environment variables: {missing_envs}")
+        logger.critical("FinBrain refuses to start without all required environment variables")
+        logger.critical("Set the following environment variables and restart:")
+        for env_var in missing_envs:
+            logger.critical(f"  - {env_var}")
+        sys.exit(1)
+    
+    logger.info("✓ All required environment variables present")
+    return True
+
+# Validate environment before any Flask initialization
+validate_required_environment()
+
 class Base(DeclarativeBase):
     pass
 
@@ -20,11 +50,11 @@ db = SQLAlchemy(model_class=Base)
 
 # Create the app
 app = Flask(__name__, static_folder='static', static_url_path='/static')
-app.secret_key = os.environ.get("SESSION_SECRET", "default_secret_key_for_dev")
+app.secret_key = os.environ.get("SESSION_SECRET") or os.urandom(32).hex()
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configure the database
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "postgresql://user:pass@localhost/finbrain")
+# Configure the database (guaranteed to exist due to validation)
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
@@ -137,7 +167,7 @@ def dashboard():
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Health check endpoint with environment validation"""
+    """Health check endpoint - all required envs guaranteed present at boot"""
     health_status = "healthy"
     issues = []
     
@@ -151,23 +181,12 @@ def health_check():
         health_status = "degraded"
         issues.append("database_unreachable")
     
-    # Check required environment variables
-    required_envs = ["DATABASE_URL", "ADMIN_USER", "ADMIN_PASS"]
-    missing_envs = []
+    # All required envs guaranteed to exist (validated at boot)
+    required_envs = ["DATABASE_URL", "ADMIN_USER", "ADMIN_PASS", "FACEBOOK_PAGE_ACCESS_TOKEN", "FACEBOOK_VERIFY_TOKEN"]
     
-    for env_var in required_envs:
-        if not os.environ.get(env_var):
-            missing_envs.append(env_var)
-            health_status = "degraded"
-            issues.append(f"missing_{env_var.lower()}")
-    
-    # Optional environment variables (warn but don't fail)
-    optional_envs = ["FACEBOOK_PAGE_ACCESS_TOKEN", "FACEBOOK_VERIFY_TOKEN"]
-    missing_optional = []
-    
-    for env_var in optional_envs:
-        if not os.environ.get(env_var):
-            missing_optional.append(env_var)
+    # Check optional environment variables
+    optional_envs = ["SENTRY_DSN"]
+    present_optional = [env for env in optional_envs if os.environ.get(env)]
     
     response = {
         "status": health_status,
@@ -175,13 +194,14 @@ def health_check():
         "database": database_status,
         "platform_support": ["facebook_messenger"],
         "required_envs": {
-            "present": [env for env in required_envs if os.environ.get(env)],
-            "missing": missing_envs
-        }
+            "all_present": True,
+            "count": len(required_envs)
+        },
+        "boot_validation": "strict_enforcement_enabled"
     }
     
-    if missing_optional:
-        response["optional_envs_missing"] = missing_optional
+    if present_optional:
+        response["optional_envs_present"] = present_optional
     
     if issues:
         response["issues"] = issues

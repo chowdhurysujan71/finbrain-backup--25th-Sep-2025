@@ -94,13 +94,15 @@ Preferred communication style: Simple, everyday language.
 - **Font Awesome 6**: Icon library for dashboard UI
 
 ### Environment Configuration
-Core deployment secrets:
+**Strict boot validation enforced - application refuses to start if any required environment variable is missing.**
+
+Required deployment secrets (no fallbacks):
 - `DATABASE_URL`: PostgreSQL connection string
-- `ADMIN_USER`, `ADMIN_PASS`: HTTP Basic Auth for dashboard and ops endpoints
+- `ADMIN_USER`, `ADMIN_PASS`: HTTP Basic Auth for dashboard and ops endpoints  
 - `FACEBOOK_PAGE_ACCESS_TOKEN`: Facebook Messenger API access
 - `FACEBOOK_VERIFY_TOKEN`: Webhook verification token
-- `SENTRY_DSN`: Optional error monitoring
 
-Application configuration:
-- `SESSION_SECRET`: Flask session security
-- `DAILY_MESSAGE_LIMIT`, `HOURLY_MESSAGE_LIMIT`: Rate limiting configuration
+Optional configuration:
+- `SENTRY_DSN`: Error monitoring (if used)
+- `SESSION_SECRET`: Flask session security (auto-generated if not provided)
+- `DAILY_MESSAGE_LIMIT`, `HOURLY_MESSAGE_LIMIT`: Rate limiting configuration (defaults applied)
