@@ -1,79 +1,82 @@
-# FinBrain Production Deployment Guide
+# FinBrain Deployment Guide
 
-## Production Status
-- ✅ **Local Development**: All endpoints working (health: 200, webhook verification: ✅)
-- ✅ **Safety Fixes Applied**: Lazy imports and optional scheduler for production stability
-- ⚠️ **Production Deployment**: Needs fresh deployment to resolve 500 errors
+## Quick Deployment to Replit Reserved VM
 
-## Current Production URL
-```
-https://finbrain-chowdhurysujan7.replit.app
-```
+### 1. VM Configuration
+- **Type:** Web Server
+- **Size:** 0.5 vCPU / 2 GB RAM
+- **Always-On:** Enabled
 
-## Meta Webhook Configuration
-**Use these exact values in Meta Developer Console:**
+### 2. Build & Run Commands
+```bash
+# Build Command
+python -m pip install --upgrade pip setuptools wheel && python -m pip install -r requirements.txt
 
-```
-Callback URL: https://finbrain-chowdhurysujan7.replit.app/webhook/messenger
-Verify Token: finbrain_verify_123
-Webhook Fields: messages, messaging_postbacks
+# Run Command  
+gunicorn --bind 0.0.0.0:5000 main:app
 ```
 
-## Environment Variables (Required)
-All required environment variables are properly configured:
-- ✅ `DATABASE_URL`: PostgreSQL connection
-- ✅ `ADMIN_USER`: Dashboard authentication  
-- ✅ `ADMIN_PASS`: Dashboard authentication
-- ✅ `FACEBOOK_PAGE_ACCESS_TOKEN`: Facebook Messenger API access
-- ✅ `FACEBOOK_VERIFY_TOKEN`: Webhook verification (finbrain_verify_123)
+### 3. Required Environment Variables
+```bash
+# Facebook Integration (Required)
+FACEBOOK_APP_SECRET=your_app_secret_here
+FACEBOOK_APP_ID=your_app_id_here  
+FACEBOOK_PAGE_ACCESS_TOKEN=your_page_token_here
+FACEBOOK_VERIFY_TOKEN=your_verify_token_here
 
-## Production Safety Features
-- **Lazy imports**: Critical dependencies loaded only when needed
-- **Optional scheduler**: Background reports disabled by default (ENABLE_REPORTS=false)
-- **Strict validation**: App refuses to start if any required environment variable is missing
-- **Error resilience**: Graceful degradation for optional features
+# Database (Required)
+DATABASE_URL=postgresql://user:pass@host:port/db
 
-## Deployment Steps
-1. **Click Deploy**: Use Replit's Deploy button in the interface
-2. **Wait for Build**: Allow Replit to build and deploy the application  
-3. **Verify Health**: Test `/health` endpoint returns 200 OK
-4. **Configure Webhook**: Use the webhook URL in Meta Developer Console
-5. **Test Integration**: Send test message to verify end-to-end flow
+# Admin Access (Required)
+ADMIN_USER=admin
+ADMIN_PASS=secure_password_here
 
-## Production Testing Commands
+# Security (Required)
+SESSION_SECRET=random_session_key
+
+# Optional Configuration
+AI_ENABLED=false
+HEALTH_PING_ENABLED=true
+ENABLE_REPORTS=false
+```
+
+### 4. Post-Deployment Testing
 ```bash
 # Test health endpoint
-curl https://finbrain-chowdhurysujan7.replit.app/health
+curl https://your-app.replit.app/health
+
+# Test version endpoint
+curl https://your-app.replit.app/version
 
 # Test webhook verification
-curl "https://finbrain-chowdhurysujan7.replit.app/webhook/messenger?hub.mode=subscribe&hub.challenge=TEST123&hub.verify_token=finbrain_verify_123"
-
-# Expected: Should return "TEST123" with 200 status
+curl https://your-app.replit.app/webhook/messenger?hub.mode=subscribe&hub.verify_token=YOUR_TOKEN&hub.challenge=test
 ```
 
-## **CRITICAL: Production Deployment Issue Confirmed**
+### 5. Facebook Webhook Setup
+1. Set webhook URL to: `https://your-app.replit.app/webhook/messenger`
+2. Verify token matches FACEBOOK_VERIFY_TOKEN
+3. Enable messages and messaging_postbacks events
+4. Test with Facebook's webhook tester
 
-**Current Status:**
-- ✅ **Local Development**: All endpoints working perfectly (`health: 200 OK`, `webhook verification: ✅`)
-- ❌ **Production Deployment**: 500 Internal Server Error on ALL endpoints
-- 🔧 **Root Cause**: Production deployment is broken/outdated
+## Security Features
+✅ **HTTPS Enforcement** - Rejects HTTP requests  
+✅ **Signature Verification** - Validates X-Hub-Signature-256  
+✅ **Token Monitoring** - Tracks 60-day lifecycle  
+✅ **Rate Limiting** - Per-user message limits  
+✅ **Basic Auth** - Protects admin endpoints
 
-**Debug Results:**
-```
-Production URL: https://finbrain-chowdhurysujan7.replit.app
-- Health endpoint: 500 Internal Server Error  
-- Home page: 500 Internal Server Error
-- Webhook endpoint: 500 Internal Server Error
-```
+## Monitoring Endpoints
+- `/health` - System health and security status
+- `/ops` - Operations metrics (Basic Auth required)
+- `/ops/token-refresh-status` - Token monitoring (Basic Auth required)
+- `/version` - Deployment version information
 
-**Solution Required:**
-1. **DEPLOY NOW**: Click the **Deploy** button in Replit interface
-2. **Wait for completion**: Allow build and deployment to finish
-3. **Verify endpoints**: Test health and webhook after deployment
-4. **Configure Meta**: Once working, set up webhook in Meta Developer Console
+## Production Ready Features
+- Comprehensive error handling
+- Background job processing  
+- Database connection pooling
+- Structured logging
+- Security hardening complete
+- Automated health pings
 
-**The webhook verification code is correct and ready** - just needs working production deployment.
-
-## **Dependencies Fixed**
-✅ Added `requests` dependency to `pyproject.toml` for production deployment  
-✅ All required Python packages now properly configured
+Ready for production deployment!

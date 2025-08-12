@@ -2,7 +2,7 @@
 
 ## Overview
 
-FinBrain is a Facebook Messenger expense tracking application that processes expense messages through Facebook Messenger. The system uses AI-powered categorization to automatically classify expenses into 10 predefined categories, extracts amounts using regex patterns, and stores all data securely in a PostgreSQL database. Users can send expense messages in natural language, and the system responds with confirmation and monthly totals. The application includes a web dashboard for viewing expense statistics and automated reporting capabilities.
+FinBrain is a production-ready Facebook Messenger expense tracking application with comprehensive security hardening. The system processes expense messages through Facebook Messenger webhooks, uses intelligent categorization to classify expenses, and stores all data securely in PostgreSQL. The application features mandatory HTTPS enforcement, X-Hub-Signature-256 verification, automated Facebook Page Access Token monitoring, and production-grade security compliance. Ready for deployment to Replit Reserved VM with complete go-live runbook.
 
 ## User Preferences
 
@@ -18,6 +18,7 @@ Preferred communication style: Simple, everyday language.
 - **Ops monitoring** at `/ops` for operational metrics including Facebook token status (Basic Auth required)
 - **Token refresh monitoring** at `/ops/token-refresh-status` with automated expiry tracking and refresh reminders (Basic Auth required)
 - **PSID explorer** at `/psid/<hash>` for read-only user investigation (Basic Auth required)
+- **Version endpoint** at `/version` for deployment tracking and build information
 
 ### Database Design
 - **PostgreSQL** primary database with three core tables:

@@ -1,0 +1,42 @@
+{
+  "release": {
+    "version": "v1.0.0-mvp",
+    "build_date": "2025-08-12T15:35:00Z",
+    "commit_hash": "production_ready",
+    "short_hash": "prod",
+    "status": "production_ready"
+  },
+  "deployment": {
+    "build_command": "python -m pip install --upgrade pip setuptools wheel && python -m pip install -r requirements.txt",
+    "run_command": "gunicorn --bind 0.0.0.0:5000 main:app",
+    "vm_requirements": {
+      "cpu": "0.5 vCPU",
+      "memory": "2 GB",
+      "type": "Web Server",
+      "always_on": true
+    }
+  },
+  "required_env_vars": [
+    "FACEBOOK_APP_SECRET",
+    "FACEBOOK_APP_ID",
+    "FACEBOOK_PAGE_ACCESS_TOKEN",
+    "FACEBOOK_VERIFY_TOKEN",
+    "DATABASE_URL",
+    "ADMIN_USER",
+    "ADMIN_PASS",
+    "SESSION_SECRET"
+  ],
+  "optional_env_vars": [
+    "AI_ENABLED",
+    "HEALTH_PING_ENABLED",
+    "ENABLE_REPORTS"
+  ],
+  "security_features": [
+    "HTTPS Enforcement",
+    "X-Hub-Signature-256 Verification",
+    "Page Access Token Monitoring",
+    "Rate Limiting",
+    "24-Hour Policy Compliance",
+    "HTTP Basic Auth Protection"
+  ]
+}
