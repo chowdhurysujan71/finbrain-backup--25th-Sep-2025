@@ -61,7 +61,32 @@ def require_basic_auth(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not check_basic_auth():
-            response = make_response(jsonify({"error": "Authentication required"}), 401)
+            # Check if request expects JSON (for API endpoints)
+            if request.headers.get('Content-Type') == 'application/json' or '/ops' in request.path or '/psid/' in request.path:
+                response = make_response(jsonify({"error": "Authentication required"}), 401)
+            else:
+                # For dashboard/HTML requests, send HTML response
+                response = make_response("""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>FinBrain Admin Login</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+                        .auth-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+                        h1 { color: #333; margin-bottom: 20px; }
+                        p { color: #666; }
+                    </style>
+                </head>
+                <body>
+                    <div class="auth-box">
+                        <h1>FinBrain Admin Access</h1>
+                        <p>Please enter your admin credentials to access the dashboard.</p>
+                        <p><small>Your browser should prompt for username and password.</small></p>
+                    </div>
+                </body>
+                </html>
+                """, 401)
             response.headers['WWW-Authenticate'] = 'Basic realm="FinBrain Admin"'
             return response
         return f(*args, **kwargs)
