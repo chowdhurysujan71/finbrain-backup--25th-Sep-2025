@@ -2,7 +2,7 @@
 
 ## Overview
 
-FinBrain is a multi-platform expense tracking application that processes expense messages through WhatsApp and Facebook Messenger. The system uses AI-powered categorization to automatically classify expenses into 10 predefined categories, extracts amounts using regex patterns, and stores all data securely in a PostgreSQL database. Users can send expense messages in natural language, and the system responds with confirmation and monthly totals. The application includes a web dashboard for viewing expense statistics and automated reporting capabilities.
+FinBrain is a Facebook Messenger expense tracking application that processes expense messages through Facebook Messenger. The system uses AI-powered categorization to automatically classify expenses into 10 predefined categories, extracts amounts using regex patterns, and stores all data securely in a PostgreSQL database. Users can send expense messages in natural language, and the system responds with confirmation and monthly totals. The application includes a web dashboard for viewing expense statistics and automated reporting capabilities.
 
 ## User Preferences
 
@@ -12,7 +12,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Web Framework
 - **Flask** serves as the core web framework with SQLAlchemy ORM for database operations
-- **Single unified webhook** at `/webhook` handles both WhatsApp (form data) and Facebook Messenger (JSON) requests
+- **Single webhook** at `/webhook/messenger` handles Facebook Messenger (JSON) requests
 - **Dashboard endpoint** at `/` provides a web interface for viewing expense statistics
 - **Health check endpoint** for monitoring application status
 
@@ -36,11 +36,10 @@ Preferred communication style: Simple, everyday language.
 - **Duplicate prevention** using unique message IDs
 - **Real-time response** with expense confirmation and monthly totals
 
-### Multi-Platform Integration
-- **WhatsApp Business API** via Twilio with form data parsing
+### Facebook Messenger Integration
 - **Facebook Messenger Platform** via Graph API v17.0 with JSON message processing
-- **Platform-specific handlers** in separate utility modules
-- **Unified expense processing** regardless of source platform
+- **Platform-specific handler** in facebook_handler.py utility module
+- **Unified expense processing** for all messages
 
 ### Background Processing
 - **APScheduler** for automated daily and weekly reports
@@ -54,14 +53,13 @@ Preferred communication style: Simple, everyday language.
   - `security.py`: Hashing and validation functions
   - `db.py`: Database operations and connection utilities
   - `rate_limiter.py`: Message rate limiting functionality
-  - `whatsapp_handler.py` & `facebook_handler.py`: Platform-specific messaging
+  - `facebook_handler.py`: Facebook Messenger messaging
   - `report_generator.py`: Automated report creation
   - `scheduler.py`: Background task scheduling
 
 ## External Dependencies
 
-### Messaging Platforms
-- **Twilio WhatsApp Business API**: Message sending/receiving, webhook verification
+### Messaging Platform
 - **Facebook Graph API v17.0**: Messenger platform integration, PSID handling
 
 ### Database
@@ -87,7 +85,6 @@ Preferred communication style: Simple, everyday language.
 ### Environment Configuration
 Required environment variables:
 - `DATABASE_URL`: PostgreSQL connection string
-- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER`: WhatsApp integration
 - `FACEBOOK_PAGE_ACCESS_TOKEN`, `FACEBOOK_VERIFY_TOKEN`: Facebook Messenger integration
 - `SESSION_SECRET`: Flask session security
 - `DAILY_MESSAGE_LIMIT`, `HOURLY_MESSAGE_LIMIT`: Rate limiting configuration

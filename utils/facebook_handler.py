@@ -24,7 +24,7 @@ def handle_facebook_message(sender_id, message_text):
         result = process_expense_message(
             user_identifier=sender_id,
             message=message_text,
-            platform='facebook',
+            platform='messenger',
             unique_id=unique_id
         )
         

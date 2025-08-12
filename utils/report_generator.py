@@ -2,7 +2,7 @@
 import logging
 from datetime import datetime, date, timedelta
 from utils.db import get_monthly_summary, get_user_expenses
-from utils.whatsapp_handler import send_whatsapp_report
+
 from utils.facebook_handler import send_facebook_report
 from models import User, Expense
 from app import db

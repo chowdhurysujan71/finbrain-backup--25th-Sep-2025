@@ -87,11 +87,11 @@ def health_check():
         "status": "healthy",
         "service": "finbrain-expense-tracker",
         "database": database_status,
-        "platform_support": ["whatsapp", "facebook_messenger"]
+        "platform_support": ["facebook_messenger"]
     })
 
-@app.route("/webhook", methods=["GET", "POST"])
-def webhook():
+@app.route("/webhook/messenger", methods=["GET", "POST"])
+def webhook_messenger():
     if request.method == "GET":
         verify_token = request.args.get("hub.verify_token")
         challenge = request.args.get("hub.challenge")
@@ -99,54 +99,14 @@ def webhook():
             return challenge, 200  # Must return as plain text
         return "Verification token mismatch", 403
     elif request.method == "POST":
-        # Detect platform based on content type
-        content_type = request.content_type or ""
-        
-        if 'application/x-www-form-urlencoded' in content_type:
-            # WhatsApp via Twilio (form data)
-            print("📱 WhatsApp message received")
-            return handle_whatsapp_request()
-        
-        elif 'application/json' in content_type:
-            # Facebook Messenger (JSON)
-            data = request.get_json()
-            print("📩 Facebook webhook:", data)
-            return handle_facebook_request(data)
-        
-        else:
-            print(f"❓ Unknown content type: {content_type}")
-            return "EVENT_RECEIVED", 200
+        # Facebook Messenger (JSON)
+        data = request.get_json()
+        print("📩 Facebook webhook:", data)
+        return handle_facebook_request(data)
 
 
 
-def handle_whatsapp_request():
-    """Handle WhatsApp message processing"""
-    try:
-        # Extract message data
-        from_number = request.form.get('From', '')
-        message_body = request.form.get('Body', '')
-        message_sid = request.form.get('SmsMessageSid', '')
-        
-        print(f"📱 WhatsApp from {from_number}: {message_body}")
-        
-        if not from_number or not message_body:
-            return "OK", 200
-        
-        # Check rate limits
-        from utils.rate_limiter import check_rate_limit
-        if not check_rate_limit(from_number, 'whatsapp'):
-            print(f"🚫 Rate limit exceeded for {from_number}")
-            return "OK", 200
-        
-        # Process the message
-        from utils.whatsapp_handler import handle_whatsapp_message
-        response = handle_whatsapp_message(from_number, message_body, message_sid)
-        
-        return "OK", 200
-        
-    except Exception as e:
-        print(f"❌ WhatsApp error: {str(e)}")
-        return "OK", 200
+
 
 def handle_facebook_request(data):
     """Handle Facebook Messenger message processing"""
@@ -165,7 +125,7 @@ def handle_facebook_request(data):
                     
                     # Check rate limits
                     from utils.rate_limiter import check_rate_limit
-                    if not check_rate_limit(sender_id, 'facebook'):
+                    if not check_rate_limit(sender_id, 'messenger'):
                         print(f"🚫 Rate limit exceeded for {sender_id}")
                         continue
                     

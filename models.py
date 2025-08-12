@@ -17,7 +17,7 @@ class Expense(db.Model):
     month = db.Column(db.String(7), nullable=False)  # Format: YYYY-MM
     unique_id = db.Column(db.Text, nullable=False)  # Unique identifier per expense
     created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Database insertion timestamp
-    platform = db.Column(db.String(20), default='whatsapp')  # WhatsApp or Facebook
+    platform = db.Column(db.String(20), default='messenger')  # Facebook Messenger
     original_message = db.Column(db.Text, default='')  # Full original message
     ai_insights = db.Column(db.Text, default='')  # Future AI insights storage
     
@@ -30,7 +30,7 @@ class User(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     user_id_hash = db.Column(db.String(255), unique=True, nullable=False)  # SHA-256 hashed user ID
-    platform = db.Column(db.String(20), nullable=False)  # WhatsApp or Facebook
+    platform = db.Column(db.String(20), nullable=False)  # Facebook Messenger
     total_expenses = db.Column(db.Numeric(12, 2), default=0)  # Lifetime total expenses
     expense_count = db.Column(db.Integer, default=0)  # Total number of expenses
     created_at = db.Column(db.DateTime, default=datetime.utcnow)  # User first interaction

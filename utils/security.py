@@ -24,24 +24,7 @@ def hash_user_id(user_identifier):
         logger.error(f"Error hashing user ID: {str(e)}")
         raise
 
-def validate_phone_number(phone_number):
-    """Validate WhatsApp phone number format"""
-    try:
-        if not phone_number:
-            return False
-        
-        # Remove whatsapp: prefix if present
-        clean_number = phone_number.replace('whatsapp:', '')
-        
-        # Basic validation for international format
-        if clean_number.startswith('+') and len(clean_number) > 8:
-            return True
-        
-        return False
-        
-    except Exception as e:
-        logger.error(f"Error validating phone number: {str(e)}")
-        return False
+
 
 def validate_facebook_psid(psid):
     """Validate Facebook Page-Scoped User ID"""
