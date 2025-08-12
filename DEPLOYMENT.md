@@ -73,3 +73,7 @@ Production URL: https://finbrain-chowdhurysujan7.replit.app
 4. **Configure Meta**: Once working, set up webhook in Meta Developer Console
 
 **The webhook verification code is correct and ready** - just needs working production deployment.
+
+## **Dependencies Fixed**
+✅ Added `requests` dependency to `pyproject.toml` for production deployment  
+✅ All required Python packages now properly configured
