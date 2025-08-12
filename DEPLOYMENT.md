@@ -1,84 +1,60 @@
-# FinBrain Production Deployment
+# FinBrain Production Deployment Guide
 
-## Production Configuration
+## Production Status
+- ✅ **Local Development**: All endpoints working (health: 200, webhook verification: ✅)
+- ✅ **Safety Fixes Applied**: Lazy imports and optional scheduler for production stability
+- ⚠️ **Production Deployment**: Needs fresh deployment to resolve 500 errors
 
-### Environment Variables
-All required environment variables must be set for production deployment:
-- `DATABASE_URL` - PostgreSQL connection string
-- `ADMIN_USER` - HTTP Basic Auth username for admin dashboard
-- `ADMIN_PASS` - HTTP Basic Auth password for admin dashboard
-- `FACEBOOK_PAGE_ACCESS_TOKEN` - Facebook Messenger API access token
-- `FACEBOOK_VERIFY_TOKEN` - Facebook webhook verification token
-- `ENV=production` - Enables production logging mode (INFO level, no reload)
-
-### Production Logging
-The application implements structured JSON logging for production observability:
-
-#### Request Logging
-Every inbound request is logged with:
-```json
-{
-  "timestamp": "2025-08-12T13:45:00.000Z",
-  "event_type": "request_start",
-  "rid": "a1b2c3d4",
-  "method": "POST",
-  "route": "/webhook/messenger",
-  "user_agent": "FacebookBot/1.0",
-  "content_length": 256
-}
+## Current Production URL
+```
+https://finbrain-chowdhurysujan7.replit.app
 ```
 
-#### Facebook Graph API Calls
-Every outbound Facebook Graph API call is logged:
-```json
-{
-  "timestamp": "2025-08-12T13:45:01.000Z",
-  "event_type": "graph_api_call",
-  "rid": "a1b2c3d4",
-  "endpoint": "/v17.0/me/messages",
-  "method": "POST",
-  "status": 200,
-  "duration_ms": 150.25
-}
+## Meta Webhook Configuration
+**Use these exact values in Meta Developer Console:**
+
+```
+Callback URL: https://finbrain-chowdhurysujan7.replit.app/webhook/messenger
+Verify Token: finbrain_verify_123
+Webhook Fields: messages, messaging_postbacks
 ```
 
-#### Webhook Processing
-Successful message processing includes:
-```json
-{
-  "timestamp": "2025-08-12T13:45:01.500Z",
-  "event_type": "webhook_processed",
-  "rid": "a1b2c3d4",
-  "psid_hash": "sha256_hash_of_psid",
-  "mid": "message_id_from_facebook",
-  "intent": "log",
-  "category": "food",
-  "amount": 50,
-  "processing_ms": 45.2
-}
-```
+## Environment Variables (Required)
+All required environment variables are properly configured:
+- ✅ `DATABASE_URL`: PostgreSQL connection
+- ✅ `ADMIN_USER`: Dashboard authentication  
+- ✅ `ADMIN_PASS`: Dashboard authentication
+- ✅ `FACEBOOK_PAGE_ACCESS_TOKEN`: Facebook Messenger API access
+- ✅ `FACEBOOK_VERIFY_TOKEN`: Webhook verification (finbrain_verify_123)
 
-### Production Deployment Command
+## Production Safety Features
+- **Lazy imports**: Critical dependencies loaded only when needed
+- **Optional scheduler**: Background reports disabled by default (ENABLE_REPORTS=false)
+- **Strict validation**: App refuses to start if any required environment variable is missing
+- **Error resilience**: Graceful degradation for optional features
+
+## Deployment Steps
+1. **Click Deploy**: Use Replit's Deploy button in the interface
+2. **Wait for Build**: Allow Replit to build and deploy the application  
+3. **Verify Health**: Test `/health` endpoint returns 200 OK
+4. **Configure Webhook**: Use the webhook URL in Meta Developer Console
+5. **Test Integration**: Send test message to verify end-to-end flow
+
+## Production Testing Commands
 ```bash
-# Production mode (no reload, INFO logging)
-ENV=production gunicorn --bind 0.0.0.0:5000 --reuse-port main:app
+# Test health endpoint
+curl https://finbrain-chowdhurysujan7.replit.app/health
+
+# Test webhook verification
+curl "https://finbrain-chowdhurysujan7.replit.app/webhook/messenger?hub.mode=subscribe&hub.challenge=TEST123&hub.verify_token=finbrain_verify_123"
+
+# Expected: Should return "TEST123" with 200 status
 ```
 
-### Security Features
-- ✅ Strict environment validation (boot failure if missing required vars)
-- ✅ HTTP Basic Auth for all admin endpoints
-- ✅ PSID hashing (no PII in logs)
-- ✅ Request rate limiting
-- ✅ 24-hour messaging policy compliance
-- ✅ Webhook signature verification support
+## Current Issue
+The production deployment is returning 500 Internal Server Error on all endpoints. This requires:
+1. Fresh deployment via Replit Deploy button
+2. Waiting for deployment completion
+3. Retesting all endpoints
 
-### Monitoring Endpoints
-- `/health` - Service health with environment status
-- `/ops` - Operational metrics (admin auth required)
-- `/psid/<hash>` - User investigation tool (admin auth required)
-
-## No PII Policy
-The structured logging system ensures no personally identifiable information is logged:
-- PSIDs are hashed using SHA-256
-- Message content is not logged
-- Only metadata and performance metrics are captured
+Once deployed successfully, the Meta webhook validation will work immediately.

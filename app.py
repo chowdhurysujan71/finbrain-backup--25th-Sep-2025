@@ -69,9 +69,13 @@ with app.app_context():
     import models  # noqa: F401
     db.create_all()
     
-    # Initialize scheduler for automated reports (after db setup)
-    from utils.scheduler import init_scheduler
-    init_scheduler()
+    # Initialize scheduler for automated reports (optional for production)
+    if os.getenv("ENABLE_REPORTS", "false").lower() == "true":
+        from utils.scheduler import init_scheduler
+        init_scheduler()
+        logger.info("Background reports scheduler enabled")
+    else:
+        logger.info("Background reports disabled (ENABLE_REPORTS=false)")
     
     # Initialize background processor
     logger.info("Initializing background processor...")
