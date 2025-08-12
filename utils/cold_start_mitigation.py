@@ -65,8 +65,8 @@ class ColdStartMitigation:
             }
         
         try:
-            from utils.background_processor import background_processor
-            session = background_processor.ai_adapter.session
+            from utils.ai_adapter import ai_adapter
+            session = ai_adapter.provider.session
             
             start_time = time.time()
             

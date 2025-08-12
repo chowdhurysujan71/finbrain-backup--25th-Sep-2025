@@ -44,7 +44,7 @@ Preferred communication style: Simple, everyday language.
 ### Background Processing System
 - **Thread pool execution** with 3 worker threads for safe background message processing
 - **5-second timeout protection** with automatic fallback replies ("Got it. Try 'summary' for a quick recap.")
-- **AI adapter framework** with failover support (AI_ENABLED=false for MVP, falls back to regex routing)
+- **Pluggable AI adapter system** supporting multiple providers (none/gemini/openai) with 8-second timeouts, PII hygiene, and failover mechanisms
 - **Keep-alive HTTP sessions** for external API calls with connection pooling
 - **Comprehensive error handling** with Flask app context management and graceful degradation
 
@@ -83,6 +83,7 @@ Preferred communication style: Simple, everyday language.
   - `facebook_handler.py`: Facebook Messenger messaging
   - `webhook_processor.py`: Fast webhook processing with signature verification and background job queuing
   - `background_processor.py`: Thread pool-based background execution with AI adapter and timeout protection
+  - `ai_adapter.py`: Pluggable AI provider system with OpenAI/Gemini drivers and PII protection
   - `cold_start_mitigation.py`: Pre-warm AI providers and DNS resolution to prevent cold starts
   - `health_ping.py`: 5-minute health ping system to keep server warm
   - `mvp_router.py`: Regex-based intent matching with lightweight job processing
@@ -129,6 +130,7 @@ Optional configuration:
 - `SESSION_SECRET`: Flask session security (auto-generated if not provided)
 - `DAILY_MESSAGE_LIMIT`, `HOURLY_MESSAGE_LIMIT`: Rate limiting configuration (defaults applied)
 - `AI_ENABLED`: Enable AI processing adapter (default: false, uses regex fallback)
+- `AI_PROVIDER`: AI provider selection - none, openai, gemini (default: none)
 - `AI_PROVIDER_URL`: AI provider endpoint for warm-up (default: https://api.openai.com)
 - `HEALTH_PING_ENABLED`: Enable 5-minute health pings to prevent cold starts (default: true)
 - `ENV=production`: Enables production mode (INFO level logging, structured JSON output)

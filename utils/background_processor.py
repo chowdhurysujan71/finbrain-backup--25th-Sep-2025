@@ -31,52 +31,7 @@ class MessageJob:
     text: str
     timestamp: float
     
-class AIAdapter:
-    """AI provider adapter with failover support"""
-    
-    def __init__(self):
-        self.ai_enabled = os.environ.get('AI_ENABLED', 'false').lower() == 'true'
-        self.session = requests.Session()  # Keep-alive HTTP session
-        self.session.headers.update({
-            'User-Agent': 'FinBrain/1.0',
-            'Content-Type': 'application/json'
-        })
-        logger.info(f"AI Adapter initialized: enabled={self.ai_enabled}")
-    
-    def process_message(self, text: str, psid: str) -> Dict[str, Any]:
-        """
-        Process message through AI with timeout and failover
-        Returns: {intent, response, category, amount, failover}
-        """
-        if not self.ai_enabled:
-            return {"failover": True, "reason": "ai_disabled"}
-        
-        try:
-            # Simulate AI processing (replace with actual AI API call)
-            ai_result = self._call_ai_provider(text, psid)
-            
-            if ai_result and not ai_result.get('error'):
-                return {
-                    "intent": ai_result.get('intent', 'unknown'),
-                    "response": ai_result.get('response', ''),
-                    "category": ai_result.get('category'),
-                    "amount": ai_result.get('amount'),
-                    "failover": False
-                }
-            else:
-                error_msg = ai_result.get('error') if ai_result else "no_response"
-                logger.warning(f"AI provider returned error: {error_msg}")
-                return {"failover": True, "reason": "ai_error"}
-                
-        except Exception as e:
-            logger.error(f"AI adapter error: {str(e)}")
-            return {"failover": True, "reason": f"exception:{str(e)[:50]}"}
-    
-    def _call_ai_provider(self, text: str, psid: str) -> Optional[Dict[str, Any]]:
-        """Call AI provider API (placeholder for actual implementation)"""
-        # This would be replaced with actual AI API calls
-        # For now, return failover to use regex routing
-        return {"error": "not_implemented", "reason": "placeholder"}
+# AI adapter functionality moved to dedicated ai_adapter.py module
 
 class BackgroundProcessor:
     """Thread pool-based background message processor"""
@@ -84,10 +39,13 @@ class BackgroundProcessor:
     def __init__(self, max_workers: int = 3):
         self.max_workers = max_workers
         self.executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="bg-msg-")
-        self.ai_adapter = AIAdapter()
         self.job_queue = Queue()
         self.processing_timeout = 5.0  # 5 second timeout
         self.fallback_reply = "Got it. Try 'summary' for a quick recap."
+        
+        # Import AI adapter from dedicated module
+        from utils.ai_adapter import ai_adapter
+        self.ai_adapter = ai_adapter
         
         logger.info(f"Background processor initialized with {max_workers} workers")
     
@@ -155,16 +113,20 @@ class BackgroundProcessor:
                 # Process with timeout protection
                 try:
                     # Try AI processing first if enabled
-                    ai_result = self.ai_adapter.process_message(job.text, job.psid)
+                    ai_result = self.ai_adapter.ai_summarize_or_classify(
+                        text=job.text,
+                        psid=job.psid,
+                        context={"platform": "messenger", "timestamp": job.timestamp}
+                    )
                     
                     if ai_result.get("failover", True):
                         # Fall back to regex routing
                         response_text, intent, category, amount = self._regex_fallback(job.text, job.psid)
                     else:
                         # Use AI result
-                        response_text = ai_result.get("response", self.fallback_reply)
+                        response_text = ai_result.get("note", self.fallback_reply)
                         intent = ai_result.get("intent", "ai_processed")
-                        category = ai_result.get("category")
+                        category = None  # Will be set by expense processing
                         amount = ai_result.get("amount")
                     
                     # Send response within timeout
@@ -217,7 +179,7 @@ class BackgroundProcessor:
                 category = categorize_expense(description)
                 
                 # Store expense using the correct function
-                process_expense_message(psid, f"{amount} {description}", 'messenger', f"bg_{job.mid}_{int(time.time())}")
+                process_expense_message(psid, f"{amount} {description}", 'messenger', f"bg_{text[:10]}_{int(time.time())}")
                 
                 return (
                     f"✅ Logged: ৳{amount:.2f} for {description} ({category})",
@@ -253,9 +215,10 @@ class BackgroundProcessor:
     
     def get_stats(self) -> Dict[str, Any]:
         """Get background processor statistics"""
+        ai_status = self.ai_adapter.get_status() if hasattr(self.ai_adapter, 'get_status') else {"enabled": False}
         return {
             "max_workers": self.max_workers,
-            "ai_enabled": self.ai_adapter.ai_enabled,
+            "ai_enabled": ai_status.get("enabled", False),
             "processing_timeout": self.processing_timeout,
             "queue_size": self.job_queue.qsize() if hasattr(self.job_queue, 'qsize') else 0
         }
@@ -264,7 +227,7 @@ class BackgroundProcessor:
         """Gracefully shutdown the background processor"""
         logger.info("Shutting down background processor...")
         self.executor.shutdown(wait=True)
-        self.ai_adapter.session.close()
+        self.ai_adapter.cleanup()
 
 # Global background processor instance
 background_processor = BackgroundProcessor(max_workers=3)
