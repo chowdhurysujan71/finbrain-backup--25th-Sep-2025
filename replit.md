@@ -32,11 +32,14 @@ Preferred communication style: Simple, everyday language.
 - **Environment variable** configuration for all sensitive credentials
 - **Rate limiting** with daily and hourly message limits per user
 
-### Message Processing Pipeline
-- **Amount extraction** using regex patterns supporting multiple currencies
-- **Smart categorization** into 10 categories (Food, Transport, Shopping, Groceries, Utilities, Entertainment, Health, Education, Personal Care, Misc) using keyword matching
+### Message Processing Pipeline  
+- **MVP Regex Router** with three intent patterns:
+  - `^log (\d+) (.*)$`: Store expense with amount and note
+  - `^summary$`: Generate 7-day category breakdown with actionable tip
+  - Default: Show help with usage examples
+- **Simple categorization** into 5 categories (food, ride, bill, grocery, other) using keyword matching
 - **Duplicate prevention** using unique message IDs
-- **Real-time response** with expense confirmation and monthly totals
+- **Response limits** ≤ 280 characters for all replies
 
 ### Facebook Messenger Integration
 - **Facebook Messenger Platform** via Graph API v17.0 with JSON message processing
@@ -57,6 +60,7 @@ Preferred communication style: Simple, everyday language.
   - `rate_limiter.py`: Message rate limiting functionality
   - `facebook_handler.py`: Facebook Messenger messaging
   - `webhook_processor.py`: Fast webhook processing with signature verification and async handling
+  - `mvp_router.py`: Regex-based intent matching with lightweight job processing
   - `report_generator.py`: Automated report creation
   - `scheduler.py`: Background task scheduling
 

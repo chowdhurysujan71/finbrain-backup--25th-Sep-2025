@@ -12,38 +12,8 @@ logger = logging.getLogger(__name__)
 FACEBOOK_PAGE_ACCESS_TOKEN = os.environ.get("FACEBOOK_PAGE_ACCESS_TOKEN", "default_token")
 FACEBOOK_API_VERSION = "v17.0"
 
-def handle_facebook_message(sender_id, message_text):
-    """Process Facebook Messenger message and send response (async-safe)"""
-    try:
-        logger.debug(f"Processing Facebook message from {sender_id[:8]}***: {message_text[:50]}...")
-        
-        # Generate unique message ID with timestamp
-        unique_id = f"fb_{sender_id}_{int(datetime.now().timestamp())}"
-        
-        # Process the expense
-        result = process_expense_message(
-            user_identifier=sender_id,
-            message=message_text,
-            platform='messenger',
-            unique_id=unique_id
-        )
-        
-        # Send response back to user (non-blocking)
-        response_sent = send_facebook_message(sender_id, result['message'])
-        
-        if response_sent:
-            logger.debug(f"Facebook response sent successfully to {sender_id[:8]}***")
-        else:
-            logger.warning(f"Failed to send Facebook response to {sender_id[:8]}***")
-        
-        return result['message']
-        
-    except Exception as e:
-        logger.error(f"Error handling Facebook message from {sender_id[:8]}***: {str(e)}")
-        # Send error message to user
-        error_message = "Sorry, there was an error processing your expense. Please try again."
-        send_facebook_message(sender_id, error_message)
-        return error_message
+# Legacy handler - now replaced by MVP router
+# Message processing is now handled in utils/mvp_router.py
 
 def send_facebook_message(recipient_id, message_text):
     """Send Facebook Messenger message via Graph API"""

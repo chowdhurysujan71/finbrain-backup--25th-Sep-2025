@@ -90,49 +90,49 @@ def extract_webhook_events(data: Dict[str, Any]) -> list:
     return events
 
 def process_message_async(event: Dict[str, Any], request_id: str):
-    """Process message asynchronously with timeout"""
+    """Process message asynchronously with timeout and MVP routing"""
     start_time = time.time()
     psid = event['psid']
     mid = event['mid']
+    text = event['text']
     outcome = "success"
+    intent = "unknown"
     
     try:
-        # Set a 5-second timeout for processing
-        def timeout_handler():
-            time.sleep(5)
-            logger.warning(f"Message processing timeout for mid={mid}, psid={psid}")
-        
-        timeout_thread = threading.Thread(target=timeout_handler)
-        timeout_thread.daemon = True
-        timeout_thread.start()
-        
-        # Import and process the message
+        # Import lightweight routing and rate limiting
         from utils.rate_limiter import check_rate_limit
-        from utils.facebook_handler import handle_facebook_message
+        from utils.mvp_router import route_message, log_structured_event
+        from utils.facebook_handler import send_facebook_message
         
         # Check rate limits first
         if not check_rate_limit(psid, 'messenger'):
             outcome = "rate_limited"
-            log_event(request_id, psid, mid, "process_async", time.time() - start_time, outcome)
+            log_structured_event(request_id, psid, mid, "/webhook/messenger", 
+                                (time.time() - start_time) * 1000, outcome)
             return
         
-        # Process the expense message
-        handle_facebook_message(psid, event['text'])
+        # Route message using MVP regex patterns
+        response_text, intent = route_message(psid, text)
+        
+        # Send response back to user
+        response_sent = send_facebook_message(psid, response_text)
+        
+        if not response_sent:
+            outcome = "send_failed"
+            logger.warning(f"Failed to send response for mid={mid}")
         
     except Exception as e:
-        outcome = f"error:{str(e)[:50]}"
+        outcome = f"error:{str(e)[:30]}"
         logger.error(f"Async processing error for mid={mid}: {str(e)}")
     
     finally:
         duration_ms = (time.time() - start_time) * 1000
-        log_event(request_id, psid, mid, "process_async", duration_ms, outcome)
+        log_structured_event(request_id, psid, mid, "/webhook/messenger", duration_ms, outcome, intent)
 
 def log_event(request_id: str, psid: str, mid: str, route: str, duration_ms: float, outcome: str):
-    """Log structured event information"""
-    logger.info(
-        f"webhook_event rid={request_id} psid={psid[:8]}*** mid={mid} "
-        f"route={route} duration_ms={duration_ms:.1f} outcome={outcome}"
-    )
+    """Log structured event information (legacy format)"""
+    from utils.mvp_router import log_structured_event
+    log_structured_event(request_id, psid, mid, route, duration_ms, outcome)
 
 def process_webhook_fast(payload_bytes: bytes, signature: str, app_secret: str) -> tuple:
     """Fast webhook processing with signature verification and async handling"""
