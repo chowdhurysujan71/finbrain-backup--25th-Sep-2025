@@ -75,7 +75,7 @@ class OpenAIProvider(AIProvider):
     def __init__(self):
         super().__init__("openai")
         self.api_key = os.environ.get('OPENAI_API_KEY')
-        self.model = os.environ.get('OPENAI_MODEL', 'gpt-3.5-turbo')
+        self.model = os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')  # Fast model default
         self.api_url = 'https://api.openai.com/v1/chat/completions'
         
         if self.api_key:
@@ -88,7 +88,7 @@ class OpenAIProvider(AIProvider):
         return bool(self.api_key)
     
     def process_message(self, text: str, psid_hash: str, context: Dict[str, Any]) -> AIResponse:
-        """Process message via OpenAI API"""
+        """Process message via OpenAI API with expense intelligence"""
         start_time = time.time()
         
         if not self.is_enabled():
@@ -100,23 +100,36 @@ class OpenAIProvider(AIProvider):
             )
         
         try:
-            # Construct prompt with PII-safe context
-            system_prompt = """You are a financial expense assistant. Analyze expense messages and respond with:
-1. intent: 'log', 'summary', 'help', or 'unknown'
-2. amount: extracted numeric amount (if any)
-3. note: cleaned description
-4. tips: helpful spending tips (max 2)
+            # Enhanced prompt for expense processing
+            system_prompt = """You are FinBrain, an expense tracking assistant. Analyze messages and extract:
 
-Never include personal identifiers. Focus only on the expense data."""
+TASK: Parse expense messages and provide intelligent categorization + tips.
+
+RESPONSE FORMAT (JSON):
+{
+  "intent": "log|summary|help|unknown",
+  "amount": number_or_null,
+  "category": "food|transport|shopping|bills|entertainment|health|education|travel|misc",
+  "note": "clean_description",
+  "tips": ["actionable_tip_1", "actionable_tip_2"]
+}
+
+RULES:
+- Extract amount from any currency format (50, $50, ৳50)
+- Categorize based on context clues
+- Provide 2 actionable spending tips
+- Keep descriptions under 50 chars
+- Never include personal identifiers"""
             
             payload = {
                 "model": self.model,
                 "messages": [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Message: {text}\nContext: {context.get('category_hint', 'general')}"}
+                    {"role": "user", "content": f"Message: {text}"}
                 ],
-                "max_tokens": 150,
-                "temperature": 0.3
+                "max_tokens": 200,
+                "temperature": 0.1,  # Low temperature for consistent parsing
+                "response_format": {"type": "json_object"}
             }
             
             response = self.session.post(
@@ -131,15 +144,28 @@ Never include personal identifiers. Focus only on the expense data."""
                 result = response.json()
                 content = result['choices'][0]['message']['content']
                 
-                # Parse structured response (simplified for placeholder)
-                return AIResponse(
-                    intent="ai_processed",
-                    note=f"AI: {content[:100]}...",
-                    tips=["Track your spending patterns", "Consider budgeting tools"],
-                    failover=False,
-                    provider="openai",
-                    processing_time_ms=processing_time_ms
-                )
+                try:
+                    # Parse JSON response
+                    import json
+                    ai_data = json.loads(content)
+                    
+                    return AIResponse(
+                        intent=ai_data.get('intent', 'unknown'),
+                        amount=ai_data.get('amount'),
+                        note=ai_data.get('note', text[:50]),
+                        tips=ai_data.get('tips', ["Consider budgeting", "Track expenses daily"]),
+                        failover=False,
+                        provider="openai",
+                        processing_time_ms=processing_time_ms
+                    )
+                except json.JSONDecodeError:
+                    logger.warning("OpenAI returned invalid JSON, falling back")
+                    return AIResponse(
+                        intent="parse_error",
+                        failover=True,
+                        provider="openai",
+                        processing_time_ms=processing_time_ms
+                    )
             else:
                 logger.warning(f"OpenAI API error: {response.status_code}")
                 return AIResponse(
@@ -150,6 +176,7 @@ Never include personal identifiers. Focus only on the expense data."""
                 )
                 
         except requests.exceptions.Timeout:
+            logger.warning("OpenAI API timeout (6s)")
             return AIResponse(
                 intent="timeout",
                 failover=True,
@@ -171,14 +198,14 @@ class GeminiProvider(AIProvider):
     def __init__(self):
         super().__init__("gemini")
         self.api_key = os.environ.get('GEMINI_API_KEY')
-        self.model = os.environ.get('GEMINI_MODEL', 'gemini-pro')
-        self.api_url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'
+        self.model = os.environ.get('GEMINI_MODEL', 'gemini-1.5-flash')  # Fast model default
+        self.api_url = f'https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent'
     
     def is_enabled(self) -> bool:
         return bool(self.api_key)
     
     def process_message(self, text: str, psid_hash: str, context: Dict[str, Any]) -> AIResponse:
-        """Process message via Gemini API"""
+        """Process message via Gemini API with expense intelligence"""
         start_time = time.time()
         
         if not self.is_enabled():
@@ -190,20 +217,104 @@ class GeminiProvider(AIProvider):
             )
         
         try:
-            # Placeholder implementation - would implement actual Gemini API calls
-            logger.info(f"Gemini processing: {text[:50]}... (PLACEHOLDER)")
+            # Enhanced prompt for expense processing
+            prompt = f"""You are FinBrain, an expense tracking assistant. Analyze this message and extract expense information:
+
+Message: "{text}"
+
+Respond with valid JSON only:
+{{
+  "intent": "log|summary|help|unknown",
+  "amount": number_or_null,
+  "category": "food|transport|shopping|bills|entertainment|health|education|travel|misc",
+  "note": "clean_description_under_50_chars",
+  "tips": ["actionable_tip_1", "actionable_tip_2"]
+}}
+
+RULES:
+- Extract amount from any currency format
+- Categorize based on context clues  
+- Provide 2 actionable spending tips
+- No personal identifiers
+- JSON only response"""
             
-            # Simulate processing delay
-            time.sleep(0.1)
+            payload = {
+                "contents": [{
+                    "parts": [{"text": prompt}]
+                }],
+                "generationConfig": {
+                    "temperature": 0.1,
+                    "maxOutputTokens": 200,
+                    "responseMimeType": "application/json"
+                }
+            }
             
-            return AIResponse(
-                intent="placeholder",
-                note="Gemini provider placeholder",
-                failover=True,  # Force failover until implemented
-                provider="gemini",
-                processing_time_ms=(time.time() - start_time) * 1000
+            # Add API key to URL
+            url_with_key = f"{self.api_url}?key={self.api_key}"
+            
+            response = self.session.post(
+                url_with_key,
+                json=payload,
+                timeout=6,
+                headers={'Content-Type': 'application/json'}
             )
             
+            processing_time_ms = (time.time() - start_time) * 1000
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                # Extract content from Gemini response
+                if 'candidates' in result and len(result['candidates']) > 0:
+                    content = result['candidates'][0]['content']['parts'][0]['text']
+                    
+                    try:
+                        # Parse JSON response
+                        import json
+                        ai_data = json.loads(content)
+                        
+                        return AIResponse(
+                            intent=ai_data.get('intent', 'unknown'),
+                            amount=ai_data.get('amount'),
+                            note=ai_data.get('note', text[:50]),
+                            tips=ai_data.get('tips', ["Consider budgeting", "Track expenses daily"]),
+                            failover=False,
+                            provider="gemini",
+                            processing_time_ms=processing_time_ms
+                        )
+                    except json.JSONDecodeError:
+                        logger.warning("Gemini returned invalid JSON, falling back")
+                        return AIResponse(
+                            intent="parse_error",
+                            failover=True,
+                            provider="gemini",
+                            processing_time_ms=processing_time_ms
+                        )
+                else:
+                    logger.warning("Gemini response missing candidates")
+                    return AIResponse(
+                        intent="no_candidates",
+                        failover=True,
+                        provider="gemini",
+                        processing_time_ms=processing_time_ms
+                    )
+            else:
+                logger.warning(f"Gemini API error: {response.status_code}")
+                return AIResponse(
+                    intent="api_error",
+                    failover=True,
+                    provider="gemini",
+                    processing_time_ms=processing_time_ms
+                )
+                
+        except requests.exceptions.Timeout:
+            logger.warning("Gemini API timeout (6s)")
+            return AIResponse(
+                intent="timeout",
+                failover=True,
+                provider="gemini",
+                processing_time_ms=6000
+            )
         except Exception as e:
             logger.error(f"Gemini provider error: {str(e)}")
             return AIResponse(

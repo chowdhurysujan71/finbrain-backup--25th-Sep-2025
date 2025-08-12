@@ -44,6 +44,7 @@ Preferred communication style: Simple, everyday language.
 ### Background Processing System
 - **Thread pool execution** with 3 worker threads for safe background message processing
 - **5-second timeout protection** with automatic fallback replies ("Got it. Try 'summary' for a quick recap.")
+- **AI recommendation layer** with fast models (GPT-4o-mini/Gemini-1.5-Flash) for intelligent expense categorization and personalized tips
 - **Pluggable AI adapter system** supporting multiple providers (none/gemini/openai) with 8-second timeouts, PII hygiene, and failover mechanisms
 - **Keep-alive HTTP sessions** for external API calls with connection pooling
 - **Comprehensive error handling** with Flask app context management and graceful degradation
@@ -54,6 +55,7 @@ Preferred communication style: Simple, everyday language.
   - `^log (\d+) (.*)$`: Store expense with amount and note
   - `^summary$`: Generate 7-day category breakdown with actionable tip
   - Default: Show help with usage examples
+- **AI recommendation system**: Uses fast models (GPT-4o-mini/Gemini-1.5-Flash) for intelligent categorization and actionable tips
 - **AI failover logic**: If AI_ENABLED=true, try AI adapter first, then regex on failover:true
 - **Simple categorization** into 5 categories (food, ride, bill, grocery, other) using keyword matching
 - **Duplicate prevention** using unique message IDs

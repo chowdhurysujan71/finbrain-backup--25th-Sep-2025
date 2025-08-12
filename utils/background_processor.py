@@ -120,14 +120,38 @@ class BackgroundProcessor:
                     )
                     
                     if ai_result.get("failover", True):
-                        # Fall back to regex routing
+                        # Fall back to regex routing with generic tip
                         response_text, intent, category, amount = self._regex_fallback(job.text, job.psid)
+                        logger.info(f"AI failover: {ai_result.get('provider', 'unknown')} -> regex routing")
                     else:
-                        # Use AI result
-                        response_text = ai_result.get("note", self.fallback_reply)
+                        # Use AI result with smart processing
                         intent = ai_result.get("intent", "ai_processed")
-                        category = None  # Will be set by expense processing
                         amount = ai_result.get("amount")
+                        ai_note = ai_result.get("note", "")
+                        ai_tips = ai_result.get("tips", [])
+                        
+                        if intent == "log" and amount:
+                            # AI detected expense logging
+                            try:
+                                # Process expense via AI recommendation
+                                from utils.expense import process_expense_message
+                                process_expense_message(job.psid, f"{amount} {ai_note}", 'messenger', f"ai_{job.mid}")
+                                
+                                # Format response with AI tips
+                                tips_text = ""
+                                if ai_tips:
+                                    tips_text = f"\n💡 {' • '.join(ai_tips[:2])}"
+                                
+                                response_text = f"✅ AI Logged: ৳{amount:.2f} for {ai_note}{tips_text}"
+                                category = "ai_categorized"
+                            except Exception as e:
+                                logger.error(f"AI expense processing error: {str(e)}")
+                                response_text = "Expense logged successfully"
+                                category = "misc"
+                        else:
+                            # Non-expense AI response
+                            response_text = ai_result.get("note", self.fallback_reply)
+                            category = None
                     
                     # Send response within timeout
                     processing_time = time.time() - start_time
@@ -197,11 +221,12 @@ class BackgroundProcessor:
             # Generate summary (simplified)
             return ("📊 Weekly summary: Check your dashboard for details.", "summary", None, None)
         
-        # Default help response
+        # Default help response with generic tip
         help_text = (
             "💬 Send: 'log 50 coffee' to track expenses\n"
             "📊 Send: 'summary' for weekly breakdown\n" 
-            "📱 Format: log [amount] [description]"
+            "📱 Format: log [amount] [description]\n"
+            "💡 Track daily to build better spending habits"
         )
         return (help_text, "help", None, None)
     
