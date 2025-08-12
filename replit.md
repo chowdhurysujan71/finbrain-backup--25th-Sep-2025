@@ -25,8 +25,10 @@ Preferred communication style: Simple, everyday language.
 - **Connection pooling** with pool recycling and pre-ping for reliability
 
 ### Security Architecture
-- **SHA-256 hashing** for all user identifiers (phone numbers and Facebook PSIDs)
+- **SHA-256 hashing** for all user identifiers (Facebook PSIDs)
+- **PSID-based identity** - uses Facebook Page-Scoped IDs as primary user identifier
 - **No raw personal data** stored in database
+- **No authentication middleware** - MVP uses PSID without login/session management
 - **Environment variable** configuration for all sensitive credentials
 - **Rate limiting** with daily and hourly message limits per user
 
