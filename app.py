@@ -254,9 +254,16 @@ def webhook_messenger():
             # Facebook webhook verification
             verify_token = request.args.get("hub.verify_token")
             challenge = request.args.get("hub.challenge")
-            if verify_token == os.environ.get("FACEBOOK_VERIFY_TOKEN"):
-                return challenge, 200  # Must return as plain text
-            return "Verification token mismatch", 403
+            mode = request.args.get("hub.mode")
+            
+            logger.info(f"Webhook verification: mode={mode}, token_provided={bool(verify_token)}, challenge={bool(challenge)}")
+            
+            if mode == "subscribe" and verify_token == os.environ.get("FACEBOOK_VERIFY_TOKEN"):
+                logger.info("Webhook verification successful")
+                return challenge, 200, {'Content-Type': 'text/plain'}
+            else:
+                logger.warning(f"Webhook verification failed: mode={mode}, token_match={verify_token == os.environ.get('FACEBOOK_VERIFY_TOKEN')}")
+                return "Verification token mismatch", 403
             
         elif request.method == "POST":
             # Fast webhook processing with signature verification
