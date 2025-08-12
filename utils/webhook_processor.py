@@ -111,10 +111,22 @@ def process_message_async(event: Dict[str, Any], request_id: str):
                                 (time.time() - start_time) * 1000, outcome)
             return
         
+        # Update 24-hour policy timestamp first
+        from utils.policy_guard import update_user_message_timestamp, is_within_24_hour_window
+        update_user_message_timestamp(psid)
+        
+        # Check 24-hour policy compliance before responding
+        if not is_within_24_hour_window(psid):
+            # Outside 24-hour window - don't send response
+            outcome = "24h_policy_block"
+            log_structured_event(request_id, psid, mid, "/webhook/messenger", 
+                                (time.time() - start_time) * 1000, outcome, "blocked")
+            return
+        
         # Route message using MVP regex patterns
         response_text, intent = route_message(psid, text)
         
-        # Send response back to user
+        # Send response back to user (within 24-hour window)
         response_sent = send_facebook_message(psid, response_text)
         
         if not response_sent:

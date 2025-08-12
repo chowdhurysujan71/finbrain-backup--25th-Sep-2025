@@ -58,15 +58,18 @@ def process_log_intent(psid: str, amount_str: str, note: str) -> str:
             original_message=f"log {amount_str} {note}"
         )
         
-        # Update or create user record
+        # Update or create user record with 24-hour policy tracking
         user_hash = hash_psid(psid)
         user = User.query.filter_by(user_id_hash=user_hash).first()
         if not user:
             user = User(
                 user_id_hash=user_hash,
-                platform='messenger'
+                platform='messenger',
+                last_user_message_at=datetime.utcnow()
             )
             db.session.add(user)
+        else:
+            user.last_user_message_at = datetime.utcnow()
         
         user.total_expenses = (user.total_expenses or 0) + amount
         user.expense_count = (user.expense_count or 0) + 1
@@ -144,6 +147,7 @@ def get_help_message() -> str:
     return """FinBrain Help:
 • log 250 lunch at restaurant
 • summary
+Type 'summary' anytime for a quick recap.
 Send any expense message to get started!"""
 
 def route_message(psid: str, message_text: str) -> Tuple[str, str]:

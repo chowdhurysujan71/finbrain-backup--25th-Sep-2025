@@ -129,61 +129,11 @@ def generate_weekly_report(user_identifier, platform):
         return "Error generating weekly report."
 
 def send_daily_reports():
-    """Send daily reports to all active users"""
-    try:
-        logger.info("Starting daily report generation")
-        
-        # Get all users who had expenses in the last 7 days
-        week_ago = date.today() - timedelta(days=7)
-        active_users = db.session.query(User).join(Expense).filter(
-            Expense.date >= week_ago
-        ).distinct().all()
-        
-        reports_sent = 0
-        
-        for user in active_users:
-            try:
-                # Generate report (we need to reverse hash to get original identifier)
-                # For now, we'll skip sending reports and just log
-                logger.info(f"Would send daily report to user {user.user_id_hash[:8]}...")
-                reports_sent += 1
-                
-            except Exception as e:
-                logger.error(f"Error sending daily report to user {user.user_id_hash}: {str(e)}")
-        
-        logger.info(f"Daily reports processed for {reports_sent} users")
-        return reports_sent
-        
-    except Exception as e:
-        logger.error(f"Error in daily report batch: {str(e)}")
-        return 0
+    """MVP: No scheduled outbound messages (24-hour policy compliance)"""
+    logger.info("Daily reports disabled for MVP - 24-hour policy compliance")
+    return
 
 def send_weekly_reports():
-    """Send weekly reports to all active users"""
-    try:
-        logger.info("Starting weekly report generation")
-        
-        # Get all users who had expenses in the last 30 days
-        month_ago = date.today() - timedelta(days=30)
-        active_users = db.session.query(User).join(Expense).filter(
-            Expense.date >= month_ago
-        ).distinct().all()
-        
-        reports_sent = 0
-        
-        for user in active_users:
-            try:
-                # Generate report (we need to reverse hash to get original identifier)
-                # For now, we'll skip sending reports and just log
-                logger.info(f"Would send weekly report to user {user.user_id_hash[:8]}...")
-                reports_sent += 1
-                
-            except Exception as e:
-                logger.error(f"Error sending weekly report to user {user.user_id_hash}: {str(e)}")
-        
-        logger.info(f"Weekly reports processed for {reports_sent} users")
-        return reports_sent
-        
-    except Exception as e:
-        logger.error(f"Error in weekly report batch: {str(e)}")
-        return 0
+    """MVP: No scheduled outbound messages (24-hour policy compliance)"""
+    logger.info("Weekly reports disabled for MVP - 24-hour policy compliance")
+    return

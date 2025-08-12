@@ -35,6 +35,7 @@ class User(db.Model):
     expense_count = db.Column(db.Integer, default=0)  # Total number of expenses
     created_at = db.Column(db.DateTime, default=datetime.utcnow)  # User first interaction
     last_interaction = db.Column(db.DateTime, default=datetime.utcnow)  # Last message timestamp
+    last_user_message_at = db.Column(db.DateTime, default=datetime.utcnow)  # 24-hour policy window
     daily_message_count = db.Column(db.Integer, default=0)  # Messages today
     hourly_message_count = db.Column(db.Integer, default=0)  # Messages this hour
     last_daily_reset = db.Column(db.Date, default=date.today)  # Last daily counter reset

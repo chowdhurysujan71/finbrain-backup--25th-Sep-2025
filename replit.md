@@ -47,8 +47,8 @@ Preferred communication style: Simple, everyday language.
 - **Unified expense processing** for all messages
 
 ### Background Processing
-- **APScheduler** for automated daily and weekly reports
-- **Cron-based triggers** for scheduled report generation
+- **APScheduler** for background task scheduling (reports disabled for MVP)
+- **24-hour policy compliance** - no scheduled outbound messages
 - **Background task execution** without blocking main application
 
 ### Modular Architecture
@@ -61,7 +61,8 @@ Preferred communication style: Simple, everyday language.
   - `facebook_handler.py`: Facebook Messenger messaging
   - `webhook_processor.py`: Fast webhook processing with signature verification and async handling
   - `mvp_router.py`: Regex-based intent matching with lightweight job processing
-  - `report_generator.py`: Automated report creation
+  - `policy_guard.py`: 24-hour messaging window compliance
+  - `report_generator.py`: Report creation (scheduled reports disabled for MVP)
   - `scheduler.py`: Background task scheduling
 
 ## External Dependencies
