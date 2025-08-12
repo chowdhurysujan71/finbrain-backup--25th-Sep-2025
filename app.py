@@ -48,28 +48,13 @@ def check_basic_auth():
     admin_user = os.environ.get('ADMIN_USER')
     admin_pass = os.environ.get('ADMIN_PASS')
     
-    # Debug logging
-    logger.info(f"Auth attempt - ADMIN_USER exists: {admin_user is not None}")
-    logger.info(f"Auth attempt - ADMIN_PASS exists: {admin_pass is not None}")
-    logger.info(f"Auth attempt - Request auth exists: {auth is not None}")
-    
-    if auth:
-        logger.info(f"Auth attempt - Username: '{auth.username}'")
-        logger.info(f"Auth attempt - Password length: {len(auth.password)}")
-        
     if not admin_user or not admin_pass:
-        logger.warning("Missing ADMIN_USER or ADMIN_PASS environment variables")
         return False
         
     if not auth or not auth.username or not auth.password:
-        logger.warning("No authorization header or missing credentials")
         return False
     
     auth_success = auth.username == admin_user and auth.password == admin_pass
-    logger.info(f"Auth result: {auth_success}")
-    
-    if not auth_success:
-        logger.warning(f"Auth failed - Expected user: '{admin_user}', Got: '{auth.username}'")
         
     return auth_success
 
