@@ -12,7 +12,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Web Framework
 - **Flask** serves as the core web framework with SQLAlchemy ORM for database operations
-- **Single webhook** at `/webhook/messenger` handles Facebook Messenger (JSON) requests
+- **Fast webhook** at `/webhook/messenger` with signature verification, deduplication, and async processing (<300ms response)
 - **Dashboard endpoint** at `/` provides a web interface for viewing expense statistics
 - **Health check endpoint** for monitoring application status
 
@@ -56,6 +56,7 @@ Preferred communication style: Simple, everyday language.
   - `db.py`: Database operations and connection utilities
   - `rate_limiter.py`: Message rate limiting functionality
   - `facebook_handler.py`: Facebook Messenger messaging
+  - `webhook_processor.py`: Fast webhook processing with signature verification and async handling
   - `report_generator.py`: Automated report creation
   - `scheduler.py`: Background task scheduling
 

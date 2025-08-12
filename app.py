@@ -93,51 +93,32 @@ def health_check():
 @app.route("/webhook/messenger", methods=["GET", "POST"])
 def webhook_messenger():
     if request.method == "GET":
+        # Facebook webhook verification
         verify_token = request.args.get("hub.verify_token")
         challenge = request.args.get("hub.challenge")
-        if verify_token == os.getenv("FACEBOOK_VERIFY_TOKEN"):
+        if verify_token == os.environ.get("FACEBOOK_VERIFY_TOKEN"):
             return challenge, 200  # Must return as plain text
         return "Verification token mismatch", 403
+        
     elif request.method == "POST":
-        # Facebook Messenger (JSON)
-        data = request.get_json()
-        print("📩 Facebook webhook:", data)
-        return handle_facebook_request(data)
-
-
-
-
-
-def handle_facebook_request(data):
-    """Handle Facebook Messenger message processing"""
-    try:
-        if not data or data.get('object') != 'page':
-            return "EVENT_RECEIVED", 200
+        # Fast webhook processing with signature verification
+        from utils.webhook_processor import process_webhook_fast
         
-        for entry in data.get('entry', []):
-            for messaging in entry.get('messaging', []):
-                sender_id = messaging.get('sender', {}).get('id')
-                message = messaging.get('message', {})
-                message_text = message.get('text', '')
-                
-                if sender_id and message_text:
-                    print(f"💬 Facebook from {sender_id}: {message_text}")
-                    
-                    # Check rate limits
-                    from utils.rate_limiter import check_rate_limit
-                    if not check_rate_limit(sender_id, 'messenger'):
-                        print(f"🚫 Rate limit exceeded for {sender_id}")
-                        continue
-                    
-                    # Process the message
-                    from utils.facebook_handler import handle_facebook_message
-                    handle_facebook_message(sender_id, message_text)
+        # Get raw payload and signature
+        payload_bytes = request.get_data()
+        signature = request.headers.get('X-Hub-Signature-256', '')
+        app_secret = os.environ.get('FACEBOOK_APP_SECRET', '')
         
-        return "EVENT_RECEIVED", 200
-        
-    except Exception as e:
-        print(f"❌ Facebook error: {str(e)}")
-        return "EVENT_RECEIVED", 200
+        # Process with fast handler
+        response_text, status_code = process_webhook_fast(payload_bytes, signature, app_secret)
+        return response_text, status_code
+
+
+
+
+
+# Legacy handler - now replaced by fast webhook processor
+# Keeping for reference but no longer used
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -13,11 +13,11 @@ FACEBOOK_PAGE_ACCESS_TOKEN = os.environ.get("FACEBOOK_PAGE_ACCESS_TOKEN", "defau
 FACEBOOK_API_VERSION = "v17.0"
 
 def handle_facebook_message(sender_id, message_text):
-    """Process Facebook Messenger message and send response"""
+    """Process Facebook Messenger message and send response (async-safe)"""
     try:
-        logger.info(f"Processing Facebook message from {sender_id}: {message_text}")
+        logger.debug(f"Processing Facebook message from {sender_id[:8]}***: {message_text[:50]}...")
         
-        # Generate unique message ID
+        # Generate unique message ID with timestamp
         unique_id = f"fb_{sender_id}_{int(datetime.now().timestamp())}"
         
         # Process the expense
@@ -28,18 +28,18 @@ def handle_facebook_message(sender_id, message_text):
             unique_id=unique_id
         )
         
-        # Send response back to user
+        # Send response back to user (non-blocking)
         response_sent = send_facebook_message(sender_id, result['message'])
         
         if response_sent:
-            logger.info(f"Facebook response sent successfully to {sender_id}")
+            logger.debug(f"Facebook response sent successfully to {sender_id[:8]}***")
         else:
-            logger.error(f"Failed to send Facebook response to {sender_id}")
+            logger.warning(f"Failed to send Facebook response to {sender_id[:8]}***")
         
         return result['message']
         
     except Exception as e:
-        logger.error(f"Error handling Facebook message: {str(e)}")
+        logger.error(f"Error handling Facebook message from {sender_id[:8]}***: {str(e)}")
         # Send error message to user
         error_message = "Sorry, there was an error processing your expense. Please try again."
         send_facebook_message(sender_id, error_message)

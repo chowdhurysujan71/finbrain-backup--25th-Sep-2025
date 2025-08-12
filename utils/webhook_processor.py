@@ -1,0 +1,187 @@
+"""Fast Messenger webhook processing with signature verification and async handling"""
+import hashlib
+import hmac
+import json
+import logging
+import time
+import uuid
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta
+from typing import Dict, Any, Optional
+
+logger = logging.getLogger(__name__)
+
+# Thread pool for async processing (max 10 concurrent tasks)
+executor = ThreadPoolExecutor(max_workers=10, thread_name_prefix="webhook-")
+
+# Message deduplication cache (simple in-memory for MVP)
+processed_messages = {}
+cache_cleanup_interval = 3600  # 1 hour
+last_cleanup = time.time()
+
+def verify_webhook_signature(payload: bytes, signature: str, app_secret: str) -> bool:
+    """Verify Facebook webhook signature"""
+    try:
+        if not signature or not signature.startswith('sha256='):
+            return False
+        
+        expected_signature = hmac.new(
+            app_secret.encode('utf-8'),
+            payload,
+            hashlib.sha256
+        ).hexdigest()
+        
+        received_signature = signature[7:]  # Remove 'sha256=' prefix
+        return hmac.compare_digest(expected_signature, received_signature)
+        
+    except Exception as e:
+        logger.error(f"Signature verification error: {str(e)}")
+        return False
+
+def is_duplicate_message(message_id: str) -> bool:
+    """Check if message has already been processed"""
+    global processed_messages, last_cleanup
+    
+    # Cleanup old entries periodically
+    current_time = time.time()
+    if current_time - last_cleanup > cache_cleanup_interval:
+        cleanup_old_messages()
+        last_cleanup = current_time
+    
+    if message_id in processed_messages:
+        return True
+    
+    # Mark as processed
+    processed_messages[message_id] = current_time
+    return False
+
+def cleanup_old_messages():
+    """Remove processed messages older than 1 hour"""
+    cutoff_time = time.time() - cache_cleanup_interval
+    to_remove = [mid for mid, timestamp in processed_messages.items() if timestamp < cutoff_time]
+    for mid in to_remove:
+        del processed_messages[mid]
+    logger.debug(f"Cleaned up {len(to_remove)} old message entries")
+
+def extract_webhook_events(data: Dict[str, Any]) -> list:
+    """Extract and validate webhook events from payload"""
+    events = []
+    
+    if not data or data.get('object') != 'page':
+        return events
+    
+    for entry in data.get('entry', []):
+        for messaging in entry.get('messaging', []):
+            # Extract basic event data
+            sender_id = messaging.get('sender', {}).get('id')
+            message = messaging.get('message', {})
+            message_text = message.get('text', '')
+            message_id = message.get('mid', '')
+            
+            if sender_id and message_text and message_id:
+                events.append({
+                    'psid': sender_id,
+                    'text': message_text,
+                    'mid': message_id,
+                    'timestamp': messaging.get('timestamp', int(time.time() * 1000))
+                })
+    
+    return events
+
+def process_message_async(event: Dict[str, Any], request_id: str):
+    """Process message asynchronously with timeout"""
+    start_time = time.time()
+    psid = event['psid']
+    mid = event['mid']
+    outcome = "success"
+    
+    try:
+        # Set a 5-second timeout for processing
+        def timeout_handler():
+            time.sleep(5)
+            logger.warning(f"Message processing timeout for mid={mid}, psid={psid}")
+        
+        timeout_thread = threading.Thread(target=timeout_handler)
+        timeout_thread.daemon = True
+        timeout_thread.start()
+        
+        # Import and process the message
+        from utils.rate_limiter import check_rate_limit
+        from utils.facebook_handler import handle_facebook_message
+        
+        # Check rate limits first
+        if not check_rate_limit(psid, 'messenger'):
+            outcome = "rate_limited"
+            log_event(request_id, psid, mid, "process_async", time.time() - start_time, outcome)
+            return
+        
+        # Process the expense message
+        handle_facebook_message(psid, event['text'])
+        
+    except Exception as e:
+        outcome = f"error:{str(e)[:50]}"
+        logger.error(f"Async processing error for mid={mid}: {str(e)}")
+    
+    finally:
+        duration_ms = (time.time() - start_time) * 1000
+        log_event(request_id, psid, mid, "process_async", duration_ms, outcome)
+
+def log_event(request_id: str, psid: str, mid: str, route: str, duration_ms: float, outcome: str):
+    """Log structured event information"""
+    logger.info(
+        f"webhook_event rid={request_id} psid={psid[:8]}*** mid={mid} "
+        f"route={route} duration_ms={duration_ms:.1f} outcome={outcome}"
+    )
+
+def process_webhook_fast(payload_bytes: bytes, signature: str, app_secret: str) -> tuple:
+    """Fast webhook processing with signature verification and async handling"""
+    request_id = str(uuid.uuid4())[:8]
+    start_time = time.time()
+    
+    try:
+        # Step 1: Verify signature (fast fail)
+        if not verify_webhook_signature(payload_bytes, signature, app_secret):
+            duration_ms = (time.time() - start_time) * 1000
+            log_event(request_id, "unknown", "unknown", "verify_signature", duration_ms, "invalid_signature")
+            return "Invalid signature", 403
+        
+        # Step 2: Parse JSON payload
+        try:
+            data = json.loads(payload_bytes.decode('utf-8'))
+        except json.JSONDecodeError:
+            duration_ms = (time.time() - start_time) * 1000
+            log_event(request_id, "unknown", "unknown", "parse_json", duration_ms, "invalid_json")
+            return "Invalid JSON", 400
+        
+        # Step 3: Extract events
+        events = extract_webhook_events(data)
+        if not events:
+            duration_ms = (time.time() - start_time) * 1000
+            log_event(request_id, "unknown", "unknown", "extract_events", duration_ms, "no_events")
+            return "EVENT_RECEIVED", 200
+        
+        # Step 4: Process each event
+        for event in events:
+            psid = event['psid']
+            mid = event['mid']
+            
+            # Check for duplicates
+            if is_duplicate_message(mid):
+                log_event(request_id, psid, mid, "dedupe_check", 0, "duplicate")
+                continue
+            
+            # Schedule async processing
+            executor.submit(process_message_async, event, request_id)
+            log_event(request_id, psid, mid, "enqueue", 0, "queued")
+        
+        # Return fast response
+        duration_ms = (time.time() - start_time) * 1000
+        log_event(request_id, "batch", f"{len(events)}_events", "webhook_complete", duration_ms, "success")
+        return "EVENT_RECEIVED", 200
+        
+    except Exception as e:
+        duration_ms = (time.time() - start_time) * 1000
+        log_event(request_id, "unknown", "unknown", "webhook_error", duration_ms, f"error:{str(e)[:50]}")
+        logger.error(f"Webhook processing error: {str(e)}")
+        return "EVENT_RECEIVED", 200  # Always return 200 to Facebook
