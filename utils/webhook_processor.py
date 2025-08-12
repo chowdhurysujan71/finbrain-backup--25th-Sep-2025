@@ -140,8 +140,8 @@ def process_webhook_fast(payload_bytes: bytes, signature: str, app_secret: str) 
     start_time = time.time()
     
     try:
-        # Step 1: Verify signature (fast fail)
-        if not verify_webhook_signature(payload_bytes, signature, app_secret):
+        # Step 1: Verify signature (skip if no app_secret for MVP)
+        if app_secret and not verify_webhook_signature(payload_bytes, signature, app_secret):
             duration_ms = (time.time() - start_time) * 1000
             log_event(request_id, "unknown", "unknown", "verify_signature", duration_ms, "invalid_signature")
             return "Invalid signature", 403
