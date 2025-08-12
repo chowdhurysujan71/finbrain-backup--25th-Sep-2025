@@ -248,36 +248,32 @@ def webhook_messenger():
     """Facebook Messenger webhook with structured request logging"""
     from utils.logger import request_logger
     
-    @request_logger
-    def _webhook():
-        if request.method == "GET":
-            # Facebook webhook verification
-            verify_token = request.args.get("hub.verify_token")
-            challenge = request.args.get("hub.challenge")
-            mode = request.args.get("hub.mode")
-            
-            logger.info(f"Webhook verification: mode={mode}, token_provided={bool(verify_token)}, challenge={bool(challenge)}")
-            
-            if mode == "subscribe" and verify_token == os.environ.get("FACEBOOK_VERIFY_TOKEN"):
-                logger.info("Webhook verification successful")
-                return challenge, 200, {'Content-Type': 'text/plain'}
-            else:
-                logger.warning(f"Webhook verification failed: mode={mode}, token_match={verify_token == os.environ.get('FACEBOOK_VERIFY_TOKEN')}")
-                return "Verification token mismatch", 403
-            
-        elif request.method == "POST":
-            # Fast webhook processing with signature verification
-            from utils.webhook_processor import process_webhook_fast
-            
-            # Get raw payload and signature
-            payload_bytes = request.get_data()
-            signature = request.headers.get('X-Hub-Signature-256', '')
-            
-            # Skip signature verification for MVP (no FACEBOOK_APP_SECRET required)
-            response_text, status_code = process_webhook_fast(payload_bytes, signature, '')
-            return response_text, status_code
-    
-    return _webhook()
+    if request.method == "GET":
+        # Facebook webhook verification
+        verify_token = request.args.get("hub.verify_token")
+        challenge = request.args.get("hub.challenge")
+        mode = request.args.get("hub.mode")
+        
+        logger.info(f"Webhook verification: mode={mode}, token_provided={bool(verify_token)}, challenge={bool(challenge)}")
+        
+        if mode == "subscribe" and verify_token == os.environ.get("FACEBOOK_VERIFY_TOKEN"):
+            logger.info("Webhook verification successful")
+            return challenge, 200, {'Content-Type': 'text/plain'}
+        else:
+            logger.warning(f"Webhook verification failed: mode={mode}, token_match={verify_token == os.environ.get('FACEBOOK_VERIFY_TOKEN')}")
+            return "Verification token mismatch", 403
+        
+    elif request.method == "POST":
+        # Fast webhook processing with signature verification
+        from utils.webhook_processor import process_webhook_fast
+        
+        # Get raw payload and signature
+        payload_bytes = request.get_data()
+        signature = request.headers.get('X-Hub-Signature-256', '')
+        
+        # Skip signature verification for MVP (no FACEBOOK_APP_SECRET required)
+        response_text, status_code = process_webhook_fast(payload_bytes, signature, '')
+        return response_text, status_code
 
 @app.route('/ops', methods=['GET'])
 @require_basic_auth
