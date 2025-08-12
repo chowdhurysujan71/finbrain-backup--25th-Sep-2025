@@ -7,16 +7,7 @@ from datetime import datetime
 from utils.expense import process_expense_message
 from .logger import log_graph_call
 
-# Lazy import for production safety
-def send_facebook_report(*args, **kwargs):
-    """Send Facebook report with lazy import for production safety"""
-    try:
-        import requests  # lazy import so app boots even if not installed
-        # ... rest of the function would go here
-        return True
-    except ImportError:
-        logger.warning("requests module not available for Facebook reports")
-        return False
+# Lazy import for production safety - this function is defined below
 
 logger = logging.getLogger(__name__)
 
