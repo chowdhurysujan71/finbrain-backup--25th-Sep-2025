@@ -13,8 +13,10 @@ Preferred communication style: Simple, everyday language.
 ### Web Framework
 - **Flask** serves as the core web framework with SQLAlchemy ORM for database operations
 - **Fast webhook** at `/webhook/messenger` with signature verification, deduplication, and async processing (<300ms response)
-- **Dashboard endpoint** at `/` provides a web interface for viewing expense statistics
-- **Health check endpoint** for monitoring application status
+- **Private dashboard** at `/` protected by HTTP Basic Auth (ADMIN_USER/ADMIN_PASS)
+- **Health endpoint** at `/health` with environment validation and database status
+- **Ops monitoring** at `/ops` for operational metrics (Basic Auth required)
+- **PSID explorer** at `/psid/<hash>` for read-only user investigation (Basic Auth required)
 
 ### Database Design
 - **PostgreSQL** primary database with three core tables:
@@ -28,7 +30,8 @@ Preferred communication style: Simple, everyday language.
 - **SHA-256 hashing** for all user identifiers (Facebook PSIDs)
 - **PSID-based identity** - uses Facebook Page-Scoped IDs as primary user identifier
 - **No raw personal data** stored in database
-- **No authentication middleware** - MVP uses PSID without login/session management
+- **HTTP Basic Auth** protects admin dashboard and ops endpoints (ADMIN_USER/ADMIN_PASS)
+- **24-hour messaging policy** compliance with last_user_message_at tracking
 - **Environment variable** configuration for all sensitive credentials
 - **Rate limiting** with daily and hourly message limits per user
 
@@ -93,9 +96,9 @@ Preferred communication style: Simple, everyday language.
 ### Environment Configuration
 Core deployment secrets:
 - `DATABASE_URL`: PostgreSQL connection string
+- `ADMIN_USER`, `ADMIN_PASS`: HTTP Basic Auth for dashboard and ops endpoints
 - `FACEBOOK_PAGE_ACCESS_TOKEN`: Facebook Messenger API access
 - `FACEBOOK_VERIFY_TOKEN`: Webhook verification token
-- `ADMIN_USER`, `ADMIN_PASS`: Dashboard admin credentials
 - `SENTRY_DSN`: Optional error monitoring
 
 Application configuration:

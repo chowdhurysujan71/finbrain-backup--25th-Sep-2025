@@ -1,10 +1,13 @@
 import os
 import logging
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for, make_response
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
+from functools import wraps
 import json
+import base64
+from datetime import datetime, timedelta
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -39,39 +42,41 @@ with app.app_context():
     from utils.scheduler import init_scheduler
     init_scheduler()
 
+def check_basic_auth():
+    """Check HTTP Basic Authentication against ADMIN_USER/ADMIN_PASS"""
+    auth = request.authorization
+    admin_user = os.environ.get('ADMIN_USER')
+    admin_pass = os.environ.get('ADMIN_PASS')
+    
+    if not admin_user or not admin_pass:
+        return False
+        
+    if not auth or not auth.username or not auth.password:
+        return False
+        
+    return auth.username == admin_user and auth.password == admin_pass
+
+def require_basic_auth(f):
+    """Decorator to require HTTP Basic Authentication"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not check_basic_auth():
+            response = make_response(jsonify({"error": "Authentication required"}), 401)
+            response.headers['WWW-Authenticate'] = 'Basic realm="FinBrain Admin"'
+            return response
+        return f(*args, **kwargs)
+    return decorated_function
+
 def check_admin_auth():
-    """Check if user is authenticated as admin"""
+    """Check if user is authenticated as admin (legacy session-based)"""
     return session.get('admin_authenticated', False)
 
-@app.route('/admin/login', methods=['GET', 'POST'])
-def admin_login():
-    """Admin login for dashboard access"""
-    if request.method == 'POST':
-        username = request.form.get('username', '')
-        password = request.form.get('password', '')
-        
-        admin_user = os.environ.get('ADMIN_USER', 'admin')
-        admin_pass = os.environ.get('ADMIN_PASS', 'admin')
-        
-        if username == admin_user and password == admin_pass:
-            session['admin_authenticated'] = True
-            return redirect(url_for('dashboard'))
-        else:
-            return render_template('admin_login.html', error='Invalid credentials')
-    
-    return render_template('admin_login.html')
-
-@app.route('/admin/logout')
-def admin_logout():
-    """Admin logout"""
-    session.pop('admin_authenticated', None)
-    return redirect(url_for('admin_login'))
+# Legacy admin login/logout routes removed - using HTTP Basic Auth now
 
 @app.route('/')
+@require_basic_auth
 def dashboard():
-    """Dashboard for viewing expense statistics (admin access required)"""
-    if not check_admin_auth():
-        return redirect(url_for('admin_login'))
+    """Dashboard for viewing expense statistics (HTTP Basic Auth required)"""
     
     try:
         from models import Expense, User, MonthlySummary
@@ -105,21 +110,56 @@ def dashboard():
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Health check endpoint"""
+    """Health check endpoint with environment validation"""
+    health_status = "healthy"
+    issues = []
+    
+    # Check database connection
     try:
-        # Test database connection
         db.session.execute(db.text('SELECT 1'))
         database_status = "connected"
     except Exception as e:
         logger.error(f"Database health check failed: {str(e)}")
         database_status = "disconnected"
+        health_status = "degraded"
+        issues.append("database_unreachable")
     
-    return jsonify({
-        "status": "healthy",
+    # Check required environment variables
+    required_envs = ["DATABASE_URL", "ADMIN_USER", "ADMIN_PASS"]
+    missing_envs = []
+    
+    for env_var in required_envs:
+        if not os.environ.get(env_var):
+            missing_envs.append(env_var)
+            health_status = "degraded"
+            issues.append(f"missing_{env_var.lower()}")
+    
+    # Optional environment variables (warn but don't fail)
+    optional_envs = ["FACEBOOK_PAGE_ACCESS_TOKEN", "FACEBOOK_VERIFY_TOKEN"]
+    missing_optional = []
+    
+    for env_var in optional_envs:
+        if not os.environ.get(env_var):
+            missing_optional.append(env_var)
+    
+    response = {
+        "status": health_status,
         "service": "finbrain-expense-tracker",
         "database": database_status,
-        "platform_support": ["facebook_messenger"]
-    })
+        "platform_support": ["facebook_messenger"],
+        "required_envs": {
+            "present": [env for env in required_envs if os.environ.get(env)],
+            "missing": missing_envs
+        }
+    }
+    
+    if missing_optional:
+        response["optional_envs_missing"] = missing_optional
+    
+    if issues:
+        response["issues"] = issues
+    
+    return jsonify(response)
 
 @app.route("/webhook/messenger", methods=["GET", "POST"])
 def webhook_messenger():
@@ -142,6 +182,141 @@ def webhook_messenger():
         # Skip signature verification for MVP (no FACEBOOK_APP_SECRET required)
         response_text, status_code = process_webhook_fast(payload_bytes, signature, '')
         return response_text, status_code
+
+@app.route('/ops', methods=['GET'])
+@require_basic_auth
+def ops_status():
+    """Operations status endpoint (JSON) - Admin access required"""
+    try:
+        from models import User, Expense
+        from datetime import date, timedelta
+        
+        # Get message counts today
+        today = date.today()
+        today_start = datetime.combine(today, datetime.min.time())
+        messages_today = Expense.query.filter(
+            Expense.created_at >= today_start
+        ).count()
+        
+        # Get last outbound success/failure (MVP: no outbound messages)
+        last_outbound_success = None
+        last_outbound_failure = None
+        
+        # Get last AI error (currently no AI errors tracked)
+        last_ai_error = None
+        
+        # Get system stats
+        total_users = User.query.count()
+        total_messages = Expense.query.count()
+        
+        # Get recent activity (last hour)
+        hour_ago = datetime.utcnow() - timedelta(hours=1)
+        recent_activity = Expense.query.filter(
+            Expense.created_at >= hour_ago
+        ).count()
+        
+        return jsonify({
+            "timestamp": datetime.utcnow().isoformat(),
+            "message_counts": {
+                "today": messages_today,
+                "total": total_messages,
+                "last_hour": recent_activity
+            },
+            "outbound_status": {
+                "last_success": last_outbound_success,
+                "last_failure": last_outbound_failure,
+                "note": "MVP: No scheduled outbound messages (24h policy compliance)"
+            },
+            "ai_status": {
+                "last_error": last_ai_error,
+                "note": "MVP: Simple regex routing (no AI processing)"
+            },
+            "system_stats": {
+                "total_users": total_users,
+                "uptime_check": "healthy"
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Ops status error: {str(e)}")
+        return jsonify({
+            "error": "Failed to retrieve ops status",
+            "timestamp": datetime.utcnow().isoformat()
+        }), 500
+
+@app.route('/psid/<psid_hash>', methods=['GET'])
+@require_basic_auth 
+def psid_explorer(psid_hash):
+    """PSID Explorer - Last 20 messages and computed summary (Read-only)"""
+    try:
+        from models import User, Expense
+        
+        # Find user by PSID hash
+        user = User.query.filter_by(user_id_hash=psid_hash).first()
+        if not user:
+            return jsonify({"error": "PSID not found"}), 404
+        
+        # Get last 20 expenses for this user
+        recent_expenses = Expense.query.filter_by(user_id=psid_hash).order_by(
+            Expense.created_at.desc()
+        ).limit(20).all()
+        
+        # Calculate computed summary (last 7 days)
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        week_expenses = Expense.query.filter(
+            Expense.user_id == psid_hash,
+            Expense.created_at >= seven_days_ago
+        ).all()
+        
+        # Category totals
+        category_totals = {}
+        week_total = 0
+        
+        for expense in week_expenses:
+            category = expense.category
+            amount = float(expense.amount)
+            category_totals[category] = category_totals.get(category, 0) + amount
+            week_total += amount
+        
+        # Format expenses for response
+        formatted_expenses = []
+        for expense in recent_expenses:
+            formatted_expenses.append({
+                "id": expense.id,
+                "amount": float(expense.amount),
+                "currency": expense.currency,
+                "description": expense.description,
+                "category": expense.category,
+                "created_at": expense.created_at.isoformat(),
+                "original_message": expense.original_message or "N/A"
+            })
+        
+        return jsonify({
+            "psid_hash": psid_hash,
+            "user_stats": {
+                "total_expenses": float(user.total_expenses or 0),
+                "expense_count": user.expense_count or 0,
+                "platform": user.platform,
+                "created_at": user.created_at.isoformat(),
+                "last_interaction": user.last_interaction.isoformat() if user.last_interaction else None,
+                "last_user_message_at": user.last_user_message_at.isoformat() if hasattr(user, 'last_user_message_at') and user.last_user_message_at else None
+            },
+            "recent_messages": formatted_expenses,
+            "computed_summary": {
+                "period": "last_7_days",
+                "total_amount": week_total,
+                "expense_count": len(week_expenses),
+                "category_breakdown": category_totals
+            },
+            "metadata": {
+                "timestamp": datetime.utcnow().isoformat(),
+                "note": "Read-only PSID explorer - no personal data exposed"
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"PSID explorer error: {str(e)}")
+        return jsonify({"error": "Failed to retrieve PSID data"}), 500
 
 
 
