@@ -14,7 +14,7 @@ Preferred communication style: Simple, everyday language.
 - **Flask** serves as the core web framework with SQLAlchemy ORM for database operations
 - **Fast webhook** at `/webhook/messenger` with signature verification, deduplication, and async processing (<300ms response)
 - **Private dashboard** at `/` protected by HTTP Basic Auth (ADMIN_USER/ADMIN_PASS)
-- **Health endpoint** at `/health` with environment validation and database status
+- **Enhanced health endpoint** at `/health` with uptime_s, queue_depth, ai_status, and cold-start mitigation status
 - **Ops monitoring** at `/ops` for operational metrics (Basic Auth required)
 - **PSID explorer** at `/psid/<hash>` for read-only user investigation (Basic Auth required)
 
@@ -34,6 +34,12 @@ Preferred communication style: Simple, everyday language.
 - **24-hour messaging policy** compliance with last_user_message_at tracking
 - **Environment variable** configuration for all sensitive credentials
 - **Rate limiting** with daily and hourly message limits per user
+
+### Cold-Start Mitigation System
+- **Pre-warm AI providers** on app boot with DNS resolution and status endpoint pings
+- **Enhanced /health endpoint** includes uptime_s, queue_depth, ai_status for comprehensive monitoring
+- **5-minute health ping system** keeps server warm to prevent cold starts (HEALTH_PING_ENABLED)
+- **AI provider warm-up** via HEAD/GET requests to status URLs using shared sessions
 
 ### Background Processing System
 - **Thread pool execution** with 3 worker threads for safe background message processing
@@ -77,6 +83,8 @@ Preferred communication style: Simple, everyday language.
   - `facebook_handler.py`: Facebook Messenger messaging
   - `webhook_processor.py`: Fast webhook processing with signature verification and background job queuing
   - `background_processor.py`: Thread pool-based background execution with AI adapter and timeout protection
+  - `cold_start_mitigation.py`: Pre-warm AI providers and DNS resolution to prevent cold starts
+  - `health_ping.py`: 5-minute health ping system to keep server warm
   - `mvp_router.py`: Regex-based intent matching with lightweight job processing
   - `policy_guard.py`: 24-hour messaging window compliance
   - `report_generator.py`: Report creation (scheduled reports disabled for MVP)
@@ -121,6 +129,8 @@ Optional configuration:
 - `SESSION_SECRET`: Flask session security (auto-generated if not provided)
 - `DAILY_MESSAGE_LIMIT`, `HOURLY_MESSAGE_LIMIT`: Rate limiting configuration (defaults applied)
 - `AI_ENABLED`: Enable AI processing adapter (default: false, uses regex fallback)
+- `AI_PROVIDER_URL`: AI provider endpoint for warm-up (default: https://api.openai.com)
+- `HEALTH_PING_ENABLED`: Enable 5-minute health pings to prevent cold starts (default: true)
 - `ENV=production`: Enables production mode (INFO level logging, structured JSON output)
 
 ### Production Logging

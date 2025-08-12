@@ -77,6 +77,16 @@ with app.app_context():
     logger.info("Initializing background processor...")
     from utils.background_processor import background_processor
     logger.info(f"Background processor ready: {background_processor.get_stats()}")
+    
+    # Run cold-start mitigation warm-up
+    logger.info("Running cold-start mitigation...")
+    from utils.cold_start_mitigation import cold_start_mitigator
+    warm_up_results = cold_start_mitigator.run_warm_up_sequence()
+    logger.info(f"Cold-start mitigation completed: {warm_up_results}")
+    
+    # Start health ping system to keep server warm
+    from utils.health_ping import health_pinger
+    health_pinger.start_health_pings()
 
 def check_basic_auth():
     """Check HTTP Basic Authentication against ADMIN_USER/ADMIN_PASS"""
@@ -194,6 +204,18 @@ def health_check():
     optional_envs = ["SENTRY_DSN"]
     present_optional = [env for env in optional_envs if os.environ.get(env)]
     
+    # Get enhanced system metrics
+    from utils.cold_start_mitigation import cold_start_mitigator
+    from utils.background_processor import background_processor
+    
+    uptime_seconds = cold_start_mitigator.get_uptime_seconds()
+    queue_depth = background_processor.get_stats().get("queue_size", 0)
+    ai_status = cold_start_mitigator.get_ai_status()
+    
+    # Adjust overall status based on cold-start completion
+    if health_status == "healthy" and not cold_start_mitigator.warm_up_completed:
+        health_status = "warming"
+    
     response = {
         "status": health_status,
         "service": "finbrain-expense-tracker",
@@ -203,7 +225,14 @@ def health_check():
             "all_present": True,
             "count": len(required_envs)
         },
-        "boot_validation": "strict_enforcement_enabled"
+        "boot_validation": "strict_enforcement_enabled",
+        "uptime_s": round(uptime_seconds, 2),
+        "queue_depth": queue_depth,
+        "ai_status": ai_status,
+        "cold_start_mitigation": {
+            "completed": cold_start_mitigator.warm_up_completed,
+            "ai_enabled": cold_start_mitigator.ai_enabled
+        }
     }
     
     if present_optional:
