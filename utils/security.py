@@ -24,6 +24,10 @@ def hash_user_id(user_identifier):
         logger.error(f"Error hashing user ID: {str(e)}")
         raise
 
+def hash_psid(psid):
+    """Create a secure hash of PSID for logging (alias for hash_user_id)"""
+    return hash_user_id(psid)
+
 
 
 def validate_facebook_psid(psid):

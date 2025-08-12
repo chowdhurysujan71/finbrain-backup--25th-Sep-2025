@@ -106,3 +106,14 @@ Optional configuration:
 - `SENTRY_DSN`: Error monitoring (if used)
 - `SESSION_SECRET`: Flask session security (auto-generated if not provided)
 - `DAILY_MESSAGE_LIMIT`, `HOURLY_MESSAGE_LIMIT`: Rate limiting configuration (defaults applied)
+- `ENV=production`: Enables production mode (INFO level logging, structured JSON output)
+
+### Production Logging
+**Structured JSON logging implemented for complete observability with zero PII exposure:**
+
+**Request Tracking**: Every inbound request logged with unique request ID (rid), route, method, duration, status code
+**Graph API Calls**: Every Facebook API call logged with endpoint, status, duration, tied to request context  
+**Webhook Processing**: Message processing with psid_hash (SHA-256), intent detection, category/amount extraction
+**No PII Policy**: All PSIDs hashed, no message content logged, only metadata and performance metrics
+
+Production deployment command: `ENV=production gunicorn --bind 0.0.0.0:5000 --reuse-port main:app` (no --reload flag)

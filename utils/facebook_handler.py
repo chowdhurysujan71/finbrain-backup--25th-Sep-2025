@@ -3,8 +3,10 @@ import os
 import logging
 import requests
 import json
+import time
 from datetime import datetime
 from utils.expense import process_expense_message
+from .logger import log_graph_call
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +18,12 @@ FACEBOOK_API_VERSION = "v17.0"
 # Message processing is now handled in utils/mvp_router.py
 
 def send_facebook_message(recipient_id, message_text):
-    """Send Facebook Messenger message via Graph API"""
+    """Send Facebook Messenger message via Graph API with structured logging"""
+    endpoint = f"/{FACEBOOK_API_VERSION}/me/messages"
+    start_time = time.time()
+    
     try:
-        url = f"https://graph.facebook.com/{FACEBOOK_API_VERSION}/me/messages"
+        url = f"https://graph.facebook.com{endpoint}"
         
         headers = {
             'Content-Type': 'application/json'
@@ -31,15 +36,23 @@ def send_facebook_message(recipient_id, message_text):
         }
         
         response = requests.post(url, headers=headers, data=json.dumps(data))
+        duration_ms = (time.time() - start_time) * 1000
+        
+        # Log Graph API call with structured logging
+        log_graph_call(endpoint, "POST", response.status_code, duration_ms)
         
         if response.status_code == 200:
-            logger.info(f"Facebook message sent successfully: {response.json().get('message_id')}")
+            response_data = response.json()
+            message_id = response_data.get('message_id', 'unknown')
+            logger.info(f"Facebook message sent successfully: {message_id}")
             return True
         else:
             logger.error(f"Failed to send Facebook message: {response.status_code} - {response.text}")
             return False
             
     except Exception as e:
+        duration_ms = (time.time() - start_time) * 1000
+        log_graph_call(endpoint, "POST", None, duration_ms, str(e))
         logger.error(f"Error sending Facebook message: {str(e)}")
         return False
 

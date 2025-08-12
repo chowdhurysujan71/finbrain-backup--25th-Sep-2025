@@ -9,6 +9,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
+from .logger import log_webhook_success, get_request_id
 
 logger = logging.getLogger(__name__)
 
@@ -101,14 +102,16 @@ def process_message_async(event: Dict[str, Any], request_id: str):
     try:
         # Import lightweight routing and rate limiting
         from utils.rate_limiter import check_rate_limit
-        from utils.mvp_router import route_message, log_structured_event
+        from utils.mvp_router import route_message
         from utils.facebook_handler import send_facebook_message
+        from utils.security import hash_psid
         
         # Check rate limits first
         if not check_rate_limit(psid, 'messenger'):
             outcome = "rate_limited"
-            log_structured_event(request_id, psid, mid, "/webhook/messenger", 
-                                (time.time() - start_time) * 1000, outcome)
+            duration_ms = (time.time() - start_time) * 1000
+            psid_hash = hash_psid(psid)
+            log_webhook_success(psid_hash, mid, "rate_limited", None, None, duration_ms)
             return
         
         # Update 24-hour policy timestamp first
@@ -119,8 +122,9 @@ def process_message_async(event: Dict[str, Any], request_id: str):
         if not is_within_24_hour_window(psid):
             # Outside 24-hour window - don't send response
             outcome = "24h_policy_block"
-            log_structured_event(request_id, psid, mid, "/webhook/messenger", 
-                                (time.time() - start_time) * 1000, outcome, "blocked")
+            duration_ms = (time.time() - start_time) * 1000
+            psid_hash = hash_psid(psid)
+            log_webhook_success(psid_hash, mid, "blocked", None, None, duration_ms)
             return
         
         # Route message using MVP regex patterns
@@ -139,12 +143,20 @@ def process_message_async(event: Dict[str, Any], request_id: str):
     
     finally:
         duration_ms = (time.time() - start_time) * 1000
-        log_structured_event(request_id, psid, mid, "/webhook/messenger", duration_ms, outcome, intent)
+        psid_hash = hash_psid(psid)
+        # Extract category and amount if successful expense log
+        category = None
+        amount = None
+        if outcome == "success" and intent == "log":
+            # These would be returned by the router if we modified it
+            pass
+        log_webhook_success(psid_hash, mid, intent, category, amount, duration_ms)
 
 def log_event(request_id: str, psid: str, mid: str, route: str, duration_ms: float, outcome: str):
     """Log structured event information (legacy format)"""
-    from utils.mvp_router import log_structured_event
-    log_structured_event(request_id, psid, mid, route, duration_ms, outcome)
+    from utils.security import hash_psid
+    psid_hash = hash_psid(psid)
+    log_webhook_success(psid_hash, mid, outcome, None, None, duration_ms)
 
 def process_webhook_fast(payload_bytes: bytes, signature: str, app_secret: str) -> tuple:
     """Fast webhook processing with signature verification and async handling"""

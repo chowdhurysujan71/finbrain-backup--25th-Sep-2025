@@ -10,8 +10,9 @@ import json
 import base64
 from datetime import datetime, timedelta
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
+# Configure logging - production mode removes debug and reload
+log_level = logging.INFO if os.environ.get('ENV') == 'production' else logging.DEBUG
+logging.basicConfig(level=log_level, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def validate_required_environment():
@@ -210,25 +211,32 @@ def health_check():
 
 @app.route("/webhook/messenger", methods=["GET", "POST"])
 def webhook_messenger():
-    if request.method == "GET":
-        # Facebook webhook verification
-        verify_token = request.args.get("hub.verify_token")
-        challenge = request.args.get("hub.challenge")
-        if verify_token == os.environ.get("FACEBOOK_VERIFY_TOKEN"):
-            return challenge, 200  # Must return as plain text
-        return "Verification token mismatch", 403
-        
-    elif request.method == "POST":
-        # Fast webhook processing with signature verification
-        from utils.webhook_processor import process_webhook_fast
-        
-        # Get raw payload and signature
-        payload_bytes = request.get_data()
-        signature = request.headers.get('X-Hub-Signature-256', '')
-        
-        # Skip signature verification for MVP (no FACEBOOK_APP_SECRET required)
-        response_text, status_code = process_webhook_fast(payload_bytes, signature, '')
-        return response_text, status_code
+    """Facebook Messenger webhook with structured request logging"""
+    from utils.logger import request_logger
+    
+    @request_logger
+    def _webhook():
+        if request.method == "GET":
+            # Facebook webhook verification
+            verify_token = request.args.get("hub.verify_token")
+            challenge = request.args.get("hub.challenge")
+            if verify_token == os.environ.get("FACEBOOK_VERIFY_TOKEN"):
+                return challenge, 200  # Must return as plain text
+            return "Verification token mismatch", 403
+            
+        elif request.method == "POST":
+            # Fast webhook processing with signature verification
+            from utils.webhook_processor import process_webhook_fast
+            
+            # Get raw payload and signature
+            payload_bytes = request.get_data()
+            signature = request.headers.get('X-Hub-Signature-256', '')
+            
+            # Skip signature verification for MVP (no FACEBOOK_APP_SECRET required)
+            response_text, status_code = process_webhook_fast(payload_bytes, signature, '')
+            return response_text, status_code
+    
+    return _webhook()
 
 @app.route('/ops', methods=['GET'])
 @require_basic_auth
