@@ -57,13 +57,15 @@ Preferred communication style: Simple, everyday language.
 
 ### Message Processing Pipeline  
 - **Background job queue** processes {rid, psid, mid, text} after immediate webhook response (<1ms)
-- **MVP Regex Router** with three intent patterns:
-  - `^log (\d+) (.*)$`: Store expense with amount and note
-  - `^summary$`: Generate 7-day category breakdown with actionable tip
-  - Default: Show help with usage examples
-- **AI recommendation system**: Uses fast models (GPT-4o-mini/Gemini-1.5-Flash) for intelligent categorization and actionable tips
+- **RL-2 Graceful Non-AI Fallback System**: Complete ASCII-safe deterministic processing for rate-limited scenarios
+  - **Rate-limited expense patterns**: "log <amount> <note>", "<amount> <note>", "<note> <amount>"
+  - **ASCII-safe disclaimer**: "NOTE: Taking a quick breather. I can do 2 smart replies per minute per person..."
+  - **Deterministic summary**: Single SQL query with 30d totals and top 3 categories
+  - **Plain text only**: ≤280 chars, no emojis, never requeue
+  - **RL-2 logging**: {rid, psid_hash, ai_allowed=false, handled_by="rules", job_status="done"}
+- **AI recommendation system**: Uses fast models (GPT-4o-mini/Gemini-1.5-Flash) for intelligent categorization when rate limits allow
 - **AI failover logic**: If AI_ENABLED=true, try AI adapter first, then regex on failover:true
-- **Graceful rate limit handling**: When AI rate limited, deterministic processing with user-friendly disclaimers explaining limits
+- **Streamlined parser**: Never-throws guarantee, Bengali numerals, multiple currencies, corruption handling
 - **Simple categorization** into 5 categories (food, ride, bill, grocery, other) using keyword matching
 - **Duplicate prevention** using unique message IDs
 - **Response limits** ≤ 280 characters for all replies
