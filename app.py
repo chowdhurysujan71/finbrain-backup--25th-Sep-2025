@@ -163,8 +163,8 @@ def dashboard():
         # Get recent expenses
         recent_expenses = Expense.query.order_by(Expense.created_at.desc()).limit(10).all()
         
-        # Get total users
-        total_users = User.query.count()
+        # Get total active users (users with expenses)
+        total_users = db.session.query(func.count(func.distinct(Expense.user_id))).scalar()
         
         # Get this month's expenses directly from expense table
         today = datetime.utcnow()
