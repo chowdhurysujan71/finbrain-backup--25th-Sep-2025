@@ -21,6 +21,7 @@ from .policy_guard import update_user_message_timestamp, is_within_24_hour_windo
 from .facebook_handler import send_facebook_message
 from .ai_rate_limiter import ai_rate_limiter
 from .background_processor_rl2 import rl2_processor
+from .production_router import production_router
 
 logger = logging.getLogger(__name__)
 
@@ -95,57 +96,10 @@ class BackgroundProcessor:
                     return
                 
                 try:
-                    # Check AI rate limits BEFORE any AI processing
-                    rate_limit_result = ai_rate_limiter.check_rate_limit(psid_hash)
-                    
-                    # Log AI rate limit check
-                    self._log_ai_rate_limit(job.rid, psid_hash, rate_limit_result)
-                    
-                    # RL-2: If AI is rate-limited, use deterministic processing
-                    if not rate_limit_result.ai_allowed:
-                        logger.info(f"AI rate limited ({rate_limit_result.reason}) -> RL-2 deterministic processing")
-                        response_text, intent, category, amount = rl2_processor.process_rate_limited_message(
-                            job.text, job.psid
-                        )
-                    else:
-                        # Try AI processing first if enabled
-                        ai_result = self.ai_adapter.ai_summarize_or_classify(
-                            text=job.text,
-                            psid=job.psid,
-                            context={"platform": "messenger", "timestamp": job.timestamp}
-                        )
-                        
-                        if ai_result.get("failover", True):
-                            # AI failover - use regex fallback (non-rate-limited)
-                            response_text, intent, category, amount = self._regex_fallback_with_disclaimer(
-                                job.text, job.psid, is_rate_limited=False
-                            )
-                            logger.info(f"AI failover: {ai_result.get('provider', 'unknown')} -> regex routing")
-                        else:
-                            # Use AI result
-                            intent = ai_result.get("intent", "ai_processed")
-                            amount = ai_result.get("amount")
-                            ai_note = ai_result.get("note", "")
-                            ai_tips = ai_result.get("tips", [])
-                            
-                            if intent == "log" and amount:
-                                try:
-                                    from utils.expense import process_expense_message
-                                    process_expense_message(job.psid, f"{amount} {ai_note}", 'messenger', f"ai_{job.mid}")
-                                    
-                                    tips_text = ""
-                                    if ai_tips:
-                                        tips_text = f"\n💡 {' • '.join(ai_tips[:2])}"
-                                    
-                                    response_text = f"✅ AI Logged: ৳{amount:.2f} for {ai_note}{tips_text}"
-                                    category = "ai_categorized"
-                                except Exception as e:
-                                    logger.error(f"AI expense processing error: {str(e)}")
-                                    response_text = "Expense logged successfully"
-                                    category = "misc"
-                            else:
-                                response_text = ai_result.get("note", self.fallback_reply)
-                                category = None
+                    # Use production router for all message processing
+                    response_text, intent, category, amount = production_router.route_message(
+                        job.text, job.psid, job.rid
+                    )
                     
                     # Send response within timeout
                     processing_time = time.time() - start_time

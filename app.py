@@ -524,6 +524,47 @@ def version():
             "security_hardening": "complete"
         }), 500
 
+@app.route('/ops/telemetry')
+@require_basic_auth
+def ops_telemetry():
+    """Production telemetry endpoint for comprehensive system monitoring"""
+    try:
+        from utils.production_router import production_router
+        
+        telemetry_data = production_router.get_telemetry()
+        
+        return jsonify({
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'system_status': 'healthy',
+            'routing': {
+                'total_messages': telemetry_data['total_messages'],
+                'ai_messages': telemetry_data['ai_messages'],
+                'rl2_messages': telemetry_data['rl2_messages'],
+                'rules_messages': telemetry_data['rules_messages'],
+                'ai_failovers': telemetry_data['ai_failovers']
+            },
+            'performance': {
+                'queue_depth': telemetry_data['queue_depth'],
+                'worker_lag_ms': telemetry_data['worker_lag_ms']
+            },
+            'ai_limiter': telemetry_data['ai_limiter'],
+            'ai_adapter': telemetry_data['ai_adapter'],
+            'config': telemetry_data['config'],
+            'deployment_info': {
+                'ai_enabled': telemetry_data['config']['AI_ENABLED'],
+                'canary_mode': telemetry_data['config']['AI_ENABLED'] and telemetry_data['ai_messages'] < telemetry_data['total_messages'],
+                'rollback_ready': True
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Telemetry endpoint error: {str(e)}")
+        return jsonify({
+            'error': f'Telemetry collection failed: {str(e)}',
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'system_status': 'degraded'
+        }), 500
+
 
 
 

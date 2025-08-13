@@ -1,0 +1,129 @@
+1) Last-mile text utils (sanitize, cap, variants)
+Create textutil.py:
+
+safe_format(tmpl, data) → leaves {missing} as-is (no exceptions).
+
+normalize(msg) → replace CR/TAB/NEWLINE with spaces; strip zero-width, collapse whitespace; optional emoji strip if EMOJI_ENABLED=false.
+
+cap_len(msg, MAX_REPLY_LEN) → hard cap.
+
+finalize_message(tmpl_or_list, data) → accepts str|list[str], picks variant if SAY_ENABLED=true, then safe-format → normalize → cap → never returns None (fallback "OK").
+
+say(options, data=None) → wrapper over finalize_message.
+
+Variant banks:
+
+LOGGED_VARIANTS:
+
+✅ Got it — ৳{amount} for {note} ({category}).
+
+Logged: ৳{amount} — {note}. Nice.
+
+All set. ৳{amount} to {category} for {note}.
+
+SUMMARY_VARIANTS:
+
+📊 Last 7 days: ৳{total}\n🍔 {food} • 🚗 {ride} • 🧾 {bill} • 🛒 {grocery} • 🧩 {other}\n💡 {tip}
+
+Here’s your week: ৳{total}\nFood {food}, Ride {ride}, Bills {bill}, Grocery {grocery}, Other {other}\n💡 {tip}
+
+Weekly spend ৳{total}. Food {food} | Ride {ride} | Bills {bill} | Grocery {grocery} | Other {other}\n💡 {tip}
+
+Help:
+
+Try log 50 coffee. For totals, type summary.
+
+Log with: log [amount] [note]. Weekly view: summary.
+
+Need a hand? log 120 lunch or summary for a quick recap.
+
+RL-2 copies (ASCII-safe):
+
+DISCLAIMER: NOTE: Taking a quick breather. I can do 2 smart replies per minute per person. OK: I handled that without AI this time. Tip: type "summary" for a quick recap.
+
+BREATHER_SUMMARY_PREFIX: NOTE: Smart replies are capped at 2/min. Here is your recap without AI:
+
+2) Limiter (per-PSID sliding 60s + global per-minute)
+In worker before any AI call:
+
+Maintain in-memory sliding 60s deque per ai:psid:{PSID}; trim >60s.
+
+Maintain global minute counter (bucket by YYYYMMDDHHMM).
+
+Compute ai_allowed and reason: "ok" | "per_psid_limit" | "global_limit".
+
+Structured log each job:
+{rid, psid_hash, ai_allowed:bool, reason, tokens_remaining:int|null, window_reset_at:iso8601}
+
+3) Bulletproof RL-2 (rate-limited path)
+If ai_rate_limited=true:
+
+If message.lower()=="summary" → build deterministic summary (today/7d/30d + top3). Prepend BREATHER_SUMMARY_PREFIX. Sanitize + cap. Send. Ack queue.
+
+Else try regex: log <amount> <note> | <amount> <note> | <note> <amount> (digits, commas, optional decimals, optional currency).
+
+On match: insert expense via safe DB wrapper (catches/rolls back constraint errors; never throws). Reply DISCLAIMER. Send. Ack.
+
+No match: reply help variant. Ack.
+
+Never requeue on RL-2. Always reply, always ack. Log: handled_by="rules", job_status="done".
+
+Panic lever: if PANIC_PLAIN_REPLY=true → skip parsing/DB; send DISCLAIMER, Ack, log.
+
+4) Deterministic rules path (not rate-limited)
+Logging: your existing deterministic logger; reply via say(LOGGED_VARIANTS, {...}).
+
+Summary: your existing deterministic summary; reply via say(SUMMARY_VARIANTS, {...}) (drop tip first if over 280).
+
+Undo: deterministic; replies:
+
+Success: ↩️ Removed ৳{amount} — {note}.
+
+None: Nothing to undo yet.
+
+Help: reply with say(HELP_VARIANTS).
+
+5) Routing (single entry in worker)
+Evaluate limiter first.
+
+If limited → RL-2 path (above). Return.
+
+Else:
+
+If AI_ENABLED && ai_mode(text) → AI branch (Section 6).
+
+Else → rules path (Section 4).
+
+Ensure send → then ack (and still ack on send exceptions). Outbound text goes through finalize_message for sanitize+cap.
+
+6) AI adapter (flag-gated, never writes DB)
+Create ai_adapter.py:
+
+ai_parse(text, context) -> {intent, amount?, note?, category?, tips?:[], failover?:bool}
+
+Constraints:
+
+Prompt ≤1200 chars
+
+Timeout 3s, 1 retry
+
+Strict JSON parse; on any error/timeout → {failover:true}
+
+No DB writes inside; just return struct.
+
+AI branch application (only when AI_ENABLED=true and not limited):
+
+If {failover:true} → rules path.
+
+If intent="log" → perform deterministic insert; reply LOGGED_VARIANTS + soft nudge “Type summary anytime.”
+
+If intent="summary" → compute deterministic summary; reply SUMMARY_VARIANTS with tips[0] if present else static tip bank.
+
+Always sanitize + cap at the end.
+
+7) Telemetry /ops
+Expose JSON:
+
+css
+Copy
+Edit

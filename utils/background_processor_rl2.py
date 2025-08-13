@@ -11,6 +11,7 @@ from utils.security import hash_psid
 from utils.parser import parse_expense
 from utils.categories import categorize_expense
 from utils.logger import get_request_id
+from utils.textutil import get_rl2_disclaimer, get_rl2_summary_prefix, normalize
 
 logger = logging.getLogger(__name__)
 
@@ -18,11 +19,7 @@ class RL2Processor:
     """RL-2: Graceful non-AI fallback with deterministic rules"""
     
     def __init__(self):
-        self.ascii_disclaimer = (
-            "NOTE: Taking a quick breather. I can do 2 smart replies per minute per person.\n"
-            "OK: I handled that without AI this time.\n"
-            "Tip: type \"summary\" for a quick recap."
-        )
+        self.ascii_disclaimer = get_rl2_disclaimer()
     
     def process_rate_limited_message(self, text: str, psid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
         """
@@ -53,7 +50,7 @@ class RL2Processor:
                 self._store_expense(psid, amount, description, category, text)
                 
                 # RL-2: ASCII-safe response with disclaimer (sanitized for Facebook API)
-                response = self._sanitize_facebook_response(self.ascii_disclaimer)
+                response = normalize(self.ascii_disclaimer)
                 
                 # Log with RL-2 metadata (never throws)
                 self._log_rl2_job(psid_hash, "expense", handled_by="rules", ai_allowed=False)
@@ -66,47 +63,18 @@ class RL2Processor:
                 return "Error processing expense without AI.", "error", None, None
         
         # RL-2: No expense pattern matched - help message (sanitized)
-        response = self._sanitize_facebook_response("Try: log 250 lunch | 250 lunch | lunch 250")
+        response = normalize("Try: log 250 lunch | 250 lunch | lunch 250")
         self._log_rl2_job(psid_hash, "help", handled_by="rules", ai_allowed=False)
         return response, "help", None, None
     
-    def _sanitize_facebook_response(self, text: str) -> str:
-        """
-        Sanitize response for Facebook API to prevent 400 errors
-        Remove problematic characters that cause API failures
-        """
-        if not text:
-            return "Message processed."
-        
-        # Remove/replace problematic characters for Facebook API
-        # Remove zero-width characters, control characters
-        sanitized = ''.join(char for char in text if ord(char) >= 32 or char in '\n\t')
-        
-        # Replace problematic Unicode that causes 400s
-        sanitized = sanitized.replace('\u200b', '')  # Zero-width space
-        sanitized = sanitized.replace('\u200c', '')  # Zero-width non-joiner
-        sanitized = sanitized.replace('\u200d', '')  # Zero-width joiner
-        sanitized = sanitized.replace('\ufeff', '')  # Byte order mark
-        
-        # Ensure length limit for Facebook API
-        if len(sanitized) > 2000:
-            sanitized = sanitized[:1997] + "..."
-        
-        # Fallback if sanitization removes everything
-        if not sanitized.strip():
-            return "Message processed."
-            
-        return sanitized
+
     
     def _handle_rate_limited_summary(self, psid: str, psid_hash: str) -> Tuple[str, str, Optional[str], Optional[float]]:
         """
         RL-2: Handle 'summary' command during rate limiting
         Always reply, always ack, never requeue - even on SQL errors
         """
-        response = (
-            "NOTE: Smart replies are capped at 2/min. Here is your recap without AI:\n"
-            "No expenses found."
-        )
+        response = f"{get_rl2_summary_prefix()}\nNo expenses found."
         
         try:
             from app import db
@@ -147,7 +115,7 @@ class RL2Processor:
                     
                     # Format safe response (ASCII only, <=280 chars)
                     response = (
-                        f"NOTE: Smart replies are capped at 2/min. Here is your recap without AI:\n"
+                        f"{get_rl2_summary_prefix()}\n"
                         f"30d total: ৳{total_30d:.0f}\n"
                         f"Top: {categories_text}"
                     )
@@ -169,7 +137,7 @@ class RL2Processor:
             logger.error(f"RL-2 logging error (non-blocking): {str(log_error)}")
         
         # ALWAYS return valid response tuple (sanitized)
-        return self._sanitize_facebook_response(response), "summary", None, None
+        return normalize(response), "summary", None, None
     
     def _store_expense(self, psid: str, amount: float, description: str, category: str, original_text: str):
         """
