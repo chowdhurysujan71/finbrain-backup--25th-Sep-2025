@@ -1,0 +1,126 @@
+{
+  "timestamp": "2025-08-13 14:57:19",
+  "health_score": 100.0,
+  "status": "\ud83d\udfe2 EXCELLENT HEALTH",
+  "recommendation": "System ready for production traffic",
+  "detailed_data": {
+    "system": {
+      "ai_status": {
+        "enabled": true,
+        "endpoint": "https://api.openai.com",
+        "last_warm_up": 317.42358207702637,
+        "status": "warning"
+      },
+      "boot_validation": "strict_enforcement_enabled",
+      "cold_start_mitigation": {
+        "ai_enabled": true,
+        "completed": true
+      },
+      "database": "connected",
+      "platform_support": [
+        "facebook_messenger"
+      ],
+      "queue_depth": 0,
+      "required_envs": {
+        "all_present": true,
+        "count": 7
+      },
+      "security": {
+        "https_enforced": true,
+        "signature_verification": "mandatory",
+        "token_monitoring": "enabled"
+      },
+      "service": "finbrain-expense-tracker",
+      "status": "healthy",
+      "uptime_s": 483.23
+    },
+    "ai": {
+      "ai_adapter": {
+        "configured": true,
+        "model": "gemini-2.5-flash-lite",
+        "provider": "gemini",
+        "timeout_ms": 3000
+      },
+      "ai_enabled": true,
+      "router_telemetry": {
+        "ai_adapter": {
+          "configured": true,
+          "model": "gemini-2.5-flash-lite",
+          "provider": "gemini",
+          "timeout_ms": 3000
+        },
+        "config": {
+          "ai_enabled_effective": true,
+          "ai_enabled_env_default": true,
+          "ai_provider": "gemini ",
+          "ai_timeout_ms": 3000,
+          "rl": {
+            "global_cap_per_min": 10,
+            "user_cap_per_min": 2
+          }
+        },
+        "rate_limiting": {
+          "active_users_last_min": 0,
+          "global_limit": 10,
+          "global_requests_last_min": 0,
+          "per_user_limit": 2
+        },
+        "stats": {
+          "ai_errors": 0,
+          "ai_requests": 0,
+          "fallback_requests": 0,
+          "rate_limited": 0,
+          "total_requests": 0
+        },
+        "timestamp": 1755097032.903667
+      }
+    },
+    "security": {
+      "ai_adapter": {
+        "enabled": true,
+        "has_api_key": null,
+        "max_retries": 1,
+        "provider": "gemini ",
+        "timeout_s": 3
+      },
+      "ai_limiter": {
+        "ai_calls_blocked_global": 0,
+        "ai_calls_blocked_per_psid": 0,
+        "ai_calls_ok_minute": 0,
+        "ai_rate_limited_events": [],
+        "config": {
+          "AI_ENABLED": true,
+          "AI_MAX_CALLS_PER_MIN": 10,
+          "AI_MAX_CALLS_PER_MIN_PER_PSID": 2,
+          "use_redis": false
+        },
+        "rl2_errors_last_5m": 0
+      },
+      "config": {
+        "AI_ENABLED": true,
+        "EMOJI_ENABLED": "true",
+        "MAX_REPLY_LEN": 280,
+        "PANIC_PLAIN_REPLY": false,
+        "SAY_ENABLED": "true"
+      },
+      "deployment_info": {
+        "ai_enabled": true,
+        "canary_mode": false,
+        "rollback_ready": true
+      },
+      "performance": {
+        "queue_depth": 0,
+        "worker_lag_ms": 0.0
+      },
+      "routing": {
+        "ai_failovers": 0,
+        "ai_messages": 0,
+        "rl2_messages": 0,
+        "rules_messages": 0,
+        "total_messages": 0
+      },
+      "system_status": "healthy",
+      "timestamp": "2025-08-13T14:57:16.167797+00:00"
+    }
+  }
+}

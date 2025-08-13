@@ -1,0 +1,86 @@
+{
+  "dashboard": [
+    {
+      "endpoint": "Main Dashboard",
+      "avg_ms": 1946.42,
+      "min_ms": 1626.81,
+      "max_ms": 3219.73,
+      "status": "\u26a0\ufe0f SLOW"
+    },
+    {
+      "endpoint": "Health Check",
+      "avg_ms": 929.78,
+      "min_ms": 928.74,
+      "max_ms": 931.53,
+      "status": "\u2705 GOOD"
+    },
+    {
+      "endpoint": "System Telemetry",
+      "avg_ms": 3.18,
+      "min_ms": 2.67,
+      "max_ms": 3.96,
+      "status": "\u2705 GOOD"
+    },
+    {
+      "endpoint": "AI Status",
+      "avg_ms": 129.0,
+      "min_ms": 2.88,
+      "max_ms": 632.15,
+      "status": "\u2705 GOOD"
+    },
+    {
+      "endpoint": "Version Info",
+      "avg_ms": 2.91,
+      "min_ms": 2.64,
+      "max_ms": 3.36,
+      "status": "\u2705 GOOD"
+    }
+  ],
+  "webhook": [
+    {
+      "test": "Security Rejection",
+      "avg_ms": 3.16,
+      "status": "\u2705 FAST"
+    },
+    {
+      "test": "Verification Request",
+      "avg_ms": 3.07,
+      "status": "\u2705 FAST"
+    }
+  ],
+  "ai": [
+    {
+      "test": "AI Ping Response",
+      "avg_ms": 1395.98,
+      "success_rate": "3/3",
+      "status": "\u2705 GOOD"
+    },
+    {
+      "test": "Rate Limit Config",
+      "global_limit": 10,
+      "per_user_limit": 2,
+      "status": "\u2705 ACTIVE"
+    }
+  ],
+  "database": [
+    {
+      "test": "Dashboard DB Queries",
+      "avg_ms": 1630.88,
+      "status": "\u26a0\ufe0f SLOW"
+    },
+    {
+      "test": "Connection Health",
+      "status": "\u2705 CONNECTED",
+      "response_ms": 928.83
+    }
+  ],
+  "load": [
+    {
+      "test": "Concurrent Health Checks (10)",
+      "avg_ms": 2758.65,
+      "success_rate": "5/10",
+      "errors": 5,
+      "status": "\u26a0\ufe0f ISSUES"
+    }
+  ]
+}
