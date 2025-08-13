@@ -8,7 +8,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from functools import wraps
 import json
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Configure logging - production mode removes debug and reload
 log_level = logging.INFO if os.environ.get('ENV') == 'production' else logging.DEBUG
