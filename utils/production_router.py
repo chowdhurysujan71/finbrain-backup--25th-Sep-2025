@@ -228,11 +228,8 @@ class ProductionRouter:
         note = ai_result.get('note', '')
         
         if ai_tips and ai_tips[0]:
-            # Generate intelligent advice response
-            tip = ai_tips[0]
-            if len(tip) > 200:
-                tip = tip[:200] + "..."
-            response = tip
+            # Generate intelligent advice response (allow full length)
+            response = ai_tips[0]
         elif note:
             # Fallback to rephrasing the question
             response = f"Good question about {note.lower()}. I'd suggest tracking expenses first to see patterns."

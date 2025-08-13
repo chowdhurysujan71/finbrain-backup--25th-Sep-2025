@@ -236,8 +236,8 @@ Expected JSON format:
 
 For expense logging, extract amount and description.
 For summary requests, set intent to "summary".
-For help/unclear messages, set intent to "help".
-Keep tips practical and brief."""
+For help/unclear messages, set intent to "help" and provide practical financial advice in tips.
+For help requests, include 1-2 detailed money-saving tips (50-100 words each)."""
         
         # Ensure prompt stays under limit
         if len(base_prompt) > 1000:
@@ -287,7 +287,7 @@ Keep tips practical and brief."""
                 tips = []
                 for tip in ai_response["tips"][:2]:
                     if isinstance(tip, str) and tip.strip():
-                        tips.append(str(tip)[:50])
+                        tips.append(str(tip)[:200])  # Increase from 50 to 200 chars for meaningful advice
                 if tips:
                     validated["tips"] = tips
             
