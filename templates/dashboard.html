@@ -15,7 +15,7 @@
                 finbrain
             </a>
             <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="/admin/logout">
+                <a class="nav-link" href="javascript:void(0);" onclick="logout()">
                     <i class="fas fa-sign-out-alt me-1"></i>Logout
                 </a>
             </div>
@@ -159,7 +159,7 @@
                         <div class="text-center py-4">
                             <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                             <h5 class="text-muted">No recent expenses</h5>
-                            <p class="text-muted">Start logging expenses via WhatsApp or Facebook Messenger!</p>
+                            <p class="text-muted">Start logging expenses via Facebook Messenger!</p>
                         </div>
                         {% endif %}
                     </div>
@@ -181,19 +181,18 @@
                             <div class="col-md-6">
                                 <ul class="list-unstyled">
                                     <li class="mb-2"><span class="badge bg-secondary me-2">🍔</span><strong>Food:</strong> coffee, restaurant, meal, lunch</li>
-                                    <li class="mb-2"><span class="badge bg-secondary me-2">🚗</span><strong>Transport:</strong> uber, taxi, petrol, travel</li>
-                                    <li class="mb-2"><span class="badge bg-secondary me-2">🛍️</span><strong>Shopping:</strong> clothes, electronics, shoes</li>
-                                    <li class="mb-2"><span class="badge bg-secondary me-2">🛒</span><strong>Groceries:</strong> vegetables, market, milk</li>
-                                    <li class="mb-2"><span class="badge bg-secondary me-2">💡</span><strong>Utilities:</strong> electricity, internet, bills</li>
+                                    <li class="mb-2"><span class="badge bg-secondary me-2">🚗</span><strong>Ride:</strong> uber, taxi, petrol, travel</li>
+                                    <li class="mb-2"><span class="badge bg-secondary me-2">🛒</span><strong>Grocery:</strong> vegetables, market, milk</li>
+                                    <li class="mb-2"><span class="badge bg-secondary me-2">💡</span><strong>Bill:</strong> electricity, internet, utilities</li>
+                                    <li class="mb-2"><span class="badge bg-secondary me-2">📝</span><strong>Other:</strong> miscellaneous expenses</li>
                                 </ul>
                             </div>
                             <div class="col-md-6">
                                 <ul class="list-unstyled">
-                                    <li class="mb-2"><span class="badge bg-secondary me-2">🎬</span><strong>Entertainment:</strong> movie, gym, music</li>
-                                    <li class="mb-2"><span class="badge bg-secondary me-2">🏥</span><strong>Health:</strong> doctor, medicine, clinic</li>
-                                    <li class="mb-2"><span class="badge bg-secondary me-2">📚</span><strong>Education:</strong> books, course, tuition</li>
-                                    <li class="mb-2"><span class="badge bg-secondary me-2">💅</span><strong>Personal Care:</strong> salon, beauty, haircut</li>
-                                    <li class="mb-2"><span class="badge bg-secondary me-2">💼</span><strong>Misc:</strong> everything else</li>
+                                    <li class="mb-3"><strong>AI-Powered:</strong> Smart categorization automatically classifies your expenses</li>
+                                    <li class="mb-3"><strong>Security:</strong> X-Hub-Signature-256 verification for all webhooks</li>
+                                    <li class="mb-3"><strong>Privacy:</strong> SHA-256 hashed user identifiers</li>
+                                    <li class="mb-3"><strong>Real-time:</strong> Instant expense logging and monthly summaries</li>
                                 </ul>
                             </div>
                         </div>
@@ -213,36 +212,47 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6">
-                                <h6><i class="fab fa-whatsapp text-success me-2"></i>WhatsApp</h6>
-                                <p class="mb-2">Send messages like:</p>
-                                <ul class="list-unstyled">
-                                    <li><code>"Coffee 150"</code></li>
-                                    <li><code>"Lunch 250"</code></li>
-                                    <li><code>"Uber ride ৳180"</code></li>
-                                    <li><code>"৳500 grocery shopping"</code></li>
-                                </ul>
-                            </div>
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <h6><i class="fab fa-facebook-messenger text-primary me-2"></i>Facebook Messenger</h6>
-                                <p class="mb-2">Same format works:</p>
-                                <ul class="list-unstyled">
-                                    <li><code>"Movie tickets 400"</code></li>
-                                    <li><code>"Gas bill 1200"</code></li>
-                                    <li><code>"Doctor visit ৳800"</code></li>
-                                    <li><code>"Books ৳350"</code></li>
-                                </ul>
+                                <p class="mb-2">Send messages to log expenses:</p>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <ul class="list-unstyled">
+                                            <li><code>"log 150 coffee"</code></li>
+                                            <li><code>"log 250 lunch"</code></li>
+                                            <li><code>"log 180 uber ride"</code></li>
+                                            <li><code>"log 500 grocery shopping"</code></li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <ul class="list-unstyled">
+                                            <li><code>"log 400 movie tickets"</code></li>
+                                            <li><code>"log 1200 gas bill"</code></li>
+                                            <li><code>"log 800 doctor visit"</code></li>
+                                            <li><code>"summary" (for monthly report)</code></li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="alert alert-info mt-3">
                             <i class="fas fa-info-circle me-2"></i>
-                            <strong>Privacy:</strong> All user IDs are SHA-256 hashed. No raw phone numbers or personal data stored.
+                            <strong>Privacy:</strong> All user IDs are SHA-256 hashed. No personal data stored.
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        function logout() {
+            // For HTTP Basic Auth logout, we redirect to a non-existent URL with bad credentials
+            // This forces the browser to clear its cached credentials
+            var currentHost = window.location.protocol + "//" + window.location.host;
+            window.location.href = currentHost.replace("://", "://logout:logout@") + "/";
+        }
+    </script>
 
     <footer class="bg-dark text-center py-3 mt-5">
         <div class="container">
