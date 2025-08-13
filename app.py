@@ -157,6 +157,8 @@ def dashboard():
     
     try:
         from models import Expense, User, MonthlySummary
+        from datetime import datetime
+        from sqlalchemy import func, extract
         
         # Get recent expenses
         recent_expenses = Expense.query.order_by(Expense.created_at.desc()).limit(10).all()
@@ -164,13 +166,21 @@ def dashboard():
         # Get total users
         total_users = User.query.count()
         
-        # Get this month's summary stats
-        from datetime import datetime
-        current_month = datetime.now().strftime('%Y-%m')
-        monthly_stats = MonthlySummary.query.filter_by(month=current_month).all()
+        # Get this month's expenses directly from expense table
+        today = datetime.utcnow()
+        current_month = today.month
+        current_year = today.year
         
-        total_expenses_this_month = sum(stat.total_amount for stat in monthly_stats)
-        total_transactions_this_month = sum(stat.expense_count for stat in monthly_stats)
+        # Calculate this month's totals directly from expenses
+        total_expenses_this_month = db.session.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
+            extract('month', Expense.created_at) == current_month,
+            extract('year', Expense.created_at) == current_year
+        ).scalar()
+        
+        total_transactions_this_month = db.session.query(Expense).filter(
+            extract('month', Expense.created_at) == current_month,
+            extract('year', Expense.created_at) == current_year
+        ).count()
         
         return render_template('dashboard.html',
                              recent_expenses=recent_expenses,

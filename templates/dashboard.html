@@ -121,27 +121,19 @@
                                 <tbody>
                                     {% for expense in recent_expenses %}
                                     <tr>
-                                        <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
-                                        <td>{{ expense.description }}</td>
+                                        <td>{{ expense.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>{{ expense.description or 'N/A' }}</td>
                                         <td>
-                                            {% if expense.category == 'Food' %}
+                                            {% if expense.category == 'food' %}
                                                 🍔 Food
-                                            {% elif expense.category == 'Transport' %}
-                                                🚗 Transport
-                                            {% elif expense.category == 'Shopping' %}
-                                                🛍️ Shopping
-                                            {% elif expense.category == 'Groceries' %}
-                                                🛒 Groceries
-                                            {% elif expense.category == 'Utilities' %}
-                                                💡 Utilities
-                                            {% elif expense.category == 'Entertainment' %}
-                                                🎬 Entertainment
-                                            {% elif expense.category == 'Health' %}
-                                                🏥 Health
-                                            {% elif expense.category == 'Education' %}
-                                                📚 Education
-                                            {% elif expense.category == 'Personal Care' %}
-                                                💅 Personal Care
+                                            {% elif expense.category == 'ride' %}
+                                                🚗 Ride
+                                            {% elif expense.category == 'grocery' %}
+                                                🛒 Grocery
+                                            {% elif expense.category == 'bill' %}
+                                                💡 Bill
+                                            {% elif expense.category == 'other' %}
+                                                📝 Other
                                             {% else %}
                                                 💼 Misc
                                             {% endif %}
