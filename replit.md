@@ -64,7 +64,7 @@ Preferred communication style: Simple, everyday language.
   - **Plain text only**: ≤280 chars, no emojis, Facebook API sanitized, never requeue
   - **Bulletproof guarantees**: Always reply, always ack, never requeue - even on SQL/DB/API errors
   - **RL-2 logging**: {rid, psid_hash, ai_allowed=false, handled_by="rules", job_status="done"}
-- **AI recommendation system**: Uses fast models (GPT-4o-mini/Gemini-1.5-Flash) for intelligent categorization when rate limits allow
+- **AI recommendation system**: Uses Gemini-2.5-flash-lite for intelligent categorization when rate limits allow
 - **AI failover logic**: If AI_ENABLED=true, try AI adapter first, then regex on failover:true
 - **Streamlined parser**: Never-throws guarantee, Bengali numerals, multiple currencies, corruption handling
 - **Simple categorization** into 5 categories (food, ride, bill, grocery, other) using keyword matching
