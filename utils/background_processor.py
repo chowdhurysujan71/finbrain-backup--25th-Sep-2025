@@ -108,7 +108,7 @@ class BackgroundProcessor:
                 if not is_within_24_hour_window(job.psid):
                     # Outside 24-hour window - don't send response
                     log_webhook_success(psid_hash, job.mid, "24h_policy_block", None, None,
-                                      (time.time() - start_time) * 1000, job.mid)
+                                      (time.time() - start_time) * 1000)
                     return
                 
                 # Process with timeout protection
@@ -178,7 +178,7 @@ class BackgroundProcessor:
                         response_text = self.fallback_reply
                         intent = "timeout"
                         log_webhook_success(psid_hash, job.mid, intent, category, amount,
-                                          processing_time * 1000, job.mid)
+                                          processing_time * 1000)
                     
                     # Send response
                     response_sent = send_facebook_message(job.psid, response_text)
@@ -196,7 +196,7 @@ class BackgroundProcessor:
         finally:
             # Always log completion
             duration_ms = (time.time() - start_time) * 1000
-            log_webhook_success(psid_hash, job.mid, intent, category, amount, duration_ms, job.mid)
+            log_webhook_success(psid_hash, job.mid, intent, category, amount, duration_ms)
             
             if not response_sent and intent != "24h_policy_block":
                 logger.warning(f"Request {job.rid}: No response sent for message {job.mid}")
