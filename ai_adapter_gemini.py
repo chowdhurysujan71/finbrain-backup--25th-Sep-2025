@@ -75,11 +75,17 @@ def generate(user_text: str):
         
     except Exception as e:
         latency_ms = int((time.time()-start)*1000)
-        logger.warning(f"Gemini generation failed in {latency_ms}ms: {str(e)}")
+        
+        # Sanitize error message - never log API keys
+        error_msg = str(e)
+        if 'api_key' in error_msg.lower() or 'x-goog' in error_msg.lower():
+            error_msg = "API authentication error (details redacted for security)"
+        
+        logger.warning(f"Gemini generation failed in {latency_ms}ms: {error_msg}")
         
         return {
             "ok": False, 
-            "error": str(e), 
+            "error": error_msg, 
             "latency_ms": latency_ms
         }
 
