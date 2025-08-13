@@ -287,7 +287,7 @@ For help requests, include 1-2 detailed money-saving tips (50-100 words each).""
                 tips = []
                 for tip in ai_response["tips"][:2]:
                     if isinstance(tip, str) and tip.strip():
-                        tips.append(str(tip)[:200])  # Increase from 50 to 200 chars for meaningful advice
+                        tips.append(str(tip)[:400])  # Doubled from 200 to 400 chars for comprehensive advice
                 if tips:
                     validated["tips"] = tips
             

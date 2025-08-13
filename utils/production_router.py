@@ -447,7 +447,7 @@ class ProductionRouter:
                 'AI_ENABLED': AI_ENABLED,
                 'SAY_ENABLED': os.environ.get("SAY_ENABLED", "true"),
                 'EMOJI_ENABLED': os.environ.get("EMOJI_ENABLED", "true"),
-                'MAX_REPLY_LEN': int(os.environ.get("MAX_REPLY_LEN", "280")),
+                'MAX_REPLY_LEN': int(os.environ.get("MAX_REPLY_LEN", "560")),  # Doubled from 280 to 560 chars
                 'PANIC_PLAIN_REPLY': PANIC_PLAIN_REPLY
             }
         }
