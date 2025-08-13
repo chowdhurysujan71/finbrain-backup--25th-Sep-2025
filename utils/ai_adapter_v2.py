@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 AI_ENABLED = os.environ.get("AI_ENABLED", "false").lower() == "true"
 AI_PROVIDER = os.environ.get("AI_PROVIDER", "none")  # none|openai|gemini
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 AI_TIMEOUT = 3  # 3 second timeout
 AI_MAX_RETRIES = 1  # 1 retry only
 
@@ -37,6 +38,10 @@ class ProductionAIAdapter:
         if self.provider == "openai" and OPENAI_API_KEY:
             self.session.headers.update({
                 "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": "application/json"
+            })
+        elif self.provider == "gemini" and GEMINI_API_KEY:
+            self.session.headers.update({
                 "Content-Type": "application/json"
             })
         
@@ -67,6 +72,8 @@ class ProductionAIAdapter:
         # Route to appropriate provider
         if self.provider == "openai":
             return self._parse_openai(text, context)
+        elif self.provider == "gemini":
+            return self._parse_gemini(text, context)
         else:
             return {"failover": True, "reason": "unsupported_provider"}
     
@@ -141,6 +148,75 @@ class ProductionAIAdapter:
             
         except Exception as e:
             logger.error(f"AI parsing error: {e}")
+            return {"failover": True, "reason": "parse_error"}
+    
+    def _parse_gemini(self, text: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Parse using Gemini API with strict constraints"""
+        try:
+            # Construct prompt
+            prompt = self._build_prompt(text, context)
+            
+            # Prepare request payload for Gemini
+            payload = {
+                "contents": [{
+                    "parts": [{
+                        "text": prompt
+                    }]
+                }],
+                "generationConfig": {
+                    "temperature": 0.1,
+                    "maxOutputTokens": 150,
+                    "responseMimeType": "application/json"
+                }
+            }
+            
+            start_time = time.time()
+            
+            # Make API call with retry logic
+            for attempt in range(AI_MAX_RETRIES + 1):
+                try:
+                    response = self.session.post(
+                        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={GEMINI_API_KEY}",
+                        json=payload,
+                        timeout=AI_TIMEOUT
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        content = result["candidates"][0]["content"]["parts"][0]["text"]
+                        
+                        # Parse AI response as JSON
+                        ai_response = json.loads(content)
+                        
+                        # Validate and clean response
+                        return self._validate_ai_response(ai_response, time.time() - start_time)
+                    
+                    elif response.status_code == 429:
+                        # Rate limited by Gemini
+                        logger.warning(f"Gemini rate limited: {response.status_code}")
+                        return {"failover": True, "reason": "gemini_rate_limited"}
+                    
+                    else:
+                        logger.warning(f"Gemini API error: {response.status_code}")
+                        if attempt < AI_MAX_RETRIES:
+                            time.sleep(0.5)  # Brief retry delay
+                            continue
+                        
+                except requests.Timeout:
+                    logger.warning(f"Gemini timeout on attempt {attempt + 1}")
+                    if attempt < AI_MAX_RETRIES:
+                        continue
+                    
+                except requests.RequestException as e:
+                    logger.warning(f"Gemini request error: {e}")
+                    if attempt < AI_MAX_RETRIES:
+                        continue
+            
+            # All retries failed
+            return {"failover": True, "reason": "gemini_failed"}
+            
+        except Exception as e:
+            logger.error(f"Gemini parsing error: {e}")
             return {"failover": True, "reason": "parse_error"}
     
     def _build_prompt(self, text: str, context: Dict[str, Any]) -> str:
@@ -240,7 +316,7 @@ Keep tips practical and brief."""
             "provider": self.provider,
             "timeout_s": AI_TIMEOUT,
             "max_retries": AI_MAX_RETRIES,
-            "has_api_key": bool(OPENAI_API_KEY) if self.provider == "openai" else None
+            "has_api_key": bool(OPENAI_API_KEY) if self.provider == "openai" else bool(GEMINI_API_KEY) if self.provider == "gemini" else None
         }
     
     def cleanup(self):

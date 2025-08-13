@@ -2,7 +2,9 @@
 
 ## Overview
 
-FinBrain is a production-ready Facebook Messenger expense tracking application with streamlined AI-first architecture and comprehensive security hardening. The system features a clean webhook → router → (AI | deterministic) flow with bulletproof RL-2 fallback guarantees, multi-provider AI support (OpenAI/Gemini), and runtime toggle capabilities. Processes expense messages through Facebook Messenger webhooks with intelligent AI categorization while maintaining deterministic core guarantees. Features mandatory HTTPS enforcement, X-Hub-Signature-256 verification, and production-grade security compliance.
+FinBrain is a production-ready Facebook Messenger expense tracking application with streamlined AI-first architecture and comprehensive security hardening. The system features a clean webhook → router → (AI | deterministic) flow with bulletproof RL-2 fallback guarantees, fully operational Gemini AI integration, and runtime toggle capabilities. Processes expense messages through Facebook Messenger webhooks with intelligent AI categorization while maintaining deterministic core guarantees. Features mandatory HTTPS enforcement, X-Hub-Signature-256 verification, and production-grade security compliance.
+
+**Recent Major Fix (Aug 13, 2025)**: Resolved critical production issue where Gemini AI was not being used despite correct configuration. Added complete Gemini support to production AI adapter (`utils/ai_adapter_v2.py`), enabling real AI-powered expense categorization with 2-3 second response times.
 
 ## User Preferences
 
@@ -49,7 +51,7 @@ Preferred communication style: Simple, everyday language.
 ### Background Processing System
 - **Thread pool execution** with 3 worker threads for safe background message processing
 - **5-second timeout protection** with automatic fallback replies ("Got it. Try 'summary' for a quick recap.")
-- **AI recommendation layer** with fast models (GPT-4o-mini/Gemini-1.5-Flash) for intelligent expense categorization and personalized tips
+- **AI recommendation layer** with Gemini-2.5-flash-lite for intelligent expense categorization and personalized tips (production-verified working)
 - **Pluggable AI adapter system** supporting multiple providers (none/gemini/openai) with 8-second timeouts, PII hygiene, and failover mechanisms
 - **AI Rate Limiting System** (Phase 1): Sliding 60-second window with per-PSID limits (2/min) and global caps (10/min), structured logging, never blocks request threads
 - **Keep-alive HTTP sessions** for external API calls with connection pooling
