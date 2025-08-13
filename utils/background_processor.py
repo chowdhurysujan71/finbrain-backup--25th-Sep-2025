@@ -236,26 +236,24 @@ class BackgroundProcessor:
                 user_hash = hash_psid(psid)
                 
                 # Create expense record with clean description
-                expense = Expense(
-                    user_id=user_hash,
-                    description=description,  # Use clean description directly
-                    amount=amount,
-                    category=category,
-                    currency='৳',
-                    month=datetime.now().strftime('%Y-%m'),
-                    unique_id=f"msg_{int(time.time())}_{hash(text)%1000}",
-                    platform='messenger',
-                    original_message=text  # Store original user message
-                )
+                expense = Expense()
+                expense.user_id = user_hash
+                expense.description = description  # Use clean description directly
+                expense.amount = amount
+                expense.category = category
+                expense.currency = '৳'
+                expense.month = datetime.now().strftime('%Y-%m')
+                expense.unique_id = f"msg_{int(time.time())}_{hash(text)%1000}"
+                expense.platform = 'messenger'
+                expense.original_message = text  # Store original user message
                 
                 # Update or create user record
                 user = db.session.query(User).filter_by(user_id_hash=user_hash).first()
                 if not user:
-                    user = User(
-                        user_id_hash=user_hash,
-                        platform='messenger',
-                        last_user_message_at=datetime.utcnow()
-                    )
+                    user = User()
+                    user.user_id_hash = user_hash
+                    user.platform = 'messenger'
+                    user.last_user_message_at = datetime.utcnow()
                     db.session.add(user)
                 else:
                     user.last_user_message_at = datetime.utcnow()
