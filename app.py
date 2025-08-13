@@ -565,6 +565,45 @@ def ops_telemetry():
             'system_status': 'degraded'
         }), 500
 
+@app.route('/webhook/test', methods=['POST'])
+def webhook_test():
+    """Test endpoint for UAT - bypasses signature verification"""
+    import time
+    start_time = time.time()
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "invalid_json"}), 400
+            
+        # Simple test processing
+        if 'entry' in data and data['entry']:
+            entry = data['entry'][0]
+            if 'messaging' in entry and entry['messaging']:
+                message = entry['messaging'][0]
+                sender_id = message.get('sender', {}).get('id', 'unknown')
+                text = message.get('message', {}).get('text', '')
+                
+                elapsed_ms = (time.time() - start_time) * 1000
+                
+                return jsonify({
+                    "status": "test_ack",
+                    "sender_id": sender_id,
+                    "text": text,
+                    "processing_time_ms": round(elapsed_ms, 2),
+                    "test_mode": True
+                }), 200
+        
+        return jsonify({"error": "invalid_structure"}), 400
+        
+    except Exception as e:
+        elapsed_ms = (time.time() - start_time) * 1000
+        return jsonify({
+            "error": "test_error",
+            "message": str(e),
+            "processing_time_ms": round(elapsed_ms, 2)
+        }), 500
+
 
 
 
