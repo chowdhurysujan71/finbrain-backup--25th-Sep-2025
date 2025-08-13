@@ -47,22 +47,29 @@ def toggle_ai_endpoint():
 @require_admin  
 def ai_status():
     """Get AI system status"""
+    from production_router import router
     return jsonify({
         "ai_enabled": FLAGS.ai_enabled,
         "ai_adapter": get_ai_stats(),
-        "router_stats": simple_router.get_telemetry()
+        "router_telemetry": router.get_telemetry()
+    })
+
+@admin_ops.route("/ops/ai/ping", methods=["GET"])
+@require_admin
+def ai_ping():
+    """Sanity-check the AI adapter"""
+    from ai_adapter import generate
+    r = generate("Reply with the single word: PONG.")
+    return jsonify({
+        "ok": r["ok"], 
+        "latency_ms": r.get("latency_ms"), 
+        "reply": r.get("text", ""), 
+        "error": r.get("error")
     })
 
 @admin_ops.route("/ops/telemetry", methods=["GET"])
 @require_admin
 def telemetry():
-    """Streamlined telemetry endpoint"""
-    return jsonify({
-        "timestamp": time.time(),
-        "ai_system": {
-            "enabled": FLAGS.ai_enabled,
-            "stats": get_ai_stats()
-        },
-        "routing": simple_router.get_telemetry(),
-        "instant_toggle": True
-    })
+    """Truth-telling telemetry - env vs runtime"""
+    from production_router import router
+    return jsonify(router.get_telemetry())

@@ -304,11 +304,11 @@ def webhook_messenger():
         # PRODUCTION SECURITY: Mandatory signature verification
         from utils.webhook_processor import process_webhook_fast
         
-        # Also support streamlined routing for AI-enabled mode
+        # Streamlined production routing
         try:
-            from simple_router import simple_router
+            from production_router import router as production_router
         except ImportError:
-            simple_router = None
+            production_router = None
         
         # Get raw payload and signature
         payload_bytes = request.get_data()
