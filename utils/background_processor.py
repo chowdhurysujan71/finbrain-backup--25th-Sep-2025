@@ -247,8 +247,45 @@ class BackgroundProcessor:
                 # Categorize expense
                 category = categorize_expense(description)
                 
-                # Store expense using the correct function
-                process_expense_message(psid, f"{amount} {description}", 'messenger', f"bg_{text[:10]}_{int(time.time())}")
+                # Store expense directly in database with clean description
+                from app import db
+                from models import Expense, User
+                from utils.security import hash_psid
+                
+                user_hash = hash_psid(psid)
+                
+                # Create expense record with clean description
+                expense = Expense(
+                    user_id=user_hash,
+                    description=description,  # Use clean description directly
+                    amount=amount,
+                    category=category,
+                    currency='৳',
+                    month=datetime.now().strftime('%Y-%m'),
+                    unique_id=f"msg_{int(time.time())}_{hash(text)%1000}",
+                    platform='messenger',
+                    original_message=text  # Store original user message
+                )
+                
+                # Update or create user record
+                user = db.session.query(User).filter_by(user_id_hash=user_hash).first()
+                if not user:
+                    user = User(
+                        user_id_hash=user_hash,
+                        platform='messenger',
+                        last_user_message_at=datetime.utcnow()
+                    )
+                    db.session.add(user)
+                else:
+                    user.last_user_message_at = datetime.utcnow()
+                
+                user.total_expenses = (user.total_expenses or 0) + amount
+                user.expense_count = (user.expense_count or 0) + 1
+                user.last_interaction = datetime.utcnow()
+                
+                # Save to database
+                db.session.add(expense)
+                db.session.commit()
                 
                 # Base response
                 base_response = f"✅ Logged: ৳{amount:.2f} for {description} ({category})"
