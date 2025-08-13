@@ -144,6 +144,13 @@ class AIRateLimiter:
                 "active_psids": len(self.psid_windows),
                 "window_seconds": self.window_seconds
             }
+    
+    def reset_all(self):
+        """Reset all rate limiting windows for testing"""
+        with self._lock:
+            self.psid_windows.clear()
+            self.global_window.clear()
+        logger.info("AI rate limiter reset: all windows cleared")
 
 # Global rate limiter instance
 ai_rate_limiter = AIRateLimiter()

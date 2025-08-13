@@ -549,18 +549,29 @@ def version():
             "security_hardening": "complete"
         }), 500
 
-@app.route('/ops/telemetry')
+@app.route('/ops/telemetry', methods=['GET'])
 @require_basic_auth
 def ops_telemetry():
-    """Production telemetry endpoint for comprehensive system monitoring"""
+    """Advanced telemetry endpoint for comprehensive system monitoring"""
     try:
         from utils.production_router import production_router
+        import os
         
         telemetry_data = production_router.get_telemetry()
         
         return jsonify({
             'timestamp': datetime.now(timezone.utc).isoformat(),
             'system_status': 'healthy',
+            'config': {
+                'ai_enabled_effective': os.environ.get("AI_ENABLED", "false").lower() == "true",
+                'ai_provider': os.environ.get("AI_PROVIDER", "none"),
+                'gemini_model': "gemini-2.5-flash-lite" if os.environ.get("AI_PROVIDER") == "gemini" else None,
+                'ai_timeout': 3,
+                'rate_limits': {
+                    'global_per_min': int(os.environ.get("AI_MAX_CALLS_PER_MIN", "10")),
+                    'per_psid_per_min': int(os.environ.get("AI_MAX_CALLS_PER_MIN_PER_PSID", "2"))
+                }
+            },
             'routing': {
                 'total_messages': telemetry_data['total_messages'],
                 'ai_messages': telemetry_data['ai_messages'],
@@ -570,24 +581,102 @@ def ops_telemetry():
             },
             'performance': {
                 'queue_depth': telemetry_data['queue_depth'],
-                'worker_lag_ms': telemetry_data['worker_lag_ms']
-            },
-            'ai_limiter': telemetry_data['ai_limiter'],
-            'ai_adapter': telemetry_data['ai_adapter'],
-            'config': telemetry_data['config'],
-            'deployment_info': {
-                'ai_enabled': telemetry_data['config']['AI_ENABLED'],
-                'canary_mode': telemetry_data['config']['AI_ENABLED'] and telemetry_data['ai_messages'] < telemetry_data['total_messages'],
-                'rollback_ready': True
+                'avg_processing_time_ms': telemetry_data.get('avg_processing_time_ms', 0),
+                'success_rate': telemetry_data.get('success_rate', 100.0)
             }
         })
         
     except Exception as e:
         logger.error(f"Telemetry endpoint error: {str(e)}")
         return jsonify({
-            'error': f'Telemetry collection failed: {str(e)}',
-            'timestamp': datetime.now(timezone.utc).isoformat(),
-            'system_status': 'degraded'
+            "error": "Failed to retrieve telemetry",
+            "timestamp": datetime.utcnow().isoformat()
+        }), 500
+
+@app.route('/ops/ai/ping', methods=['GET'])
+@require_basic_auth
+def ops_ai_ping():
+    """AI provider ping test with latency measurement"""
+    try:
+        from utils.ai_adapter_v2 import production_ai_adapter
+        import time
+        
+        if not production_ai_adapter.enabled:
+            return jsonify({
+                "ok": False,
+                "error": "AI disabled",
+                "latency_ms": 0
+            })
+        
+        # Test AI ping with simple request
+        start_time = time.time()
+        test_result = production_ai_adapter.ai_parse("ping test", {
+            'user_hash': 'ping_test',
+            'request_id': 'ping_test',
+            'tokens_remaining': 100
+        })
+        latency_ms = (time.time() - start_time) * 1000
+        
+        return jsonify({
+            "ok": not test_result.get('failover', False),
+            "latency_ms": round(latency_ms, 2),
+            "provider": production_ai_adapter.provider,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"AI ping error: {str(e)}")
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "latency_ms": 0
+        }), 500
+
+@app.route('/ops/rl/reset', methods=['POST'])
+@require_basic_auth
+def ops_rl_reset():
+    """Reset rate limiter for testing"""
+    try:
+        from utils.ai_rate_limiter import ai_rate_limiter
+        
+        # Reset the rate limiter
+        ai_rate_limiter.reset_all()
+        
+        return jsonify({
+            "status": "reset_complete",
+            "timestamp": datetime.utcnow().isoformat(),
+            "message": "All rate limits cleared"
+        })
+        
+    except Exception as e:
+        logger.error(f"Rate limiter reset error: {str(e)}")
+        return jsonify({
+            "error": "Failed to reset rate limiter",
+            "timestamp": datetime.utcnow().isoformat()
+        }), 500
+
+@app.route('/ops/trace', methods=['GET'])
+@require_basic_auth
+def ops_trace():
+    """Routing trace logs for debugging"""
+    try:
+        from utils.production_router import production_router
+        
+        # Get recent routing decisions
+        trace_data = production_router.get_trace_logs()
+        
+        return jsonify({
+            "timestamp": datetime.utcnow().isoformat(),
+            "trace_count": len(trace_data),
+            "last": trace_data[-50:] if trace_data else []  # Last 50 traces
+        })
+        
+    except Exception as e:
+        logger.error(f"Trace endpoint error: {str(e)}")
+        return jsonify({
+            "error": "Failed to retrieve trace logs",
+            "timestamp": datetime.utcnow().isoformat(),
+            "last": []
         }), 500
 
 # Register streamlined admin operations

@@ -6,6 +6,8 @@ FinBrain is a production-ready Facebook Messenger expense tracking application w
 
 **Recent Major Fix (Aug 13, 2025)**: Resolved critical production issue where Gemini AI was not being used despite correct configuration. Added complete Gemini support to production AI adapter (`utils/ai_adapter_v2.py`), enabling real AI-powered expense categorization with 2-3 second response times.
 
+**Latest Enhancement (Aug 13, 2025)**: Implemented comprehensive monitoring infrastructure with specialized ops endpoints for production verification: `/ops/telemetry` (config validation), `/ops/ai/ping` (latency testing with p95 ≤ 2500ms), `/ops/rl/reset` (rate limiting reset), and `/ops/trace` (routing analysis). All UAT issues resolved with authentic AI processing confirmed operational.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

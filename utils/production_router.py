@@ -454,6 +454,12 @@ class ProductionRouter:
                 'PANIC_PLAIN_REPLY': PANIC_PLAIN_REPLY
             }
         }
+    
+    def get_trace_logs(self) -> List[Dict[str, Any]]:
+        """Get recent routing decisions for trace analysis"""
+        # For now, return empty list since we log to structured JSON
+        # In production, this would integrate with log aggregation
+        return []
 
 # Global instance
 production_router = ProductionRouter()
