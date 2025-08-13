@@ -222,10 +222,26 @@ class ProductionRouter:
             return response, "undo", None, None
     
     def _handle_ai_help(self, ai_result: Dict[str, Any], psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
-        """Handle AI help response"""
-        response = format_help_response()
+        """Handle AI help response with intelligent advice"""
+        # Use AI-generated tips for advice/help requests
+        ai_tips = ai_result.get('tips', [])
+        note = ai_result.get('note', '')
+        
+        if ai_tips and ai_tips[0]:
+            # Generate intelligent advice response
+            tip = ai_tips[0]
+            if len(tip) > 200:
+                tip = tip[:200] + "..."
+            response = tip
+        elif note:
+            # Fallback to rephrasing the question
+            response = f"Good question about {note.lower()}. I'd suggest tracking expenses first to see patterns."
+        else:
+            # Last resort template
+            response = format_help_response()
+        
         self._log_routing_decision(rid, psid_hash, "ai_help", "help_provided")
-        return response, "help", None, None
+        return normalize(response), "help", None, None
     
     def _handle_rules_summary(self, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Handle deterministic summary"""

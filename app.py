@@ -347,8 +347,30 @@ def ops_status():
         last_outbound_success = None
         last_outbound_failure = None
         
-        # Get last AI error (currently no AI errors tracked)
-        last_ai_error = None
+        # Get AI status from production systems
+        try:
+            import os
+            from utils.production_router import production_router
+            
+            ai_enabled = os.environ.get("AI_ENABLED", "false").lower() == "true"
+            ai_provider = os.environ.get("AI_PROVIDER", "none") if ai_enabled else "none"
+            telemetry = production_router.get_telemetry()
+            
+            ai_status_info = {
+                "enabled": ai_enabled,
+                "provider": ai_provider,
+                "ai_messages": telemetry.get('ai_messages', 0),
+                "rules_messages": telemetry.get('rules_messages', 0),
+                "ai_failovers": telemetry.get('ai_failovers', 0),
+                "note": f"Production AI: {ai_provider} enabled" if ai_enabled else "AI disabled - using deterministic rules"
+            }
+        except Exception as e:
+            logger.error(f"Failed to get AI status: {str(e)}")
+            ai_status_info = {
+                "enabled": False,
+                "provider": "unknown",
+                "note": "AI status unavailable"
+            }
         
         # Get system stats
         total_users = User.query.count()
@@ -381,10 +403,7 @@ def ops_status():
                 "last_failure": last_outbound_failure,
                 "note": "MVP: No scheduled outbound messages (24h policy compliance)"
             },
-            "ai_status": {
-                "last_error": last_ai_error,
-                "note": "MVP: Simple regex routing (no AI processing)"
-            },
+            "ai_status": ai_status_info,
             "system_stats": {
                 "total_users": total_users,
                 "uptime_check": "healthy"
