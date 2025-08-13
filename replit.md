@@ -63,6 +63,7 @@ Preferred communication style: Simple, everyday language.
   - Default: Show help with usage examples
 - **AI recommendation system**: Uses fast models (GPT-4o-mini/Gemini-1.5-Flash) for intelligent categorization and actionable tips
 - **AI failover logic**: If AI_ENABLED=true, try AI adapter first, then regex on failover:true
+- **Graceful rate limit handling**: When AI rate limited, deterministic processing with user-friendly disclaimers explaining limits
 - **Simple categorization** into 5 categories (food, ride, bill, grocery, other) using keyword matching
 - **Duplicate prevention** using unique message IDs
 - **Response limits** ≤ 280 characters for all replies

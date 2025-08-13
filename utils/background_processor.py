@@ -132,9 +132,15 @@ class BackgroundProcessor:
                         ai_result = {"failover": True, "reason": "rate_limited"}
                     
                     if ai_result.get("failover", True):
-                        # Fall back to regex routing with generic tip
-                        response_text, intent, category, amount = self._regex_fallback(job.text, job.psid)
-                        logger.info(f"AI failover: {ai_result.get('provider', 'unknown')} -> regex routing")
+                        # Fall back to regex routing - check if it was due to rate limiting
+                        is_rate_limited = not rate_limit_result.ai_allowed
+                        response_text, intent, category, amount = self._regex_fallback_with_disclaimer(
+                            job.text, job.psid, is_rate_limited
+                        )
+                        if is_rate_limited:
+                            logger.info(f"AI rate limited ({rate_limit_result.reason}) -> regex routing with disclaimer")
+                        else:
+                            logger.info(f"AI failover: {ai_result.get('provider', 'unknown')} -> regex routing")
                     else:
                         # Use AI result with smart processing
                         intent = ai_result.get("intent", "ai_processed")
@@ -195,14 +201,21 @@ class BackgroundProcessor:
             if not response_sent and intent != "24h_policy_block":
                 logger.warning(f"Request {job.rid}: No response sent for message {job.mid}")
     
-    def _regex_fallback(self, text: str, psid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _regex_fallback_with_disclaimer(self, text: str, psid: str, is_rate_limited: bool = False) -> Tuple[str, str, Optional[str], Optional[float]]:
         """
-        Regex-based message routing (MVP fallback)
+        Regex-based message routing with optional rate limit disclaimer
         Returns: (response_text, intent, category, amount)
         """
         import re
         from utils.expense import process_expense_message  
         from utils.categories import categorize_expense
+        
+        # Rate limit disclaimer for RL-2 (optimized for 280 char limit)
+        rate_limit_disclaimer = (
+            "😮‍💨 Taking a quick breather. I can do 2 smart replies/min per person.\n"
+            "✅ I handled that without AI this time.\n"
+            "Tip: type 'summary' for a quick recap."
+        )
         
         # Try expense logging pattern: ^log (\d+) (.*)$
         log_match = re.match(r'^log (\d+) (.*)$', text.lower().strip())
@@ -217,30 +230,101 @@ class BackgroundProcessor:
                 # Store expense using the correct function
                 process_expense_message(psid, f"{amount} {description}", 'messenger', f"bg_{text[:10]}_{int(time.time())}")
                 
-                return (
-                    f"✅ Logged: ৳{amount:.2f} for {description} ({category})",
-                    "log",
-                    category,
-                    amount
-                )
+                # Base response
+                base_response = f"✅ Logged: ৳{amount:.2f} for {description} ({category})"
+                
+                # Add disclaimer if rate limited
+                if is_rate_limited:
+                    response_text = f"{rate_limit_disclaimer}\n\n{base_response}"
+                else:
+                    response_text = base_response
+                
+                return (response_text, "log", category, amount)
                 
             except Exception as e:
                 logger.error(f"Regex fallback expense processing error: {str(e)}")
-                return ("Error processing expense. Please try again.", "error", None, None)
+                error_msg = "Error processing expense. Please try again."
+                if is_rate_limited:
+                    error_msg = f"{rate_limit_disclaimer}\n\n{error_msg}"
+                return (error_msg, "error", None, None)
         
         # Try summary request
         if text.lower().strip() == "summary":
-            # Generate summary (simplified)
-            return ("📊 Weekly summary: Check your dashboard for details.", "summary", None, None)
+            # Generate deterministic summary without AI
+            summary_text = self._generate_deterministic_summary(psid)
+            
+            if is_rate_limited:
+                # Add rate limit prefix for summary
+                prefix = "😮‍💨 Quick note: smart replies are capped at 2/min. Here's your recap without AI:"
+                response_text = f"{prefix}\n\n{summary_text}"
+            else:
+                response_text = summary_text
+                
+            return (response_text, "summary", None, None)
         
-        # Default help response with generic tip
+        # Default help response (optimized for 280 char limit with disclaimer)
         help_text = (
             "💬 Send: 'log 50 coffee' to track expenses\n"
             "📊 Send: 'summary' for weekly breakdown\n" 
-            "📱 Format: log [amount] [description]\n"
-            "💡 Track daily to build better spending habits"
+            "📱 Format: log [amount] [description]"
         )
-        return (help_text, "help", None, None)
+        
+        # Add disclaimer if rate limited
+        if is_rate_limited:
+            response_text = f"{rate_limit_disclaimer}\n\n{help_text}"
+        else:
+            response_text = help_text
+        
+        return (response_text, "help", None, None)
+    
+    def _generate_deterministic_summary(self, psid: str) -> str:
+        """
+        Generate a deterministic summary without AI calls
+        Fast, rule-based summary for rate-limited users
+        """
+        from app import db
+        from models import Expense
+        from datetime import datetime, timedelta
+        from sqlalchemy import func, extract
+        
+        try:
+            # Get last 7 days of expenses for this user
+            week_ago = datetime.utcnow() - timedelta(days=7)
+            
+            expenses = db.session.query(Expense).filter(
+                Expense.user_id == psid,
+                Expense.created_at >= week_ago
+            ).order_by(Expense.created_at.desc()).limit(10).all()
+            
+            if not expenses:
+                return "📊 No expenses in the last 7 days. Start tracking with 'log [amount] [description]'"
+            
+            # Calculate totals by category
+            category_totals = {}
+            total_amount = 0
+            
+            for expense in expenses:
+                category = expense.category or 'other'
+                amount = float(expense.amount)
+                category_totals[category] = category_totals.get(category, 0) + amount
+                total_amount += amount
+            
+            # Build summary text (keep under 280 chars total when prefixed)
+            summary_lines = [f"📊 Last 7 days: ৳{total_amount:.0f} total"]
+            
+            # Add top categories
+            sorted_categories = sorted(category_totals.items(), key=lambda x: x[1], reverse=True)
+            for category, amount in sorted_categories[:3]:
+                summary_lines.append(f"• {category}: ৳{amount:.0f}")
+            
+            # Add count
+            summary_lines.append(f"📝 {len(expenses)} transactions logged")
+            
+            return "\n".join(summary_lines)
+            
+        except Exception as e:
+            logger.error(f"Error generating deterministic summary: {str(e)}")
+            return "📊 Summary temporarily unavailable. Check your dashboard for details."
     
     def _log_ai_rate_limit(self, rid: str, psid_hash: str, rate_limit_result) -> None:
         """Log AI rate limit check with structured data"""
