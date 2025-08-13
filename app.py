@@ -304,6 +304,12 @@ def webhook_messenger():
         # PRODUCTION SECURITY: Mandatory signature verification
         from utils.webhook_processor import process_webhook_fast
         
+        # Also support streamlined routing for AI-enabled mode
+        try:
+            from simple_router import simple_router
+        except ImportError:
+            simple_router = None
+        
         # Get raw payload and signature
         payload_bytes = request.get_data()
         signature = request.headers.get('X-Hub-Signature-256', '')
@@ -564,6 +570,10 @@ def ops_telemetry():
             'timestamp': datetime.now(timezone.utc).isoformat(),
             'system_status': 'degraded'
         }), 500
+
+# Register streamlined admin operations
+from admin_ops import admin_ops
+app.register_blueprint(admin_ops)
 
 @app.route('/webhook/test', methods=['POST'])
 def webhook_test():
