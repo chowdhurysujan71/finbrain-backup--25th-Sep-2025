@@ -51,8 +51,7 @@ def generate(user_text: str):
         resp = client.models.generate_content(
             model=MODEL,
             config=cfg,
-            contents=[{"role": "user", "parts": [{"text": user_text}]}],
-            timeout=TIMEOUT
+            contents=[{"role": "user", "parts": [{"text": user_text}]}]
         )
         
         # Extract text from response

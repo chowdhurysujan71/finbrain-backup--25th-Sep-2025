@@ -13,13 +13,13 @@ from deterministic import deterministic_reply
 
 # Dynamic provider import
 llm_generate = None
-if AI_PROVIDER == "gemini":
+if AI_PROVIDER.strip() == "gemini":
     try:
         from ai_adapter_gemini import generate as llm_generate, get_stats as get_ai_stats
     except ImportError:
         llm_generate = None
         get_ai_stats = lambda: {"error": "Gemini adapter not available"}
-elif AI_PROVIDER == "openai":
+elif AI_PROVIDER.strip() == "openai":
     try:
         from ai_adapter_openai import generate as llm_generate, get_stats as get_ai_stats
     except ImportError:
