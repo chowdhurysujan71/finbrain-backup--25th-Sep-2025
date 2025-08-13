@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+"""
+FinBrain production server startup script
+Starts gunicorn without the --reload flag to prevent WINCH signal loops
+"""
+import os
+import sys
+import subprocess
+import signal
+
+def signal_handler(sig, frame):
+    """Handle shutdown signals gracefully"""
+    print(f"\nReceived signal {sig}, shutting down gracefully...")
+    sys.exit(0)
+
+def start_production_server():
+    """Start gunicorn server in production mode"""
+    # Handle shutdown signals
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    # Gunicorn command without --reload to prevent WINCH signal loops
+    cmd = [
+        "gunicorn",
+        "--bind", "0.0.0.0:5000",
+        "--reuse-port",
+        "--workers", "1",  # Single worker for development
+        "--timeout", "120",  # 2 minute timeout
+        "--keep-alive", "5",  # Keep connections alive
+        "--log-level", "info",
+        "main:app"
+    ]
+    
+    print("Starting FinBrain production server...")
+    print(f"Command: {' '.join(cmd)}")
+    
+    try:
+        # Start gunicorn process
+        process = subprocess.run(cmd, check=False)
+        return process.returncode
+    except KeyboardInterrupt:
+        print("\nShutdown requested by user")
+        return 0
+    except Exception as e:
+        print(f"Error starting server: {e}")
+        return 1
+
+if __name__ == "__main__":
+    exit_code = start_production_server()
+    sys.exit(exit_code)
