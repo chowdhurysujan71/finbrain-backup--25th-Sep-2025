@@ -217,32 +217,13 @@ class BackgroundProcessor:
             "Tip: type 'summary' for a quick recap."
         )
         
-        # Try multiple expense logging patterns
-        text_clean = text.lower().strip()
+        # Use hardened parser for expense detection
+        from utils.parser import parse_expense
         
-        # Pattern 1: "log 50 coffee" - standard format
-        log_match = re.match(r'^log (\d+(?:\.\d{1,2})?)\s+(.+)$', text_clean)
-        
-        # Pattern 2: "coffee 500" - description first, amount last  
-        if not log_match:
-            desc_amount_match = re.match(r'^(.+?)\s+(\d+(?:\.\d{1,2})?)$', text_clean)
-            if desc_amount_match and len(desc_amount_match.group(1)) > 1:  # Ensure description is meaningful
-                log_match = type('MockMatch', (), {
-                    'group': lambda self, n: desc_amount_match.group(2) if n == 1 else desc_amount_match.group(1)
-                })()
-        
-        # Pattern 3: "log coffee 100" - log + description + amount
-        if not log_match:
-            log_desc_amount_match = re.match(r'^log\s+(.+?)\s+(\d+(?:\.\d{1,2})?)$', text_clean)
-            if log_desc_amount_match:
-                log_match = type('MockMatch', (), {
-                    'group': lambda self, n: log_desc_amount_match.group(2) if n == 1 else log_desc_amount_match.group(1)
-                })()
-        
-        if log_match:
+        parsed_expense = parse_expense(text)
+        if parsed_expense:
             try:
-                amount = float(log_match.group(1))
-                description = log_match.group(2).strip()
+                amount, description = parsed_expense
                 
                 # Categorize expense
                 category = categorize_expense(description)
