@@ -51,6 +51,7 @@ Preferred communication style: Simple, everyday language.
 - **5-second timeout protection** with automatic fallback replies ("Got it. Try 'summary' for a quick recap.")
 - **AI recommendation layer** with fast models (GPT-4o-mini/Gemini-1.5-Flash) for intelligent expense categorization and personalized tips
 - **Pluggable AI adapter system** supporting multiple providers (none/gemini/openai) with 8-second timeouts, PII hygiene, and failover mechanisms
+- **AI Rate Limiting System** (Phase 1): Sliding 60-second window with per-PSID limits (2/min) and global caps (10/min), structured logging, never blocks request threads
 - **Keep-alive HTTP sessions** for external API calls with connection pooling
 - **Comprehensive error handling** with Flask app context management and graceful degradation
 
@@ -139,6 +140,8 @@ Optional configuration:
 - `AI_ENABLED`: Enable AI processing adapter (default: false, uses regex fallback)
 - `AI_PROVIDER`: AI provider selection - none, openai, gemini (default: none)
 - `AI_PROVIDER_URL`: AI provider endpoint for warm-up (default: https://api.openai.com)
+- `AI_MAX_CALLS_PER_MIN`: Global AI rate limit per minute (default: 10)
+- `AI_MAX_CALLS_PER_MIN_PER_PSID`: Per-user AI rate limit per minute (default: 2)
 - `HEALTH_PING_ENABLED`: Enable 5-minute health pings to prevent cold starts (default: true)
 - `ENV=production`: Enables production mode (INFO level logging, structured JSON output)
 

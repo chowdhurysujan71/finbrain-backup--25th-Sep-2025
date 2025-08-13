@@ -19,6 +19,7 @@ from .security import hash_psid
 from .rate_limiter import check_rate_limit
 from .policy_guard import update_user_message_timestamp, is_within_24_hour_window
 from .facebook_handler import send_facebook_message
+from .ai_rate_limiter import ai_rate_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -112,12 +113,23 @@ class BackgroundProcessor:
                 
                 # Process with timeout protection
                 try:
-                    # Try AI processing first if enabled
-                    ai_result = self.ai_adapter.ai_summarize_or_classify(
-                        text=job.text,
-                        psid=job.psid,
-                        context={"platform": "messenger", "timestamp": job.timestamp}
-                    )
+                    # Check AI rate limits BEFORE any AI processing
+                    rate_limit_result = ai_rate_limiter.check_rate_limit(psid_hash)
+                    
+                    # Log AI rate limit check with structured data
+                    self._log_ai_rate_limit(job.rid, psid_hash, rate_limit_result)
+                    
+                    # Try AI processing first if enabled AND rate limit allows
+                    ai_result = None
+                    if rate_limit_result.ai_allowed:
+                        ai_result = self.ai_adapter.ai_summarize_or_classify(
+                            text=job.text,
+                            psid=job.psid,
+                            context={"platform": "messenger", "timestamp": job.timestamp}
+                        )
+                    else:
+                        # AI rate limited - force failover to deterministic processing
+                        ai_result = {"failover": True, "reason": "rate_limited"}
                     
                     if ai_result.get("failover", True):
                         # Fall back to regex routing with generic tip
@@ -229,6 +241,23 @@ class BackgroundProcessor:
             "💡 Track daily to build better spending habits"
         )
         return (help_text, "help", None, None)
+    
+    def _log_ai_rate_limit(self, rid: str, psid_hash: str, rate_limit_result) -> None:
+        """Log AI rate limit check with structured data"""
+        log_data = {
+            "rid": rid,
+            "psid_hash": psid_hash,
+            "ai_allowed": rate_limit_result.ai_allowed,
+            "reason": rate_limit_result.reason,
+            "tokens_remaining": rate_limit_result.tokens_remaining,
+            "window_reset_at": rate_limit_result.window_reset_at
+        }
+        
+        logger.info(f"AI rate limit check: {json.dumps(log_data)}")
+        
+        # Log rate limiting events for monitoring
+        if not rate_limit_result.ai_allowed:
+            logger.warning(f"AI rate limited for PSID {psid_hash[:8]}...: {rate_limit_result.reason}")
     
     def _send_fallback_reply(self, psid: str, message: str) -> bool:
         """Send fallback reply with error handling"""
