@@ -217,8 +217,28 @@ class BackgroundProcessor:
             "Tip: type 'summary' for a quick recap."
         )
         
-        # Try expense logging pattern: ^log (\d+) (.*)$
-        log_match = re.match(r'^log (\d+) (.*)$', text.lower().strip())
+        # Try multiple expense logging patterns
+        text_clean = text.lower().strip()
+        
+        # Pattern 1: "log 50 coffee" - standard format
+        log_match = re.match(r'^log (\d+(?:\.\d{1,2})?)\s+(.+)$', text_clean)
+        
+        # Pattern 2: "coffee 500" - description first, amount last  
+        if not log_match:
+            desc_amount_match = re.match(r'^(.+?)\s+(\d+(?:\.\d{1,2})?)$', text_clean)
+            if desc_amount_match and len(desc_amount_match.group(1)) > 1:  # Ensure description is meaningful
+                log_match = type('MockMatch', (), {
+                    'group': lambda self, n: desc_amount_match.group(2) if n == 1 else desc_amount_match.group(1)
+                })()
+        
+        # Pattern 3: "log coffee 100" - log + description + amount
+        if not log_match:
+            log_desc_amount_match = re.match(r'^log\s+(.+?)\s+(\d+(?:\.\d{1,2})?)$', text_clean)
+            if log_desc_amount_match:
+                log_match = type('MockMatch', (), {
+                    'group': lambda self, n: log_desc_amount_match.group(2) if n == 1 else log_desc_amount_match.group(1)
+                })()
+        
         if log_match:
             try:
                 amount = float(log_match.group(1))
@@ -264,9 +284,9 @@ class BackgroundProcessor:
         
         # Default help response (optimized for 280 char limit with disclaimer)
         help_text = (
-            "💬 Send: 'log 50 coffee' to track expenses\n"
-            "📊 Send: 'summary' for weekly breakdown\n" 
-            "📱 Format: log [amount] [description]"
+            "💬 Track expenses: 'coffee 50' or 'log 50 coffee'\n"
+            "📊 Get summary: type 'summary'\n" 
+            "📱 Flexible formats: [item amount] or log [amount item]"
         )
         
         # Add disclaimer if rate limited
