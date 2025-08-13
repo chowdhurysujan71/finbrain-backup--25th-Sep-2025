@@ -1,0 +1,16 @@
+{
+  "object": "page",
+  "entry": [{
+    "id": "test_page_id",
+    "time": 1755081839000,
+    "messaging": [{
+      "sender": {"id": "test_rate_limit_user"},
+      "recipient": {"id": "test_page_id"},
+      "timestamp": 1755081839000,
+      "message": {
+        "mid": "test_message_rate_1",
+        "text": "log 25 coffee #1"
+      }
+    }]
+  }]
+}
