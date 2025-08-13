@@ -47,7 +47,7 @@ def toggle_ai_endpoint():
 @require_admin  
 def ai_status():
     """Get AI system status"""
-    from production_router import router
+    from production_router import router, get_ai_stats
     return jsonify({
         "ai_enabled": FLAGS.ai_enabled,
         "ai_adapter": get_ai_stats(),
@@ -58,8 +58,17 @@ def ai_status():
 @require_admin
 def ai_ping():
     """Sanity-check the AI adapter"""
-    from ai_adapter import generate
-    r = generate("Reply with the single word: PONG.")
+    from production_router import llm_generate
+    
+    if llm_generate is None:
+        return jsonify({
+            "ok": False,
+            "error": "No AI provider configured",
+            "latency_ms": 0,
+            "reply": ""
+        })
+    
+    r = llm_generate("Reply with the single word: PONG.")
     return jsonify({
         "ok": r["ok"], 
         "latency_ms": r.get("latency_ms"), 

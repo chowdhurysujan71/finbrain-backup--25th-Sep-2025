@@ -1,5 +1,5 @@
 """
-OpenAI AI adapter - renamed for clarity with multi-provider support
+OpenAI AI adapter - clean implementation for multi-provider architecture
 Direct OpenAI integration with 3s timeout and immediate fallback
 """
 import os
@@ -15,7 +15,7 @@ client = None
 if OPENAI_API_KEY:
     client = OpenAI(api_key=OPENAI_API_KEY)
 
-def generate(prompt, sys="You are a helpful finance assistant. Reply in <=120 tokens."):
+def generate(user_text, sys="You are FinBrain, a concise personal finance assistant. Keep replies under 120 tokens."):
     """
     Generate AI response with fail-fast approach
     Returns: {"ok": bool, "text": str, "latency_ms": int, "error": str}
@@ -34,7 +34,7 @@ def generate(prompt, sys="You are a helpful finance assistant. Reply in <=120 to
             model="gpt-4o-mini",  # the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
             messages=[
                 {"role": "system", "content": sys},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": user_text}
             ],
             temperature=0.2,
             timeout=AI_TIMEOUT_MS/1000.0,
@@ -44,7 +44,7 @@ def generate(prompt, sys="You are a helpful finance assistant. Reply in <=120 to
         txt = resp.choices[0].message.content.strip()
         latency_ms = int((time.time()-start)*1000)
         
-        logger.info(f"AI response generated in {latency_ms}ms")
+        logger.info(f"OpenAI response generated in {latency_ms}ms")
         
         return {
             "ok": True, 
@@ -54,7 +54,7 @@ def generate(prompt, sys="You are a helpful finance assistant. Reply in <=120 to
         
     except Exception as e:
         latency_ms = int((time.time()-start)*1000)
-        logger.warning(f"AI generation failed in {latency_ms}ms: {str(e)}")
+        logger.warning(f"OpenAI generation failed in {latency_ms}ms: {str(e)}")
         
         return {
             "ok": False, 
@@ -63,7 +63,7 @@ def generate(prompt, sys="You are a helpful finance assistant. Reply in <=120 to
         }
 
 def get_stats():
-    """Get AI adapter status"""
+    """Get OpenAI adapter status"""
     return {
         "configured": client is not None,
         "provider": "openai",

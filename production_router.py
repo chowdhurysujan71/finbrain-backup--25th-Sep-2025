@@ -7,10 +7,26 @@ import logging
 from typing import Dict, Any
 
 from flags import FLAGS
-from config import AI_PROVIDER, AI_ENABLED, AI_TIMEOUT_MS
-from ai_adapter import generate
+from config import AI_PROVIDER, AI_ENABLED, AI_TIMEOUT_MS, GEMINI_MODEL
 from limiter import per_user_ok, global_ok, get_stats as get_limiter_stats
 from deterministic import deterministic_reply
+
+# Dynamic provider import
+llm_generate = None
+if AI_PROVIDER == "gemini":
+    try:
+        from ai_adapter_gemini import generate as llm_generate, get_stats as get_ai_stats
+    except ImportError:
+        llm_generate = None
+        get_ai_stats = lambda: {"error": "Gemini adapter not available"}
+elif AI_PROVIDER == "openai":
+    try:
+        from ai_adapter_openai import generate as llm_generate, get_stats as get_ai_stats
+    except ImportError:
+        llm_generate = None
+        get_ai_stats = lambda: {"error": "OpenAI adapter not available"}
+else:
+    get_ai_stats = lambda: {"provider": "none", "configured": False}
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +56,8 @@ class ProductionRouter:
         global_rate_ok = global_ok()
         
         # Try AI if enabled and within limits
-        if FLAGS.ai_enabled and AI_PROVIDER != "none" and user_rate_ok and global_rate_ok:
-            ai_result = generate(f"User said: \"{message}\"\nIf it's an expense, return a short confirmation + category guess + tip if relevant.\nOtherwise, answer briefly.")
+        if FLAGS.ai_enabled and llm_generate is not None and user_rate_ok and global_rate_ok:
+            ai_result = llm_generate(f"User said: \"{message}\"\nIf it's an expense, return a short confirmation + category guess + tip if relevant.\nOtherwise, answer briefly.")
             
             if ai_result["ok"]:
                 self.stats["ai_requests"] += 1
@@ -69,8 +85,8 @@ class ProductionRouter:
             # Determine fallback reason
             if not FLAGS.ai_enabled:
                 reason = "ai_disabled"
-            elif AI_PROVIDER == "none":
-                reason = "provider_none"
+            elif llm_generate is None:
+                reason = "provider_unavailable"
             elif not user_rate_ok:
                 reason = "user_rate_limit"
                 self.stats["rate_limited"] += 1
@@ -91,17 +107,24 @@ class ProductionRouter:
     
     def get_telemetry(self) -> Dict[str, Any]:
         """Comprehensive telemetry - env vs runtime truth"""
+        config = {
+            "ai_enabled_env_default": AI_ENABLED,
+            "ai_enabled_effective": FLAGS.ai_enabled,
+            "ai_provider": AI_PROVIDER,
+            "ai_timeout_ms": AI_TIMEOUT_MS,
+            "rl": {
+                "user_cap_per_min": 2,
+                "global_cap_per_min": 10
+            }
+        }
+        
+        # Add provider-specific config
+        if AI_PROVIDER == "gemini":
+            config["gemini_model"] = GEMINI_MODEL
+        
         return {
-            "config": {
-                "ai_enabled_env_default": AI_ENABLED,
-                "ai_enabled_effective": FLAGS.ai_enabled,
-                "ai_provider": AI_PROVIDER,
-                "ai_timeout_ms": AI_TIMEOUT_MS,
-                "rl": {
-                    "user_cap_per_min": 2,
-                    "global_cap_per_min": 10
-                }
-            },
+            "config": config,
+            "ai_adapter": get_ai_stats(),
             "stats": self.stats.copy(),
             "rate_limiting": get_limiter_stats(),
             "timestamp": time.time()
