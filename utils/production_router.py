@@ -5,7 +5,7 @@ Implements single entry point with rate limiting, AI failover, and comprehensive
 import os
 import time
 import logging
-from typing import Tuple, Optional, Dict, Any
+from typing import Tuple, Optional, Dict, Any, List
 from datetime import datetime, timezone
 
 from utils.background_processor_rl2 import rl2_processor
@@ -186,9 +186,8 @@ class ProductionRouter:
         # Store expense deterministically
         self._store_expense_deterministic(psid, amount, note, category, text)
         
-        # Enhanced response with AI insights
-        response = format_logged_response(amount, note, category)
-        response += "\nType summary anytime."
+        # Generate AI-powered response with intelligent tips
+        response = self._generate_ai_logged_response(amount, note, category, ai_result.get('tips', []))
         
         self._log_routing_decision(rid, psid_hash, "ai_log", f"logged: {amount} {category}")
         return normalize(response), "log", category, amount
@@ -341,6 +340,35 @@ class ProductionRouter:
         except Exception as e:
             logger.error(f"Summary data error: {e}")
             return {'total': 0.0, 'food': 0.0, 'ride': 0.0, 'bill': 0.0, 'grocery': 0.0, 'other': 0.0}
+    
+    def _generate_ai_logged_response(self, amount: float, note: str, category: str, tips: List[str]) -> str:
+        """Generate AI-powered response for logged expenses"""
+        
+        # Base confirmation with amount and note
+        response = f"Logged: ৳{amount:.2f}"
+        
+        # Add note if present
+        if note.strip():
+            response += f" — {note}"
+        
+        # Add category insight
+        if category != 'other':
+            response += f" ({category})"
+        
+        # Add AI tip if available (keep it concise for Messenger)
+        if tips and tips[0]:
+            tip = tips[0][:60]  # Truncate to 60 chars for Messenger
+            if not tip.endswith('.'):
+                tip += '.'
+            response += f". {tip}"
+        else:
+            # Default encouragement
+            response += ". Nice."
+        
+        # Add summary prompt
+        response += " Type summary anytime."
+        
+        return response
     
     def _undo_last_expense(self, psid: str) -> Optional[Tuple[float, str]]:
         """Undo last expense for user"""
