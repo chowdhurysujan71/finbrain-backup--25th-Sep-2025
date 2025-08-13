@@ -57,11 +57,12 @@ Preferred communication style: Simple, everyday language.
 
 ### Message Processing Pipeline  
 - **Background job queue** processes {rid, psid, mid, text} after immediate webhook response (<1ms)
-- **RL-2 Graceful Non-AI Fallback System**: Complete ASCII-safe deterministic processing for rate-limited scenarios
+- **RL-2 Graceful Non-AI Fallback System**: Complete bulletproof deterministic processing for rate-limited scenarios
   - **Rate-limited expense patterns**: "log <amount> <note>", "<amount> <note>", "<note> <amount>"
   - **ASCII-safe disclaimer**: "NOTE: Taking a quick breather. I can do 2 smart replies per minute per person..."
-  - **Deterministic summary**: Single SQL query with 30d totals and top 3 categories
-  - **Plain text only**: ≤280 chars, no emojis, never requeue
+  - **Deterministic summary**: Robust SQL with NULL safety and error handling
+  - **Plain text only**: ≤280 chars, no emojis, Facebook API sanitized, never requeue
+  - **Bulletproof guarantees**: Always reply, always ack, never requeue - even on SQL/DB/API errors
   - **RL-2 logging**: {rid, psid_hash, ai_allowed=false, handled_by="rules", job_status="done"}
 - **AI recommendation system**: Uses fast models (GPT-4o-mini/Gemini-1.5-Flash) for intelligent categorization when rate limits allow
 - **AI failover logic**: If AI_ENABLED=true, try AI adapter first, then regex on failover:true

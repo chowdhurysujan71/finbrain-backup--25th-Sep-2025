@@ -155,14 +155,29 @@ class BackgroundProcessor:
                         log_webhook_success(psid_hash, job.mid, intent, category, amount,
                                           processing_time * 1000)
                     
-                    # Send response
-                    response_sent = send_facebook_message(job.psid, response_text)
+                    # Send response (always attempt, never let failures block ack)
+                    try:
+                        response_sent = send_facebook_message(job.psid, response_text)
+                    except Exception as send_error:
+                        # Facebook API error (400, etc.) - log but don't throw
+                        logger.error(f"Facebook API error (non-blocking): {str(send_error)}")
+                        # Try fallback message
+                        try:
+                            response_sent = send_facebook_message(job.psid, "Got it.")
+                        except Exception as fallback_error:
+                            logger.error(f"Fallback send failed (non-blocking): {str(fallback_error)}")
+                            response_sent = False  # Mark as failed but continue
                     
                 except Exception as processing_error:
                     logger.error(f"Request {job.rid}: Processing error: {str(processing_error)}")
                     response_text = self.fallback_reply
                     intent = "error"
-                    response_sent = send_facebook_message(job.psid, response_text)
+                    # Always attempt response even on processing errors
+                    try:
+                        response_sent = send_facebook_message(job.psid, response_text)
+                    except Exception as send_error:
+                        logger.error(f"Error response send failed (non-blocking): {str(send_error)}")
+                        response_sent = False
                 
         except Exception as e:
             logger.error(f"Request {job.rid}: Critical job processing error: {str(e)}")
