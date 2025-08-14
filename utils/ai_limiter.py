@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # Configuration from environment
 AI_ENABLED = os.environ.get("AI_ENABLED", "false").lower() == "true"
 AI_MAX_CALLS_PER_MIN = int(os.environ.get("AI_MAX_CALLS_PER_MIN", "10"))
-AI_MAX_CALLS_PER_MIN_PER_PSID = int(os.environ.get("AI_MAX_CALLS_PER_MIN_PER_PSID", "2"))
+AI_MAX_CALLS_PER_MIN_PER_PSID = int(os.environ.get("AI_MAX_CALLS_PER_MIN_PER_PSID", "5"))
 
 @dataclass
 class RateLimitResult:

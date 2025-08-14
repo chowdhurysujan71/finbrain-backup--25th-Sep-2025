@@ -27,7 +27,7 @@ class AIRateLimiter:
         # Configuration from environment
         self.ai_enabled = os.getenv("AI_ENABLED", "false").lower() == "true"
         self.max_calls_per_min = int(os.getenv("AI_MAX_CALLS_PER_MIN", "10"))
-        self.max_calls_per_min_per_psid = int(os.getenv("AI_MAX_CALLS_PER_MIN_PER_PSID", "2"))
+        self.max_calls_per_min_per_psid = int(os.getenv("AI_MAX_CALLS_PER_MIN_PER_PSID", "5"))
         
         # Sliding window storage: psid -> List[timestamp]
         self.psid_windows: Dict[str, List[float]] = {}
