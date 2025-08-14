@@ -165,7 +165,7 @@ class ProductionAIAdapter:
                 }],
                 "generationConfig": {
                     "temperature": 0.1,
-                    "maxOutputTokens": 150,
+                    "maxOutputTokens": 400,  # Increased from 150 to support longer responses
                     "responseMimeType": "application/json"
                 }
             }
@@ -185,8 +185,44 @@ class ProductionAIAdapter:
                         result = response.json()
                         content = result["candidates"][0]["content"]["parts"][0]["text"]
                         
-                        # Parse AI response as JSON
-                        ai_response = json.loads(content)
+                        # Clean up markdown JSON wrapper if present
+                        content = content.strip()
+                        if content.startswith("```json"):
+                            content = content[7:]  # Remove ```json
+                        if content.startswith("```"):
+                            content = content[3:]   # Remove ```
+                        if content.endswith("```"):
+                            content = content[:-3]  # Remove closing ```
+                        content = content.strip()
+                        
+                        # Debug log the content before parsing
+                        logger.debug(f"Gemini response after cleanup: {repr(content[:500])}")
+                        
+                        # Robust JSON parsing with fallback for malformed strings
+                        try:
+                            ai_response = json.loads(content)
+                        except json.JSONDecodeError as json_error:
+                            # Try to fix common JSON issues
+                            logger.warning(f"JSON parse error: {json_error}, attempting repair")
+                            
+                            # Fix unterminated strings by finding the error position
+                            try:
+                                # Extract just the valid JSON structure if possible
+                                import re
+                                json_match = re.search(r'\{.*?\}', content, re.DOTALL)
+                                if json_match:
+                                    fixed_content = json_match.group(0)
+                                    # Fix common quote escaping issues
+                                    fixed_content = fixed_content.replace('\\"', '"').replace('\\n', ' ').replace('\\t', ' ')
+                                    ai_response = json.loads(fixed_content)
+                                else:
+                                    raise json_error
+                            except:
+                                # If all repair attempts fail, create minimal valid response
+                                ai_response = {
+                                    "intent": "help",
+                                    "tips": ["Try logging expenses with: log [amount] [description]"]
+                                }
                         
                         # Validate and clean response
                         return self._validate_ai_response(ai_response, time.time() - start_time)
