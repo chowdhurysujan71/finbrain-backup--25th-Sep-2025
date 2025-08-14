@@ -109,18 +109,27 @@ class BackgroundProcessor:
                         log_webhook_success(psid_hash, job.mid, intent, category, amount,
                                           processing_time * 1000)
                     
-                    # Send response (always attempt, never let failures block ack)
+                    # Send response with clear error handling
                     try:
                         response_sent = send_facebook_message(job.psid, response_text)
-                    except Exception as send_error:
-                        # Facebook API error (400, etc.) - log but don't throw
-                        logger.error(f"Facebook API error (non-blocking): {str(send_error)}")
-                        # Try fallback message
+                        logger.info(f"Request {job.rid}: Response sent successfully to {job.psid[:10]}***")
+                    except ValueError as psid_error:
+                        # Invalid PSID - clear error, no fallback attempt
+                        logger.error(f"Request {job.rid}: PSID validation failed - {str(psid_error)}")
+                        response_sent = False
+                    except RuntimeError as api_error:
+                        # Facebook API error - clear error, try simple fallback
+                        logger.error(f"Request {job.rid}: Facebook API error - {str(api_error)}")
                         try:
                             response_sent = send_facebook_message(job.psid, "Got it.")
+                            logger.info(f"Request {job.rid}: Fallback message sent successfully")
                         except Exception as fallback_error:
-                            logger.error(f"Fallback send failed (non-blocking): {str(fallback_error)}")
-                            response_sent = False  # Mark as failed but continue
+                            logger.error(f"Request {job.rid}: Fallback send failed - {str(fallback_error)}")
+                            response_sent = False
+                    except Exception as unknown_error:
+                        # Unexpected error - log with full context
+                        logger.error(f"Request {job.rid}: Unexpected messaging error - {str(unknown_error)}")
+                        response_sent = False
                     
                 except Exception as processing_error:
                     logger.error(f"Request {job.rid}: Processing error: {str(processing_error)}")
@@ -129,8 +138,12 @@ class BackgroundProcessor:
                     # Always attempt response even on processing errors
                     try:
                         response_sent = send_facebook_message(job.psid, response_text)
+                        logger.info(f"Request {job.rid}: Error response sent successfully")
+                    except ValueError as psid_error:
+                        logger.error(f"Request {job.rid}: Error response failed - invalid PSID: {str(psid_error)}")
+                        response_sent = False
                     except Exception as send_error:
-                        logger.error(f"Error response send failed (non-blocking): {str(send_error)}")
+                        logger.error(f"Request {job.rid}: Error response send failed: {str(send_error)}")
                         response_sent = False
                 
         except Exception as e:

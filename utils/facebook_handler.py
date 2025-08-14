@@ -19,46 +19,50 @@ FACEBOOK_API_VERSION = "v17.0"
 # Message processing is now handled in utils/mvp_router.py
 
 def send_facebook_message(recipient_id, message_text):
-    """Send Facebook Messenger message via Graph API with structured logging"""
+    """Send Facebook Messenger message via Graph API with structured logging and PSID validation"""
     endpoint = f"/{FACEBOOK_API_VERSION}/me/messages"
     start_time = time.time()
     
     try:
-        # Lazy import for production safety
-        import requests
+        # Use the new validated Facebook client
+        from fb_client import send_text, is_valid_psid
         
-        url = f"https://graph.facebook.com{endpoint}"
+        # Clear PSID validation with detailed error logging
+        if not is_valid_psid(recipient_id):
+            duration_ms = (time.time() - start_time) * 1000
+            log_graph_call(endpoint, "POST", None, duration_ms, f"Invalid PSID: {recipient_id}")
+            logger.error(f"PSID validation failed: '{recipient_id}' is not a valid Facebook page-scoped ID. Must be 10+ digit numeric string from real chat.")
+            raise ValueError(f"Invalid PSID '{recipient_id}'. Must be a numeric page-scoped ID from a real chat.")
         
-        headers = {
-            'Content-Type': 'application/json'
-        }
-        
-        data = {
-            'recipient': {'id': recipient_id},
-            'message': {'text': message_text},
-            'access_token': FACEBOOK_PAGE_ACCESS_TOKEN
-        }
-        
-        response = requests.post(url, headers=headers, data=json.dumps(data))
+        # Send via validated client
+        response_data = send_text(recipient_id, message_text)
         duration_ms = (time.time() - start_time) * 1000
         
-        # Log Graph API call with structured logging
-        log_graph_call(endpoint, "POST", response.status_code, duration_ms)
+        # Log successful Graph API call
+        log_graph_call(endpoint, "POST", 200, duration_ms)
         
-        if response.status_code == 200:
-            response_data = response.json()
-            message_id = response_data.get('message_id', 'unknown')
-            logger.info(f"Facebook message sent successfully: {message_id}")
-            return True
-        else:
-            logger.error(f"Failed to send Facebook message: {response.status_code} - {response.text}")
-            return False
-            
+        message_id = response_data.get('message_id', 'unknown')
+        logger.info(f"Facebook message sent successfully: {message_id}")
+        return True
+        
+    except ValueError as ve:
+        # PSID validation error - already logged above
+        duration_ms = (time.time() - start_time) * 1000
+        log_graph_call(endpoint, "POST", None, duration_ms, str(ve))
+        raise ve  # Re-raise for proper error handling upstream
+        
+    except RuntimeError as re:
+        # Facebook API error from fb_client
+        duration_ms = (time.time() - start_time) * 1000
+        log_graph_call(endpoint, "POST", None, duration_ms, str(re))
+        logger.error(f"Facebook API error: {str(re)}")
+        raise re  # Re-raise for proper error handling upstream
+        
     except Exception as e:
         duration_ms = (time.time() - start_time) * 1000
         log_graph_call(endpoint, "POST", None, duration_ms, str(e))
-        logger.error(f"Error sending Facebook message: {str(e)}")
-        return False
+        logger.error(f"Unexpected error sending Facebook message: {str(e)}")
+        raise e  # Re-raise for proper error handling upstream
 
 def send_facebook_report(user_psid, report_message):
     """Send automated report via Facebook Messenger"""
