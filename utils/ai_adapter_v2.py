@@ -17,7 +17,7 @@ AI_ENABLED = os.environ.get("AI_ENABLED", "false").lower() == "true"
 AI_PROVIDER = os.environ.get("AI_PROVIDER", "none")  # none|openai|gemini
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-AI_TIMEOUT = 3  # 3 second timeout
+AI_TIMEOUT = 8  # 8 second timeout (increased for reliability)
 AI_MAX_RETRIES = 1  # 1 retry only
 
 class ProductionAIAdapter:
@@ -239,7 +239,7 @@ class ProductionAIAdapter:
                             continue
                         
                 except requests.Timeout:
-                    logger.warning(f"Gemini timeout on attempt {attempt + 1}")
+                    logger.warning(f"Gemini timeout on attempt {attempt + 1} (waited {AI_TIMEOUT}s)")
                     if attempt < AI_MAX_RETRIES:
                         continue
                     
