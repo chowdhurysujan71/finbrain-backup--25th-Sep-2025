@@ -6,6 +6,13 @@ FinBrain is a production-ready Facebook Messenger expense tracking application w
 
 **Recent Major Fix (Aug 13, 2025)**: Resolved critical production issue where Gemini AI was not being used despite correct configuration. Added complete Gemini support to production AI adapter (`utils/ai_adapter_v2.py`), enabling real AI-powered expense categorization with 2-3 second response times.
 
+**Character Limits Enhancement (Aug 14, 2025)**: Successfully doubled all response character limits and resolved JSON parsing issues:
+- AI tips limit: 200 → 400 characters for comprehensive financial advice
+- Overall response limit: 280 → 560 characters for detailed guidance
+- Fixed Gemini token truncation: maxOutputTokens 150 → 400 tokens
+- Implemented robust JSON parsing with markdown wrapper cleanup and error recovery
+- AI now delivers 300+ character detailed budgeting and money-saving strategies
+
 **Latest Enhancement (Aug 13, 2025)**: Implemented comprehensive monitoring infrastructure with specialized ops endpoints for production verification: `/ops/telemetry` (config validation), `/ops/ai/ping` (latency testing with p95 ≤ 2500ms), `/ops/rl/reset` (rate limiting reset), and `/ops/trace` (routing analysis). All UAT issues resolved with authentic AI processing confirmed operational.
 
 ## User Preferences
