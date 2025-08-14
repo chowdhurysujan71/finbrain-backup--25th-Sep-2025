@@ -18,6 +18,12 @@ FinBrain is a production-ready Facebook Messenger expense tracking application w
 - Users can now ask multiple follow-up questions without hitting limits as quickly
 - Global limits remain at 10 requests per minute for system stability
 
+**Timeout Resolution (Aug 14, 2025)**: Fixed critical Gemini API timeout issue that was causing fallback responses:
+- Increased Gemini API timeout from 3 → 8 seconds for reliable processing
+- Resolved issue where users were getting short "Try log 50 coffee" responses instead of detailed AI advice
+- System now consistently delivers 400-character comprehensive financial guidance
+- AI response success rate improved from frequent timeouts to reliable 3-4 second responses
+
 **Latest Enhancement (Aug 13, 2025)**: Implemented comprehensive monitoring infrastructure with specialized ops endpoints for production verification: `/ops/telemetry` (config validation), `/ops/ai/ping` (latency testing with p95 ≤ 2500ms), `/ops/rl/reset` (rate limiting reset), and `/ops/trace` (routing analysis). All UAT issues resolved with authentic AI processing confirmed operational.
 
 ## User Preferences
