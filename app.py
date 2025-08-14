@@ -683,6 +683,26 @@ def ops_trace():
 from admin_ops import admin_ops
 app.register_blueprint(admin_ops)
 
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    """Simple PSID extraction endpoint for testing real Facebook PSIDs"""
+    data = request.get_json()
+    try:
+        psid = data["entry"][0]["messaging"][0]["sender"]["id"]
+        print("REAL PSID:", psid)
+        logger.info(f"Real Facebook PSID received: {psid}")
+        
+        # Test our new PSID validation
+        from fb_client import is_valid_psid
+        is_valid = is_valid_psid(psid)
+        logger.info(f"PSID validation result: {psid} -> {is_valid}")
+        
+        return "EVENT_RECEIVED", 200
+    except Exception as e:
+        print("Could not extract PSID:", e, data)
+        logger.error(f"PSID extraction failed: {str(e)}")
+        return "EVENT_RECEIVED", 200
+
 @app.route('/webhook/test', methods=['POST'])
 def webhook_test():
     """Test endpoint for UAT - bypasses signature verification"""
