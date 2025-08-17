@@ -18,6 +18,12 @@ AI_ENABLED = env_bool("AI_ENABLED", False)
 AI_PROVIDER = os.getenv("AI_PROVIDER", "none")
 AI_TIMEOUT_MS = env_int("AI_TIMEOUT_MS", 3000)
 
+# Application Constants - Single Source of Truth
+MSG_MAX_CHARS = env_int("MSG_MAX_CHARS", 280)              # message length guardrail
+TIMEZONE = os.getenv("TIMEZONE", "Asia/Dhaka")             # default timezone
+CURRENCY_SYMBOL = os.getenv("CURRENCY_SYMBOL", "৳")        # default currency symbol
+DEFAULT_CATEGORY = os.getenv("DEFAULT_CATEGORY", "other")  # fallback expense category
+
 # AI Rate Limiting - Single Source of Truth
 AI_RL_USER_LIMIT = env_int("AI_RL_USER_LIMIT", 4)          # per-user replies in window
 AI_RL_WINDOW_SEC = env_int("AI_RL_WINDOW_SEC", 60)         # window duration in seconds  

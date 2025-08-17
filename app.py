@@ -82,13 +82,20 @@ with app.app_context():
     from utils.background_processor import background_processor
     logger.info(f"Background processor ready: {background_processor.get_stats()}")
     
-    # Log rate limiting configuration for observability
-    from config import AI_RL_USER_LIMIT, AI_RL_WINDOW_SEC, AI_RL_GLOBAL_LIMIT
+    # Log centralized configuration for observability
+    from config import AI_RL_USER_LIMIT, AI_RL_WINDOW_SEC, AI_RL_GLOBAL_LIMIT, MSG_MAX_CHARS, TIMEZONE, CURRENCY_SYMBOL
     logger.info({
-        "startup_rate_limits": {
-            "ai_rl_user_limit": AI_RL_USER_LIMIT,
-            "ai_rl_window_sec": AI_RL_WINDOW_SEC,
-            "ai_rl_global_limit": AI_RL_GLOBAL_LIMIT
+        "startup_configuration": {
+            "rate_limits": {
+                "ai_rl_user_limit": AI_RL_USER_LIMIT,
+                "ai_rl_window_sec": AI_RL_WINDOW_SEC,
+                "ai_rl_global_limit": AI_RL_GLOBAL_LIMIT
+            },
+            "app_constants": {
+                "msg_max_chars": MSG_MAX_CHARS,
+                "timezone": TIMEZONE,
+                "currency_symbol": CURRENCY_SYMBOL
+            }
         }
     })
     

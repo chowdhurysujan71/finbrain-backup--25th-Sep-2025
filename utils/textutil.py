@@ -10,10 +10,11 @@ from typing import Union, Dict, Any, List, Optional
 
 logger = logging.getLogger(__name__)
 
-# Configuration from environment (safe defaults)
+# Configuration from centralized config and environment
+from config import MSG_MAX_CHARS
 SAY_ENABLED = os.environ.get("SAY_ENABLED", "true").lower() == "true"
 EMOJI_ENABLED = os.environ.get("EMOJI_ENABLED", "true").lower() == "true"
-MAX_REPLY_LEN = int(os.environ.get("MAX_REPLY_LEN", "280"))
+MAX_REPLY_LEN = MSG_MAX_CHARS  # Use centralized constant
 PANIC_PLAIN_REPLY = os.environ.get("PANIC_PLAIN_REPLY", "false").lower() == "true"
 
 # Variant banks for dynamic responses
