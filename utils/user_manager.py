@@ -135,19 +135,24 @@ class UserManager:
         """Get user's spending summary for engagement responses"""
         from models import Expense
         from datetime import timedelta
+        from utils.tracer import trace_event
+        from utils.crypto import ensure_hashed
         
-        # Check if we already have a hash (64 chars) or need to hash a PSID
-        if len(psid) == 64:  # Already hashed
-            psid_hash = psid
-        else:
-            psid_hash = hash_psid(psid)
+        # Use consistent hashing
+        user_id = ensure_hashed(psid)
         cutoff_date = datetime.utcnow() - timedelta(days=days)
+        
+        # Trace the read operation
+        trace_event("summary_query", user_id=user_id, path="read", window=days)
         
         try:
             expenses = Expense.query.filter(
-                Expense.user_id == psid_hash,
+                Expense.user_id == user_id,
                 Expense.created_at >= cutoff_date
             ).all()
+            
+            # Trace what we found
+            trace_event("summary_result", user_id=user_id, found_expenses=len(expenses), path="read")
             
             # Aggregate by category
             summary = {

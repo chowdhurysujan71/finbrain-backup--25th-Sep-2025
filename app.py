@@ -919,6 +919,14 @@ def webhook_test():
 
 
 
+# Register diagnostic routes
+try:
+    from routes.ops_quickscan import bp as quickscan_bp
+    app.register_blueprint(quickscan_bp)
+    logger.info("Registered quickscan diagnostic endpoint at /ops/quickscan")
+except ImportError:
+    logger.warning("Could not register quickscan blueprint")
+
 # Legacy handler - now replaced by fast webhook processor
 # Keeping for reference but no longer used
 

@@ -20,20 +20,27 @@ class ConversationalAI:
         """Get comprehensive user expense context for conversations"""
         from models import Expense
         from app import db
+        from utils.crypto import ensure_hashed
+        from utils.tracer import trace_event
         
-        # Always hash the PSID (production router passes raw PSID)
-        psid_hash = hash_psid(psid)
+        # Use consistent hashing (avoid double-hashing)
+        user_id = ensure_hashed(psid)
         cutoff_date = datetime.utcnow() - timedelta(days=days)
         
-        self.logger.info(f"Getting expense context for user: {psid_hash[:16]}... from {cutoff_date}")
+        # Trace the lookup
+        trace_event("get_expense_context", user_id=user_id, path="legacy", window=days)
+        
+        self.logger.info(f"Getting expense context for user: {user_id[:16]}... from {cutoff_date}")
         
         try:
             expenses = Expense.query.filter(
-                Expense.user_id == psid_hash,
+                Expense.user_id == user_id,
                 Expense.created_at >= cutoff_date
             ).order_by(Expense.created_at.desc()).all()
             
-            self.logger.info(f"Found {len(expenses)} expenses for hash {psid_hash[:16]}...")
+            # Trace the result
+            trace_event("expense_context_result", user_id=user_id, found_expenses=len(expenses), path="legacy")
+            self.logger.info(f"Found {len(expenses)} expenses for hash {user_id[:16]}...")
             
             if not expenses:
                 return {

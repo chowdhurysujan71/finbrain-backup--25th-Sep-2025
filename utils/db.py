@@ -41,13 +41,19 @@ def get_or_create_user(user_identifier, platform, db_session=None):
 def save_expense(user_identifier, description, amount, category, platform, original_message, unique_id, db_session=None):
     """Save expense to database and update monthly summaries"""
     from models import Expense, User, MonthlySummary
+    from utils.tracer import trace_event
+    from utils.crypto import ensure_hashed
     
     if db_session is None:
         from app import db
         db_session = db
     
     try:
-        user_hash = hash_user_id(user_identifier)
+        # Use consistent hashing
+        user_hash = ensure_hashed(user_identifier)
+        
+        # Trace the write operation
+        trace_event("record_expense", user_id=user_hash, amount=amount, category=category, path="write")
         current_date = date.today()
         current_time = datetime.now().time()
         current_month = current_date.strftime('%Y-%m')

@@ -1,0 +1,155 @@
+You are a senior engineer. Instrument, trace, and fix why summaries are empty although logging works.
+
+0) Repo scan
+
+Grep for: record_expense, get_user_spending_summary, get_or_create_user, hash_psid, ensure_hashed, user_id, psid, psid_hash, summary.
+
+List all files and functions that:
+
+write expenses (DB insert),
+
+read/aggregate expenses (summary),
+
+compute/normalize user id.
+
+1) Add idempotent hashing if missing
+
+Create utils/crypto.py (or update) with:
+
+import re, hashlib
+_HEX64_RE = re.compile(r"^[0-9a-f]{64}$", re.IGNORECASE)
+
+def hash_psid(raw: str) -> str:
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+def ensure_hashed(psid_or_hash: str) -> str:
+    return psid_or_hash if _HEX64_RE.match(psid_or_hash) else hash_psid(psid_or_hash)
+
+2) Normalize user manager entry points
+
+In utils/user_manager.py (and any wrappers), update:
+
+get_or_create_user, record_expense, get_user_spending_summary
+
+Signatures accept psid: str|None=None, psid_hash: str|None=None
+
+Inside each: user_id = ensure_hashed(psid or psid_hash)
+
+Use one field name for DB key (e.g., user_id) everywhere (insert & query). Remove any direct hash_psid(...) calls.
+
+3) Instrumentation (temporary, but keep behind flag)
+
+Add a tiny tracer module utils/tracer.py:
+
+import time, uuid, logging
+log = logging.getLogger("trace")
+
+def trace_event(event, **kw):
+    kw["event"] = event
+    kw["ts"] = int(time.time())
+    kw.setdefault("correlation_id", str(uuid.uuid4())[:8])
+    log.warning("TRACE %s", kw)
+    return kw["correlation_id"]
+
+
+In record_expense right before insert:
+
+from utils.tracer import trace_event
+cid = trace_event("record_expense", user_id=user_id, amount=amount, category=category, path="write")
+
+
+In get_user_spending_summary right before query/aggregate:
+
+cid = trace_event("summary_query", user_id=user_id, path="read", window=locals().get("window"))
+
+4) Add a diagnostic endpoint (read-only)
+
+Create routes/ops_quickscan.py (or similar) and mount at /ops/quickscan:
+
+from flask import Blueprint, request, jsonify
+from utils.crypto import ensure_hashed
+from utils.db import get_db  # adapt to your DB accessor
+
+bp = Blueprint("quickscan", __name__)
+
+@bp.route("/ops/quickscan")
+def quickscan():
+    psid = request.args.get("psid")
+    psid_hash = request.args.get("psid_hash")
+    if not (psid or psid_hash):
+        return jsonify({"error":"provide psid or psid_hash"}), 400
+    user_id = ensure_hashed(psid or psid_hash)
+
+    db = get_db()
+    # Adapt to your schema: collection/table and fields
+    rows = list(db.expenses.find({"user_id": user_id}))  # or SQL SELECT
+    total = sum(float(r.get("amount", 0)) for r in rows)
+    return jsonify({
+        "resolved_user_id": user_id,
+        "count": len(rows),
+        "total": total,
+        "sample": rows[:3]
+    }), 200
+
+5) Check common failure points and auto-fix
+
+If writes use user_id but reads filter on user_hash or owner_id, standardize to user_id.
+
+If summary applies a date window (e.g., “this week”), verify timezone; switch to an unbounded scan for the quick test or set window to last 30 days using UTC.
+
+If tables/collections differ (expenses_v2 vs expenses), align both to the same one (prefer the newer).
+
+Ensure ENV vars for DB are identical in both code paths (no DEV/PROD split). Print env label in TRACE once.
+
+Make the minimal edits needed and list the diffs.
+
+6) Replace bad call sites
+
+Find any calls that pass a hashed value into psid=. Change them to psid_hash=....
+
+Webhook (Facebook sender id): must call with psid=fb_sender_id (raw).
+
+Admin or UIs that already have hash: call with psid_hash=....
+
+7) One-minute UAT (script)
+
+Create scripts/uat_paths.py:
+
+from utils.crypto import hash_psid
+from utils.user_manager import UserManager
+
+raw = "PSID_DEMO_REPLIT"
+h = hash_psid(raw)
+um = UserManager()
+
+um.record_expense(100, "transport", psid=raw)
+um.record_expense(50, "dining", psid_hash=h)
+
+a = um.get_user_spending_summary(psid=raw)
+b = um.get_user_spending_summary(psid_hash=h)
+print("A(raw)=", a)
+print("B(hash)=", b)
+assert a == b, "Summaries differ for raw vs hash"
+
+
+Run it and capture output.
+
+8) Acceptance checklist
+
+/ops/quickscan?psid=<REAL_FB_SENDER_ID> returns the same resolved_user_id the write path uses, with count>=1.
+
+scripts/uat_paths.py passes.
+
+Logs show paired TRACE lines with the same user_id for write/read.
+
+In Messenger, after logging an expense, “summary” produces a total > 0.
+
+Deliver:
+
+Patched files diff
+
+UAT output
+
+Note of changed call sites
+
+If you still get “no expense data,” hit /ops/quickscan with both psid= and psid_hash= for your current chat. If those return different resolved_user_id, the tracer will reveal exactly where the mismatch is (hashing or field name or date window).
