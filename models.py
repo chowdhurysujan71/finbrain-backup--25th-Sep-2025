@@ -48,11 +48,39 @@ class User(db.Model):
     interaction_count = db.Column(db.Integer, default=0)  # Total interactions for habit formation
     first_name = db.Column(db.String(100), default='')  # User's first name for personalization
     
-    # User preferences from onboarding
+    # User preferences from onboarding (AI-adaptive)
     income_range = db.Column(db.String(50), default='')  # Income bracket
+    spending_categories = db.Column(JSON, default=list)  # Array of spending categories
     primary_category = db.Column(db.String(50), default='')  # Main spending category
     focus_area = db.Column(db.String(50), default='')  # saving/budgeting/investment
+    additional_info = db.Column(JSON, default=dict)  # Flexible AI-extracted data
     preferences = db.Column(JSON, default=dict)  # Additional user preferences
+    
+    def to_dict(self):
+        """Convert user to dictionary for AI processing"""
+        return {
+            'id': self.id,
+            'user_id_hash': self.user_id_hash,
+            'first_name': self.first_name,
+            'is_new': self.is_new,
+            'onboarding_step': self.onboarding_step,
+            'has_completed_onboarding': self.has_completed_onboarding,
+            'income_range': self.income_range,
+            'spending_categories': self.spending_categories or [],
+            'primary_category': self.primary_category,
+            'focus_area': self.focus_area,
+            'additional_info': self.additional_info or {},
+            'preferences': self.preferences or {},
+            'interaction_count': self.interaction_count,
+            'last_interaction': self.last_interaction,
+            'platform': self.platform
+        }
+    
+    def update_from_dict(self, data: dict):
+        """Update user from dictionary (AI-friendly)"""
+        for key, value in data.items():
+            if hasattr(self, key) and value is not None:
+                setattr(self, key, value)
     
     def __repr__(self):
         return f'<User {self.user_id_hash}: {self.platform}>'

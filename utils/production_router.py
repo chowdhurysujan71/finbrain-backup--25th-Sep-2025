@@ -313,41 +313,38 @@ class ProductionRouter:
             return self._format_response(response), "fallback_error", None, None
     
     def _handle_onboarding(self, text: str, psid: str, user_data: Dict[str, Any], rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
-        """Handle user onboarding sequence"""
-        from utils.engagement import engagement_engine
+        """Handle user onboarding with complete AI-driven system"""
+        from utils.ai_onboarding_system import ai_onboarding_system
         from utils.user_manager import user_manager
         
         psid_hash = hash_psid(psid)
-        current_step = user_data.get('onboarding_step', 0)
         
-        # Process user response for current step FIRST
-        if current_step > 0:  # User is responding to previous prompt
-            updates = engagement_engine.update_user_onboarding(psid, text, current_step - 1)
+        try:
+            # Use AI to process the user's response and determine next steps
+            response_text, updated_user_data = ai_onboarding_system.process_user_response(text, user_data)
             
-            # Extract first name from first interaction
-            if current_step == 1 and not user_data.get('first_name'):
-                first_name = user_manager.extract_first_name(text)
-                if first_name:
-                    updates['first_name'] = first_name
+            # Update the database with AI-extracted data
+            success = user_manager.update_user_onboarding(psid, updated_user_data)
             
-            # Apply updates to user
-            success = user_manager.update_user_onboarding(psid, updates)
+            if not success:
+                logger.warning(f"Failed to update user data during AI onboarding: {psid_hash[:8]}...")
+                response_text = "Let me help you get started. What's your monthly income range?"
             
-            # Get fresh user data after update - CRITICAL for state progression
-            user_data = user_manager.get_or_create_user(psid)
-            
-            # If onboarding is complete after this update, exit onboarding flow
-            if user_data.get('has_completed_onboarding', False):
-                # Return completion message and exit onboarding
-                completion_message = "🎉 Great! You're all set up. Now I can give you personalized finance insights. What expense would you like to log or analyze today?"
-                self._log_routing_decision(rid, psid_hash, "onboarding_complete", "exiting_to_normal_flow")
-                return self._format_response(completion_message), "onboarding_complete", None, None
-        
-        # Generate onboarding prompt with current (possibly updated) user data
-        ai_prompt = engagement_engine.get_ai_prompt(user_data, text)
-        
-        self._log_routing_decision(rid, psid_hash, "onboarding", f"step_{user_data.get('onboarding_step', current_step)}")
-        return self._format_response(ai_prompt), "onboarding", None, None
+            # Check if onboarding is complete
+            if updated_user_data.get('has_completed_onboarding', False):
+                self._log_routing_decision(rid, psid_hash, "onboarding_complete", "ai_driven_completion")
+                return self._format_response(response_text), "onboarding_complete", None, None
+            else:
+                current_step = updated_user_data.get('onboarding_step', 0)
+                self._log_routing_decision(rid, psid_hash, "onboarding", f"ai_step_{current_step}")
+                return self._format_response(response_text), "onboarding", None, None
+                
+        except Exception as e:
+            logger.error(f"AI onboarding error: {e}")
+            # Fallback to simple onboarding progression
+            fallback_response = "I'm here to help you track your finances. What's your monthly income range?"
+            self._log_routing_decision(rid, psid_hash, "onboarding_fallback", "ai_error")
+            return self._format_response(fallback_response), "onboarding", None, None
     
     def _handle_uat_commands(self, text: str, psid: str, rid: str) -> Optional[Tuple[str, str, Optional[str], Optional[float]]]:
         """Handle UAT system commands"""
