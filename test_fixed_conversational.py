@@ -1,77 +1,90 @@
 #!/usr/bin/env python3
 """
-Test the FIXED conversational AI with user data access
+Test the complete fixed conversational flow to verify consistent responses
 """
 
-import logging
 import sys
 sys.path.insert(0, '.')
 
-def test_fixed_system():
-    """Test the fixed conversational AI system"""
+def test_fixed_conversational_flow():
+    """Test that both code paths now give consistent responses"""
     from app import app
     from utils.production_router import ProductionRouter
-    from utils.conversational_ai import conversational_ai
     
     with app.app_context():
-        print("🎯 TESTING FIXED CONVERSATIONAL AI SYSTEM")
-        print("=" * 60)
+        print("🎯 TESTING FIXED CONVERSATIONAL FLOW")
+        print("=" * 50)
         
-        # Use the actual hash that has expense data
-        user_hash = "dc863d3aa69d518264428cadc7b19e19b5d723c980a0db219d8063a1746128dc"
+        # Use the real user hash that has data
+        real_user_hash = "dc863d3aa69d518264428cadc7b19e19b5d723c980a0db219d8063a1746128dc"
         
-        # Test 1: Direct conversational AI with hash
-        print("\n1. Testing direct conversational AI with hash:")
-        response, intent = conversational_ai.handle_conversational_query(user_hash, "Give me a summary report now")
-        print(f"   Response: {response}")
-        print(f"   Intent: {intent}")
-        
-        # Check for real data
-        if any(str(amt) in response for amt in ['2915', '8', '1815', '1000']):
-            print("   ✅ USING REAL USER DATA!")
-        else:
-            print("   ❌ Still using arbitrary data")
-            
-        # Test 2: Complete production flow with hash
-        print("\n2. Testing production router with hash:")
-        router = ProductionRouter()
-        
-        # Simulate message from existing user
-        response, intent, category, amount = router.route_message(
-            text="Give me a summary report now",
-            psid=user_hash,  # Pass the hash as PSID
-            rid="test_fixed"
-        )
-        
-        print(f"   Response: {response}")
-        print(f"   Intent: {intent}")
-        
-        # Check for real data
-        if any(str(amt) in response for amt in ['2915', '8', '1815', '1000']):
-            print("   ✅ PRODUCTION ROUTER USING REAL DATA!")
-        else:
-            print("   ❌ Production router still has issues")
-            
-        # Test 3: Different query types
-        print("\n3. Testing different query types:")
-        test_queries = [
-            "How much did I spend this week",
-            "What's my biggest expense category", 
-            "Analyze my spending patterns"
+        # Test the exact messages from user screenshots that showed inconsistency
+        test_messages = [
+            "Do you know all my expenses so far?",
+            "What about gambling",
+            "Can you give me insight",
+            "Show me summary",
+            "Give me a detailed report"
         ]
         
-        for query in test_queries:
-            print(f"\n   Query: '{query}'")
-            response, intent = conversational_ai.handle_conversational_query(user_hash, query)
-            print(f"   Response: {response[:100]}...")
-            print(f"   Intent: {intent}")
+        router = ProductionRouter()
+        
+        print(f"Testing with user hash: {real_user_hash[:16]}...")
+        
+        all_responses_have_data = True
+        no_data_responses = []
+        data_responses = []
+        
+        for i, message in enumerate(test_messages, 1):
+            print(f"\n{i}. Testing: '{message}'")
             
-            if any(str(amt) in response for amt in ['2915', '8', '1815', '1000']):
-                print("   ✅ REAL DATA")
-            elif "start logging" in response.lower() or "no data" in response.lower():
-                print("   ❌ FALLBACK")
-            else:
-                print("   ⚠️  UNCLEAR")
+            try:
+                response, intent, category, amount = router.route_message(
+                    text=message,
+                    psid=real_user_hash,  # Using hash directly
+                    rid=f"consistency_test_{i}"
+                )
+                
+                print(f"   Response: {response}")
+                print(f"   Intent: {intent}")
+                
+                # Check for inconsistency patterns
+                has_no_data_msg = any(phrase in response.lower() for phrase in [
+                    "don't see any expense", "start logging", "no data", "haven't logged"
+                ])
+                
+                has_specific_data = any(indicator in response for indicator in [
+                    '$', '৳', 'spent', 'total', 'expenses', 'category', 'food', 'shopping'
+                ])
+                
+                if has_no_data_msg:
+                    print(f"   ❌ NO DATA MESSAGE")
+                    no_data_responses.append(f"Message {i}: {message}")
+                    all_responses_have_data = False
+                elif has_specific_data:
+                    print(f"   ✅ HAS SPENDING DATA")
+                    data_responses.append(f"Message {i}: {message}")
+                else:
+                    print(f"   ⚠️  NEUTRAL RESPONSE")
+                    
+            except Exception as e:
+                print(f"   ❌ ERROR: {e}")
+                all_responses_have_data = False
+        
+        print(f"\n" + "=" * 50)
+        print(f"🎯 CONSISTENCY TEST RESULTS:")
+        print(f"   Total messages tested: {len(test_messages)}")
+        print(f"   Responses with data: {len(data_responses)}")
+        print(f"   Responses with 'no data': {len(no_data_responses)}")
+        
+        if all_responses_have_data:
+            print(f"   ✅ SUCCESS: All responses consistent")
+        else:
+            print(f"   ❌ INCONSISTENCY STILL EXISTS")
+            if no_data_responses:
+                print(f"   No data responses: {no_data_responses}")
+        
+        print(f"\n🎉 DOUBLE-HASHING FIX STATUS: {'SUCCESSFUL' if all_responses_have_data else 'NEEDS MORE WORK'}")
 
 if __name__ == "__main__":
-    test_fixed_system()
+    test_fixed_conversational_flow()

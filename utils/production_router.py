@@ -250,7 +250,11 @@ class ProductionRouter:
         from app import db
         
         start_time = time.time()
-        psid_hash = hash_psid(psid)
+        # Check if we already have a hash (64 chars) or need to hash a PSID
+        if len(psid) == 64:  # Already hashed
+            psid_hash = psid
+        else:
+            psid_hash = hash_psid(psid)
         
         try:
             # Check for UAT commands first

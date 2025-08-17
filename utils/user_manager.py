@@ -16,7 +16,11 @@ class UserManager:
     
     def get_or_create_user(self, psid: str) -> Dict[str, Any]:
         """Get existing user or create new one with engagement tracking"""
-        psid_hash = hash_psid(psid)
+        # Check if we already have a hash (64 chars) or need to hash a PSID
+        if len(psid) == 64:  # Already hashed
+            psid_hash = psid
+        else:
+            psid_hash = hash_psid(psid)
         
         try:
             user = User.query.filter_by(user_id_hash=psid_hash).first()
@@ -64,7 +68,11 @@ class UserManager:
     
     def update_user_onboarding(self, psid: str, updates: Dict[str, Any]) -> bool:
         """Update user onboarding data"""
-        psid_hash = hash_psid(psid)
+        # Check if we already have a hash (64 chars) or need to hash a PSID
+        if len(psid) == 64:  # Already hashed
+            psid_hash = psid
+        else:
+            psid_hash = hash_psid(psid)
         
         try:
             user = User.query.filter_by(user_id_hash=psid_hash).first()
@@ -128,7 +136,11 @@ class UserManager:
         from models import Expense
         from datetime import timedelta
         
-        psid_hash = hash_psid(psid)
+        # Check if we already have a hash (64 chars) or need to hash a PSID
+        if len(psid) == 64:  # Already hashed
+            psid_hash = psid
+        else:
+            psid_hash = hash_psid(psid)
         cutoff_date = datetime.utcnow() - timedelta(days=days)
         
         try:
