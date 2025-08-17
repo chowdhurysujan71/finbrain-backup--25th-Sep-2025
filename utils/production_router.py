@@ -239,6 +239,63 @@ class ProductionRouter:
         
         self._log_routing_decision(rid, psid_hash, "ai_help", "help_provided")
         return normalize(response), "help", None, None
+        
+    def route_message(self, text: str, psid: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+        """Context-driven message routing with thin context detection - PRIORITY METHOD"""
+        from utils.context_packet import build_context, is_context_thin, CONTEXT_SYSTEM_PROMPT, RESPONSE_SCHEMA
+        from ai_adapter_gemini import generate_with_schema
+        from app import db
+        
+        start_time = time.time()
+        psid_hash = hash_psid(psid)
+        
+        try:
+            # Build user context from spending data
+            context = build_context(psid, db.session)
+            
+            # Check if context is too thin for personalized advice
+            if is_context_thin(context):
+                response = "I don't see enough recent spend to personalize this.\nLog your 3 biggest expenses today so I can analyze.\nWant to log them now or import last month's data?"
+                return self._format_response(response), "ai_context_driven", None, None
+            
+            # Try context-driven AI response with schema enforcement
+            user_prompt = f"Question: {text}\n\nuser_context={context}"
+            
+            ai_result = generate_with_schema(
+                user_text=user_prompt,
+                system_prompt=CONTEXT_SYSTEM_PROMPT,
+                response_schema=RESPONSE_SCHEMA
+            )
+            
+            if ai_result["ok"] and "data" in ai_result:
+                # Format structured AI response
+                response_data = ai_result["data"]
+                response = f"{response_data['summary']}\n{response_data['action']}\n{response_data['question']}"
+                return self._format_response(response), "ai_context_driven", None, None
+            else:
+                # Structured fallback when AI fails
+                response = "I'm analyzing your spending patterns.\nCheck back in a moment for personalized insights.\nMeanwhile, try logging an expense with amount and category."
+                return self._format_response(response), "ai_context_driven", None, None
+                
+        except Exception as e:
+            logger.error(f"Context-driven routing error: {e}")
+            # Final fallback
+            response = "Got it. Try 'summary' for a quick recap of your spending."
+            return self._format_response(response), "fallback_error", None, None
+    
+    def _format_response(self, text: str) -> str:
+        """Format response with 280 character limit and graceful clipping"""
+        if len(text) <= 280:
+            return text
+        
+        # Graceful clipping with continuation indicator
+        clipped = text[:276] + "…"
+        if clipped.endswith("?\n…"):
+            clipped = clipped[:-3] + "… Want details?"
+        elif clipped.endswith(".\n…"):
+            clipped = clipped[:-3] + "… More?"
+        
+        return clipped
     
     def _handle_rules_summary(self, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Handle deterministic summary"""
