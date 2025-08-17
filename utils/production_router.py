@@ -262,15 +262,13 @@ class ProductionRouter:
             if uat_system.is_uat_mode(psid):
                 return self._handle_uat_flow(text, psid, rid)
             
-            # Get or create user with engagement tracking
-            user_data = user_manager.get_or_create_user(psid)
-            
             # Check AI rate limiting first
             rate_limit_check = engagement_engine.check_ai_rate_limit(psid)
             if not rate_limit_check['allowed']:
                 return self._format_response(rate_limit_check['fallback_message']), "rate_limited", None, None
             
-            # Handle new users and onboarding
+            # Get user data and handle onboarding with fresh data
+            user_data = user_manager.get_or_create_user(psid)
             if user_data['is_new'] or not user_data['has_completed_onboarding']:
                 return self._handle_onboarding(text, psid, user_data, rid)
             
@@ -322,10 +320,7 @@ class ProductionRouter:
         psid_hash = hash_psid(psid)
         current_step = user_data.get('onboarding_step', 0)
         
-        # Generate onboarding prompt
-        ai_prompt = engagement_engine.get_ai_prompt(user_data, text)
-        
-        # Process user response for current step
+        # Process user response for current step FIRST
         if current_step > 0:  # User is responding to previous prompt
             updates = engagement_engine.update_user_onboarding(psid, text, current_step - 1)
             
@@ -336,9 +331,22 @@ class ProductionRouter:
                     updates['first_name'] = first_name
             
             # Apply updates to user
-            user_manager.update_user_onboarding(psid, updates)
+            success = user_manager.update_user_onboarding(psid, updates)
+            
+            # Get fresh user data after update - CRITICAL for state progression
+            user_data = user_manager.get_or_create_user(psid)
+            
+            # If onboarding is complete after this update, exit onboarding flow
+            if user_data.get('has_completed_onboarding', False):
+                # Return completion message and exit onboarding
+                completion_message = "🎉 Great! You're all set up. Now I can give you personalized finance insights. What expense would you like to log or analyze today?"
+                self._log_routing_decision(rid, psid_hash, "onboarding_complete", "exiting_to_normal_flow")
+                return self._format_response(completion_message), "onboarding_complete", None, None
         
-        self._log_routing_decision(rid, psid_hash, "onboarding", f"step_{current_step}")
+        # Generate onboarding prompt with current (possibly updated) user data
+        ai_prompt = engagement_engine.get_ai_prompt(user_data, text)
+        
+        self._log_routing_decision(rid, psid_hash, "onboarding", f"step_{user_data.get('onboarding_step', current_step)}")
         return self._format_response(ai_prompt), "onboarding", None, None
     
     def _handle_uat_commands(self, text: str, psid: str, rid: str) -> Optional[Tuple[str, str, Optional[str], Optional[float]]]:
