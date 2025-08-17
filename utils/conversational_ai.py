@@ -222,15 +222,9 @@ Provide a conversational, insightful response that:
         
         return summary
     
-    def handle_conversational_query(self, psid_or_hash: str, user_message: str) -> Tuple[str, str]:
-        """Handle conversational queries using user-level memory"""
+    def handle_conversational_query_with_hash(self, psid_hash: str, user_message: str) -> Tuple[str, str]:
+        """Handle conversational queries using user-level memory with pre-computed hash"""
         message_lower = user_message.lower()
-        
-        # Determine if we have a PSID or hash (hash length is 64 chars)
-        if len(psid_or_hash) == 64:  # Already hashed
-            psid_hash = psid_or_hash
-        else:
-            psid_hash = hash_psid(psid_or_hash)
         
         # Detect summary requests
         if any(word in message_lower for word in ['summary', 'recap', 'overview', 'how much', 'total', 'spent']):
@@ -243,6 +237,18 @@ Provide a conversational, insightful response that:
         # General conversational queries
         else:
             return self.generate_contextual_response_direct(psid_hash, user_message)
+    
+    def handle_conversational_query(self, psid_or_hash: str, user_message: str) -> Tuple[str, str]:
+        """Handle conversational queries using user-level memory (legacy method for backwards compatibility)"""
+        message_lower = user_message.lower()
+        
+        # Determine if we have a PSID or hash (hash length is 64 chars)
+        if len(psid_or_hash) == 64:  # Already hashed
+            psid_hash = psid_or_hash
+        else:
+            psid_hash = hash_psid(psid_or_hash)
+        
+        return self.handle_conversational_query_with_hash(psid_hash, user_message)
     
     def generate_analysis_response_direct(self, psid_hash: str, user_message: str) -> Tuple[str, str]:
         """Generate analysis response with user context (direct hash access)"""

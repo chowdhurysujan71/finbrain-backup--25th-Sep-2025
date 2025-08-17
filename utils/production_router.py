@@ -290,8 +290,8 @@ class ProductionRouter:
             from utils.conversational_ai import conversational_ai
             
             # Handle conversational queries with user-level memory
-            # Pass original PSID so conversational AI can handle the hashing correctly
-            response, intent_type = conversational_ai.handle_conversational_query(psid, text)
+            # Pass the already-computed hash directly to avoid double-hashing
+            response, intent_type = conversational_ai.handle_conversational_query_with_hash(psid_hash, text)
             
             # Add habit-forming elements for engagement
             if user_data['interaction_count'] > 0:
