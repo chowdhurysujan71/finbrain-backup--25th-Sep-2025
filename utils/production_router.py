@@ -43,7 +43,7 @@ class ProductionRouter:
         
         logger.info("Production Router initialized with bulletproof RL-2 and flag-gated AI")
     
-    def route_message(self, text: str, psid: str, rid: Optional[str] = None) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def route_message(self, text: str, psid: str, rid: str = "") -> Tuple[str, str, Optional[str], Optional[float]]:
         """
         Single entry point for all message processing
         Returns: (response_text, intent, category, amount)
@@ -51,7 +51,7 @@ class ProductionRouter:
         start_time = time.time()
         psid_hash = hash_psid(psid)
         
-        if rid is None:
+        if not rid:
             rid = get_request_id() or "unknown"
         
         self.telemetry['total_messages'] += 1
@@ -251,7 +251,7 @@ class ProductionRouter:
         
         try:
             # Build user context from spending data
-            context = build_context(psid, db.session)
+            context = build_context(psid, db.session())
             
             # Check if context is too thin for personalized advice
             if is_context_thin(context):
