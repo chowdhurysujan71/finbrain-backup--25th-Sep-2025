@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Financial Insights - FinBrain</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .insights-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .spending-pattern {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+        }
+        .ai-tip {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+        }
+        .metric-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .ai-badge {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body style="background-color: #f8f9fa;">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-brain me-2"></i>FinBrain AI Insights
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">
+                    <i class="fas fa-chart-bar me-1"></i>Dashboard
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- User Header -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2><i class="fas fa-user-circle me-2"></i>{{ user_profile.first_name or 'User' }}</h2>
+                        <p class="text-muted mb-0">
+                            <span class="ai-badge">AI-Powered</span> Personal Finance Insights
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted">Last updated: {{ timestamp }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Insights Section -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="insights-card">
+                    <h4><i class="fas fa-robot me-2"></i>AI Financial Analysis</h4>
+                    <p class="mb-3">{{ ai_insights.summary }}</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-lightbulb me-1"></i>Key Insight</h6>
+                            <p class="small">{{ ai_insights.key_insight }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-target me-1"></i>Recommendation</h6>
+                            <p class="small">{{ ai_insights.recommendation }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="ai-tip">
+                    <h5><i class="fas fa-magic me-2"></i>Smart Tip</h5>
+                    <p class="mb-2">{{ ai_insights.smart_tip }}</p>
+                    <small><i class="fas fa-info-circle me-1"></i>Personalized for your spending patterns</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Metrics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <i class="fas fa-chart-line fa-2x text-success mb-2"></i>
+                    <h4>{{ spending_metrics.monthly_total | round(2) }}</h4>
+                    <p class="text-muted mb-0">Monthly Spending</p>
+                    <small class="text-{{ 'success' if spending_metrics.trend == 'down' else 'warning' }}">
+                        <i class="fas fa-arrow-{{ 'down' if spending_metrics.trend == 'down' else 'up' }} me-1"></i>
+                        {{ spending_metrics.trend_percentage }}%
+                    </small>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <i class="fas fa-receipt fa-2x text-info mb-2"></i>
+                    <h4>{{ spending_metrics.transaction_count }}</h4>
+                    <p class="text-muted mb-0">Transactions</p>
+                    <small class="text-muted">This month</small>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <i class="fas fa-percentage fa-2x text-warning mb-2"></i>
+                    <h4>{{ spending_metrics.largest_category_pct }}%</h4>
+                    <p class="text-muted mb-0">{{ spending_metrics.largest_category | title }}</p>
+                    <small class="text-muted">Biggest category</small>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <i class="fas fa-bullseye fa-2x text-danger mb-2"></i>
+                    <h4>{{ user_profile.focus_area | title }}</h4>
+                    <p class="text-muted mb-0">Focus Area</p>
+                    <small class="text-muted">Your goal</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spending Patterns -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="spending-pattern">
+                    <h4><i class="fas fa-chart-pie me-2"></i>AI-Detected Spending Patterns</h4>
+                    
+                    <div class="row mt-3">
+                        {% for pattern in spending_patterns %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-transparent border-light">
+                                <div class="card-body text-white">
+                                    <h6><i class="{{ pattern.icon }} me-2"></i>{{ pattern.category | title }}</h6>
+                                    <h4>{{ pattern.amount | round(2) }}</h4>
+                                    <p class="small mb-0">{{ pattern.ai_insight }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent AI Interactions -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0"><i class="fas fa-comments me-2"></i>Recent AI Conversations</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_interactions %}
+                            {% for interaction in recent_interactions %}
+                            <div class="d-flex mb-3 pb-3 border-bottom">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-user-circle fa-2x text-muted"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="mb-1">{{ interaction.user_message }}</h6>
+                                        <small class="text-muted">{{ interaction.timestamp }}</small>
+                                    </div>
+                                    <div class="bg-light p-2 rounded">
+                                        <i class="fas fa-robot me-1 text-primary"></i>
+                                        {{ interaction.ai_response }}
+                                    </div>
+                                    {% if interaction.detected_amount %}
+                                    <small class="text-success">
+                                        <i class="fas fa-check me-1"></i>
+                                        Logged: {{ interaction.detected_amount }} in {{ interaction.detected_category }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-comments fa-3x mb-3"></i>
+                                <p>No AI interactions yet. Start chatting in Messenger to see your conversation history here!</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

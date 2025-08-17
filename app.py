@@ -462,6 +462,124 @@ def token_refresh_status():
             "timestamp": datetime.utcnow().isoformat()
         }), 500
 
+@app.route('/user/<psid_hash>/insights')
+@require_basic_auth
+def user_insights(psid_hash):
+    """AI-powered user insights dashboard"""
+    try:
+        from models import User, Expense
+        from utils.ai_adapter_gemini import generate_with_schema
+        from datetime import datetime, timedelta
+        import json
+        
+        # Find user by PSID hash
+        user = User.query.filter_by(user_id_hash=psid_hash).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Get user expenses (last 30 days)
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        expenses = Expense.query.filter(
+            Expense.user_id == psid_hash,
+            Expense.created_at >= thirty_days_ago
+        ).order_by(Expense.created_at.desc()).all()
+        
+        # Calculate spending metrics
+        total_amount = sum(float(e.amount) for e in expenses)
+        category_totals = {}
+        for expense in expenses:
+            cat = expense.category.lower()
+            category_totals[cat] = category_totals.get(cat, 0) + float(expense.amount)
+        
+        largest_category = max(category_totals.keys(), key=category_totals.get) if category_totals else "other"
+        largest_category_amount = category_totals.get(largest_category, 0)
+        largest_category_pct = round((largest_category_amount / total_amount * 100), 1) if total_amount > 0 else 0
+        
+        # Generate AI insights
+        ai_insights = {
+            "summary": "I'm analyzing your spending patterns to provide personalized insights.",
+            "key_insight": "Your spending patterns show opportunities for optimization.",
+            "recommendation": "Consider tracking more detailed expense categories for better insights.",
+            "smart_tip": "Try setting a weekly spending limit to build better financial habits."
+        }
+        
+        # If we have enough data, use AI for real insights
+        if total_amount > 0 and len(expenses) >= 3:
+            try:
+                context = f"User has spent {total_amount} over {len(expenses)} transactions. Main category: {largest_category} ({largest_category_pct}%). Categories: {', '.join(category_totals.keys())}"
+                
+                ai_result = generate_with_schema(
+                    user_text=f"Generate financial insights for: {context}",
+                    system_prompt="You are a financial advisor. Provide personalized insights based on spending data. Be encouraging and specific.",
+                    response_schema={
+                        "type": "object",
+                        "properties": {
+                            "summary": {"type": "string"},
+                            "key_insight": {"type": "string"}, 
+                            "recommendation": {"type": "string"},
+                            "smart_tip": {"type": "string"}
+                        }
+                    }
+                )
+                
+                if ai_result.get("ok") and "data" in ai_result:
+                    ai_insights = ai_result["data"]
+            except Exception as e:
+                logger.warning(f"AI insights generation failed: {e}")
+        
+        # Build spending patterns for display
+        spending_patterns = []
+        category_icons = {
+            'food': 'fas fa-utensils',
+            'shopping': 'fas fa-shopping-cart',
+            'bills': 'fas fa-file-invoice',
+            'transport': 'fas fa-car',
+            'other': 'fas fa-ellipsis-h'
+        }
+        
+        for category, amount in category_totals.items():
+            spending_patterns.append({
+                'category': category,
+                'amount': amount,
+                'icon': category_icons.get(category, 'fas fa-tag'),
+                'ai_insight': f"Spent {amount} on {category} this month"
+            })
+        
+        # Recent interactions (last 5 expenses as conversation proxy)
+        recent_interactions = []
+        for expense in expenses[:5]:
+            recent_interactions.append({
+                'user_message': expense.original_message or f"Logged {expense.amount} for {expense.description}",
+                'ai_response': f"Recorded {expense.amount} in {expense.category}. Great job tracking your expenses!",
+                'timestamp': expense.created_at.strftime('%Y-%m-%d %H:%M'),
+                'detected_amount': expense.amount,
+                'detected_category': expense.category
+            })
+        
+        return render_template('user_insights.html',
+            user_profile={
+                'first_name': user.first_name or 'User',
+                'focus_area': user.focus_area or 'saving',
+                'income_range': user.income_range or 'not specified'
+            },
+            ai_insights=ai_insights,
+            spending_metrics={
+                'monthly_total': total_amount,
+                'transaction_count': len(expenses),
+                'largest_category': largest_category,
+                'largest_category_pct': largest_category_pct,
+                'trend': 'stable',
+                'trend_percentage': 0
+            },
+            spending_patterns=spending_patterns,
+            recent_interactions=recent_interactions,
+            timestamp=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        )
+        
+    except Exception as e:
+        logger.error(f"User insights error: {e}")
+        return jsonify({"error": "Failed to generate insights"}), 500
+
 @app.route('/psid/<psid_hash>', methods=['GET'])
 @require_basic_auth 
 def psid_explorer(psid_hash):
@@ -701,6 +819,38 @@ def ops_trace():
             "timestamp": datetime.utcnow().isoformat(),
             "last": []
         }), 500
+
+@app.route('/ops/users', methods=['GET'])
+@require_basic_auth
+def ops_users():
+    """User management dashboard with AI insights links"""
+    try:
+        from models import User
+        
+        # Get all users with expense counts
+        users = User.query.all()
+        
+        user_list = []
+        for user in users:
+            user_list.append({
+                'psid_hash': user.user_id_hash,
+                'expense_count': user.expense_count or 0,
+                'total_expenses': float(user.total_expenses or 0),
+                'platform': user.platform,
+                'created_at': user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown',
+                'last_interaction': user.last_interaction.strftime('%Y-%m-%d %H:%M') if user.last_interaction else 'Never',
+                'first_name': user.first_name or 'User',
+                'focus_area': user.focus_area or 'Not set'
+            })
+        
+        # Sort by expense count descending
+        user_list.sort(key=lambda x: x['expense_count'], reverse=True)
+        
+        return render_template('user_list.html', users=user_list, total_users=len(user_list))
+        
+    except Exception as e:
+        logger.error(f"User list error: {e}")
+        return jsonify({"error": "Failed to retrieve users"}), 500
 
 # Register streamlined admin operations
 from admin_ops import admin_ops

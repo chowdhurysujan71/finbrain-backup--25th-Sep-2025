@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users - FinBrain Dashboard</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-brain me-2"></i>FinBrain Admin
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">
+                    <i class="fas fa-chart-bar me-1"></i>Dashboard
+                </a>
+                <a class="nav-link" href="javascript:void(0);" onclick="logout()">
+                    <i class="fas fa-sign-out-alt me-1"></i>Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="h2">
+                    <i class="fas fa-users me-2"></i>User Management
+                </h1>
+                <p class="text-muted">{{ total_users }} active users with AI-powered insights</p>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-user-friends me-2"></i>Users & AI Insights
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if users %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Focus Area</th>
+                                        <th>Expenses</th>
+                                        <th>Total Amount</th>
+                                        <th>Platform</th>
+                                        <th>Last Active</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in users %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-user-circle fa-2x text-muted me-3"></i>
+                                                <div>
+                                                    <div class="fw-bold">{{ user.first_name }}</div>
+                                                    <small class="text-muted">{{ user.psid_hash[:8] }}...</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if user.focus_area %}
+                                                <span class="badge bg-info">{{ user.focus_area | title }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Not Set</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-receipt me-2 text-success"></i>
+                                                <span class="fw-bold">{{ user.expense_count }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="text-success fw-bold">
+                                                ৳{{ "%.2f"|format(user.total_expenses) }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if user.platform == 'messenger' %}
+                                                <span class="badge bg-primary">
+                                                    <i class="fab fa-facebook-messenger me-1"></i>Messenger
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-success">
+                                                    <i class="fab fa-whatsapp me-1"></i>WhatsApp
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">{{ user.last_interaction }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="/user/{{ user.psid_hash }}/insights" class="btn btn-sm btn-gradient">
+                                                    <i class="fas fa-robot me-1"></i>AI Insights
+                                                </a>
+                                                <a href="/psid/{{ user.psid_hash }}" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fas fa-search me-1"></i>Explore
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No users found</h5>
+                            <p class="text-muted">Users will appear here once they start using the system.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .btn-gradient {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+        }
+        .btn-gradient:hover {
+            background: linear-gradient(45deg, #764ba2, #667eea);
+            color: white;
+        }
+    </style>
+
+    <script>
+        function logout() {
+            var currentHost = window.location.protocol + "//" + window.location.host;
+            window.location.href = currentHost.replace("://", "://logout:logout@") + "/";
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
