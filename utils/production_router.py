@@ -278,7 +278,15 @@ class ProductionRouter:
             # Generate engagement-driven AI prompt
             ai_prompt = engagement_engine.get_ai_prompt(user_data, text, spend_data)
             
-            # Check if context is too thin for personalized advice (fallback)
+            # Check if this is an expense logging message first
+            from utils.ai_expense_parser import ai_expense_parser
+            expense_parse_result = ai_expense_parser.parse_message(text)
+            
+            if expense_parse_result["success"] and expense_parse_result["item_count"] > 0:
+                # Handle expense logging with multiple items
+                return self._handle_ai_expense_logging(expense_parse_result, psid, psid_hash, rid)
+            
+            # Check if context is too thin for personalized advice (only for non-expense messages)
             context = build_context(psid, db.session())
             if is_context_thin(context) and not any(spend_data.values()):
                 response = "I don't see enough recent spend to personalize this.\nLog your 3 biggest expenses today so I can analyze.\nWant to log them now or import last month's data?"
@@ -311,6 +319,80 @@ class ProductionRouter:
             # Final fallback
             response = "Got it. Try 'summary' for a quick recap of your spending."
             return self._format_response(response), "fallback_error", None, None
+    
+    def _handle_ai_expense_logging(self, parse_result: Dict[str, Any], psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+        """Handle AI-parsed expense logging with multiple items"""
+        try:
+            from utils.db import save_expense
+            from utils.security import hash_psid
+            from utils.user_manager import user_manager
+            
+            expenses = parse_result["expenses"]
+            total_amount = parse_result["total_amount"]
+            item_count = parse_result["item_count"]
+            
+            logged_expenses = []
+            total_logged = 0
+            
+            # Log each expense
+            for expense_data in expenses:
+                amount = expense_data["amount"]
+                description = expense_data["description"]
+                category = expense_data["category"]
+                
+                # Log the expense
+                result = save_expense(
+                    user_identifier=hash_psid(psid),
+                    description=description,
+                    amount=amount,
+                    category=category,
+                    platform='messenger',
+                    original_message=parse_result["original_text"],
+                    unique_id=f"{psid}-{amount}-{description[:10]}"
+                )
+                success = result.get('success', False)
+                
+                if success:
+                    logged_expenses.append(f"{amount} for {description}")
+                    total_logged += amount
+            
+            # Update user interaction count
+            try:
+                from utils.user_manager import user_manager
+                user_manager.increment_interaction_count(psid)
+            except Exception as e:
+                logger.warning(f"Failed to update user stats: {e}")
+            
+            # Generate personalized AI response based on the expenses
+            if logged_expenses:
+                if item_count == 1:
+                    response = f"Logged {expenses[0]['amount']} for {expenses[0]['description']} in {expenses[0]['category']}. "
+                else:
+                    response = f"Logged {item_count} expenses totaling {total_logged}: {', '.join(logged_expenses[:2])}{'...' if len(logged_expenses) > 2 else ''}. "
+                
+                # Add AI insight
+                category_counts = {}
+                for exp in expenses:
+                    cat = exp["category"]
+                    category_counts[cat] = category_counts.get(cat, 0) + 1
+                
+                if len(category_counts) > 1:
+                    response += f"Nice variety across {', '.join(category_counts.keys())}!"
+                elif total_logged > 500:
+                    response += "That's a significant amount - tracking helps you stay aware!"
+                else:
+                    response += "Great job tracking your spending!"
+                
+                self._log_routing_decision(rid, psid_hash, "ai_multi_expense", f"logged_{item_count}_items_total_{total_logged}")
+                return self._format_response(response), "ai_expense_logged", expenses[0]["category"] if expenses else None, total_logged
+            else:
+                response = "I couldn't log those expenses. Try a simpler format like 'coffee 100'."
+                return self._format_response(response), "expense_error", None, None
+                
+        except Exception as e:
+            logger.error(f"AI expense logging error: {e}")
+            response = "Got it! I'll track that spending for you."
+            return self._format_response(response), "expense_fallback", None, None
     
     def _handle_onboarding(self, text: str, psid: str, user_data: Dict[str, Any], rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Handle user onboarding with complete AI-driven system"""
