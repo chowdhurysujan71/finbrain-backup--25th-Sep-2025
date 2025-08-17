@@ -241,17 +241,27 @@ class ProductionRouter:
         return normalize(response), "help", None, None
         
     def route_message(self, text: str, psid: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
-        """Engagement-driven message routing with onboarding and personalization"""
+        """Engagement-driven message routing with UAT testing and personalization"""
         from utils.context_packet import build_context, is_context_thin, CONTEXT_SYSTEM_PROMPT, RESPONSE_SCHEMA
         from ai_adapter_gemini import generate_with_schema
         from utils.engagement import engagement_engine
         from utils.user_manager import user_manager
+        from utils.uat_system import uat_system
         from app import db
         
         start_time = time.time()
         psid_hash = hash_psid(psid)
         
         try:
+            # Check for UAT commands first
+            uat_response = self._handle_uat_commands(text, psid, rid)
+            if uat_response:
+                return uat_response
+            
+            # Handle active UAT testing
+            if uat_system.is_uat_mode(psid):
+                return self._handle_uat_flow(text, psid, rid)
+            
             # Get or create user with engagement tracking
             user_data = user_manager.get_or_create_user(psid)
             
@@ -330,6 +340,44 @@ class ProductionRouter:
         
         self._log_routing_decision(rid, psid_hash, "onboarding", f"step_{current_step}")
         return self._format_response(ai_prompt), "onboarding", None, None
+    
+    def _handle_uat_commands(self, text: str, psid: str, rid: str) -> Optional[Tuple[str, str, Optional[str], Optional[float]]]:
+        """Handle UAT system commands"""
+        from utils.uat_system import uat_system
+        
+        psid_hash = hash_psid(psid)
+        text_lower = text.lower().strip()
+        
+        # Start UAT command
+        if text_lower in ['start uat', 'begin uat', 'uat start', 'test bot']:
+            response = uat_system.start_uat(psid, "Live Tester")
+            self._log_routing_decision(rid, psid_hash, "uat_start", "initiated")
+            return self._format_response(response), "uat_initiated", None, None
+        
+        # UAT stats command
+        elif text_lower in ['uat stats', 'uat status']:
+            stats = uat_system.get_uat_stats()
+            response = f"UAT Stats: {stats['active_uat_sessions']} active sessions"
+            self._log_routing_decision(rid, psid_hash, "uat_stats", "requested")
+            return self._format_response(response), "uat_stats", None, None
+        
+        return None
+    
+    def _handle_uat_flow(self, text: str, psid: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+        """Handle active UAT testing flow"""
+        from utils.uat_system import uat_system
+        
+        psid_hash = hash_psid(psid)
+        
+        # Get next UAT prompt
+        uat_response = uat_system.get_next_uat_prompt(psid, text)
+        
+        if uat_response:
+            self._log_routing_decision(rid, psid_hash, "uat_flow", "step_completed")
+            return self._format_response(uat_response), "uat_testing", None, None
+        else:
+            # UAT completed, fall back to normal routing
+            return self._format_response("UAT completed. Normal bot operation resumed."), "uat_completed", None, None
     
     def _format_response(self, text: str) -> str:
         """Format response with 280 character limit and graceful clipping"""
