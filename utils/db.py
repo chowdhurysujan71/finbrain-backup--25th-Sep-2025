@@ -16,7 +16,7 @@ def get_or_create_user(user_identifier, platform, db_session=None):
         db_session = db
     
     try:
-        user_hash = hash_user_id(user_identifier)
+        user_hash = ensure_hashed(user_identifier)
         
         user = User.query.filter_by(user_id_hash=user_hash).first()
         
@@ -51,6 +51,12 @@ def save_expense(user_identifier, description, amount, category, platform, origi
     try:
         # Use consistent hashing
         user_hash = ensure_hashed(user_identifier)
+        
+        # Strict validation in debug mode
+        import os
+        if os.environ.get('STRICT_IDS', 'false').lower() == 'true':
+            from utils.crypto import is_sha256_hex
+            assert is_sha256_hex(user_hash), f"Invalid user_id for DB write: {user_hash}"
         
         # Trace the write operation
         trace_event("record_expense", user_id=user_hash, amount=amount, category=category, path="write")
@@ -124,7 +130,7 @@ def get_monthly_summary(user_identifier, month=None):
     from models import MonthlySummary
     
     try:
-        user_hash = hash_user_id(user_identifier)
+        user_hash = ensure_hashed(user_identifier)
         
         if not month:
             month = date.today().strftime('%Y-%m')
@@ -163,7 +169,7 @@ def get_user_expenses(user_identifier, limit=10):
     from models import Expense
     
     try:
-        user_hash = hash_user_id(user_identifier)
+        user_hash = ensure_hashed(user_identifier)
         
         expenses = Expense.query.filter_by(user_id=user_hash)\
                                .order_by(Expense.created_at.desc())\

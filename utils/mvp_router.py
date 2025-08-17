@@ -47,7 +47,7 @@ def process_log_intent(psid: str, amount_str: str, note: str) -> str:
         
         # Create expense record
         expense = Expense(
-            user_id=hash_psid(psid),
+            user_id=ensure_hashed(psid),
             description=note[:100],  # Truncate for DB
             amount=amount,
             category=category,
@@ -59,7 +59,7 @@ def process_log_intent(psid: str, amount_str: str, note: str) -> str:
         )
         
         # Update or create user record with 24-hour policy tracking
-        user_hash = hash_psid(psid)
+        user_hash = ensure_hashed(psid)
         user = User.query.filter_by(user_id_hash=user_hash).first()
         if not user:
             user = User(
@@ -99,7 +99,7 @@ def process_summary_intent(psid: str) -> str:
         # Import here to avoid circular import
         from models import Expense
         
-        user_hash = hash_psid(psid)
+        user_hash = ensure_hashed(psid)
         seven_days_ago = datetime.now() - timedelta(days=7)
         
         # Get expenses from last 7 days
@@ -178,7 +178,7 @@ def log_structured_event(rid: str, psid: str, mid: str, route: str, duration_ms:
     """Log structured JSON event (no PII)"""
     log_data = {
         "rid": rid,
-        "psid_hash": hash_psid(psid),
+        "psid_hash": ensure_hashed(psid),
         "mid": mid,
         "route": route,
         "duration_ms": round(duration_ms, 1),

@@ -142,6 +142,12 @@ class UserManager:
         user_id = ensure_hashed(psid)
         cutoff_date = datetime.utcnow() - timedelta(days=days)
         
+        # Strict validation in debug mode
+        import os
+        if os.environ.get('STRICT_IDS', 'false').lower() == 'true':
+            from utils.crypto import is_sha256_hex
+            assert is_sha256_hex(user_id), f"Invalid user_id for DB read: {user_id}"
+        
         # Trace the read operation
         trace_event("summary_query", user_id=user_id, path="read", window=days)
         

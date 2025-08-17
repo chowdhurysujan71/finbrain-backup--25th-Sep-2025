@@ -16,7 +16,7 @@ def check_rate_limit(user_identifier, platform):
     from app import db
     
     try:
-        user_hash = hash_user_id(user_identifier)
+        user_hash = ensure_hashed(user_identifier)
         current_date = date.today()
         current_hour = datetime.now().replace(minute=0, second=0, microsecond=0)
         
@@ -75,7 +75,7 @@ def get_rate_limit_status(user_identifier, platform):
     from models import RateLimit
     
     try:
-        user_hash = hash_user_id(user_identifier)
+        user_hash = ensure_hashed(user_identifier)
         
         rate_limit = RateLimit.query.filter_by(
             user_id_hash=user_hash,

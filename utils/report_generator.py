@@ -14,7 +14,7 @@ def generate_daily_report(user_identifier, platform):
     try:
         from utils.security import hash_user_id
         
-        user_hash = hash_user_id(user_identifier)
+        user_hash = ensure_hashed(user_identifier)
         today = date.today()
         
         # Get today's expenses
@@ -64,7 +64,7 @@ def generate_weekly_report(user_identifier, platform):
     try:
         from utils.security import hash_user_id
         
-        user_hash = hash_user_id(user_identifier)
+        user_hash = ensure_hashed(user_identifier)
         today = date.today()
         week_start = today - timedelta(days=6)  # Last 7 days
         

@@ -65,7 +65,8 @@ class BackgroundProcessor:
             
             future = self.executor.submit(self._process_job_safe, job)
             
-            psid_hash = hash_psid(psid)
+            from utils.crypto import ensure_hashed
+            psid_hash = ensure_hashed(psid)
             log_webhook_success(psid_hash, mid, "queued", None, None, 0)
             
             logger.info(f"Request {rid}: Message queued for background processing")
@@ -78,7 +79,8 @@ class BackgroundProcessor:
     def _process_job_safe(self, job: MessageJob) -> None:
         """Process job with timeout protection and RL-2 support"""
         start_time = time.time()
-        psid_hash = hash_psid(job.psid)
+        from utils.crypto import ensure_hashed
+        psid_hash = ensure_hashed(job.psid)
         intent = "unknown"
         category = None
         amount = None

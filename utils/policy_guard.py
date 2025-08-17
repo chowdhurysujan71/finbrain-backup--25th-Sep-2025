@@ -10,7 +10,7 @@ def is_within_24_hour_window(psid: str) -> bool:
     try:
         from models import User, db
         
-        user_hash = hash_psid(psid)
+        user_hash = ensure_hashed(psid)
         user = User.query.filter_by(user_id_hash=user_hash).first()
         
         if not user or not user.last_user_message_at:
@@ -36,7 +36,7 @@ def update_user_message_timestamp(psid: str):
     try:
         from models import User, db
         
-        user_hash = hash_psid(psid)
+        user_hash = ensure_hashed(psid)
         user = User.query.filter_by(user_id_hash=user_hash).first()
         
         if not user:

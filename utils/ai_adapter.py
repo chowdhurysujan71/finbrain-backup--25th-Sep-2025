@@ -373,7 +373,7 @@ class AIAdapter:
         
         # Hash PSID for PII protection
         from utils.security import hash_psid
-        psid_hash = hash_psid(psid)
+        psid_hash = ensure_hashed(psid)
         
         # Sanitize context to remove PII
         safe_context = self._sanitize_context(context or {})

@@ -107,4 +107,11 @@ The current system provides sophisticated AI-driven financial advice and learnin
 
 **Verification Results**: Test users now show "Has Data: True" and AI generates intelligent summaries: "Over the last 30 days, you've had 3 transactions totaling $700.00. It looks like all of your spending was on food."
 
+**Comprehensive Hardening (August 17, 2025)**: Implemented complete anti-regression measures:
+- **Unified Crypto Entry Point**: All code paths now use `utils/crypto.ensure_hashed()` exclusively
+- **Legacy Function Deprecation**: Removed all `hash_psid()` and `hash_user_id()` direct calls
+- **Strict Validation Guards**: Added `is_sha256_hex()` validation and `STRICT_IDS` debug mode
+- **Regression Test Suite**: Created comprehensive tests to prevent double-hashing regressions
+- **Database Field Standardization**: All writes/reads use `user_id` field consistently
+
 This final fix advances AI Constitution implementation from 95% to 98%, completing the core conversational AI functionality. Users now receive consistent, intelligent financial insights based on their actual transaction history across all code paths. The system maintains organic conversation flow with full access to user-level memory and spending patterns.
