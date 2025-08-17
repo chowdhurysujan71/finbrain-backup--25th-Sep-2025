@@ -145,82 +145,31 @@ class EngagementEngine:
             return endings[2]  # Default to challenge
     
     def update_user_onboarding(self, user_id: str, response: str, current_step: int) -> Dict[str, Any]:
-        """Process onboarding response and update user state with flexible parsing"""
+        """Process onboarding response using AI-powered parsing"""
+        from utils.ai_onboarding_parser import ai_parse_onboarding_response, convert_ai_parse_to_updates
         
-        updates = {}
-        response_lower = response.lower().strip()
-        
-        # Remove numbered prefixes like "1." or "2."
-        if response_lower.startswith(('1.', '2.', '3.')):
-            response_lower = response_lower.split('.', 1)[1].strip()
-        
-        if current_step == 0:  # Income range
-            # Flexible income range parsing
-            if ('1000' in response_lower and '2500' in response_lower) or '1000–2500' in response_lower or '1000-2500' in response_lower:
-                updates['income_range'] = '$1,000–$2,500'
-            elif ('500' in response_lower and '1000' in response_lower) or '500–1000' in response_lower or '500-1000' in response_lower:
-                updates['income_range'] = '$500–$1,000'
-            elif '< 500' in response_lower or 'under 500' in response_lower or 'less than 500' in response_lower:
-                updates['income_range'] = '< $500'
-            elif '> 2500' in response_lower or 'over 2500' in response_lower or 'more than 2500' in response_lower:
-                updates['income_range'] = '> $2,500'
-            # Fallback for number-only responses
-            elif '3' in response_lower or 'third' in response_lower:
-                updates['income_range'] = '$1,000–$2,500'
-            elif '2' in response_lower or 'second' in response_lower:
-                updates['income_range'] = '$500–$1,000'
-            elif '1' in response_lower or 'first' in response_lower:
-                updates['income_range'] = '< $500'
-            elif '4' in response_lower or 'fourth' in response_lower:
-                updates['income_range'] = '> $2,500'
-            else:
-                updates['income_range'] = 'not specified'
-        
-        elif current_step == 1:  # Spending categories (can be multiple)
-            # Parse multiple categories from comma-separated input
-            categories_found = []
-            categories = ['food', 'rent', 'shopping', 'bills', 'transport', 'other']
+        try:
+            # Use AI to parse the user response
+            ai_result = ai_parse_onboarding_response(response, current_step)
             
-            for category in categories:
-                if category in response_lower:
-                    categories_found.append(category)
+            # Convert AI result to database updates
+            updates = convert_ai_parse_to_updates(ai_result, current_step)
             
-            # Special case handling for common variations
-            if 'grocery' in response_lower or 'groceries' in response_lower:
-                categories_found.append('food')
-            if 'housing' in response_lower:
-                categories_found.append('rent')
-            if 'shop' in response_lower and 'shopping' not in categories_found:
-                categories_found.append('shopping')
+            logger.info(f"AI onboarding parse successful: step {current_step} → {updates.get('onboarding_step', 'unknown')}")
+            return updates
             
-            if categories_found:
-                updates['primary_category'] = categories_found[0]  # Take first as primary
-                if len(categories_found) > 1:
-                    updates['preferences'] = {'spending_categories': categories_found}
-            else:
-                updates['primary_category'] = 'other'
-        
-        elif current_step == 2:  # Focus area
-            focus_areas = ['saving', 'budgeting', 'investment']
-            for area in focus_areas:
-                if area in response_lower:
-                    updates['focus_area'] = area
-                    break
+        except Exception as e:
+            logger.error(f"AI onboarding parsing failed, using fallback: {e}")
             
-            # Set default if no match
-            if 'focus_area' not in updates:
-                updates['focus_area'] = 'saving'  # Default to saving
-        
-        # Advance to next step
-        updates['onboarding_step'] = current_step + 1
-        
-        # Mark onboarding complete after step 2
-        if current_step >= 2:
-            updates['has_completed_onboarding'] = True
-            updates['is_new'] = False
-            updates['onboarding_step'] = 0  # Reset step counter
-        
-        return updates
+            # Fallback to simple advancement if AI fails
+            updates = {'onboarding_step': current_step + 1}
+            
+            if current_step >= 2:
+                updates['has_completed_onboarding'] = True
+                updates['is_new'] = False
+                updates['onboarding_step'] = 0
+            
+            return updates
 
 # Global engagement engine instance
 engagement_engine = EngagementEngine()
