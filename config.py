@@ -18,9 +18,14 @@ AI_ENABLED = env_bool("AI_ENABLED", False)
 AI_PROVIDER = os.getenv("AI_PROVIDER", "none")
 AI_TIMEOUT_MS = env_int("AI_TIMEOUT_MS", 3000)
 
-# Rate Limiting
-AI_MAX_CALLS_PER_MIN = env_int("AI_MAX_CALLS_PER_MIN", 10)
-AI_MAX_CALLS_PER_MIN_PER_PSID = env_int("AI_MAX_CALLS_PER_MIN_PER_PSID", 5)
+# AI Rate Limiting - Single Source of Truth
+AI_RL_USER_LIMIT = env_int("AI_RL_USER_LIMIT", 4)          # per-user replies in window
+AI_RL_WINDOW_SEC = env_int("AI_RL_WINDOW_SEC", 60)         # window duration in seconds  
+AI_RL_GLOBAL_LIMIT = env_int("AI_RL_GLOBAL_LIMIT", 120)    # global budget
+
+# Legacy rate limiting (deprecated - use AI_RL_* above)
+AI_MAX_CALLS_PER_MIN = env_int("AI_MAX_CALLS_PER_MIN", AI_RL_GLOBAL_LIMIT)
+AI_MAX_CALLS_PER_MIN_PER_PSID = env_int("AI_MAX_CALLS_PER_MIN_PER_PSID", AI_RL_USER_LIMIT)
 
 # Database
 DATABASE_URL = os.getenv("DATABASE_URL", "")
@@ -42,6 +47,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
 
-# Rate Limiting (RPM = Requests Per Minute)
-AI_MAX_RPM_GLOBAL = env_int("AI_MAX_RPM_GLOBAL", 10)
-AI_MAX_RPM_USER = env_int("AI_MAX_RPM_USER", 2)
+# Rate Limiting (RPM = Requests Per Minute) - Legacy, use AI_RL_* instead
+AI_MAX_RPM_GLOBAL = AI_RL_GLOBAL_LIMIT
+AI_MAX_RPM_USER = AI_RL_USER_LIMIT

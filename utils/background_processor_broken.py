@@ -276,7 +276,7 @@ class BackgroundProcessor:
                 if is_rate_limited:
                     # ASCII-safe disclaimer (<=280 chars, no emojis)
                     response = (
-                        "NOTE: Taking a quick breather. I can do 2 smart replies per minute per person.\n"
+                        "NOTE: Taking a quick breather. I can do 4 smart replies per minute per person.\n"
                         "OK: I handled that without AI this time.\n"
                         "Tip: type \"summary\" for a quick recap."
                     )

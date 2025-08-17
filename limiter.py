@@ -1,64 +1,94 @@
 """
-Simplified rate limiter for AI requests
-Per-user and global rate limiting with clear boolean checks
+Sliding Window Rate Limiter - Clean Implementation
+Single source of truth for AI rate limiting with configurable limits
 """
+
 import time
-from collections import defaultdict, deque
-from config import AI_MAX_CALLS_PER_MIN, AI_MAX_CALLS_PER_MIN_PER_PSID
+from collections import deque
+from config import AI_RL_USER_LIMIT, AI_RL_WINDOW_SEC, AI_RL_GLOBAL_LIMIT
 
-# In-memory rate limiting (simple sliding window)
-user_requests = defaultdict(deque)
-global_requests = deque()
 
-def per_user_ok(user_id: str) -> bool:
-    """Check if user is within rate limit (2/min)"""
-    now = time.time()
-    user_queue = user_requests[user_id]
+class SlidingWindowLimiter:
+    """Sliding window rate limiter with precise timing"""
     
-    # Remove old requests (older than 60 seconds)
-    while user_queue and user_queue[0] < now - 60:
-        user_queue.popleft()
-    
-    # Check if under limit
-    if len(user_queue) < AI_MAX_CALLS_PER_MIN_PER_PSID:
-        user_queue.append(now)
-        return True
-    
-    return False
+    def __init__(self, limit, window_sec):
+        self.limit = limit
+        self.window = window_sec
+        self.store = {}  # {key: deque[timestamps]}
 
-def global_ok() -> bool:
-    """Check if global rate limit is OK (10/min)"""
-    now = time.time()
-    
-    # Remove old requests
-    while global_requests and global_requests[0] < now - 60:
-        global_requests.popleft()
-    
-    # Check if under limit
-    if len(global_requests) < AI_MAX_CALLS_PER_MIN:
-        global_requests.append(now)
-        return True
-    
-    return False
+    def allow(self, key, now=None):
+        """
+        Check if request is allowed within rate limit
+        
+        Returns:
+            (allowed: bool, retry_in_seconds: int)
+        """
+        now = now or time.time()
+        q = self.store.setdefault(key, deque())
+        
+        # Remove expired timestamps
+        while q and (now - q[0]) > self.window:
+            q.popleft()
+        
+        # Check if under limit
+        if len(q) < self.limit:
+            q.append(now)
+            return True, 0
+        
+        # Calculate retry time
+        retry_in = self.window - (now - q[0])
+        return False, int(max(1, retry_in))
 
-def get_stats():
-    """Get current rate limiting stats"""
-    now = time.time()
+    def get_remaining(self, key, now=None):
+        """Get remaining requests in current window"""
+        now = now or time.time()
+        q = self.store.get(key, deque())
+        
+        # Remove expired timestamps
+        while q and (now - q[0]) > self.window:
+            q.popleft()
+            
+        return max(0, self.limit - len(q))
+
+
+# Instantiate using config (no magic numbers)
+RL2_USER = SlidingWindowLimiter(limit=AI_RL_USER_LIMIT, window_sec=AI_RL_WINDOW_SEC)
+RL2_GLOBAL = SlidingWindowLimiter(limit=AI_RL_GLOBAL_LIMIT, window_sec=AI_RL_WINDOW_SEC)
+
+
+def can_use_ai(psid):
+    """
+    Check if AI can be used for this user
     
-    # Clean old requests for accurate counts
-    while global_requests and global_requests[0] < now - 60:
-        global_requests.popleft()
+    Returns:
+        (allowed: bool, retry_in_seconds: int)
+    """
+    ok_user, retry_u = RL2_USER.allow(f"user:{psid}")
+    ok_global, retry_g = RL2_GLOBAL.allow("global")
     
-    active_users = 0
-    for user_id, queue in user_requests.items():
-        while queue and queue[0] < now - 60:
-            queue.popleft()
-        if queue:
-            active_users += 1
+    if ok_user and ok_global:
+        return True, 0
+    
+    return False, max(retry_u, retry_g)
+
+
+def fallback_blurb(retry_in):
+    """Generate fallback message with retry time"""
+    return (
+        f"Quick breather to keep things snappy. "
+        f"I'll resume smart analysis in ~{retry_in}s. Want a quick action meanwhile?"
+    )
+
+
+def get_rate_limit_status(psid):
+    """Get current rate limit status for user"""
+    user_remaining = RL2_USER.get_remaining(f"user:{psid}")
+    global_remaining = RL2_GLOBAL.get_remaining("global")
     
     return {
-        "global_requests_last_min": len(global_requests),
-        "global_limit": AI_MAX_CALLS_PER_MIN,
-        "active_users_last_min": active_users,
-        "per_user_limit": AI_MAX_CALLS_PER_MIN_PER_PSID
+        'user_remaining': user_remaining,
+        'user_limit': AI_RL_USER_LIMIT,
+        'global_remaining': global_remaining,
+        'global_limit': AI_RL_GLOBAL_LIMIT,
+        'window_sec': AI_RL_WINDOW_SEC
     }

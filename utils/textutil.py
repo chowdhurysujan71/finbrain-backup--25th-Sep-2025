@@ -36,9 +36,9 @@ HELP_VARIANTS = [
 ]
 
 # RL-2 ASCII-safe variants (no emojis, safe for rate limiting)
-RL2_DISCLAIMER = "NOTE: Taking a quick breather. I can do 2 smart replies per minute per person.\nOK: I handled that without AI this time.\nTip: type \"summary\" for a quick recap."
+RL2_DISCLAIMER = "NOTE: Taking a quick breather. I can do 4 smart replies per minute per person.\nOK: I handled that without AI this time.\nTip: type \"summary\" for a quick recap."
 
-RL2_BREATHER_SUMMARY_PREFIX = "NOTE: Smart replies are capped at 2/min. Here is your recap without AI:"
+RL2_BREATHER_SUMMARY_PREFIX = "NOTE: Smart replies are capped at 4/min. Here is your recap without AI:"
 
 def safe_format(template: str, data: Dict[str, Any]) -> str:
     """

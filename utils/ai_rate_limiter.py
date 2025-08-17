@@ -24,10 +24,11 @@ class AIRateLimiter:
     """Sliding window AI rate limiter with per-PSID and global limits"""
     
     def __init__(self):
-        # Configuration from environment
+        # Configuration from centralized config
+        from config import AI_RL_GLOBAL_LIMIT, AI_RL_USER_LIMIT
         self.ai_enabled = os.getenv("AI_ENABLED", "false").lower() == "true"
-        self.max_calls_per_min = int(os.getenv("AI_MAX_CALLS_PER_MIN", "10"))
-        self.max_calls_per_min_per_psid = int(os.getenv("AI_MAX_CALLS_PER_MIN_PER_PSID", "5"))
+        self.max_calls_per_min = AI_RL_GLOBAL_LIMIT  
+        self.max_calls_per_min_per_psid = AI_RL_USER_LIMIT
         
         # Sliding window storage: psid -> List[timestamp]
         self.psid_windows: Dict[str, List[float]] = {}

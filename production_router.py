@@ -107,14 +107,16 @@ class ProductionRouter:
     
     def get_telemetry(self) -> Dict[str, Any]:
         """Comprehensive telemetry - env vs runtime truth"""
+        from config import AI_RL_USER_LIMIT, AI_RL_WINDOW_SEC, AI_RL_GLOBAL_LIMIT
         config = {
             "ai_enabled_env_default": AI_ENABLED,
             "ai_enabled_effective": FLAGS.ai_enabled,
             "ai_provider": AI_PROVIDER,
             "ai_timeout_ms": AI_TIMEOUT_MS,
             "rl": {
-                "user_cap_per_min": 2,
-                "global_cap_per_min": 10
+                "user_cap_per_window": AI_RL_USER_LIMIT,
+                "global_cap_per_window": AI_RL_GLOBAL_LIMIT,
+                "window_sec": AI_RL_WINDOW_SEC
             }
         }
         

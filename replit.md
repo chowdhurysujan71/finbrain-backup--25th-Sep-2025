@@ -13,10 +13,12 @@ FinBrain is a production-ready Facebook Messenger expense tracking application w
 - Implemented robust JSON parsing with markdown wrapper cleanup and error recovery
 - AI now delivers 300+ character detailed budgeting and money-saving strategies
 
-**Rate Limiting Enhancement (Aug 14, 2025)**: Increased user rate limits for better conversational experience:
-- Per-user AI requests: 2 → 5 requests per minute for more natural financial conversations
-- Users can now ask multiple follow-up questions without hitting limits as quickly
-- Global limits remain at 10 requests per minute for system stability
+**Rate Limiting Enhancement (Aug 17, 2025)**: Implemented centralized rate limiting configuration with upgraded limits:
+- Per-user AI requests: 2 → 4 requests per 60-second window for enhanced conversational flow
+- Global rate limit: 10 → 120 requests per 60-second window for improved system capacity
+- Centralized configuration in config.py with environment variable support (AI_RL_USER_LIMIT, AI_RL_WINDOW_SEC, AI_RL_GLOBAL_LIMIT)
+- Eliminated all hard-coded rate limits, single source of truth implementation
+- Enhanced observability with startup logging and telemetry endpoint reporting
 
 **Timeout Resolution (Aug 14, 2025)**: Fixed critical Gemini API timeout issue that was causing fallback responses:
 - Increased Gemini API timeout from 3 → 8 seconds for reliable processing

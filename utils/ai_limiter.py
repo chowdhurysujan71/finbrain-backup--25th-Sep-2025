@@ -13,10 +13,11 @@ from typing import Dict, List, Optional, Any
 
 logger = logging.getLogger(__name__)
 
-# Configuration from environment
+# Configuration from centralized config
+from config import AI_RL_GLOBAL_LIMIT, AI_RL_USER_LIMIT
 AI_ENABLED = os.environ.get("AI_ENABLED", "false").lower() == "true"
-AI_MAX_CALLS_PER_MIN = int(os.environ.get("AI_MAX_CALLS_PER_MIN", "10"))
-AI_MAX_CALLS_PER_MIN_PER_PSID = int(os.environ.get("AI_MAX_CALLS_PER_MIN_PER_PSID", "5"))
+AI_MAX_CALLS_PER_MIN = AI_RL_GLOBAL_LIMIT
+AI_MAX_CALLS_PER_MIN_PER_PSID = AI_RL_USER_LIMIT
 
 @dataclass
 class RateLimitResult:

@@ -82,6 +82,16 @@ with app.app_context():
     from utils.background_processor import background_processor
     logger.info(f"Background processor ready: {background_processor.get_stats()}")
     
+    # Log rate limiting configuration for observability
+    from config import AI_RL_USER_LIMIT, AI_RL_WINDOW_SEC, AI_RL_GLOBAL_LIMIT
+    logger.info({
+        "startup_rate_limits": {
+            "ai_rl_user_limit": AI_RL_USER_LIMIT,
+            "ai_rl_window_sec": AI_RL_WINDOW_SEC,
+            "ai_rl_global_limit": AI_RL_GLOBAL_LIMIT
+        }
+    })
+    
     # Run cold-start mitigation warm-up
     logger.info("Running cold-start mitigation...")
     from utils.cold_start_mitigation import cold_start_mitigator
@@ -569,7 +579,7 @@ def ops_telemetry():
                 'ai_timeout': 3,
                 'rate_limits': {
                     'global_per_min': int(os.environ.get("AI_MAX_CALLS_PER_MIN", "10")),
-                    'per_psid_per_min': int(os.environ.get("AI_MAX_CALLS_PER_MIN_PER_PSID", "2"))
+                    'per_psid_per_min': int(os.environ.get("AI_MAX_CALLS_PER_MIN_PER_PSID", "4"))
                 }
             },
             'routing': {
