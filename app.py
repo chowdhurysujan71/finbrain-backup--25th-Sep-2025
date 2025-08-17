@@ -95,6 +95,11 @@ with app.app_context():
                 "msg_max_chars": MSG_MAX_CHARS,
                 "timezone": TIMEZONE,
                 "currency_symbol": CURRENCY_SYMBOL
+            },
+            "ux_enhancements": {
+                "fallback_copy": "Taking a quick breather to stay fast & free...",
+                "system_prompt": "2-3 sentences max, action-oriented",
+                "quick_replies": "structured messaging enabled"
             }
         }
     })

@@ -75,8 +75,8 @@ def can_use_ai(psid):
 def fallback_blurb(retry_in):
     """Generate fallback message with retry time"""
     return (
-        f"Quick breather to keep things snappy. "
-        f"I'll resume smart analysis in ~{retry_in}s. Want a quick action meanwhile?"
+        f"Taking a quick breather to stay fast & free. "
+        f"I'll do the smart analysis in ~{retry_in}s. Meanwhile, want a quick action?"
     )
 
 

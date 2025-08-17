@@ -23,6 +23,15 @@ FinBrain is a production-ready Facebook Messenger expense tracking application w
 - Enhanced observability with comprehensive startup configuration logging
 - Built-in testing framework with `test_centralized_config.py` for validation
 
+**UX Enhancement Implementation (Aug 17, 2025)**: Comprehensive user experience upgrade with structured messaging and retention features:
+- **Enhanced fallback copy**: "Taking a quick breather to stay fast & free. I'll do the smart analysis in ~{retry_in}s. Meanwhile, want a quick action?"
+- **System prompt optimization**: 2-3 sentence maximum responses with action-oriented guidance and crisp follow-ups
+- **Message sequencing helpers**: Multi-send pacing with structured quick replies for Log/Review/Goal actions
+- **Advisor loops for retention**: Daily check-ins, weekly reviews, goal tracking, and smart nudges with proactive engagement
+- **Fast non-AI utilities**: Expense parsing, 7-day snapshots, and budget cap checking during rate limit cool-downs
+- **Observability counters**: Real-time engagement metrics tracking for AI usage, fallback rates, and user interaction patterns
+- **Guardrails at send layer**: Automatic 280-character limits with graceful clipping and "Want details?" overflow handling
+
 **Timeout Resolution (Aug 14, 2025)**: Fixed critical Gemini API timeout issue that was causing fallback responses:
 - Increased Gemini API timeout from 3 → 8 seconds for reliable processing
 - Resolved issue where users were getting short "Try log 50 coffee" responses instead of detailed AI advice
