@@ -21,14 +21,19 @@ class ConversationalAI:
         from models import Expense
         from app import db
         
+        # Always hash the PSID (production router passes raw PSID)
         psid_hash = hash_psid(psid)
         cutoff_date = datetime.utcnow() - timedelta(days=days)
+        
+        self.logger.info(f"Getting expense context for user: {psid_hash[:16]}... from {cutoff_date}")
         
         try:
             expenses = Expense.query.filter(
                 Expense.user_id == psid_hash,
                 Expense.created_at >= cutoff_date
             ).order_by(Expense.created_at.desc()).all()
+            
+            self.logger.info(f"Found {len(expenses)} expenses for hash {psid_hash[:16]}...")
             
             if not expenses:
                 return {
@@ -116,12 +121,12 @@ class ConversationalAI:
         
         return patterns
     
-    def generate_summary_response(self, psid: str, user_message: str) -> Tuple[str, str]:
-        """Generate intelligent summary response based on user data"""
+    def generate_summary_response_direct(self, psid_hash: str, user_message: str) -> Tuple[str, str]:
+        """Generate intelligent summary response based on user data (direct hash access)"""
         from ai_adapter_gemini import generate_with_schema
         
-        # Get user expense context
-        context = self.get_user_expense_context(psid, days=30)
+        # Get user expense context using direct hash
+        context = self.get_user_expense_context_direct(psid_hash, days=30)
         
         if not context['has_data']:
             return ("I don't see any expense data to summarize yet. "
@@ -217,25 +222,31 @@ Provide a conversational, insightful response that:
         
         return summary
     
-    def handle_conversational_query(self, psid: str, user_message: str) -> Tuple[str, str]:
+    def handle_conversational_query(self, psid_or_hash: str, user_message: str) -> Tuple[str, str]:
         """Handle conversational queries using user-level memory"""
         message_lower = user_message.lower()
         
+        # Determine if we have a PSID or hash (hash length is 64 chars)
+        if len(psid_or_hash) == 64:  # Already hashed
+            psid_hash = psid_or_hash
+        else:
+            psid_hash = hash_psid(psid_or_hash)
+        
         # Detect summary requests
         if any(word in message_lower for word in ['summary', 'recap', 'overview', 'how much', 'total', 'spent']):
-            return self.generate_summary_response(psid, user_message)
+            return self.generate_summary_response_direct(psid_hash, user_message)
         
         # Detect analysis requests
         elif any(word in message_lower for word in ['analyze', 'pattern', 'trend', 'insight', 'advice']):
-            return self.generate_analysis_response(psid, user_message)
+            return self.generate_analysis_response_direct(psid_hash, user_message)
         
         # General conversational queries
         else:
-            return self.generate_contextual_response(psid, user_message)
+            return self.generate_contextual_response_direct(psid_hash, user_message)
     
-    def generate_analysis_response(self, psid: str, user_message: str) -> Tuple[str, str]:
-        """Generate analysis response with user context"""
-        context = self.get_user_expense_context(psid)
+    def generate_analysis_response_direct(self, psid_hash: str, user_message: str) -> Tuple[str, str]:
+        """Generate analysis response with user context (direct hash access)"""
+        context = self.get_user_expense_context_direct(psid_hash)
         
         if not context['has_data']:
             return ("I need some expense data to provide analysis. "
@@ -281,9 +292,86 @@ Keep response conversational and under 280 characters."""
         else:
             return self._generate_fallback_analysis(context), "analysis_fallback"
     
-    def generate_contextual_response(self, psid: str, user_message: str) -> Tuple[str, str]:
-        """Generate contextual response using user data"""
-        context = self.get_user_expense_context(psid, days=7)  # Recent week
+    def get_user_expense_context_direct(self, psid_hash: str, days: int = 30) -> Dict[str, Any]:
+        """Get user expense context using pre-hashed PSID (no double hashing)"""
+        from models import Expense
+        from app import db
+        
+        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        
+        self.logger.info(f"Getting expense context DIRECT for hash: {psid_hash[:16]}... from {cutoff_date}")
+        
+        try:
+            expenses = Expense.query.filter(
+                Expense.user_id == psid_hash,
+                Expense.created_at >= cutoff_date
+            ).order_by(Expense.created_at.desc()).all()
+            
+            self.logger.info(f"Found {len(expenses)} expenses for direct hash lookup")
+            
+            if not expenses:
+                return {
+                    'has_data': False,
+                    'total_expenses': 0,
+                    'total_amount': 0.0,
+                    'categories': {},
+                    'recent_expenses': [],
+                    'patterns': 'No expense data available'
+                }
+            
+            # Calculate totals and categories
+            total_amount = sum(float(exp.amount) for exp in expenses)
+            categories = {}
+            
+            for expense in expenses:
+                category = expense.category.lower()
+                amount = float(expense.amount)
+                
+                if category not in categories:
+                    categories[category] = {'amount': 0.0, 'count': 0}
+                
+                categories[category]['amount'] += amount
+                categories[category]['count'] += 1
+            
+            # Get recent expenses for context
+            recent_expenses = []
+            for expense in expenses[:5]:  # Last 5 expenses
+                recent_expenses.append({
+                    'amount': float(expense.amount),
+                    'description': expense.description,
+                    'category': expense.category,
+                    'date': expense.created_at.strftime('%m/%d')
+                })
+            
+            # Analyze spending patterns
+            top_category = max(categories.items(), key=lambda x: x[1]['amount'])
+            patterns = self._analyze_spending_patterns(categories, total_amount, len(expenses))
+            
+            return {
+                'has_data': True,
+                'total_expenses': len(expenses),
+                'total_amount': total_amount,
+                'categories': categories,
+                'recent_expenses': recent_expenses,
+                'top_category': top_category,
+                'patterns': patterns,
+                'days_analyzed': days
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error getting direct expense context: {e}")
+            return {
+                'has_data': False,
+                'total_expenses': 0,
+                'total_amount': 0.0,
+                'categories': {},
+                'recent_expenses': [],
+                'patterns': 'Unable to analyze spending data'
+            }
+    
+    def generate_contextual_response_direct(self, psid_hash: str, user_message: str) -> Tuple[str, str]:
+        """Generate contextual response using user data (direct hash access)"""
+        context = self.get_user_expense_context_direct(psid_hash, days=7)  # Recent week
         
         contextual_prompt = f"""Respond to the user query using their expense context for personalization.
 
