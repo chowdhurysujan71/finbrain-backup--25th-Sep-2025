@@ -41,6 +41,19 @@ class User(db.Model):
     last_daily_reset = db.Column(db.Date, default=date.today)  # Last daily counter reset
     last_hourly_reset = db.Column(db.DateTime, default=datetime.utcnow)  # Last hourly counter reset
     
+    # Engagement and onboarding fields
+    is_new = db.Column(db.Boolean, default=True)  # New user flag
+    has_completed_onboarding = db.Column(db.Boolean, default=False)  # Onboarding completion
+    onboarding_step = db.Column(db.Integer, default=0)  # Current onboarding step
+    interaction_count = db.Column(db.Integer, default=0)  # Total interactions for habit formation
+    first_name = db.Column(db.String(100), default='')  # User's first name for personalization
+    
+    # User preferences from onboarding
+    income_range = db.Column(db.String(50), default='')  # Income bracket
+    primary_category = db.Column(db.String(50), default='')  # Main spending category
+    focus_area = db.Column(db.String(50), default='')  # saving/budgeting/investment
+    preferences = db.Column(JSON, default=dict)  # Additional user preferences
+    
     def __repr__(self):
         return f'<User {self.user_id_hash}: {self.platform}>'
 

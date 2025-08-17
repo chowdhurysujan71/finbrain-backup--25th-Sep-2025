@@ -241,29 +241,45 @@ class ProductionRouter:
         return normalize(response), "help", None, None
         
     def route_message(self, text: str, psid: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
-        """Context-driven message routing with thin context detection - PRIORITY METHOD"""
+        """Engagement-driven message routing with onboarding and personalization"""
         from utils.context_packet import build_context, is_context_thin, CONTEXT_SYSTEM_PROMPT, RESPONSE_SCHEMA
         from ai_adapter_gemini import generate_with_schema
+        from utils.engagement import engagement_engine
+        from utils.user_manager import user_manager
         from app import db
         
         start_time = time.time()
         psid_hash = hash_psid(psid)
         
         try:
-            # Build user context from spending data
-            context = build_context(psid, db.session())
+            # Get or create user with engagement tracking
+            user_data = user_manager.get_or_create_user(psid)
             
-            # Check if context is too thin for personalized advice
-            if is_context_thin(context):
+            # Check AI rate limiting first
+            rate_limit_check = engagement_engine.check_ai_rate_limit(psid)
+            if not rate_limit_check['allowed']:
+                return self._format_response(rate_limit_check['fallback_message']), "rate_limited", None, None
+            
+            # Handle new users and onboarding
+            if user_data['is_new'] or not user_data['has_completed_onboarding']:
+                return self._handle_onboarding(text, psid, user_data, rid)
+            
+            # Get spending data for established users
+            spend_data = user_manager.get_user_spending_summary(psid, days=7)
+            
+            # Generate engagement-driven AI prompt
+            ai_prompt = engagement_engine.get_ai_prompt(user_data, text, spend_data)
+            
+            # Check if context is too thin for personalized advice (fallback)
+            context = build_context(psid, db.session())
+            if is_context_thin(context) and not any(spend_data.values()):
                 response = "I don't see enough recent spend to personalize this.\nLog your 3 biggest expenses today so I can analyze.\nWant to log them now or import last month's data?"
                 return self._format_response(response), "ai_context_driven", None, None
             
-            # Try context-driven AI response with schema enforcement
-            user_prompt = f"Question: {text}\n\nuser_context={context}"
-            
+            # Try engagement-driven AI response
             ai_result = generate_with_schema(
-                user_text=user_prompt,
-                system_prompt=CONTEXT_SYSTEM_PROMPT,
+                user_text=f"User message: {text}\nContext: {ai_prompt}",
+                system_prompt="You are a personal finance assistant. Respond engagingly and personally based on the user context provided. Keep responses under 280 characters.",
                 response_schema=RESPONSE_SCHEMA
             )
             
@@ -271,17 +287,49 @@ class ProductionRouter:
                 # Format structured AI response
                 response_data = ai_result["data"]
                 response = f"{response_data['summary']}\n{response_data['action']}\n{response_data['question']}"
-                return self._format_response(response), "ai_context_driven", None, None
+                
+                # Add habit-forming elements
+                habit_prompt = engagement_engine.get_habit_forming_response(user_data, user_data['interaction_count'])
+                if habit_prompt:
+                    response += f"\n\n{habit_prompt}"
+                
+                return self._format_response(response), "ai_engagement_driven", None, None
             else:
-                # Structured fallback when AI fails
-                response = "I'm analyzing your spending patterns.\nCheck back in a moment for personalized insights.\nMeanwhile, try logging an expense with amount and category."
-                return self._format_response(response), "ai_context_driven", None, None
+                # Use engagement prompt directly as fallback
+                return self._format_response(ai_prompt), "engagement_fallback", None, None
                 
         except Exception as e:
-            logger.error(f"Context-driven routing error: {e}")
+            logger.error(f"Engagement routing error: {e}")
             # Final fallback
             response = "Got it. Try 'summary' for a quick recap of your spending."
             return self._format_response(response), "fallback_error", None, None
+    
+    def _handle_onboarding(self, text: str, psid: str, user_data: Dict[str, Any], rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+        """Handle user onboarding sequence"""
+        from utils.engagement import engagement_engine
+        from utils.user_manager import user_manager
+        
+        psid_hash = hash_psid(psid)
+        current_step = user_data.get('onboarding_step', 0)
+        
+        # Generate onboarding prompt
+        ai_prompt = engagement_engine.get_ai_prompt(user_data, text)
+        
+        # Process user response for current step
+        if current_step > 0:  # User is responding to previous prompt
+            updates = engagement_engine.update_user_onboarding(psid, text, current_step - 1)
+            
+            # Extract first name from first interaction
+            if current_step == 1 and not user_data.get('first_name'):
+                first_name = user_manager.extract_first_name(text)
+                if first_name:
+                    updates['first_name'] = first_name
+            
+            # Apply updates to user
+            user_manager.update_user_onboarding(psid, updates)
+        
+        self._log_routing_decision(rid, psid_hash, "onboarding", f"step_{current_step}")
+        return self._format_response(ai_prompt), "onboarding", None, None
     
     def _format_response(self, text: str) -> str:
         """Format response with 280 character limit and graceful clipping"""
