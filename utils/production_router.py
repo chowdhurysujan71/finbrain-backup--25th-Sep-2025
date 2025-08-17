@@ -286,33 +286,20 @@ class ProductionRouter:
                 # Handle expense logging with multiple items
                 return self._handle_ai_expense_logging(expense_parse_result, psid, psid_hash, rid)
             
-            # Check if context is too thin for personalized advice (only for non-expense messages)
-            context = build_context(psid, db.session())
-            if is_context_thin(context) and not any(spend_data.values()):
-                response = "I don't see enough recent spend to personalize this.\nLog your 3 biggest expenses today so I can analyze.\nWant to log them now or import last month's data?"
-                return self._format_response(response), "ai_context_driven", None, None
+            # Use conversational AI for non-expense messages
+            from utils.conversational_ai import conversational_ai
             
-            # Try engagement-driven AI response
-            ai_result = generate_with_schema(
-                user_text=f"User message: {text}\nContext: {ai_prompt}",
-                system_prompt="You are a personal finance assistant. Respond engagingly and personally based on the user context provided. Keep responses under 280 characters.",
-                response_schema=RESPONSE_SCHEMA
-            )
+            # Handle conversational queries with user-level memory
+            response, intent_type = conversational_ai.handle_conversational_query(psid, text)
             
-            if ai_result["ok"] and "data" in ai_result:
-                # Format structured AI response
-                response_data = ai_result["data"]
-                response = f"{response_data['summary']}\n{response_data['action']}\n{response_data['question']}"
-                
-                # Add habit-forming elements
+            # Add habit-forming elements for engagement
+            if user_data['interaction_count'] > 0:
                 habit_prompt = engagement_engine.get_habit_forming_response(user_data, user_data['interaction_count'])
                 if habit_prompt:
                     response += f"\n\n{habit_prompt}"
                 
-                return self._format_response(response), "ai_engagement_driven", None, None
-            else:
-                # Use engagement prompt directly as fallback
-                return self._format_response(ai_prompt), "engagement_fallback", None, None
+            # Return conversational response
+            return self._format_response(response), f"ai_{intent_type}", None, None
                 
         except Exception as e:
             logger.error(f"Engagement routing error: {e}")
