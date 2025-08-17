@@ -6,6 +6,8 @@ import hashlib
 from datetime import datetime, timedelta
 from typing import Dict, Any, Tuple
 
+from utils.crypto import ensure_hashed
+
 logger = logging.getLogger(__name__)
 
 # Regex patterns for intent matching

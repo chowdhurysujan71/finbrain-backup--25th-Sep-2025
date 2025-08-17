@@ -15,6 +15,7 @@ from utils.textutil import (
     format_logged_response, format_summary_response, format_help_response,
     format_undo_response, get_random_tip, normalize, PANIC_PLAIN_REPLY
 )
+from utils.crypto import ensure_hashed
 from utils.security import hash_psid
 from utils.parser import parse_expense
 from utils.categories import categorize_expense

@@ -3,6 +3,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
+from utils.crypto import ensure_hashed
+
 logger = logging.getLogger(__name__)
 
 def is_within_24_hour_window(psid: str) -> bool:

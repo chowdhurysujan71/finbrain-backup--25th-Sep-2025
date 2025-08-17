@@ -1,0 +1,145 @@
+You are acting as the repo maintainer. Fix the runtime error name 'ensure_hashed' is not defined, ensure every code path uses a single identity normalizer, and verify end-to-end in Messenger.
+
+Objectives
+
+Import ensure_hashed everywhere it’s used
+
+Standardize user ID normalization to a single entry point
+
+Run tests, quick sanity scripts, and curl quickscan
+
+Produce diffs and a short validation report
+
+Steps
+
+A) Scan and list all call sites
+
+Run a repo scan and print results:
+
+Files containing ensure_hashed(
+
+Files containing hash_psid( or hash_user_id(
+
+Files containing get_user_spending_summary or record_expense
+
+Files named like routers/handlers: production_router, background_processor, facebook_handler, conversational_ai, user_manager
+
+For each file that contains ensure_hashed(, check at the top for from utils.crypto import ensure_hashed. If missing, insert it in the import block. Keep alphabetical order with existing imports.
+
+B) Centralize normalization
+
+Ensure utils/user_manager.py is the single place that builds user_id:
+
+Public methods accept psid=None, psid_hash=None
+
+Each starts with from utils.crypto import ensure_hashed and:
+
+user_id = ensure_hashed(psid or psid_hash)
+
+
+In other modules:
+
+Replace any direct calls that compute user_id with hashing functions to instead pass raw inputs into user_manager and let it normalize.
+
+Specifically update:
+
+utils/production_router.py
+
+utils/background_processor.py
+
+utils/facebook_handler.py
+
+utils/conversational_ai.py
+
+utils/policy_guard.py
+
+utils/ai_adapter.py
+
+utils/report_generator.py
+
+utils/db.py (only if it previously computed user_id; otherwise leave DB helpers alone)
+
+Remove remaining direct uses of hash_psid( or hash_user_id( from read/write call sites. Keep the function definitions if other parts of the codebase use them, but callers that produce a user id must route through ensure_hashed.
+
+C) Fix the immediate runtime error
+
+Open utils/production_router.py (or similarly named file in the error log) and insert:
+
+from utils.crypto import ensure_hashed
+
+
+at the top import block.
+
+Search inside the file for any user id creation and replace with calls to user_manager using psid= for raw IDs or psid_hash= when already hashed.
+
+D) Guardrails and tests
+
+Add or update the idempotency test:
+
+tests/test_hashing.py ensures ensure_hashed(raw) equals ensure_hashed(ensure_hashed(raw)).
+
+Add a parity test for the user manager:
+
+Calling record_expense once with psid=RAW and once with psid_hash=hash(RAW) results in the same totals from get_user_spending_summary for both parameter styles.
+
+Add a quick import sanity check:
+
+Grep the repo for ensure_hashed( and fail CI if any file using it does not also contain the import line. Implement as a lightweight test or pre-commit script.
+
+E) Quick UAT script
+
+Create scripts/uat_ensure_hashed.py that:
+
+Picks a demo raw PSID (e.g., "PSID_DEMO_CANARY")
+
+Computes its hash with from utils.crypto import hash_psid
+
+Calls record_expense(120, "groceries", psid=RAW) and record_expense(100, "uber", psid_hash=HASH)
+
+Calls get_user_spending_summary(psid=RAW) and get_user_spending_summary(psid_hash=HASH)
+
+Prints both dicts and asserts equality and total 220
+
+F) Redeploy and validate
+
+Run unit tests
+
+Start the app
+
+Hit quickscan with both raw and hash:
+
+curl -s "http://localhost:5000/ops/quickscan?psid=<RAW_PSID>" | jq .
+curl -s "http://localhost:5000/ops/quickscan?psid_hash=<64HEX>" | jq .
+
+
+Expect identical resolved_user_id, count ≥ 2, total ≥ 220 for the canary PSID you use in Messenger.
+
+Tail logs and confirm you see matching TRACE entries for record_expense and summary_query with the same user_id.
+
+Acceptance criteria
+
+No file throws ensure_hashed is not defined
+
+All read/write flows use user_manager to derive user_id
+
+No remaining callers compute user_id with hash_psid( or hash_user_id( directly
+
+UAT script passes with total 220
+
+Quickscan raw vs hash show identical results
+
+Messenger canary: log two expenses then summary returns total ≥ 220
+
+Deliverables
+
+List of files modified and diffs
+
+Test output summary
+
+UAT script output
+
+Two quickscan JSON outputs (raw and hash) for the canary PSID
+
+A one-paragraph status note confirming the runtime error is gone and Messenger summary reflects persisted expenses
+
+Be surgical. Only modify what’s required to meet the acceptance criteria.

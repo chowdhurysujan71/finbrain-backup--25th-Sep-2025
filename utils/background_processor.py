@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Optional, Dict, Any, Tuple
 
 from .logger import log_webhook_success, get_request_id
+from .crypto import ensure_hashed
 from .security import hash_psid
 from .rate_limiter import check_rate_limit
 from .policy_guard import update_user_message_timestamp, is_within_24_hour_window

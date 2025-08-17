@@ -10,6 +10,8 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
+from utils.crypto import ensure_hashed
+
 logger = logging.getLogger(__name__)
 
 @dataclass
