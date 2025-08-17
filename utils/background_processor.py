@@ -48,6 +48,8 @@ class BackgroundProcessor:
         from utils.ai_adapter import ai_adapter
         self.ai_adapter = ai_adapter
         
+        # Context-driven processing now handled by production router
+        
         logger.info(f"Background processor initialized with {max_workers} workers")
     
     def enqueue_message(self, rid: str, psid: str, mid: str, text: str) -> bool:
