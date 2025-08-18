@@ -43,9 +43,7 @@ def send_reply(job: dict, text: str, mode: str = "STD"):
         from utils.facebook_handler import send_message
     except ImportError:
         # Fallback for testing - in production this would use the real Facebook API
-        def send_message(psid, text):
-            print(f"[MOCK] Sending to {psid}: {text}")
-            return {"success": True}
+        from utils.facebook_integration import send_facebook_message as send_message
     
     stamped_message = stamp_reply(text, job, mode)
     

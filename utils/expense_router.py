@@ -62,6 +62,27 @@ def handle_expense(job: Dict[str, Any]) -> bool:
     send_reply(job, reply, mode)
     return True
 
+def handle_diagnostic_command(job: Dict[str, Any]) -> bool:
+    """
+    Handle diagnostic command for real-time identity system testing
+    Shows hash type and prefix for verification
+    """
+    try:
+        from utils.debug_stamper import send_reply
+        
+        # Diagnostic response with identity verification
+        diag_text = f"diag | type={type(job['psid_hash']).__name__} | psid_hash={job['psid_hash'][:8]}... | mode=STD"
+        send_reply(job, diag_text, mode="STD")
+        
+        logger.info(f"Diagnostic command | psid_hash={job['psid_hash'][:12]}... | type_verified={type(job['psid_hash']).__name__}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Diagnostic failed | error={e}")
+        from utils.debug_stamper import send_reply
+        send_reply(job, "Diagnostic error - check logs", mode="ERR")
+        return False
+
 def handle_summary_request(job: Dict[str, Any]) -> bool:
     """
     Handle summary request with canonical identity

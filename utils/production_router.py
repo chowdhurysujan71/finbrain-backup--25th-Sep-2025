@@ -135,7 +135,7 @@ class ProductionRouter:
             intent = detect_intent(text)
             
             # Step 2: Route non-AI intents immediately (bypass rate limits)
-            if intent in ["SUMMARY", "INSIGHT", "UNDO"]:
+            if intent in ["DIAGNOSTIC", "SUMMARY", "INSIGHT", "UNDO"]:
                 logger.info(f"[ROUTER] Deterministic intent={intent} psid={psid}")
                 response_text, _ = handle_message_dispatch(user_hash, text)
                 self._log_routing_decision(rid, user_hash, intent.lower(), "deterministic_bypass")

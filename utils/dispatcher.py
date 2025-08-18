@@ -21,7 +21,12 @@ def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
         logger.info(f"Detected intent: {intent} for message: {text[:50]}")
         
         # Route to appropriate handler
-        if intent == "SUMMARY":
+        if intent == "DIAGNOSTIC":
+            # Handle diagnostic command
+            diag_text = f"diag | type={type(user_id).__name__} | psid_hash={user_id[:8]}... | mode=STD"
+            return diag_text, intent
+            
+        elif intent == "SUMMARY":
             result = handle_summary(user_id)
             return result.get('text', 'Summary unavailable'), intent
             
