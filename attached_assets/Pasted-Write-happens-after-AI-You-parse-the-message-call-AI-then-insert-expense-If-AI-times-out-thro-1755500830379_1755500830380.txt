@@ -1,0 +1,148 @@
+Write happens after AI
+
+You parse the message → call AI → then insert expense.
+
+If AI times out/throws, you return early and never commit.
+
+Shared transaction scope
+
+Logging and AI run under the same DB session/transaction.
+
+An AI error triggers rollback, wiping the successful insert.
+
+Synchronous call chain
+
+You wait for AI before responding. Under load/latency, the request dies and the write never completes.
+
+Mixed identifiers after the PSID-hash migration
+
+Some paths query by unhashed PSID, others by hashed psid_hash.
+
+Logging writes to one key; summaries read from another → looks like “old data”.
+
+Cache/summary not tied to DB state
+
+“summary” route serves the last cached blob or AI phrasing instead of recomputing from rows.
+
+You fixed identity, but the cache key or summary reader still points to the pre-fix key.
+
+Global session / re-used ORM session
+
+One bad request can poison the session; future commits no-op until session is reset.
+
+What to do (order matters; do all of this now):
+
+A) Decouple writes from AI completely
+
+On webhook:
+
+Extract psid_hash, mid, timestamp.
+
+VALIDATE.
+
+Insert the raw event + expense (if parseable) and commit() immediately.
+
+Return 200 EVENT_RECEIVED.
+
+Only after commit, enqueue an async “enrich_with_ai” job (Celery/RQ/thread) that annotates or generates insights. If AI fails, your write is already safe.
+
+B) Make the DB write idempotent and first
+
+Add a unique constraint on (psid_hash, mid) to prevent duplicates.
+
+Use a “write-ahead log” table (messages_raw) and a “facts” table (expenses).
+
+Always commit() the raw row before any enrichment.
+
+C) Put session/transaction guards in place
+
+New session per request.
+
+try: … db.session.commit() except: db.session.rollback(); raise finally: db.session.close()
+
+Never keep a global ORM session.
+
+D) Fix the identity boundary once
+
+Everywhere: read & write by psid_hash only.
+
+Add a tiny adapter at ingress: psid → psid_hash, and never pass the raw PSID beyond that line.
+
+E) Make “summary” 100% DB-driven
+
+summary endpoint must aggregate from expenses table by psid_hash every time (or from a per-user materialized view refreshed on write).
+
+Do not let AI fabricate totals; AI may rephrase, not compute.
+
+F) Defensive timeouts & fallbacks
+
+AI timeout ≤ 2–3s. On timeout/error, mark the enrichment job as failed but do not bubble the exception to the request.
+
+Rate-limit AI by psid_hash, but never rate-limit the DB write.
+
+G) Observability
+
+Emit two structured logs per message:
+
+event_logged={"psid_hash":..., "mid":..., "expense_id":...} right after commit
+
+ai_enriched={"psid_hash":..., "mid":..., "status":"ok|error"} after enrichment
+
+Add a health check /ops/last-write?psid_hash=… that returns the most recent row’s timestamp so you can verify writes independently of AI.
+
+Minimal control flow (pseudocode you can drop in):
+
+def webhook():
+    data = request.get_json()
+    psid = data["entry"][0]["messaging"][0]["sender"]["id"]
+    psid_hash = psid_hash_fn(psid)
+
+    # 1) parse user text
+    text = extract_text(data)
+    mid  = extract_mid(data)
+    ts   = extract_ts(data)
+
+    # 2) WRITE FIRST, COMMIT
+    try:
+        db.session.add(MessageRaw(psid_hash=psid_hash, mid=mid, ts=ts, text=text))
+        maybe_expense = parse_expense(text)  # purely deterministic
+        if maybe_expense:
+            db.session.add(Expense(psid_hash=psid_hash, **maybe_expense))
+        db.session.commit()
+        log.info({"event":"event_logged","psid_hash":psid_hash,"mid":mid})
+    except Exception as e:
+        db.session.rollback()
+        log.exception("write_failed")
+        return "EVENT_RECEIVED", 200  # ack anyway; logging failure will show in ops
+
+    # 3) enqueue AI enrichment OUTSIDE the transaction
+    enqueue_ai_enrichment(psid_hash, mid, text)
+
+    return "EVENT_RECEIVED", 200
+
+
+Quick verification plan (takes 5 minutes end-to-end):
+
+Temporarily set AI_ENABLED=false. Send: coffee 100.
+
+Check DB expenses row exists instantly.
+
+summary must include it. If yes → logging is sound.
+
+Turn AI_ENABLED=true but kill outbound network (simulate timeout).
+
+Repeat message. Row must still appear. No rollback.
+
+Logs should show event_logged then ai_enriched error.
+
+Send two identical messages with same mid.
+
+Expect one insert due to unique constraint; second should no-op cleanly.
+
+Send summary.
+
+Verify it uses DB aggregation only. It must match the rows exactly.
+
+Check identity consistency.
+
+Search for any code path querying by raw psid. Replace with psid_hash.
