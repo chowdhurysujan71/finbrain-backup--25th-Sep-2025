@@ -1,46 +1,31 @@
 """
-Canonical Identity System for FinBrain
-Single source of truth for user identification across the system
+Single Source of Identity - hash once, carry through
+Centralized extraction + hashing to prevent identity fragmentation
 """
-import hashlib
 import os
+import hashlib
 
-# Crash if ID_SALT is missing - prevents workers from using different values
-ID_SALT = os.environ.get("ID_SALT")
+ID_SALT = os.getenv("ID_SALT")
 if not ID_SALT:
-    raise RuntimeError("ID_SALT environment variable is required for identity consistency")
+    raise RuntimeError("ID_SALT missing")
 
-def psid_from_event(evt: dict) -> str | None:
+def extract_sender_psid(event: dict) -> str | None:
     """
-    Extract PSID from Facebook webhook event - ONLY for messages & postbacks
-    
-    Args:
-        evt: Facebook webhook event dictionary
-        
-    Returns:
-        sender.id if this is a message/postback event, None otherwise
+    Only messages/postbacks create a user context
     """
     try:
-        messaging = evt.get("entry", [{}])[0].get("messaging", [{}])[0]
-        
-        # Only process message and postback events for identity
-        if "message" in messaging or "postback" in messaging:
-            return messaging.get("sender", {}).get("id")
-        
-        # Ignore delivery/read events - they don't need identity processing
-        return None
-    except (IndexError, KeyError, TypeError):
+        m = event.get("entry", [{}])[0].get("messaging", [{}])[0]
+        if "message" in m or "postback" in m:
+            return m.get("sender", {}).get("id")
+        return None  # delivery/read/etc.
+    except (IndexError, KeyError):
         return None
 
-def psid_hash(raw_psid: str) -> str:
+def psid_hash(psid: str) -> str:
     """
-    Generate canonical SHA-256 hash for a PSID using environment salt
-    
-    Args:
-        raw_psid: Raw Facebook PSID (sender.id only)
-        
-    Returns:
-        SHA-256 hash using ID_SALT environment variable
+    Generate consistent hash using mandatory salt
     """
-    combined = f"{ID_SALT}|{raw_psid}"
-    return hashlib.sha256(combined.encode()).hexdigest()
+    return hashlib.sha256(f"{ID_SALT}|{psid}".encode()).hexdigest()
+
+# Legacy alias for backward compatibility
+psid_from_event = extract_sender_psid

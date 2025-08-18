@@ -67,7 +67,7 @@ def cleanup_old_messages():
 
 def extract_webhook_events(data: Dict[str, Any]) -> list:
     """Extract and validate webhook events using single-source-of-truth identity"""
-    from .identity import psid_from_event, psid_hash
+    from .identity import extract_sender_psid, psid_hash
     
     events = []
     
@@ -76,7 +76,7 @@ def extract_webhook_events(data: Dict[str, Any]) -> list:
     
     for entry in data.get('entry', []):
         # Use canonical identity extraction - only processes message/postback events
-        psid = psid_from_event({'entry': [entry]})
+        psid = extract_sender_psid({'entry': [entry]})
         if not psid:
             logger.debug("Skipping non-message event (delivery/read/etc)")
             continue
