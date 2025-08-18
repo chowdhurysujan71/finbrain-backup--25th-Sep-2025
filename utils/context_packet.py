@@ -8,7 +8,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from models import Expense, User
-from utils.security import hash_psid
+from .identity import psid_hash
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ def build_context(psid: str, db: Session) -> Dict[str, Any]:
         Dict with income, spending by category, deltas, recurring expenses, goals
     """
     try:
-        user_hash = hash_psid(psid)
+        user_hash = psid_hash(psid)
         now = datetime.utcnow()
         
         # Get 30-day and previous 30-day spending by category

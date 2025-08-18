@@ -66,28 +66,33 @@ def cleanup_old_messages():
     logger.debug(f"Cleaned up {len(to_remove)} old message entries")
 
 def extract_webhook_events(data: Dict[str, Any]) -> list:
-    """Extract and validate webhook events from payload"""
+    """Extract and validate webhook events using single-source-of-truth identity"""
+    from .identity import psid_from_event, psid_hash
+    
     events = []
     
     if not data or data.get('object') != 'page':
         return events
     
     for entry in data.get('entry', []):
+        # Use canonical identity extraction - only processes message/postback events
+        psid = psid_from_event({'entry': [entry]})
+        if not psid:
+            logger.debug("Skipping non-message event (delivery/read/etc)")
+            continue
+        
+        # Compute hash once at intake
+        user_hash = psid_hash(psid)
+        
         for messaging in entry.get('messaging', []):
-            # Filter out non-message events (delivery, read, typing)
-            if messaging.get('delivery') or messaging.get('read'):
-                logger.debug(f"Skipping non-message event: delivery={bool(messaging.get('delivery'))}, read={bool(messaging.get('read'))}")
-                continue
-            
-            # Extract basic event data
-            sender_id = messaging.get('sender', {}).get('id')
+            # Skip events that don't have message content
             message = messaging.get('message', {})
             message_text = message.get('text', '')
             message_id = message.get('mid', '')
             
-            if sender_id and message_text and message_id:
+            if message_text and message_id:
                 events.append({
-                    'psid': sender_id,
+                    'psid': psid,  # Always sender.id from canonical extraction
                     'text': message_text,
                     'mid': message_id,
                     'timestamp': messaging.get('timestamp', int(time.time() * 1000))
@@ -96,72 +101,21 @@ def extract_webhook_events(data: Dict[str, Any]) -> list:
     return events
 
 def process_message_async(event: Dict[str, Any], request_id: str):
-    """Process message asynchronously with timeout and MVP routing"""
-    start_time = time.time()
-    psid = event['psid']
-    mid = event['mid']
-    text = event['text']
-    outcome = "success"
-    intent = "unknown"
-    
-    try:
-        # Import lightweight routing and rate limiting
-        from utils.rate_limiter import check_rate_limit
-        from utils.mvp_router import route_message
-        from utils.facebook_handler import send_facebook_message
-        from utils.security import hash_psid
-        
-        # Check rate limits first
-        if not check_rate_limit(psid, 'messenger'):
-            outcome = "rate_limited"
-            duration_ms = (time.time() - start_time) * 1000
-            psid_hash = hash_psid(psid)
-            log_webhook_success(psid_hash, mid, "rate_limited", None, None, duration_ms)
-            return
-        
-        # Update 24-hour policy timestamp first
-        from utils.policy_guard import update_user_message_timestamp, is_within_24_hour_window
-        update_user_message_timestamp(psid)
-        
-        # Check 24-hour policy compliance before responding
-        if not is_within_24_hour_window(psid):
-            # Outside 24-hour window - don't send response
-            outcome = "24h_policy_block"
-            duration_ms = (time.time() - start_time) * 1000
-            psid_hash = hash_psid(psid)
-            log_webhook_success(psid_hash, mid, "blocked", None, None, duration_ms)
-            return
-        
-        # Route message using MVP regex patterns
-        response_text, intent = route_message(psid, text)
-        
-        # Send response back to user (within 24-hour window)
-        response_sent = send_facebook_message(psid, response_text)
-        
-        if not response_sent:
-            outcome = "send_failed"
-            logger.warning(f"Failed to send response for mid={mid}")
-        
-    except Exception as e:
-        outcome = f"error:{str(e)[:30]}"
-        logger.error(f"Async processing error for mid={mid}: {str(e)}")
-    
-    finally:
-        duration_ms = (time.time() - start_time) * 1000
-        psid_hash = hash_psid(psid)
-        # Extract category and amount if successful expense log
-        category = None
-        amount = None
-        if outcome == "success" and intent == "log":
-            # These would be returned by the router if we modified it
-            pass
-        log_webhook_success(psid_hash, mid, intent, category, amount, duration_ms)
+    """Process message asynchronously with canonical identity (DEPRECATED - now using background processor)"""
+    # This function is deprecated - background processor now handles message processing
+    # Keeping for compatibility but it should not be called in the current architecture
+    logger.warning("process_message_async called but deprecated - background processor should handle this")
+    pass
 
 def log_event(request_id: str, psid: str, mid: str, route: str, duration_ms: float, outcome: str):
-    """Log structured event information (legacy format)"""
-    from utils.security import hash_psid
-    psid_hash = hash_psid(psid)
-    log_webhook_success(psid_hash, mid, outcome, None, None, duration_ms)
+    """Log structured event information (legacy format) - use hash if available"""
+    # For legacy calls, compute hash if needed (this should be rare now)
+    if len(psid) == 64:  # Already hashed
+        user_hash = psid
+    else:
+        from .identity import psid_hash
+        user_hash = psid_hash(psid)
+    log_webhook_success(user_hash, mid, outcome, None, None, duration_ms)
 
 def process_webhook_fast(payload_bytes: bytes, signature: str, app_secret: str) -> tuple:
     """Fast webhook processing with signature verification and async handling"""

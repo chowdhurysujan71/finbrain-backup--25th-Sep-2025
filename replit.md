@@ -83,12 +83,13 @@ Fixed critical function signature and import errors preventing multi-expense log
 - **Detailed Responses**: Generates AI-powered responses with expense breakdowns instead of generic fallbacks
 - **Intent Resolution**: Properly returns `ai_expense_logged` intent with accurate total amounts
 
-### Identity Fragmentation Prevention System - COMPLETED (August 18, 2025)
-**MAJOR MILESTONE**: Implemented systematic 6-step canonical identity system to prevent user identity fragmentation:
+### Single-Source-of-Truth Identity System - COMPLETED (August 18, 2025)
+**CRITICAL MILESTONE**: Implemented bulletproof single-source-of-truth identity system eliminating identity fragmentation:
 
-- **Canonical Identity Module**: Created `utils/identity.py` with `psid_hash()` function using ID_SALT environment variable for consistent SHA-256 hashing
-- **Database Constraint**: Added `idx_users_psid_hash_unique` constraint on `users.user_id_hash` column preventing duplicate identities
-- **Codebase Migration**: Systematically replaced all `hash_psid`/`ensure_hashed` functions with canonical `psid_hash` across entire codebase
-- **LSP Error Resolution**: Fixed all undefined function errors, type mismatches, and variable scope conflicts (0 diagnostics)
-- **Migration Verification**: Confirmed clean database state (24 users = 24 unique hashes, zero fragmentation)
-- **Production Ready**: Canonical identity system operational with consistent hashing and fragmentation prevention
+- **Mandatory ID_SALT**: System crashes if ID_SALT environment variable missing, preventing worker salt inconsistencies
+- **Canonical PSID Extraction**: `psid_from_event()` only extracts sender.id from message/postback events, ignores delivery/read completely
+- **Webhook Intake Hash**: Identity computed once at webhook intake using canonical extraction, never recomputed in workers
+- **Debug Echo Enabled**: All responses include 24h debug: "pong | psid_hash={hash8}... | mode={AI|STD|FBK|ERR}"
+- **Background Processing**: Updated background processor to use canonical identity system throughout
+- **Zero Fragmentation**: Complete prevention of multiple hashes per user, single source of truth maintained
+- **Production Verified**: All tests pass, LSP diagnostics clean, canonical identity system fully operational

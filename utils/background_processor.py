@@ -16,7 +16,7 @@ from typing import Optional, Dict, Any, Tuple
 
 from .logger import log_webhook_success, get_request_id
 from .user_manager import resolve_user_id
-from .security import hash_psid
+from .identity import psid_hash
 from .rate_limiter import check_rate_limit
 from .policy_guard import update_user_message_timestamp, is_within_24_hour_window
 from .facebook_handler import send_facebook_message
@@ -112,10 +112,12 @@ class BackgroundProcessor:
                         log_webhook_success(psid_hash, job.mid, intent, category, amount,
                                           processing_time * 1000)
                     
-                    # Send response with clear error handling
+                    # Send response with clear error handling + debug echo for 24h
                     try:
-                        response_sent = send_facebook_message(job.psid, response_text)
-                        logger.info(f"Request {job.rid}: Response sent successfully to {job.psid[:10]}***")
+                        debug_mode = "AI" if "ai" in intent.lower() else "STD"
+                        response_with_debug = f"{response_text}\n\npong | psid_hash={psid_hash[:8]}... | mode={debug_mode}"
+                        response_sent = send_facebook_message(job.psid, response_with_debug)
+                        logger.info(f"Request {job.rid}: Response sent successfully to {job.psid[:10]}*** (hash: {psid_hash[:8]}...)")
                     except ValueError as psid_error:
                         # Invalid PSID - clear error, no fallback attempt
                         logger.error(f"Request {job.rid}: PSID validation failed - {str(psid_error)}")
@@ -124,8 +126,9 @@ class BackgroundProcessor:
                         # Facebook API error - clear error, try simple fallback
                         logger.error(f"Request {job.rid}: Facebook API error - {str(api_error)}")
                         try:
-                            response_sent = send_facebook_message(job.psid, "Got it.")
-                            logger.info(f"Request {job.rid}: Fallback message sent successfully")
+                            fallback_with_debug = f"Got it.\n\npong | psid_hash={psid_hash[:8]}... | mode=FBK"
+                            response_sent = send_facebook_message(job.psid, fallback_with_debug)
+                            logger.info(f"Request {job.rid}: Fallback message sent successfully (hash: {psid_hash[:8]}...)")
                         except Exception as fallback_error:
                             logger.error(f"Request {job.rid}: Fallback send failed - {str(fallback_error)}")
                             response_sent = False
@@ -140,8 +143,9 @@ class BackgroundProcessor:
                     intent = "error"
                     # Always attempt response even on processing errors
                     try:
-                        response_sent = send_facebook_message(job.psid, response_text)
-                        logger.info(f"Request {job.rid}: Error response sent successfully")
+                        error_with_debug = f"{response_text}\n\npong | psid_hash={psid_hash[:8]}... | mode=ERR"
+                        response_sent = send_facebook_message(job.psid, error_with_debug)
+                        logger.info(f"Request {job.rid}: Error response sent successfully (hash: {psid_hash[:8]}...)")
                     except ValueError as psid_error:
                         logger.error(f"Request {job.rid}: Error response failed - invalid PSID: {str(psid_error)}")
                         response_sent = False
@@ -209,7 +213,7 @@ class BackgroundProcessor:
         
         try:
             week_ago = datetime.utcnow() - timedelta(days=7)
-            user_hash = hash_psid(psid)
+            user_hash = psid_hash(psid)
             
             expenses = db.session.query(Expense).filter(
                 Expense.user_id == user_hash,
