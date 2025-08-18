@@ -1,0 +1,111 @@
+You are my repo auditor. Do not propose fixes. Do not modify files.
+Generate a clear report only that inventories all router/entrypoint paths that could handle web or background traffic.
+
+Ground rules
+
+Canonical router content is identified by SHA: 0789d554bdac.
+
+Output must be purely descriptive. Use headings below and include file paths, line numbers, and minimal code snippets where helpful.
+
+Produce this report (exact sections)
+1) ROUTER & APP DEFINITIONS
+
+List every file that defines or instantiates:
+
+FastAPI(, APIRouter(, Flask(, Blueprint(, @app.route, @router., include_router, register_blueprint
+For each hit:
+
+[path:line] framework=FastAPI|Flask / symbol=app|router|blueprint / exported_top_level=true|false
+
+1–2 line snippet showing instantiation.
+
+2) ENTRYPOINTS & RUN COMMANDS
+
+Enumerate everything that could start a server/worker:
+
+Code: uvicorn, gunicorn, hypercorn, app.run(, if __name__ == "__main__":
+
+Configs: Procfile, .replit/replit.yaml, replit.nix, Dockerfile, docker-compose, pyproject.toml scripts, Makefile, GitHub Actions, shell scripts.
+For each:
+
+type=uvicorn|gunicorn|main|procfile|docker|replit|make|script
+
+cmd|entry text
+
+The module path it loads (resolve import to file if possible).
+
+3) IMPORT GRAPH (FOCUSED)
+
+Map the top 20 most relevant imports touching routers/apps:
+
+Lines like: importer → imported.module (symbols)
+
+Prioritize modules named production_router, router, main, app, server, api, wsgi, asgi.
+
+4) WEBHOOK & BACKGROUND HANDLERS
+
+Identify:
+
+Any /webhook routes: @app.post("/webhook"), @app.route("/webhook"...), or similar.
+
+Any background/consumer runners: queue, consumer, worker, process_messages, asyncio.create_task, threading.Thread, Celery/RQ/Arq.
+For each, show [path:line] handler_or_runner and note which module it imports for the app/router.
+
+5) CANONICALITY & DUPLICATES (READ-ONLY)
+
+Compute and print SHA-256 for the authoritative router file (expected 0789d554bdac) and any other file exporting a top-level app or router.
+
+List potential duplicates: path → sha and a one-line diff summary (just count of differing lines—no proposals).
+
+6) RESOLUTION PATHS (DESCRIPTIVE ONLY)
+
+For each ENTRYPOINT from section 2, trace and print:
+
+entrypoint → module → file → does it import the same app/router as the canonical (sha match yes/no)
+No recommendations—just the truth table.
+
+Commands to run (use these and incorporate results into the report)
+# A) scan for router/app constructs
+rg -n --no-heading -S 'FastAPI\\(|APIRouter\\(|Flask\\(|Blueprint\\(|@app\\.route|@router\\.|include_router|register_blueprint' | sort
+
+# B) find entrypoints
+rg -n --no-heading -S 'uvicorn|gunicorn|hypercorn|if __name__ == .__main__.:|app\\.run\\(' | sort
+rg -n --no-heading -S 'Procfile|\\.replit|replit\\.yaml|replit\\.nix|Dockerfile|docker-compose|pyproject\\.toml|Makefile|\\.github/workflows|\\.sh\\b|/bin/' | sort
+
+# C) import graph (focused on router/app)
+rg -n --no-heading -S 'from .* import .*app|from .* import .*router|import .*router|import .*server|import .*main|import .*api|wsgi|asgi' | sort
+
+# D) webhook & background
+rg -n --no-heading -S '@app\\.(get|post|route)\\(\"/webhook|@router\\.(get|post).*webhook|/webhook\"' | sort
+rg -n --no-heading -S 'queue|consumer|worker|process_messages|asyncio\\.create_task|threading\\.Thread|celery|rq|arq' | sort
+
+# E) list python files that export top-level app/router
+python - <<'PY'
+import ast, pathlib, hashlib, json
+root = pathlib.Path('.')
+hits=[]
+for p in root.rglob('*.py'):
+    try:
+        txt=p.read_text(encoding='utf-8')
+        t=ast.parse(txt)
+    except Exception:
+        continue
+    exports=[]
+    for node in ast.walk(t):
+        if isinstance(node, ast.Assign):
+            for tgt in node.targets:
+                if isinstance(tgt, ast.Name) and tgt.id in {'app','router'}:
+                    exports.append({'name':tgt.id,'lineno':getattr(node,'lineno',None)})
+    if exports:
+        sha=hashlib.sha256(txt.encode('utf-8')).hexdigest()[:12]
+        hits.append({'path':str(p),'sha':sha,'exports':exports})
+print(json.dumps(sorted(hits, key=lambda x:x['path']), indent=2))
+PY
+
+Formatting
+
+Use the six section headings exactly.
+
+Keep it concise but concrete (paths, lines, snippets).
+
+No remediation steps or opinions. Report only.
