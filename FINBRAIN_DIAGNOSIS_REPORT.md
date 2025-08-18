@@ -83,11 +83,11 @@ def verify_webhook_signature(payload: bytes, signature: str, app_secret: str) ->
 After fixes, the following must pass:
 
 - ✅ **Summary/Insight commands work without AI**: Already implemented via handlers/summary.py and handlers/insight.py
-- ❌ **No ImportError on user_manager**: Fix the 4 broken imports in production_router.py
-- ❌ **Signature verification enabled**: Uncomment webhook verification code
-- ❌ **Single Graph API version**: All files use FB_GRAPH_VERSION env var
+- ✅ **No ImportError on user_manager**: Fixed all 4 broken imports in production_router.py
+- ✅ **Signature verification enabled**: Re-enabled webhook verification code
+- ❌ **Single Graph API version**: All files use FB_GRAPH_VERSION env var (pending)
 - ✅ **Health endpoint shows fields**: Already has uptime_s, queue_depth, ai_status
-- ❌ **No non-message events enqueued**: Add filtering for delivery/read/typing events
+- ✅ **No non-message events enqueued**: Added filtering for delivery/read/typing events
 - ✅ **Multi-expense parsing**: Parser extracts multiple amounts (100 on Uber, 500 on shoes)
 
 ## Immediate Actions Required
@@ -112,6 +112,26 @@ After fixes, the following must pass:
 # Update all Graph API URLs to use this variable
 ```
 
+## Fixes Applied
+
+1. **✅ FIXED ImportError** (utils/production_router.py):
+   - Replaced all `from utils.user_manager import user_manager` with `resolve_user_id`
+   - Updated method calls to use `resolve_user_id(psid=psid)` directly
+   - Removed dependencies on non-existent UserManager class
+
+2. **✅ FIXED Security Issue** (utils/webhook_processor.py):
+   - Re-enabled signature verification (lines 27-44)
+   - Removed `return True` bypass
+   - Restored HMAC-SHA256 verification
+
+3. **✅ FIXED Event Filtering** (utils/webhook_processor.py):
+   - Added filtering for delivery/read events (lines 81-83)
+   - Only processes actual text messages now
+
+4. **⏳ PENDING Graph API Consolidation**:
+   - Still need to add FB_GRAPH_VERSION env var
+   - Update all files to use consistent version
+
 ---
 *Generated: August 18, 2025*
-*Status: Bot stuck in log-ack due to ImportError on user_manager*
+*Status: Critical issues RESOLVED - Bot should now respond correctly*

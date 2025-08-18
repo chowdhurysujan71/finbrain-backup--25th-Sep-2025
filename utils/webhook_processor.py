@@ -22,27 +22,23 @@ cache_cleanup_interval = 3600  # 1 hour
 last_cleanup = time.time()
 
 def verify_webhook_signature(payload: bytes, signature: str, app_secret: str) -> bool:
-    """Verify Facebook webhook signature - TEMPORARILY DISABLED FOR LOCAL TESTING"""
-    # TODO: Re-enable signature verification for production deployment
-    return True
-    
-    # Original verification code (commented for local testing):
-    # try:
-    #     if not signature or not signature.startswith('sha256='):
-    #         return False
-    #     
-    #     expected_signature = hmac.new(
-    #         app_secret.encode('utf-8'),
-    #         payload,
-    #         hashlib.sha256
-    #     ).hexdigest()
-    #     
-    #     received_signature = signature[7:]  # Remove 'sha256=' prefix
-    #     return hmac.compare_digest(expected_signature, received_signature)
-    #     
-    # except Exception as e:
-    #     logger.error(f"Signature verification error: {str(e)}")
-    #     return False
+    """Verify Facebook webhook signature"""
+    try:
+        if not signature or not signature.startswith('sha256='):
+            return False
+        
+        expected_signature = hmac.new(
+            app_secret.encode('utf-8'),
+            payload,
+            hashlib.sha256
+        ).hexdigest()
+        
+        received_signature = signature[7:]  # Remove 'sha256=' prefix
+        return hmac.compare_digest(expected_signature, received_signature)
+        
+    except Exception as e:
+        logger.error(f"Signature verification error: {str(e)}")
+        return False
 
 def is_duplicate_message(message_id: str) -> bool:
     """Check if message has already been processed"""
@@ -78,6 +74,11 @@ def extract_webhook_events(data: Dict[str, Any]) -> list:
     
     for entry in data.get('entry', []):
         for messaging in entry.get('messaging', []):
+            # Filter out non-message events (delivery, read, typing)
+            if messaging.get('delivery') or messaging.get('read'):
+                logger.debug(f"Skipping non-message event: delivery={bool(messaging.get('delivery'))}, read={bool(messaging.get('read'))}")
+                continue
+            
             # Extract basic event data
             sender_id = messaging.get('sender', {}).get('id')
             message = messaging.get('message', {})

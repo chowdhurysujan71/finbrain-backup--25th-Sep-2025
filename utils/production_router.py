@@ -345,7 +345,7 @@ class ProductionRouter:
         from utils.context_packet import build_context, is_context_thin, CONTEXT_SYSTEM_PROMPT, RESPONSE_SCHEMA
         from ai_adapter_gemini import generate_with_schema
         from utils.engagement import engagement_engine
-        from utils.user_manager import user_manager
+        from utils.user_manager import resolve_user_id
         from utils.uat_system import uat_system
         from app import db
         
@@ -372,12 +372,17 @@ class ProductionRouter:
                 return self._format_response(rate_limit_check['fallback_message']), "rate_limited", None, None
             
             # Get user data and handle onboarding with fresh data
-            user_data = user_manager.get_or_create_user(psid)
-            if user_data['is_new'] or not user_data['has_completed_onboarding']:
-                return self._handle_onboarding(text, psid, user_data, rid)
+            # Use resolve_user_id to get the proper user hash
+            user_hash = resolve_user_id(psid=psid)
             
-            # Get spending data for established users
-            spend_data = user_manager.get_user_spending_summary(psid, days=7)
+            # Simple user existence check - no user_manager needed
+            from models import User
+            user_exists = db.session.query(User.user_id).filter_by(user_id=user_hash).first()
+            
+            if not user_exists:
+                # New user - handle onboarding
+                user_data = {'is_new': True, 'has_completed_onboarding': False}
+                return self._handle_onboarding(text, psid, user_data, rid)
             
             # Generate engagement-driven AI prompt
             ai_prompt = engagement_engine.get_ai_prompt(user_data, text, spend_data)
@@ -417,7 +422,7 @@ class ProductionRouter:
         try:
             from utils.db import save_expense
             from utils.security import hash_psid
-            from utils.user_manager import user_manager
+            from utils.user_manager import resolve_user_id
             
             expenses = parse_result["expenses"]
             total_amount = parse_result["total_amount"]
@@ -450,8 +455,14 @@ class ProductionRouter:
             
             # Update user interaction count
             try:
-                from utils.user_manager import user_manager
-                user_manager.increment_interaction_count(psid)
+                # Simple interaction count update without user_manager
+                from models import User
+                from app import db
+                user_hash = resolve_user_id(psid=psid)
+                user = db.session.query(User).filter_by(user_id=user_hash).first()
+                if user:
+                    user.interaction_count = (user.interaction_count or 0) + 1
+                    db.session.commit()
             except Exception as e:
                 logger.warning(f"Failed to update user stats: {e}")
             
@@ -489,7 +500,7 @@ class ProductionRouter:
     def _handle_onboarding(self, text: str, psid: str, user_data: Dict[str, Any], rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Handle user onboarding with complete AI-driven system"""
         from utils.ai_onboarding_system import ai_onboarding_system
-        from utils.user_manager import user_manager
+        from utils.user_manager import resolve_user_id
         
         psid_hash = hash_psid(psid)
         
@@ -497,8 +508,28 @@ class ProductionRouter:
             # Use AI to process the user's response and determine next steps
             response_text, updated_user_data = ai_onboarding_system.process_user_response(text, user_data)
             
-            # Update the database with AI-extracted data
-            success = user_manager.update_user_onboarding(psid, updated_user_data)
+            # Update the database with AI-extracted data directly
+            from models import User
+            from app import db
+            user_hash = resolve_user_id(psid=psid)
+            user = db.session.query(User).filter_by(user_id=user_hash).first()
+            if not user:
+                # Create new user
+                user = User(user_id=user_hash)
+                db.session.add(user)
+            
+            # Update onboarding fields
+            for key, value in updated_user_data.items():
+                if hasattr(user, key):
+                    setattr(user, key, value)
+            
+            success = True
+            try:
+                db.session.commit()
+            except Exception as e:
+                logger.warning(f"Failed to update user onboarding: {e}")
+                db.session.rollback()
+                success = False
             
             if not success:
                 logger.warning(f"Failed to update user data during AI onboarding: {psid_hash[:8]}...")
