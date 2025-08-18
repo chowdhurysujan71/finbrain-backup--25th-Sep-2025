@@ -11,12 +11,13 @@ Production routing system: Deterministic Core + Flag-Gated AI + Canary Rollout
 Implements single entry point with rate limiting, AI failover, and comprehensive telemetry
 """
 import os
+import re
 import time
 import logging
 import pathlib
 import hashlib
 from typing import Tuple, Optional, Dict, Any, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 # Log which router file each process loads with SHA verification
 _P = pathlib.Path(__file__).resolve()
@@ -39,6 +40,49 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 AI_ENABLED = os.environ.get("AI_ENABLED", "false").lower() == "true"
+
+# Summary detection patterns
+SUMMARY_RE = re.compile(
+    r"\b(summary|recap|overview|report|what did i spend|how much did i spend|show (me )?my (spend|spending|expenses))\b",
+    re.IGNORECASE,
+)
+
+def _norm_text(s: str) -> str:
+    return " ".join((s or "").strip().lower().split())
+
+def _is_summary_command(text: str) -> bool:
+    if not text:
+        return False
+    return bool(SUMMARY_RE.search(text)) or _norm_text(text) in {"summary", "recap", "report", "overview"}
+
+def handle_summary(psid: str, text: str):
+    """Deterministic summary handler that bypasses AI rate limits"""
+    # Choose timeframe (fallback: last 7 days)
+    end = datetime.utcnow()
+    start = end - timedelta(days=7)
+    
+    # Get user summary data
+    try:
+        from services.summaries import build_user_summary, format_summary_text
+        rollup = build_user_summary(psid, start, end)
+        if not rollup:
+            return "No recent spending found in the last 7 days."
+
+        # Optional AI phrasing ONLY if enabled (but summary must not be blocked if AI is off/limited)
+        if AI_ENABLED:
+            try:
+                from utils.ai_adapter_v2 import production_ai_adapter
+                context = {'user_hash': hash_psid(psid), 'request_id': 'summary'}
+                ai_result = production_ai_adapter.phrase_summary(rollup)
+                if ai_result and not ai_result.get('failover', False):
+                    return ai_result.get('text', format_summary_text(rollup))
+            except Exception:
+                pass
+        
+        return format_summary_text(rollup)
+    except Exception as e:
+        logger.error(f"Summary handler error: {e}")
+        return "Unable to generate summary at this time."
 
 class ProductionRouter:
     """
@@ -78,25 +122,42 @@ class ProductionRouter:
                 self._log_routing_decision(rid, psid_hash, "panic", "immediate_ack")
                 return response, "panic", None, None
             
-            # Step 1: Evaluate rate limiter first
+            # Step 1: Summary FIRST, no rate-limit gate
+            if _is_summary_command(text):
+                logger.info(f"[ROUTER] intent=summary psid={psid}")
+                response = handle_summary(psid, text)
+                self._log_routing_decision(rid, psid_hash, "summary", "deterministic_bypass")
+                return normalize(response), "summary", None, None
+            
+            # Step 2: Evaluate rate limiter for AI/other paths
             rate_limit_result = advanced_ai_limiter.check_rate_limit(psid_hash)
             
+            # Step 3: Expense logging (check before AI)
+            parsed_expense = parse_expense(text)
+            if parsed_expense:
+                response, intent, category, amount = self._handle_expense_log(parsed_expense, text, psid, psid_hash, rid)
+                # Append the tip ONLY after successful log
+                if response and isinstance(response, str) and intent == "log":
+                    response = f"{response}\n\nTip: type 'summary' anytime for a quick recap."
+                self._record_processing_time(time.time() - start_time)
+                return normalize(response), intent, category, amount
+
             if not rate_limit_result.ai_allowed:
-                # Step 2: RL-2 path (rate limited)
+                # Step 4: RL-2 path (rate limited)
                 response, intent, category, amount = self._route_rl2(text, psid, psid_hash, rid, rate_limit_result)
                 self.telemetry['rl2_messages'] += 1
                 self._record_processing_time(time.time() - start_time)
                 return response, intent, category, amount
             
-            # Step 3: Check if AI should be used
+            # Step 5: Check if AI should be used
             if AI_ENABLED and production_ai_adapter.ai_mode(text):
-                # Step 4: AI branch
+                # Step 6: AI branch
                 response, intent, category, amount = self._route_ai(text, psid, psid_hash, rid, rate_limit_result)
                 self.telemetry['ai_messages'] += 1
                 self._record_processing_time(time.time() - start_time)
                 return response, intent, category, amount
             
-            # Step 5: Deterministic rules path
+            # Step 7: Deterministic rules path
             response, intent, category, amount = self._route_rules(text, psid, psid_hash, rid)
             self.telemetry['rules_messages'] += 1
             self._record_processing_time(time.time() - start_time)
@@ -104,10 +165,24 @@ class ProductionRouter:
             
         except Exception as e:
             logger.error(f"Production routing error: {e}")
-            # Emergency fallback
-            response = normalize("Got it. Try 'summary' for a quick recap.")
+            # Emergency fallback - NO tip on unknown text
+            response = normalize("I didn't understand that. Please try again.")
             self._log_routing_decision(rid, psid_hash, "error", f"emergency_fallback: {str(e)}")
             return response, "error", None, None
+    
+    def _handle_expense_log(self, parsed_expense, text: str, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+        """Handle deterministic expense logging"""
+        amount, description = parsed_expense
+        category = categorize_expense(description)
+        
+        # Store expense deterministically
+        self._store_expense_deterministic(psid, amount, description, category, text)
+        
+        # Generate response
+        response = format_logged_response(amount, description, category)
+        
+        self._log_routing_decision(rid, psid_hash, "log", f"logged: {amount} {category}")
+        return response, "log", category, amount
     
     def _route_rl2(self, text: str, psid: str, psid_hash: str, rid: str, rate_limit_result) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Route to RL-2 system for rate-limited processing"""
@@ -160,7 +235,7 @@ class ProductionRouter:
         
         text_lower = text.lower().strip()
         
-        # Summary command
+        # Summary command (redundant check, but kept for compatibility)
         if text_lower == 'summary':
             return self._handle_rules_summary(psid, psid_hash, rid)
         

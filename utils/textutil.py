@@ -31,13 +31,13 @@ SUMMARY_VARIANTS = [
 ]
 
 HELP_VARIANTS = [
-    "Try log 50 coffee. For totals, type summary.",
+    "Track expenses: log 50 coffee. Use 'summary' for totals.",
     "Log with: log [amount] [note]. Weekly view: summary.",
-    "Need a hand? log 120 lunch or summary for a quick recap."
+    "Need a hand? Try log 120 lunch for expenses."
 ]
 
 # RL-2 ASCII-safe variants (no emojis, safe for rate limiting)
-RL2_DISCLAIMER = "NOTE: Taking a quick breather. I can do 4 smart replies per minute per person.\nOK: I handled that without AI this time.\nTip: type \"summary\" for a quick recap."
+RL2_DISCLAIMER = "NOTE: Taking a quick breather. I can do 4 smart replies per minute per person.\nOK: I handled that without AI this time."
 
 RL2_BREATHER_SUMMARY_PREFIX = "NOTE: Smart replies are capped at 4/min. Here is your recap without AI:"
 

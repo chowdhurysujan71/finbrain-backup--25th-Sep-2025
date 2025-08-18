@@ -43,7 +43,7 @@ class BackgroundProcessor:
         self.executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="bg-msg-")
         self.job_queue = Queue()
         self.processing_timeout = 5.0
-        self.fallback_reply = "Got it. Try 'summary' for a quick recap."
+        self.fallback_reply = "Got it. I'll track that for you."
         
         # Import AI adapter from dedicated module
         from utils.ai_adapter import ai_adapter
