@@ -42,7 +42,7 @@ def save_expense(user_identifier, description, amount, category, platform, origi
     """Save expense to database and update monthly summaries"""
     from models import Expense, User, MonthlySummary
     from utils.tracer import trace_event
-    from utils.crypto import ensure_hashed
+    from utils.user_manager import resolve_user_id as ensure_hashed
     
     if db_session is None:
         from app import db

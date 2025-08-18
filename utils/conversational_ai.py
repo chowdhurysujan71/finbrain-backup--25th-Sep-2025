@@ -20,7 +20,7 @@ class ConversationalAI:
         """Get comprehensive user expense context for conversations"""
         from models import Expense
         from app import db
-        from utils.crypto import ensure_hashed
+        from utils.user_manager import resolve_user_id as ensure_hashed
         from utils.tracer import trace_event
         
         # Use consistent hashing (avoid double-hashing)

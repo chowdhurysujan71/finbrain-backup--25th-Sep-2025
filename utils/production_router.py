@@ -1,10 +1,5 @@
-# defensive import guard with centralized resolver
-try:
-    from utils.user_manager import resolve_user_id   # preferred single point
-except Exception:
-    from utils.crypto import ensure_hashed            # last-resort fallback
-    def resolve_user_id(*, psid=None, psid_hash=None):
-        return ensure_hashed(psid or psid_hash)
+# Single source of truth for user ID resolution
+from utils.user_manager import resolve_user_id
 
 """
 Production routing system: Deterministic Core + Flag-Gated AI + Canary Rollout
@@ -366,10 +361,8 @@ class ProductionRouter:
             if uat_system.is_uat_mode(psid):
                 return self._handle_uat_flow(text, psid, rid)
             
-            # Check AI rate limiting first
-            rate_limit_check = engagement_engine.check_ai_rate_limit(psid)
-            if not rate_limit_check['allowed']:
-                return self._format_response(rate_limit_check['fallback_message']), "rate_limited", None, None
+            # Skip AI rate limiting for expense logging (only gate actual AI calls)
+            # We'll check rate limits only when we need AI processing
             
             # Get user data and handle onboarding with fresh data
             # Use resolve_user_id to get the proper user hash
@@ -535,10 +528,12 @@ class ProductionRouter:
             from models import User
             from app import db
             user_hash = resolve_user_id(psid=psid)
-            user = db.session.query(User).filter_by(user_id=user_hash).first()
+            # Guard against model regressions
+            assert hasattr(User, "user_id_hash"), "User model must expose user_id_hash"
+            user = db.session.query(User).filter_by(user_id_hash=user_hash).first()
             if not user:
-                # Create new user
-                user = User(user_id=user_hash)
+                # Create new user - using correct field name
+                user = User(user_id_hash=user_hash, platform='messenger')
                 db.session.add(user)
             
             # Update onboarding fields

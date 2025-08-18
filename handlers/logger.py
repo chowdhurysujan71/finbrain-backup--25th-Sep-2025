@@ -4,7 +4,7 @@ Expense logger handler: Logs expenses to database
 from typing import Dict, List
 import logging
 from utils.parser import extract_expenses
-from utils.crypto import ensure_hashed
+from utils.user_manager import resolve_user_id as ensure_hashed
 
 logger = logging.getLogger(__name__)
 
