@@ -1,11 +1,10 @@
-# defensive import guard
+# defensive import guard with centralized resolver
 try:
-    from utils.crypto import ensure_hashed
+    from utils.user_manager import resolve_user_id   # preferred single point
 except Exception:
-    # lazy fallback (won't run unless top-level import failed)
-    def ensure_hashed(x):
-        from utils.crypto import ensure_hashed as _eh
-        return _eh(x)
+    from utils.crypto import ensure_hashed            # last-resort fallback
+    def resolve_user_id(*, psid=None, psid_hash=None):
+        return ensure_hashed(psid or psid_hash)
 
 """
 Production routing system: Deterministic Core + Flag-Gated AI + Canary Rollout
@@ -15,10 +14,14 @@ import os
 import time
 import logging
 import pathlib
+import hashlib
 from typing import Tuple, Optional, Dict, Any, List
 from datetime import datetime, timezone
 
-logging.warning("PRODUCTION_ROUTER_INIT file=%s", pathlib.Path(__file__).resolve())
+# Log which router file each process loads with SHA verification
+_P = pathlib.Path(__file__).resolve()
+logging.warning("PRODUCTION_ROUTER_INIT file=%s sha=%s",
+                _P, hashlib.sha256(_P.read_bytes()).hexdigest()[:12])
 
 from utils.background_processor_rl2 import rl2_processor
 from utils.ai_limiter import advanced_ai_limiter

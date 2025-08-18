@@ -22,7 +22,7 @@ from .policy_guard import update_user_message_timestamp, is_within_24_hour_windo
 from .facebook_handler import send_facebook_message
 from .ai_rate_limiter import ai_rate_limiter
 from .background_processor_rl2 import rl2_processor
-from .production_router import production_router
+from utils.production_router import production_router
 
 logger = logging.getLogger(__name__)
 
