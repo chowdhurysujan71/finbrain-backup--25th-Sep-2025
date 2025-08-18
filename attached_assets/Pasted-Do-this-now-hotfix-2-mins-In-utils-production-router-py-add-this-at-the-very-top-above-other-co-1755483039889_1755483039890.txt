@@ -1,0 +1,141 @@
+Do-this-now hotfix (2 mins)
+
+In utils/production_router.py, add this at the very top (above other code):
+
+# defensive import guard
+try:
+    from utils.crypto import ensure_hashed
+except Exception:
+    # lazy fallback (won’t run unless top-level import failed)
+    def ensure_hashed(x):
+        from utils.crypto import ensure_hashed as _eh
+        return _eh(x)
+
+
+Redeploy. Re-run your 4-message canary (120 groceries, 100 Uber, summary, insights).
+If the error disappears, great—move to the hardening below.
+
+Make it unbreakable (single-source normalization)
+
+Goal: no module outside user_manager ever calls ensure_hashed directly.
+
+Add a single resolver in utils/user_manager.py:
+
+from utils.crypto import ensure_hashed
+
+def resolve_user_id(*, psid: str | None = None, psid_hash: str | None = None) -> str:
+    if not (psid or psid_hash):
+        raise ValueError("Provide psid or psid_hash")
+    return ensure_hashed(psid or psid_hash)
+
+
+Replace every direct ensure_hashed(...) outside user_manager with:
+
+from utils.user_manager import resolve_user_id
+user_id = resolve_user_id(psid=raw_psid)  # or psid_hash=...
+
+
+Keep STRICT_IDS=true for this pass so a missing import explodes loudly.
+
+Copy-paste prompt for Replit AI (will auto-fix + verify)
+
+Paste everything below:
+
+You are repo maintainer. A runtime path still throws name 'ensure_hashed' is not defined inside utils.production_router. Fix it decisively and prevent recurrence.
+
+Tasks
+
+Find every usage
+
+List files containing ensure_hashed(.
+
+List files containing production_router (there may be duplicates).
+
+Print the absolute __file__ path when utils.production_router initializes to ensure we’re patching the loaded module.
+
+Defensive import in production_router
+
+At the top of utils/production_router.py, insert:
+
+try:
+    from utils.crypto import ensure_hashed
+except Exception:
+    def ensure_hashed(x):
+        from utils.crypto import ensure_hashed as _eh
+        return _eh(x)
+
+
+Add:
+
+import logging, pathlib
+logging.warning("PRODUCTION_ROUTER_INIT file=%s", pathlib.Path(__file__).resolve())
+
+
+so we can confirm the exact file loaded at runtime.
+
+Centralize normalization
+
+In utils/user_manager.py add:
+
+from utils.crypto import ensure_hashed
+def resolve_user_id(*, psid=None, psid_hash=None):
+    if not (psid or psid_hash):
+        raise ValueError("Provide psid or psid_hash")
+    return ensure_hashed(psid or psid_hash)
+
+
+Replace all direct calls to ensure_hashed(...) outside user_manager with:
+
+from utils.user_manager import resolve_user_id
+user_id = resolve_user_id(psid=..., psid_hash=...)
+
+
+Keep direct ensure_hashed only inside user_manager.
+
+Static check (fail if any remain)
+
+Add a lightweight test or pre-commit script that fails if any non-user_manager.py file contains ensure_hashed(:
+
+Allowlist: utils/user_manager.py, utils/crypto.py, tests.
+
+Everything else should call resolve_user_id.
+
+Unit/UAT verification
+
+Run existing tests.
+
+Add a micro-test to assert resolve_user_id(psid=RAW) == resolve_user_id(psid_hash=hash(RAW)).
+
+Execute the canary UAT:
+
+Log 120 groceries, 100 Uber, then summary, insights.
+
+Ensure no ensure_hashed is not defined appears.
+
+Print the router init line to confirm which production_router file was loaded.
+
+Deliverables
+
+Diffs for all modified files.
+
+Grep report showing no remaining ensure_hashed( calls outside the allowlist.
+
+Canary logs: last 10 TRACE lines (record_expense + summary_query).
+
+Confirmation that the runtime warning PRODUCTION_ROUTER_INIT file=... points to the patched file.
+
+Be surgical. Don’t refactor unrelated code. Keep behavior identical except for import/normalization routing.
+Why this will fix your exact log
+
+Your error shows AI expense logging path inside production_router still calls ensure_hashed without import. The defensive import guard removes that failure mode immediately.
+
+Centralizing to resolve_user_id means future modules don’t need to import ensure_hashed at all—so this specific error can’t recur.
+
+Logging __file__ tells you if a second copy of production_router is being loaded (e.g., duplicated module or different path). If it is, you’ll see it in the next run and patch the right file.
+
+Run this, then do your Messenger 4-message canary again. If anything still errors, send me the single line:
+
+PRODUCTION_ROUTER_INIT file=/abs/path/to/production_router.py
+
+
+and the last 4 TRACE lines—we’ll pinpoint the exact stray path in one shot.
