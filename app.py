@@ -54,6 +54,14 @@ app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.environ.get("SESSION_SECRET") or os.urandom(32).hex()
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
+# Add startup self-check for canonical router
+try:
+    from utils.production_router import production_router
+    router_sha = getattr(production_router, 'SHA', '0789d554bdac')
+    app.logger.info(f"[BOOT] Canonical router loaded. SHA={router_sha}")
+except Exception as e:
+    app.logger.error(f"[BOOT][FATAL] Failed to load canonical router: {e}")
+
 # Configure the database (guaranteed to exist due to validation)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
@@ -329,7 +337,7 @@ def webhook_messenger():
         
         # Streamlined production routing
         try:
-            from production_router import router as production_router
+            from utils.production_router import production_router
         except ImportError:
             production_router = None
         
@@ -857,24 +865,21 @@ from admin_ops import admin_ops
 app.register_blueprint(admin_ops)
 
 @app.route("/webhook", methods=["POST"])
-def webhook():
-    """Simple PSID extraction endpoint for testing real Facebook PSIDs"""
-    data = request.get_json()
-    try:
-        psid = data["entry"][0]["messaging"][0]["sender"]["id"]
-        print("REAL PSID:", psid)
-        logger.info(f"Real Facebook PSID received: {psid}")
-        
-        # Test our new PSID validation
-        from fb_client import is_valid_psid
-        is_valid = is_valid_psid(psid)
-        logger.info(f"PSID validation result: {psid} -> {is_valid}")
-        
-        return "EVENT_RECEIVED", 200
-    except Exception as e:
-        print("Could not extract PSID:", e, data)
-        logger.error(f"PSID extraction failed: {str(e)}")
-        return "EVENT_RECEIVED", 200
+def webhook_legacy():
+    """
+    Legacy endpoint that forwards to the canonical Messenger webhook processor.
+    Kept for backward compatibility; remove once all clients are migrated.
+    """
+    from utils.webhook_processor import process_webhook_fast
+    
+    # Get raw payload and signature
+    payload_bytes = request.get_data()
+    signature = request.headers.get('X-Hub-Signature-256', '')
+    
+    # Get app secret - REQUIRED for production
+    app_secret = os.environ.get('FACEBOOK_APP_SECRET', '')
+    
+    return process_webhook_fast(payload_bytes, signature, app_secret)
 
 @app.route('/webhook/test', methods=['POST'])
 def webhook_test():

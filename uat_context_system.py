@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from app import app, db
 from models import Expense, User
 from utils.security import hash_psid
-from production_router import router
+from utils.production_router import production_router as router
 from utils.context_packet import build_context, is_context_thin, CONTEXT_SYSTEM_PROMPT, RESPONSE_SCHEMA
 from ai_adapter_gemini import generate_with_schema
 from limiter import can_use_ai, fallback_blurb

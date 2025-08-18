@@ -7,7 +7,7 @@ import json
 import logging
 from app import app, db
 from utils.context_packet import build_context, is_context_thin, CONTEXT_SYSTEM_PROMPT, RESPONSE_SCHEMA
-from production_router import router
+from utils.production_router import production_router as router
 from ai_adapter_gemini import generate_with_schema
 
 # Configure logging

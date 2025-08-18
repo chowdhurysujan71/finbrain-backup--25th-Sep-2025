@@ -47,7 +47,7 @@ def toggle_ai_endpoint():
 @require_admin  
 def ai_status():
     """Get AI system status"""
-    from production_router import router, get_ai_stats
+    from utils.production_router import production_router as router, get_ai_stats
     return jsonify({
         "ai_enabled": FLAGS.ai_enabled,
         "ai_adapter": get_ai_stats(),
@@ -58,7 +58,7 @@ def ai_status():
 @require_admin
 def ai_ping():
     """Sanity-check the AI adapter"""
-    from production_router import llm_generate
+    from utils.production_router import llm_generate
     
     if llm_generate is None:
         return jsonify({
@@ -80,5 +80,5 @@ def ai_ping():
 @require_admin
 def telemetry():
     """Truth-telling telemetry - env vs runtime"""
-    from production_router import router
+    from utils.production_router import production_router as router
     return jsonify(router.get_telemetry())

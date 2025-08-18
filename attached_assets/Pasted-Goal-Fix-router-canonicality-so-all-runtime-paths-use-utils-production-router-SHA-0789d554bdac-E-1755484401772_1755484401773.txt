@@ -1,0 +1,153 @@
+Goal: Fix router canonicality so all runtime paths use utils.production_router (SHA 0789d554bdac). Eliminate any non-canonical production_router imports, and make the legacy /webhook safely forward into the primary /webhook/messenger pipeline. Add a guardrail test to prevent regressions.
+
+Context summary (do not re-discover, just apply):
+
+Canonical router lives at utils/production_router.py (✅).
+
+Non-canonical imports exist in admin_ops.py, uat_context_system.py, uat_focused_retests.py (❌).
+
+Legacy route /webhook (POST) still imports a non-canonical router (❌).
+
+Primary route /webhook/messenger is correct and should remain the single source of truth (✅).
+
+Make the following exact changes:
+
+Normalize imports to canonical path
+
+In admin_ops.py: replace any import production_router or from production_router ... with:
+
+from utils.production_router import production_router, ProductionRouter
+
+
+In uat_context_system.py and uat_focused_retests.py: replace any import production_router or from production_router ... with:
+
+from utils.production_router import production_router, ProductionRouter
+
+
+Globally enforce the same rule across the repo: if any file imports production_router without the utils. prefix, update it to from utils.production_router import .... Do not change behavior; only the import path.
+
+Unify legacy webhook to primary path
+
+In app.py, find the legacy route:
+
+@app.route("/webhook", methods=["POST"])
+
+
+Replace the handler body so it simply forwards the incoming request to the same processor used by /webhook/messenger (no duplicate parsing, no non-canonical imports). Use the existing fast path from utils.webhook_processor:
+
+from utils.webhook_processor import process_webhook_fast
+
+@app.route("/webhook", methods=["POST"])
+def webhook_legacy():
+    """
+    Legacy endpoint that forwards to the canonical Messenger webhook processor.
+    Kept for backward compatibility; remove once all clients are migrated.
+    """
+    return process_webhook_fast()
+
+
+Ensure the primary route remains:
+
+@app.route("/webhook/messenger", methods=["GET", "POST"])
+def webhook_messenger():
+    from utils.webhook_processor import process_webhook_fast
+    return process_webhook_fast()
+
+
+Remove any lingering references in app.py that import production_router without the utils. prefix. They must not exist after this change.
+
+Admin Ops blueprint: canonicalize router usage
+
+In whatever handler(s) inside admin_ops.py that reference the router, ensure they call the canonical production_router from utils.production_router. Do not import a root-level production_router.
+
+Example (adjust to actual code):
+
+from utils.production_router import production_router
+
+@admin_ops.route("/ops", methods=["GET"])
+def ops_status():
+    sha = production_router.sha  # or equivalent attribute you already expose
+    return {"router_sha": sha, "status": "ok"}, 200
+
+
+Add a startup self-check (lightweight, non-blocking)
+
+In app.py, right after the Flask app = Flask(...) creation (or near your config), add a trivial assert/log to confirm canonical router is importable and expose its SHA in logs:
+
+try:
+    from utils.production_router import production_router
+    app.logger.info(f"[BOOT] Canonical router loaded. SHA={getattr(production_router, 'SHA', '0789d554bdac')}")
+except Exception as e:
+    app.logger.error(f"[BOOT][FATAL] Failed to load canonical router: {e}")
+    # Do NOT raise; just log. The health check will reveal issues.
+
+
+(If the router already exposes a constant/attr for SHA, use it; otherwise, keep the literal comment as reference.)
+
+Guardrail test to prevent regressions
+
+Create tests/test_router_canonicality.py with these checks:
+
+import os
+import re
+from pathlib import Path
+
+NON_CANON_PATTERN = re.compile(r'(^|\s)from\s+production_router\s+import|(^|\s)import\s+production_router\b')
+
+def test_no_noncanonical_router_imports():
+    repo_root = Path(__file__).resolve().parent.parent
+    offenders = []
+    for path in repo_root.rglob("*.py"):
+        if "venv" in str(path) or ".pythonlibs" in str(path):
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        if NON_CANON_PATTERN.search(text):
+            offenders.append(str(path))
+    assert not offenders, f"Found non-canonical router imports: {offenders}"
+
+
+Also add a minimal import test to ensure canonical path is valid:
+
+def test_canonical_router_importable():
+    from utils.production_router import production_router, ProductionRouter
+    assert production_router is not None
+    assert ProductionRouter is not None
+
+
+Keep entrypoints consistent (no functional change)
+
+Leave .replit as-is (both entries already resolve to main:app). Do not add --reload in production deployments unless you’re in dev. If a start_server.py wrapper exists, ensure it also resolves to main:app (no change needed unless it imports a non-canonical router—fix if present).
+
+Run & verify
+
+Run test suite:
+
+pytest -q tests/test_router_canonicality.py
+
+Ensure 0 failures.
+
+Smoke test locally:
+
+Start the app.
+
+curl -s -X POST http://localhost:5000/webhook -d '{}' -H "Content-Type: application/json"
+Expect the same 200/ACK behavior as /webhook/messenger.
+
+curl -s http://localhost:5000/ops (or your ops endpoint)
+Confirm response includes router info and no stack traces.
+
+Acceptance Criteria (must all pass):
+
+No file in the repo imports production_router without the utils. prefix.
+
+Both /webhook/messenger and legacy /webhook invoke process_webhook_fast() and behave identically for POST events.
+
+admin_ops.py references the router only via from utils.production_router import ....
+
+tests/test_router_canonicality.py passes.
+
+App boots and logs “[BOOT] Canonical router loaded …” message.
+
+FinBrain AI responses resume flowing via the canonical processing chain (no duplicate parsing, no missing sends).
+
+Make only the changes above. Do not refactor unrelated code or rename files.
