@@ -1,0 +1,144 @@
+Goal:
+
+Detect summary robustly (case-insensitive, in-sentence).
+
+Route summary before spend/AI paths and bypass AI rate limits.
+
+Only send “Try 'summary'…” after a successful expense log — never on unknown text.
+
+Apply these edits exactly (don’t rename files):
+
+1) utils/production_router.py
+
+Add helpers at top:
+
+import os, re
+from datetime import datetime, timedelta
+
+SUMMARY_RE = re.compile(
+    r"\b(summary|recap|overview|report|what did i spend|how much did i spend|show (me )?my (spend|spending|expenses))\b",
+    re.IGNORECASE,
+)
+
+def _norm_text(s: str) -> str:
+    return " ".join((s or "").strip().lower().split())
+
+def _is_summary_command(text: str) -> bool:
+    if not text:
+        return False
+    return bool(SUMMARY_RE.search(text)) or _norm_text(text) in {"summary", "recap", "report", "overview"}
+
+
+Add deterministic summary handler (adapt imports to your project):
+
+def handle_summary(psid: str, text: str):
+    # Choose timeframe (fallback: last 7 days)
+    end = datetime.utcnow()
+    start = end - timedelta(days=7)
+    # Replace with your real DB access:
+    # rows: [{category, amount}] aggregated for (psid, start..end)
+    from services.summaries import build_user_summary, format_summary_text
+    rollup = build_user_summary(psid, start, end)
+    if not rollup:
+        return "No recent spending found in the last 7 days."
+
+    # Optional AI phrasing ONLY if enabled (but summary must not be blocked if AI is off/limited)
+    if os.getenv("AI_ENABLED", "false").lower() == "true":
+        try:
+            from ai.adapter import phrase_summary  # if you have it; else skip
+            return phrase_summary(rollup)
+        except Exception:
+            pass
+    return format_summary_text(rollup)
+
+
+In your main router function (the one deciding what to do with psid, text), enforce this order:
+
+# 1) Summary FIRST, no rate-limit gate
+if _is_summary_command(text):
+    app.logger.info(f"[ROUTER] intent=summary psid={psid}")
+    return handle_summary(psid, text)
+
+# 2) Expense logging (your existing logic)
+if looks_like_spend_log(text):                  # your existing predicate
+    resp = handle_spend_log(psid, text)         # your existing logger
+    # Append the tip ONLY after successful log
+    if resp and isinstance(resp, str):
+        resp = f"{resp}\n\nTip: type 'summary' anytime for a quick recap."
+    return resp
+
+# 3) Other deterministic commands (budget, alerts, etc.)
+
+# 4) AI route (may be rate-limited)
+if ai_enabled() and not over_rate_limit(psid):
+    return ai_adapter.respond(psid, text)
+
+# 5) Final fallback
+return templates.non_ai_fallback()
+
+2) services/summaries.py (new or update)
+
+Create a tiny deterministic roll-up the router can call. Adjust SQL/ORM to your schema.
+
+# services/summaries.py
+from collections import defaultdict
+
+def build_user_summary(psid: str, start, end):
+    """
+    Return dict like:
+    {
+      "range": {"start": start.isoformat(), "end": end.isoformat()},
+      "total": 720.0,
+      "by_category": {"groceries": 120.0, "transport": 100.0, "shopping": 500.0}
+    }
+    """
+    # Replace with your DB; example pseudo-code:
+    # rows = db.fetch(
+    #   "SELECT category, SUM(amount) AS total FROM expenses
+    #    WHERE psid=%s AND ts BETWEEN %s AND %s GROUP BY category",
+    #   (psid, start, end)
+    # )
+    rows = fetch_expense_totals(psid, start, end)  # implement against your DB
+    by_cat = {}
+    grand = 0.0
+    for r in rows:
+        amt = float(r["total"])
+        by_cat[r["category"] or "uncategorized"] = by_cat.get(r["category"] or "uncategorized", 0.0) + amt
+        grand += amt
+    if grand == 0.0:
+        return None
+    return {"range": {"start": start.isoformat(), "end": end.isoformat()},
+            "total": grand, "by_category": by_cat}
+
+def format_summary_text(rollup: dict) -> str:
+    total = rollup["total"]
+    parts = [f"Last 7 days: {total:.0f} BDT total"]
+    if rollup["by_category"]:
+        cats = " • ".join(f"{k} {v:.0f}" for k, v in sorted(rollup["by_category"].items(), key=lambda kv: -kv[1]))
+        parts.append(cats)
+    return " • ".join(parts)
+
+3) Templates: stop the accidental tip on unknown text
+
+Find the template that says “Got it. Try 'summary' for a quick recap.” and ensure it’s returned only from handle_spend_log after a successful parse/save. Do not return it from the generic fallback.
+
+4) Tests
+
+Add:
+
+# tests/test_summary_intent.py
+from utils.production_router import _is_summary_command
+
+def test_summary_detection_variants():
+    assert _is_summary_command("summary")
+    assert _is_summary_command("Summary")
+    assert _is_summary_command("Can you do a summary?")
+    assert _is_summary_command("what did I spend this week?")
+    assert not _is_summary_command("hello there")
+
+# Optional: check that the router doesn’t send the tip on unknown text.
+
+
+Run:
+
+pytest -q tests/test_summary_intent.py
