@@ -1,7 +1,7 @@
 import os
 import logging
 import sys
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for, make_response
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for, make_response, g
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -864,22 +864,54 @@ def ops_users():
 from admin_ops import admin_ops
 app.register_blueprint(admin_ops)
 
+@app.get("/ops/hash")
+def ops_hash():
+    """Generate canonical PSID hash for identity debugging"""
+    psid = request.args.get("psid", "")
+    from utils.identity import psid_hash
+    return {"psid": psid, "psid_hash": psid_hash(psid)}, 200
+
 @app.route("/webhook", methods=["POST"])
-def webhook_legacy():
-    """
-    Legacy endpoint that forwards to the canonical Messenger webhook processor.
-    Kept for backward compatibility; remove once all clients are migrated.
-    """
-    from utils.webhook_processor import process_webhook_fast
+def webhook():
+    """Canonical webhook using identity-based PSID hashing"""
+    from utils.identity import psid_hash
     
-    # Get raw payload and signature
-    payload_bytes = request.get_data()
-    signature = request.headers.get('X-Hub-Signature-256', '')
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        raw_psid = data["entry"][0]["messaging"][0]["sender"]["id"]
+    except Exception as e:
+        app.logger.warning(f"Webhook missing PSID: {e}")
+        return "EVENT_RECEIVED", 200
     
-    # Get app secret - REQUIRED for production
-    app_secret = os.environ.get('FACEBOOK_APP_SECRET', '')
-    
-    return process_webhook_fast(payload_bytes, signature, app_secret)
+    g.user_hash = psid_hash(raw_psid)
+    return handle_message(data, g.user_hash)
+
+def handle_message(data, user_hash):
+    """Handle message with canonical user identity"""
+    # For now, delegate to existing production router system
+    # TODO: Integrate canonical identity throughout system
+    try:
+        from utils.production_router import production_router
+        
+        # Extract message details
+        entry = data["entry"][0]
+        messaging = entry["messaging"][0]
+        message_text = messaging.get("message", {}).get("text", "")
+        
+        if message_text:
+            response, intent, tip, amount = production_router.route_message(
+                message_text, user_hash, f"webhook_{int(__import__('time').time() * 1000)}"
+            )
+            
+            # Send response via Facebook
+            from utils.facebook_handler import send_facebook_message
+            send_facebook_message(user_hash, response)
+        
+        return "EVENT_RECEIVED", 200
+        
+    except Exception as e:
+        app.logger.error(f"Message handling error: {e}")
+        return "EVENT_RECEIVED", 200
 
 @app.route('/webhook/test', methods=['POST'])
 def webhook_test():

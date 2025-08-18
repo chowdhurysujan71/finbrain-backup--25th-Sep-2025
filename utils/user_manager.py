@@ -2,22 +2,16 @@
 Centralized user ID management and normalization
 Single source of truth for user identification across the system
 """
-from utils.crypto import ensure_hashed
+from utils.identity import psid_hash
 
-def resolve_user_id(*, psid: str = None, psid_hash: str = None) -> str:
+def resolve_user_id(psid: str) -> str:
     """
-    Centralized user ID resolution - single entry point for all user identification
+    Centralized user ID resolution using canonical identity
     
     Args:
-        psid: Raw PSID (will be hashed)
-        psid_hash: Already hashed PSID (will be validated and passed through)
+        psid: Raw PSID (will be hashed using canonical salt)
         
     Returns:
-        Normalized user ID (SHA-256 hash)
-        
-    Raises:
-        ValueError: If neither psid nor psid_hash is provided
+        Canonical user ID hash (SHA-256 with salt)
     """
-    if not (psid or psid_hash):
-        raise ValueError("Provide psid or psid_hash")
-    return ensure_hashed(psid or psid_hash)
+    return psid_hash(psid)

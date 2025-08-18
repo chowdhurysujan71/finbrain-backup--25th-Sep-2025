@@ -2,7 +2,7 @@
 import logging
 from datetime import datetime, date
 from sqlalchemy.exc import SQLAlchemyError
-from utils.security import hash_user_id
+from utils.identity import psid_hash
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ def save_expense(user_identifier, description, amount, category, platform, origi
     """Save expense to database and update monthly summaries"""
     from models import Expense, User, MonthlySummary
     from utils.tracer import trace_event
-    from utils.crypto import ensure_hashed
+    from utils.identity import psid_hash
     
     if db_session is None:
         from app import db
@@ -130,7 +130,7 @@ def get_monthly_summary(user_identifier, month=None):
     from models import MonthlySummary
     
     try:
-        user_hash = ensure_hashed(user_identifier)
+        user_hash = psid_hash(user_identifier) if len(user_identifier) < 64 else user_identifier
         
         if not month:
             month = date.today().strftime('%Y-%m')
@@ -169,7 +169,7 @@ def get_user_expenses(user_identifier, limit=10):
     from models import Expense
     
     try:
-        user_hash = ensure_hashed(user_identifier)
+        user_hash = psid_hash(user_identifier) if len(user_identifier) < 64 else user_identifier
         
         expenses = Expense.query.filter_by(user_id=user_hash)\
                                .order_by(Expense.created_at.desc())\

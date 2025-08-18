@@ -6,7 +6,7 @@ Provides intelligent summaries and maintains conversational flow based on user d
 import logging
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta
-from utils.security import hash_psid
+from utils.identity import psid_hash
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class ConversationalAI:
         """Get comprehensive user expense context for conversations"""
         from models import Expense
         from app import db
-        from utils.user_manager import resolve_user_id as ensure_hashed
+        from utils.identity import psid_hash as ensure_hashed
         from utils.tracer import trace_event
         
         # Use consistent hashing (avoid double-hashing)
@@ -251,11 +251,11 @@ Provide a conversational, insightful response that:
         
         # Determine if we have a PSID or hash (hash length is 64 chars)
         if len(psid_or_hash) == 64:  # Already hashed
-            psid_hash = psid_or_hash
+            user_hash = psid_or_hash
         else:
-            psid_hash = hash_psid(psid_or_hash)
+            user_hash = psid_hash(psid_or_hash)
         
-        return self.handle_conversational_query_with_hash(psid_hash, user_message)
+        return self.handle_conversational_query_with_hash(user_hash, user_message)
     
     def generate_analysis_response_direct(self, psid_hash: str, user_message: str) -> Tuple[str, str]:
         """Generate analysis response with user context (direct hash access)"""

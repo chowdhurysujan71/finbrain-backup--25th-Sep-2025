@@ -1,0 +1,12 @@
+{
+  "timestamp": "2025-08-18T06:43:38.122109",
+  "summary": {
+    "total_users": 24,
+    "test_users_to_archive": 0,
+    "duplicate_groups": 0
+  },
+  "test_users": [],
+  "duplicate_merges": [],
+  "archive_actions": [],
+  "database_changes": []
+}
