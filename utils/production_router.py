@@ -97,6 +97,17 @@ class ProductionRouter:
         
         logger.info("Production Router initialized with bulletproof RL-2 and flag-gated AI")
     
+    def _is_expense_message(self, text: str) -> bool:
+        """Check if message looks like an expense (has numbers + keywords)"""
+        import re
+        
+        # Look for numbers and expense-related keywords
+        has_number = re.search(r'\d+', text)
+        expense_keywords = ['spent', 'paid', 'bought', 'cost', 'price', 'coffee', 'lunch', 'dinner', 'food', 'gas', 'fuel', 'uber', 'taxi']
+        has_expense_keyword = any(keyword in text.lower() for keyword in expense_keywords)
+        
+        return has_number and (has_expense_keyword or len(text.split()) <= 3)
+    
     def route_message(self, text: str, psid: str, rid: str = "") -> Tuple[str, str, Optional[str], Optional[float]]:
         """
         Single entry point for all message processing
@@ -144,15 +155,15 @@ class ProductionRouter:
 
             if not rate_limit_result.ai_allowed:
                 # Step 5: RL-2 path (rate limited)
-                response, intent, category, amount = self._route_rl2(text, psid, psid_hash, rid, rate_limit_result)
+                response, intent, category, amount = self._route_rl2(text, psid, user_hash, rid, rate_limit_result)
                 self.telemetry['rl2_messages'] += 1
                 self._record_processing_time(time.time() - start_time)
                 return response, intent, category, amount
             
-            # Step 6: Check if AI should be used
-            if AI_ENABLED and production_ai_adapter.ai_mode(text):
-                # Step 7: AI branch
-                response, intent, category, amount = self._route_ai(text, psid, psid_hash, rid, rate_limit_result)
+            # Step 6: Check if AI should be used (for expense messages)
+            if AI_ENABLED and self._is_expense_message(text):
+                # Step 7: AI branch with crash protection
+                response, intent, category, amount = self._route_ai(text, psid, user_hash, rid, rate_limit_result)
                 self.telemetry['ai_messages'] += 1
                 self._record_processing_time(time.time() - start_time)
                 return response, intent, category, amount
@@ -186,12 +197,12 @@ class ProductionRouter:
         # Generate response
         response = format_logged_response(amount, description, category)
         
-        self._log_routing_decision(rid, user_hash, "log", f"logged: {amount} {category}")
+        self._log_routing_decision(rid, psid_hash, "log", f"logged: {amount} {category}")
         return response, "log", category, amount
     
     def _route_rl2(self, text: str, psid: str, psid_hash: str, rid: str, rate_limit_result) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Route to RL-2 system for rate-limited processing"""
-        self._log_routing_decision(rid, user_hash, "rl2", f"rate_limited: {rate_limit_result.reason}")
+        self._log_routing_decision(rid, psid_hash, "rl2", f"rate_limited: {rate_limit_result.reason}")
         
         # Use bulletproof RL-2 processor
         response, intent, category, amount = rl2_processor.process_rate_limited_message(text, psid)
@@ -202,27 +213,63 @@ class ProductionRouter:
         return response, intent, category, amount
     
     def _route_ai(self, text: str, psid: str, psid_hash: str, rid: str, rate_limit_result) -> Tuple[str, str, Optional[str], Optional[float]]:
-        """Route to AI processing with failover to rules"""
-        self._log_routing_decision(rid, user_hash, "ai", "attempting_ai_parse")
+        """Route to AI processing with defensive normalization - fixes 'function has no len()' crash"""
+        self._log_routing_decision(rid, psid_hash, "ai", "attempting_ai_parse")
         
-        # Build context for AI
-        context = {
-            'user_hash': psid_hash,
-            'request_id': rid,
-            'tokens_remaining': rate_limit_result.tokens_remaining
-        }
+        try:
+            # Try AI parsing with defensive normalization  
+            from ai.expense_parse import parse_expense
+            expense = parse_expense(text)
+            
+            # Save expense to database
+            from utils.db import save_expense
+            save_expense(
+                user_identifier=psid_hash,
+                description=f"{expense['category']} expense",
+                amount=expense["amount"],
+                category=expense["category"],
+                platform="facebook",
+                original_message=text,
+                unique_id=rid
+            )
+            
+            reply = f"✅ Logged: ৳{expense['amount']:.0f} for {expense['category'].lower()}"
+            mode = "AI"
+            
+        except Exception as e:
+            logger.exception("AI expense logging error")
+            
+            # Deterministic fallback: try regex parser
+            from ai.expense_parse import regex_parse
+            expense = regex_parse(text)  # very strict "spent {amt} on {cat}"
+            if expense:
+                try:
+                    from utils.db import save_expense
+                    save_expense(
+                        user_identifier=psid_hash,
+                        description=f"{expense['category']} expense",
+                        amount=expense["amount"], 
+                        category=expense["category"],
+                        platform="facebook",
+                        original_message=text,
+                        unique_id=rid
+                    )
+                    reply = f"✅ Logged: ৳{expense['amount']:.0f} for {expense['category'].lower()}"
+                    mode = "STD"
+                except Exception as save_error:
+                    logger.error(f"Regex save failed: {save_error}")
+                    reply = "Something went wrong. Please try again."
+                    mode = "ERR"
+            else:
+                reply = "I couldn't read that. Try: 'spent 200 on groceries' or 'coffee 50'"
+                mode = "STD"
         
-        # Call AI adapter
-        ai_result = production_ai_adapter.ai_parse(text, context)
+        # Add debug stamp  
+        debug_stamp = f" | psid_hash={psid_hash[:8]}... | mode={mode}"
+        response = normalize(reply + debug_stamp)
         
-        if ai_result.get('failover', False):
-            # AI failed - fall back to rules
-            self.telemetry['ai_failovers'] += 1
-            self._log_routing_decision(rid, user_hash, "ai_failover", f"reason: {ai_result.get('reason', 'unknown')}")
-            return self._route_rules(text, psid, psid_hash, rid)
-        
-        # AI succeeded - apply results
-        intent = ai_result.get('intent', 'help')
+        self._log_routing_decision(rid, psid_hash, "ai_expense", f"logged_with_mode_{mode}")
+        return response, "ai_expense_logged", expense.get('category') if 'expense' in locals() else None, expense.get('amount') if 'expense' in locals() else None
         
         if intent == 'log':
             return self._handle_ai_log(ai_result, text, psid, psid_hash, rid)

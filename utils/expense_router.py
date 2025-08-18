@@ -15,67 +15,52 @@ logger = logging.getLogger(__name__)
 def handle_expense(job: Dict[str, Any]) -> bool:
     """
     Router: try AI → fallback regex → user hint
-    Uses single-source-of-truth identity from job["psid_hash"]
-    
-    Args:
-        job: Background job containing psid, psid_hash, text, mid
-        
-    Returns:
-        bool: True if expense logged successfully
+    Implements exact fix for AI crash prevention
     """
-    mode = "AI"
-    
     try:
-        # Try AI parsing first
-        exp = parse_expense(job["text"])
-        logger.info(f"AI parse success | psid_hash={job['psid_hash'][:12]}... | amount={exp['amount']}")
-    except Exception as e:
-        logger.warning(f"AI expense parsing failed: {e}")
-        mode = "STD"
-        
-        # Fallback to regex parsing
-        exp = regex_parse(job["text"])
-        if not exp:
-            # User hint for unrecognized format
-            send_reply(
-                job, 
-                "I couldn't read that. Try: 'spent 200 on groceries' or 'coffee 50'", 
-                mode="ERR"
-            )
-            return False
-        
-        logger.info(f"Regex parse success | psid_hash={job['psid_hash'][:12]}... | amount={exp['amount']}")
-    
-    try:
-        # Save expense using canonical identity (using existing function signature)
+        # Try AI parsing with defensive normalization
+        expense = parse_expense(job["text"])
         save_expense(
-            user_identifier=job["psid_hash"],  # Use pre-computed hash from webhook intake
-            description=f"{exp['category']} expense",
-            amount=exp["amount"],
-            category=exp["category"], 
+            user_identifier=job["psid_hash"],
+            description=f"{expense['category']} expense", 
+            amount=expense["amount"],
+            category=expense["category"],
             platform="facebook",
             original_message=job.get("text", ""),
             unique_id=job.get("mid", "")
         )
-        
-        # Send success reply with debug stamp
-        currency_symbol = "৳"  # From app config
-        send_reply(
-            job,
-            f"✅ Logged: {currency_symbol}{exp['amount']:.2f} for {exp['category'].lower()}",
-            mode=mode
-        )
-        
-        return True
+        reply = f"✅ Logged: ৳{expense['amount']:.0f} for {expense['category'].lower()}"
+        mode = "AI"
         
     except Exception as e:
-        logger.error(f"Database save failed | psid_hash={job['psid_hash'][:12]}... | error={e}")
-        send_reply(
-            job,
-            "Something went wrong saving your expense. Please try again.",
-            mode="ERR"
-        )
-        return False
+        logger.exception("AI expense logging error")
+        
+        # Deterministic fallback: try regex parser
+        expense = regex_parse(job["text"])  # very strict "spent {amt} on {cat}"
+        if expense:
+            try:
+                save_expense(
+                    user_identifier=job["psid_hash"],
+                    description=f"{expense['category']} expense",
+                    amount=expense["amount"], 
+                    category=expense["category"],
+                    platform="facebook",
+                    original_message=job.get("text", ""),
+                    unique_id=job.get("mid", "")
+                )
+                reply = f"✅ Logged: ৳{expense['amount']:.0f} for {expense['category'].lower()}"
+                mode = "STD"
+            except Exception as save_error:
+                logger.error(f"Regex save failed: {save_error}")
+                reply = "Something went wrong. Please try again."
+                mode = "ERR"
+        else:
+            reply = "I couldn't read that. Try: 'spent 200 on groceries' or 'coffee 50'"
+            mode = "STD"
+    
+    # Send reply with debug stamp  
+    send_reply(job, reply, mode)
+    return True
 
 def handle_summary_request(job: Dict[str, Any]) -> bool:
     """

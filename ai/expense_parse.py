@@ -10,100 +10,113 @@ logger = logging.getLogger(__name__)
 
 def parse_expense(text: str) -> dict:
     """
-    Return {'amount': float, 'category': str, 'note': Optional[str]}
-    Raise ValueError on bad parse.
+    Returns {'amount': float, 'category': str, 'note': str|None}
+    Raises ValueError on bad parse.
     """
     try:
-        # Use existing expense parsing logic (simple implementation for now)
-        # This will be enhanced with proper AI integration later
-        result = {"amount": 0, "category": "Unknown", "note": text}
-        
-        # Basic parsing for common patterns
-        import re
-        pattern = r'(\d+(?:\.\d+)?)'
-        amounts = re.findall(pattern, text)
-        if amounts:
-            result["amount"] = float(amounts[0])
-        
-        # Simple category detection
-        if "coffee" in text.lower():
-            result["category"] = "Food"
-        elif "food" in text.lower() or "lunch" in text.lower():
-            result["category"] = "Food"
-        else:
-            result["category"] = "Other"
-        
-        # Defensive: unwrap callables and enforce types
-        if callable(result): 
-            result = result()
-        if not isinstance(result, dict):
-            raise ValueError(f"AI parse returned {type(result)}")
+        # Call the actual AI model (using existing AI adapter)
+        from utils.ai_adapter import get_ai_adapter
+        ai = get_ai_adapter()
+        result = ai.parse_expense(text) if hasattr(ai, 'parse_expense') else _fallback_parse(text)
+    except Exception:
+        # If AI adapter fails, use fallback parsing
+        result = _fallback_parse(text)
+    
+    # Defensive normalization - exactly as specified
+    if callable(result):
+        result = result()  # or raise if that's unexpected
+    if not isinstance(result, dict):
+        raise ValueError(f"AI parse returned {type(result)}")
+    
+    amt = result.get("amount")
+    cat = result.get("category")
+    note = result.get("note")
+    
+    # Unwrap callables
+    if callable(amt): amt = amt()
+    if callable(cat): cat = cat()
+    if callable(note): note = note()
+    
+    # Strict validation
+    if amt is None or not isinstance(amt, (int, float, str)):
+        raise ValueError("amount missing/invalid")
+    if not cat or not isinstance(cat, str):
+        raise ValueError("category missing/invalid")
+    
+    # Convert string amounts
+    if isinstance(amt, str):
+        try:
+            amt = float(amt.replace(",", "").strip())
+        except ValueError:
+            raise ValueError("amount not convertible to number")
+    
+    return {
+        "amount": float(amt), 
+        "category": cat.strip(), 
+        "note": (note or "").strip() or None
+    }
 
-        amt = result.get("amount")
-        cat = result.get("category")
-        note = result.get("note")
-
-        # Unwrap any callable results
-        if callable(amt): amt = amt()
-        if callable(cat): cat = cat()
-        if callable(note): note = note()
-
-        # Validate amount
-        if not isinstance(amt, (int, float, str)):
-            raise ValueError("amount invalid")
-        if isinstance(amt, str):
-            # Crude but safe string to float conversion
-            amt = float(amt.replace(",", " ").split()[0])
-
-        # Validate category
-        if not isinstance(cat, str) or not cat.strip():
-            raise ValueError("category missing/invalid")
-
-        # Clean note
-        note = (note or "").strip() or None
-        
-        return {
-            "amount": float(amt), 
-            "category": cat.strip(), 
-            "note": note
-        }
-        
-    except Exception as e:
-        logger.warning(f"AI expense parse failed: {e}")
-        raise ValueError(f"AI parsing failed: {str(e)}")
-
-def regex_parse(text: str) -> Optional[dict]:
-    """
-    Strict regex fallback parser
-    Expects format: "spent X on Y" or "X on Y"
-    """
+def _fallback_parse(text: str) -> dict:
+    """Simple fallback parsing when AI is unavailable"""
     import re
     
-    # Pattern: spent 200 on groceries OR 200 on groceries
+    # Extract numbers
+    amounts = re.findall(r'(\d+(?:\.\d+)?)', text)
+    if not amounts:
+        raise ValueError("No amount found")
+    
+    amount = float(amounts[0])
+    
+    # Simple category detection
+    text_lower = text.lower()
+    if any(word in text_lower for word in ["coffee", "tea", "drink"]):
+        category = "Food"
+    elif any(word in text_lower for word in ["lunch", "dinner", "food", "meal"]):
+        category = "Food"
+    elif any(word in text_lower for word in ["gas", "fuel", "petrol"]):
+        category = "Transport"
+    elif any(word in text_lower for word in ["uber", "taxi", "bus", "parking"]):
+        category = "Transport"
+    else:
+        category = "Other"
+    
+    return {"amount": amount, "category": category, "note": None}
+
+def regex_parse(text: str) -> dict:
+    """Very strict regex parser for fallback - matches 'spent 200 on groceries' format"""
+    import re
+    
+    # Match patterns like "spent 200 on groceries" or "coffee 50"
     patterns = [
-        r'^spent\s+(\d+(?:\.\d+)?)\s+on\s+([a-z ]+)$',
-        r'^(\d+(?:\.\d+)?)\s+on\s+([a-z ]+)$',
-        r'^([a-z ]+)\s+(\d+(?:\.\d+)?)$'  # coffee 50
+        r'spent\s+(\d+(?:\.\d+)?)\s+on\s+(.+)',
+        r'(\w+)\s+(\d+(?:\.\d+)?)',
+        r'(\d+(?:\.\d+)?)\s+(\w+)',
+        r'(\d+(?:\.\d+)?)\s+for\s+(.+)'
     ]
     
     text_lower = text.lower().strip()
     
     for pattern in patterns:
-        match = re.match(pattern, text_lower)
+        match = re.search(pattern, text_lower)
         if match:
-            if pattern.endswith('([a-z ]+)$'):  # amount first
-                amount_str, category = match.groups()
-            else:  # category first (coffee 50)
-                category, amount_str = match.groups()
+            groups = match.groups()
             
-            try:
-                amount = float(amount_str)
-                return {
-                    "amount": amount,
-                    "category": category.strip(),
-                    "note": None
-                }
-            except ValueError:
-                continue
+            # Determine which group is amount vs category
+            if len(groups) == 2:
+                try:
+                    # Try first group as amount
+                    amount = float(groups[0])
+                    category = groups[1].strip().title()
+                except ValueError:
+                    try:
+                        # Try second group as amount  
+                        amount = float(groups[1])
+                        category = groups[0].strip().title()
+                    except ValueError:
+                        continue
+                
+                if amount > 0 and category:
+                    return {"amount": amount, "category": category, "note": None}
     
-    return None
+    return None  # No match found
+

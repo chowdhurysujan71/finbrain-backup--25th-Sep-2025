@@ -1,0 +1,67 @@
+Your AI path is crashing, causing timeout → canned reply
+
+This line is the culprit:
+
+utils.production_router - ERROR - AI expense logging error: object of type 'function' has no len()
+
+
+That error happens when you call len() on a function object. Common causes:
+
+You named a variable the same as a function (tokens = tokens(...) vs tokens = tokens).
+
+Your parser returns a callable (e.g., a partial) instead of a dict/string and you do len(result).
+
+You passed the function itself into the DB layer (value_fn instead of value_fn()).
+
+Fix (guard + normalize AI parse)
+
+Wrap the AI parse and hard-validate its output before using it:
+
+# ai/expenses.py
+def parse_expense(text: str) -> dict:
+    """
+    Returns {'amount': float, 'category': str, 'note': str|None}
+    Raises ValueError on bad parse.
+    """
+    result = _model_parse(text)  # whatever you call
+    # Defensive normalization
+    if callable(result):
+        result = result()  # or raise if that's unexpected
+    if not isinstance(result, dict):
+        raise ValueError(f"AI parse returned {type(result)}")
+    amt = result.get("amount")
+    cat = result.get("category")
+    if callable(amt): amt = amt()
+    if callable(cat): cat = cat()
+    if amt is None or not isinstance(amt, (int, float)):
+        raise ValueError("amount missing/invalid")
+    if not cat or not isinstance(cat, str):
+        raise ValueError("category missing/invalid")
+    return {"amount": float(amt), "category": cat.strip(), "note": (result.get("note") or "").strip() or None}
+
+
+In your router:
+
+try:
+    expense = parse_expense(text)
+    db.save_expense(psid_hash=job["psid_hash"], **expense)
+    reply = f"Logged {expense['amount']} on {expense['category']}."
+    mode = "AI"
+except Exception as e:
+    logger.exception("AI expense logging error")
+    # deterministic fallback: try regex parser
+    expense = regex_parse(text)  # very strict "spent {amt} on {cat}"
+    if expense:
+        db.save_expense(psid_hash=job["psid_hash"], **expense)
+        reply = f"Logged {expense['amount']} on {expense['category']}."
+        mode = "STD"
+    else:
+        reply = "I couldn't read that. Try: 'spent 200 on groceries'."
+        mode = "STD"
+send(reply + f" | psid_hash={job['psid_hash']} | mode={mode}")
+
+Why your chat looks “dumb”
+
+AI path crashes → you wait ~7s → timeout → send generic line.
+
+Summary says “no expenses” because the write never happened (crash) or it wrote under a different psid_hash than your summary query uses.
