@@ -375,9 +375,9 @@ class ProductionRouter:
             # Use resolve_user_id to get the proper user hash
             user_hash = resolve_user_id(psid=psid)
             
-            # Simple user existence check - no user_manager needed
+            # Simple user existence check - using correct field name
             from models import User
-            user_exists = db.session.query(User.user_id).filter_by(user_id=user_hash).first()
+            user_exists = db.session.query(User.user_id_hash).filter_by(user_id_hash=user_hash).first()
             
             if not user_exists:
                 # New user - handle onboarding
@@ -482,7 +482,7 @@ class ProductionRouter:
                 from models import User
                 from app import db
                 user_hash = resolve_user_id(psid=psid)
-                user = db.session.query(User).filter_by(user_id=user_hash).first()
+                user = db.session.query(User).filter_by(user_id_hash=user_hash).first()
                 if user:
                     user.interaction_count = (user.interaction_count or 0) + 1
                     db.session.commit()

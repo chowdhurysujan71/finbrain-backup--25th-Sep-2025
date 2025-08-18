@@ -1,0 +1,111 @@
+{
+  "timestamp": "2025-08-18T05:15:46.597187",
+  "summary": {
+    "total": 10,
+    "passed": 3,
+    "failed": 7,
+    "success_rate": 30.0
+  },
+  "results": [
+    {
+      "test": "Test 1: Should return spending summary",
+      "message": "summary",
+      "expected_intent": "SUMMARY",
+      "actual_intent": "summary",
+      "response_preview": "\ud83d\udcca Last 7 days: 100 BDT across 1 entries.\nCategories:\n\u2022 food: 100 (100%)\n\nTip: type 'insight' for spe...",
+      "success": true,
+      "has_fallback": false,
+      "is_error": false
+    },
+    {
+      "test": "Test 2: Case-insensitive summary",
+      "message": "Summary",
+      "expected_intent": "SUMMARY",
+      "actual_intent": "summary",
+      "response_preview": "\ud83d\udcca Last 7 days: 100 BDT across 1 entries.\nCategories:\n\u2022 food: 100 (100%)\n\nTip: type 'insight' for spe...",
+      "success": true,
+      "has_fallback": false,
+      "is_error": false
+    },
+    {
+      "test": "Test 3: Should provide insights",
+      "message": "give me insights",
+      "expected_intent": "INSIGHT",
+      "actual_intent": "insight",
+      "response_preview": "\ud83e\udde0 Quick insights:\n\u2022 food: 100 BDT (100%)\n\n\u26a0\ufe0f Optimization tips:\n\u2022 Food spending is 100% - consider m...",
+      "success": true,
+      "has_fallback": false,
+      "is_error": false
+    },
+    {
+      "test": "Test 4: Should log single expense",
+      "message": "coffee 100",
+      "expected_intent": "LOG_EXPENSE",
+      "actual_intent": "expense_fallback",
+      "response_preview": "Got it! I'll track that spending for you.",
+      "success": false,
+      "has_fallback": false,
+      "is_error": true
+    },
+    {
+      "test": "Test 5: Should log multiple expenses",
+      "message": "100 on uber and 500 on shoes",
+      "expected_intent": "LOG_EXPENSE",
+      "actual_intent": "rate_limited",
+      "response_preview": "\u23f3 I can give 4 smart insights per minute. Let's continue in a moment! Meanwhile, want a quick money ...",
+      "success": false,
+      "has_fallback": false,
+      "is_error": false
+    },
+    {
+      "test": "Test 6: Should undo last expense",
+      "message": "undo last",
+      "expected_intent": "UNDO",
+      "actual_intent": "rate_limited",
+      "response_preview": "\u23f3 I can give 4 smart insights per minute. Let's continue in a moment! Meanwhile, want a quick money ...",
+      "success": false,
+      "has_fallback": false,
+      "is_error": false
+    },
+    {
+      "test": "Test 7: All caps summary",
+      "message": "SUMMARY",
+      "expected_intent": "SUMMARY",
+      "actual_intent": "rate_limited",
+      "response_preview": "\u23f3 I can give 4 smart insights per minute. Let's continue in a moment! Meanwhile, want a quick money ...",
+      "success": false,
+      "has_fallback": false,
+      "is_error": false
+    },
+    {
+      "test": "Test 8: Natural language summary",
+      "message": "can you show my summary?",
+      "expected_intent": "SUMMARY",
+      "actual_intent": "rate_limited",
+      "response_preview": "\u23f3 I can give 4 smart insights per minute. Let's continue in a moment! Meanwhile, want a quick money ...",
+      "success": false,
+      "has_fallback": false,
+      "is_error": false
+    },
+    {
+      "test": "Test 9: Natural expense logging",
+      "message": "spent 50 on lunch",
+      "expected_intent": "LOG_EXPENSE",
+      "actual_intent": "rate_limited",
+      "response_preview": "\u23f3 I can give 4 smart insights per minute. Let's continue in a moment! Meanwhile, want a quick money ...",
+      "success": false,
+      "has_fallback": false,
+      "is_error": false
+    },
+    {
+      "test": "Test 10: Natural insights request",
+      "message": "I need some insights",
+      "expected_intent": "INSIGHT",
+      "actual_intent": "rate_limited",
+      "response_preview": "\u23f3 I can give 4 smart insights per minute. Let's continue in a moment! Meanwhile, want a quick money ...",
+      "success": false,
+      "has_fallback": false,
+      "is_error": false
+    }
+  ]
+}
