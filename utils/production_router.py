@@ -384,8 +384,19 @@ class ProductionRouter:
                 user_data = {'is_new': True, 'has_completed_onboarding': False}
                 return self._handle_onboarding(text, psid, user_data, rid)
             
-            # Generate engagement-driven AI prompt
-            ai_prompt = engagement_engine.get_ai_prompt(user_data, text, spend_data)
+            # For existing users, use simple intent-based routing
+            from utils.intent_router import detect_intent
+            intent = detect_intent(text)
+            
+            if intent == "SUMMARY":
+                from handlers.summary import handle_summary
+                result = handle_summary(user_hash)
+                return result.get('text', 'No spending data available'), 'summary', None, None
+            
+            elif intent == "INSIGHT":
+                from handlers.insight import handle_insight
+                result = handle_insight(user_hash)
+                return result.get('text', 'Unable to generate insights'), 'insight', None, None
             
             # Check if this is an expense logging message first
             from utils.ai_expense_parser import ai_expense_parser
@@ -402,17 +413,29 @@ class ProductionRouter:
             # Pass the already-computed hash directly to avoid double-hashing
             response, intent_type = conversational_ai.handle_conversational_query_with_hash(psid_hash, text)
             
-            # Add habit-forming elements for engagement
-            if user_data['interaction_count'] > 0:
-                habit_prompt = engagement_engine.get_habit_forming_response(user_data, user_data['interaction_count'])
-                if habit_prompt:
-                    response += f"\n\n{habit_prompt}"
+            # Skip habit-forming elements for now (user_data not defined in this path)
                 
             # Return conversational response
             return self._format_response(response), f"ai_{intent_type}", None, None
                 
         except Exception as e:
-            logger.error(f"Engagement routing error: {e}")
+            logger.error(f"Engagement routing error: {e}", exc_info=True)
+            # Check if this is a simple command we can handle directly
+            text_lower = text.lower().strip()
+            
+            # Try simple command handlers with proper intent detection
+            from utils.intent_router import detect_intent
+            intent = detect_intent(text)
+            
+            if intent == "SUMMARY":
+                try:
+                    from handlers.summary import handle_summary
+                    result = handle_summary(psid_hash)
+                    return result.get('text', 'Unable to generate summary'), 'summary', None, None
+                except Exception as summary_error:
+                    logger.error(f"Summary handler fallback error: {summary_error}")
+                    return "📊 Summary temporarily unavailable. Your expenses are still being tracked!", 'summary', None, None
+            
             # Final fallback
             response = "Got it. Try 'summary' for a quick recap of your spending."
             return self._format_response(response), "fallback_error", None, None
