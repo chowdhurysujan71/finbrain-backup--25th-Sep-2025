@@ -16,7 +16,7 @@ def get_or_create_user(user_identifier, platform, db_session=None):
         db_session = db
     
     try:
-        user_hash = ensure_hashed(user_identifier)
+        user_hash = user_identifier  # Already hashed
         
         user = User.query.filter_by(user_id_hash=user_hash).first()
         
@@ -42,15 +42,15 @@ def save_expense(user_identifier, description, amount, category, platform, origi
     """Save expense to database and update monthly summaries"""
     from models import Expense, User, MonthlySummary
     from utils.tracer import trace_event
-    from utils.user_manager import resolve_user_id as ensure_hashed
+    from utils.crypto import ensure_hashed
     
     if db_session is None:
         from app import db
         db_session = db
     
     try:
-        # Use consistent hashing
-        user_hash = ensure_hashed(user_identifier)
+        # User identifier is already hashed when passed from production_router
+        user_hash = user_identifier
         
         # Strict validation in debug mode
         import os
@@ -81,7 +81,7 @@ def save_expense(user_identifier, description, amount, category, platform, origi
         db_session.session.add(expense)
         
         # Update user totals
-        user = get_or_create_user(user_identifier, platform, db_session)
+        user = get_or_create_user(user_hash, platform, db_session)
         if user:
             user.total_expenses = float(user.total_expenses) + float(amount)
             user.expense_count += 1

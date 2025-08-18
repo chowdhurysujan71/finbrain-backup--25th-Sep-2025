@@ -365,8 +365,8 @@ class ProductionRouter:
             # We'll check rate limits only when we need AI processing
             
             # Get user data and handle onboarding with fresh data
-            # Use resolve_user_id to get the proper user hash
-            user_hash = resolve_user_id(psid=psid)
+            # Use the already computed hash
+            user_hash = psid_hash
             
             # Simple user existence check - using correct field name
             from models import User
@@ -392,10 +392,18 @@ class ProductionRouter:
                 return result.get('text', 'Unable to generate insights'), 'insight', None, None
             
             # Check if this is an expense logging message first
-            from utils.ai_expense_parser import ai_expense_parser
-            expense_parse_result = ai_expense_parser.parse_message(text)
+            from utils.parser import extract_expenses
+            expense_list = extract_expenses(text)
             
-            if expense_parse_result["success"] and expense_parse_result["item_count"] > 0:
+            if expense_list and len(expense_list) > 0:
+                # Convert to expected format for expense logging
+                expense_parse_result = {
+                    'expenses': expense_list,
+                    'total_amount': sum(exp['amount'] for exp in expense_list),
+                    'item_count': len(expense_list),
+                    'original_text': text,
+                    'success': True
+                }
                 # Handle expense logging with multiple items
                 return self._handle_ai_expense_logging(expense_parse_result, psid, psid_hash, rid)
             
@@ -438,7 +446,6 @@ class ProductionRouter:
         try:
             from utils.db import save_expense
             from utils.security import hash_psid
-            from utils.user_manager import resolve_user_id
             
             expenses = parse_result["expenses"]
             total_amount = parse_result["total_amount"]
@@ -453,9 +460,9 @@ class ProductionRouter:
                 description = expense_data["description"]
                 category = expense_data["category"]
                 
-                # Log the expense
+                # Log the expense  
                 result = save_expense(
-                    user_identifier=hash_psid(psid),
+                    user_identifier=psid_hash,  # Use the already computed hash
                     description=description,
                     amount=amount,
                     category=category,
@@ -474,7 +481,7 @@ class ProductionRouter:
                 # Simple interaction count update without user_manager
                 from models import User
                 from app import db
-                user_hash = resolve_user_id(psid=psid)
+                user_hash = psid_hash  # Use the already computed hash
                 user = db.session.query(User).filter_by(user_id_hash=user_hash).first()
                 if user:
                     user.interaction_count = (user.interaction_count or 0) + 1
@@ -527,7 +534,7 @@ class ProductionRouter:
             # Update the database with AI-extracted data directly
             from models import User
             from app import db
-            user_hash = resolve_user_id(psid=psid)
+            user_hash = psid_hash  # Use the already computed hash
             # Guard against model regressions
             assert hasattr(User, "user_id_hash"), "User model must expose user_id_hash"
             user = db.session.query(User).filter_by(user_id_hash=user_hash).first()

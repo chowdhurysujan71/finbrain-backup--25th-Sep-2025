@@ -73,3 +73,12 @@ Fixed critical "log-ack" loop where all messages received generic responses. Imp
 - **Deterministic Handlers**: Created `handlers/` module with database-driven summary, rule-based insights, and multi-expense logging
 - **Multi-Expense Parser**: Enhanced parser extracts multiple amounts with context-aware category detection ("100 on Uber and 500 on shoes")
 - **Rate Limit Bypass**: Summary/Insight/Undo commands bypass AI rate limiting entirely for instant responses
+
+### Multi-Expense Logging Complete Fix
+Fixed critical function signature and import errors preventing multi-expense logging. System now properly:
+
+- **Hash Consistency**: Resolved `resolve_user_id()` function signature mismatches and import errors across codebase
+- **Database Integration**: Fixed `ensure_hashed` import issues in `utils/db.py` and `utils/production_router.py`
+- **Multi-Expense Processing**: Successfully logs multiple expenses from single messages ("lunch 125 and parking 55")
+- **Detailed Responses**: Generates AI-powered responses with expense breakdowns instead of generic fallbacks
+- **Intent Resolution**: Properly returns `ai_expense_logged` intent with accurate total amounts
