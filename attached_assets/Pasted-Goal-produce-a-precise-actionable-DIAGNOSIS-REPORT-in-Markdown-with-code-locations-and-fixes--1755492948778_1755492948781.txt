@@ -1,0 +1,54 @@
+Goal: produce a precise, actionable DIAGNOSIS REPORT in Markdown, with code locations and fixes.
+
+## Context
+- Framework: Flask + background worker/queue.
+- Current symptom: Messenger replies are stuck on the logging ack. 
+- Known error in logs: "cannot import name 'user_manager' from 'utils.user_manager'".
+- We also saw mixed Graph API versions (v17.0 logged while v19.0 called).
+- Prefer deterministic summaries/insights (no AI) to work even if AI is disabled.
+
+## What to do
+1) **Static scan**
+   - Find circular or broken imports, especially around: `utils.user_manager`, `utils.background_processor`, `utils/dispatcher.py`, `utils/intent_router.py`, `utils/facebook_handler.py`, `utils/webhook_processor.py`, and any `__init__.py` files.
+   - List each import cycle or bad import with a SHORT path chain (e.g., user_manager ▸ background_processor ▸ dispatcher ▸ user_manager).
+   - Confirm whether `utils/user_manager.py` actually exports a symbol named `user_manager`. If not, note it.
+
+2) **Runtime probe (safe)**
+   - Add a temporary script `scripts/probe_imports.py` that imports the top-level modules and prints PASS/FAIL for each suspected module.
+   - Run it and capture failures with tracebacks (but do NOT modify app behavior yet).
+
+3) **Router & intent**
+   - Inspect the intent detection & dispatch ordering. If a number or the word "spent" causes messages like "Summary" to be classified as LOG, call it out.
+   - Identify where the log-ack template is returned prematurely.
+
+4) **Webhook event filter**
+   - Check if delivery/read/typing events are being enqueued. If yes, note where and how to filter them to DEBUG-only.
+
+5) **Graph API version drift**
+   - Grep for `graph.facebook.com` usage and report every hardcoded version. Recommend a single env var (e.g., FB_GRAPH_VERSION) across all callers and loggers.
+
+6) **Health & Observability**
+   - Locate `/health` and list current fields. If missing, suggest `uptime_s`, `queue_depth`, `ai_status`, `graph_version`.
+
+7) **Leftover providers**
+   - Search for OpenAI or unused providers. If present, confirm they are fully feature-flagged or removed. There is **no** Supabase in prod; flag any dead imports.
+
+8) **Parser for multi-amount**
+   - Check the expense parser. If it ignores multiple numbers in one message (e.g., "Uber 100 and shoe 500"), include that in findings.
+
+## Output format (strict)
+Produce a Markdown report with these sections:
+
+# FinBrain — Diagnosis Report
+- **Summary (5 bullets max)**
+- **Critical Errors**
+  - [file:line] Title — 1–2 line explanation + proof (snippet or stack trace)
+- **High-Priority Fixes**
+  - Itemized list with files to edit and intended change
+- **Warnings / Cleanups**
+- **Import Graph (text)**
+  - Simple chains for each cycle/bad import
+- **API Version Map**
+  - Table: file → version → action
+- **Acceptance Criteria**
+  - Clear bullet list of what must pass after fixes (e.g., Summary/Insight respond w/o AI; /health shows fields; simulate endpoint queues; no non-message events enqueued)
