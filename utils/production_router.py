@@ -283,7 +283,7 @@ class ProductionRouter:
     
     def _route_rules(self, text: str, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Route to deterministic rules processing"""
-        self._log_routing_decision(rid, user_hash, "rules", "deterministic_processing")
+        self._log_routing_decision(rid, psid_hash, "rules", "deterministic_processing")
         
         text_lower = text.lower().strip()
         
@@ -307,12 +307,12 @@ class ProductionRouter:
             # Format response with variants
             response = format_logged_response(amount, description, category)
             
-            self._log_routing_decision(rid, user_hash, "rules", f"logged: {amount} {category}")
+            self._log_routing_decision(rid, psid_hash, "rules", f"logged: {amount} {category}")
             return response, "log", category, amount
         
         # No pattern matched - help
         response = format_help_response()
-        self._log_routing_decision(rid, user_hash, "rules", "help_provided")
+        self._log_routing_decision(rid, psid_hash, "rules", "help_provided")
         return response, "help", None, None
     
     def _handle_ai_log(self, ai_result: Dict[str, Any], text: str, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
@@ -331,7 +331,7 @@ class ProductionRouter:
         # Generate AI-powered response with intelligent tips
         response = self._generate_ai_logged_response(amount, note, category, ai_result.get('tips', []))
         
-        self._log_routing_decision(rid, user_hash, "ai_log", f"logged: {amount} {category}")
+        self._log_routing_decision(rid, psid_hash, "ai_log", f"logged: {amount} {category}")
         return normalize(response), "log", category, amount
     
     def _handle_ai_summary(self, ai_result: Dict[str, Any], psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
@@ -345,7 +345,7 @@ class ProductionRouter:
         
         response = format_summary_response(totals, tip)
         
-        self._log_routing_decision(rid, user_hash, "ai_summary", f"total: {totals.get('total', 0)}")
+        self._log_routing_decision(rid, psid_hash, "ai_summary", f"total: {totals.get('total', 0)}")
         return response, "summary", None, None
     
     def _handle_ai_undo(self, ai_result: Dict[str, Any], psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
@@ -356,11 +356,11 @@ class ProductionRouter:
         if removed_expense:
             amount, note = removed_expense
             response = format_undo_response(amount, note)
-            self._log_routing_decision(rid, user_hash, "ai_undo", f"removed: {amount}")
+            self._log_routing_decision(rid, psid_hash, "ai_undo", f"removed: {amount}")
             return response, "undo", None, amount
         else:
             response = format_undo_response()
-            self._log_routing_decision(rid, user_hash, "ai_undo", "nothing_to_undo")
+            self._log_routing_decision(rid, psid_hash, "ai_undo", "nothing_to_undo")
             return response, "undo", None, None
     
     def _handle_ai_help(self, ai_result: Dict[str, Any], psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
@@ -379,7 +379,7 @@ class ProductionRouter:
             # Last resort template
             response = format_help_response()
         
-        self._log_routing_decision(rid, user_hash, "ai_help", "help_provided")
+        self._log_routing_decision(rid, psid_hash, "ai_help", "help_provided")
         return normalize(response), "help", None, None
         
     def route_message(self, text: str, psid: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
@@ -396,6 +396,7 @@ class ProductionRouter:
         if len(psid) == 64:  # Already hashed
             user_hash = psid
         else:
+            from utils.identity import psid_hash
             user_hash = psid_hash(psid)
         
         try:
@@ -451,14 +452,14 @@ class ProductionRouter:
                     'success': True
                 }
                 # Handle expense logging with multiple items
-                return self._handle_ai_expense_logging(expense_parse_result, psid, psid_hash, rid)
+                return self._handle_ai_expense_logging(expense_parse_result, psid, user_hash, rid)
             
             # Use conversational AI for non-expense messages
             from utils.conversational_ai import conversational_ai
             
             # Handle conversational queries with user-level memory
             # Pass the already-computed hash directly to avoid double-hashing
-            response, intent_type = conversational_ai.handle_conversational_query_with_hash(psid_hash, text)
+            response, intent_type = conversational_ai.handle_conversational_query_with_hash(user_hash, text)
             
             # Skip habit-forming elements for now (user_data not defined in this path)
                 
@@ -477,7 +478,7 @@ class ProductionRouter:
             if intent == "SUMMARY":
                 try:
                     from handlers.summary import handle_summary
-                    result = handle_summary(psid_hash)
+                    result = handle_summary(user_hash)
                     return result.get('text', 'Unable to generate summary'), 'summary', None, None
                 except Exception as summary_error:
                     logger.error(f"Summary handler fallback error: {summary_error}")
@@ -527,7 +528,8 @@ class ProductionRouter:
                 # Simple interaction count update without user_manager
                 from models import User
                 from app import db
-                user_hash = psid_hash  # Use the already computed hash
+                from utils.identity import psid_hash as psid_hash_func
+                user_hash = psid_hash_func(psid)  # Compute the hash from PSID
                 user = db.session.query(User).filter_by(user_id_hash=user_hash).first()
                 if user:
                     user.interaction_count = (user.interaction_count or 0) + 1
@@ -580,13 +582,13 @@ class ProductionRouter:
             # Update the database with AI-extracted data directly
             from models import User
             from app import db
-            user_hash = psid_hash  # Use the already computed hash
+            user_hash_value = psid_hash  # Use the already computed hash parameter
             # Guard against model regressions
             assert hasattr(User, "user_id_hash"), "User model must expose user_id_hash"
-            user = db.session.query(User).filter_by(user_id_hash=user_hash).first()
+            user = db.session.query(User).filter_by(user_id_hash=user_hash_value).first()
             if not user:
                 # Create new user - using correct field name
-                user = User(user_id_hash=user_hash, platform='messenger')
+                user = User(user_id_hash=user_hash_value, platform='messenger')
                 db.session.add(user)
             
             # Update onboarding fields
@@ -603,28 +605,32 @@ class ProductionRouter:
                 success = False
             
             if not success:
-                logger.warning(f"Failed to update user data during AI onboarding: {psid_hash[:8]}...")
+                logger.warning(f"Failed to update user data during AI onboarding: {user_hash_value[:8]}...")
                 response_text = "Let me help you get started. What's your monthly income range?"
             
             # Check if onboarding is complete
             if updated_user_data.get('has_completed_onboarding', False):
-                self._log_routing_decision(rid, user_hash, "onboarding_complete", "ai_driven_completion")
+                self._log_routing_decision(rid, user_hash_value, "onboarding_complete", "ai_driven_completion")
                 return self._format_response(response_text), "onboarding_complete", None, None
             else:
                 current_step = updated_user_data.get('onboarding_step', 0)
-                self._log_routing_decision(rid, user_hash, "onboarding", f"ai_step_{current_step}")
+                self._log_routing_decision(rid, user_hash_value, "onboarding", f"ai_step_{current_step}")
                 return self._format_response(response_text), "onboarding", None, None
                 
         except Exception as e:
             logger.error(f"AI onboarding error: {e}")
             # Fallback to simple onboarding progression
             fallback_response = "I'm here to help you track your finances. What's your monthly income range?"
-            self._log_routing_decision(rid, user_hash, "onboarding_fallback", "ai_error")
+            # Compute hash for fallback logging
+            from utils.identity import psid_hash as psid_hash_func
+            fallback_hash = psid_hash_func(psid)
+            self._log_routing_decision(rid, fallback_hash, "onboarding_fallback", "ai_error")
             return self._format_response(fallback_response), "onboarding", None, None
     
     def _handle_uat_commands(self, text: str, psid: str, rid: str) -> Optional[Tuple[str, str, Optional[str], Optional[float]]]:
         """Handle UAT system commands"""
         from utils.uat_system import uat_system
+        from utils.identity import psid_hash
         
         user_hash = psid_hash(psid)
         text_lower = text.lower().strip()
@@ -647,6 +653,7 @@ class ProductionRouter:
     def _handle_uat_flow(self, text: str, psid: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Handle active UAT testing flow"""
         from utils.uat_system import uat_system
+        from utils.identity import psid_hash
         
         user_hash = psid_hash(psid)
         
@@ -681,7 +688,7 @@ class ProductionRouter:
         
         response = format_summary_response(totals, tip)
         
-        self._log_routing_decision(rid, user_hash, "rules_summary", f"total: {totals.get('total', 0)}")
+        self._log_routing_decision(rid, psid_hash, "rules_summary", f"total: {totals.get('total', 0)}")
         return response, "summary", None, None
     
     def _handle_rules_undo(self, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
@@ -691,11 +698,11 @@ class ProductionRouter:
         if removed_expense:
             amount, note = removed_expense
             response = format_undo_response(amount, note)
-            self._log_routing_decision(rid, user_hash, "rules_undo", f"removed: {amount}")
+            self._log_routing_decision(rid, psid_hash, "rules_undo", f"removed: {amount}")
             return response, "undo", None, amount
         else:
             response = format_undo_response()
-            self._log_routing_decision(rid, user_hash, "rules_undo", "nothing_to_undo")
+            self._log_routing_decision(rid, psid_hash, "rules_undo", "nothing_to_undo")
             return response, "undo", None, None
     
     def _store_expense_deterministic(self, psid: str, amount: float, description: str, category: str, original_text: str):
