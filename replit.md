@@ -1,7 +1,7 @@
-# FinBrain replit.md
+# FinBrain
 
 ## Overview
-FinBrain is a production-ready Facebook Messenger expense tracking application with an AI-first architecture that now includes comprehensive user-level AI integration through both chat and web interfaces. It processes expense messages via webhooks, providing intelligent AI categorization while ensuring deterministic core functionality. The system emphasizes robust security, including mandatory HTTPS and signature verification. Its primary purpose is to offer streamlined expense tracking and AI-powered financial insights through Messenger chat and web dashboard.
+FinBrain is an AI-first expense tracking application delivered via Facebook Messenger and a web interface. It processes expense messages, provides intelligent AI categorization, and offers streamlined financial insights. The system prioritizes security, featuring mandatory HTTPS and signature verification. Its core purpose is to simplify expense tracking and provide AI-powered financial analysis.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -9,35 +9,38 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Web Framework
-FinBrain uses Flask as its core web framework, integrating with SQLAlchemy for database operations. It features a production-hardened webhook at `/webhook/messenger` with mandatory signature verification and HTTPS enforcement for secure and asynchronous processing. Administrative and operational dashboards are protected by HTTP Basic Auth, including endpoints for health checks, token monitoring, PSID exploration, and version tracking.
+FinBrain utilizes Flask with SQLAlchemy for database integration. It features a secure webhook at `/webhook/messenger` requiring signature verification and HTTPS. Administrative and operational dashboards are protected by HTTP Basic Auth.
 
 ### Database Design
-The primary database is PostgreSQL, structured with `expenses` for detailed logs, `users` for profiles and rate limiting, and `monthly_summaries` for aggregated analytics. SQLAlchemy ORM manages database models, incorporating connection pooling for reliability.
+The primary database is PostgreSQL, with `expenses` for detailed logs, `users` for profiles and rate limiting, and `monthly_summaries` for aggregated analytics. SQLAlchemy ORM manages models with connection pooling.
 
 ### Security Architecture
-Security is paramount, with mandatory X-Hub-Signature-256 verification for Facebook webhooks, HTTPS enforcement, and automated monitoring of Facebook Page Access Tokens. User identifiers (Facebook PSIDs) are SHA-256 hashed, and no raw personal data is stored. All sensitive credentials are configured via environment variables, and the system adheres to the 24-hour messaging policy and implements rate limiting per user.
+Security measures include X-Hub-Signature-256 verification for Facebook webhooks, HTTPS enforcement, and automated monitoring of Facebook Page Access Tokens. User identifiers (Facebook PSIDs) are SHA-256 hashed, and all sensitive credentials are environment variables. The system adheres to messaging policies and implements per-user rate limiting.
 
 ### Cold-Start Mitigation System
-To ensure responsiveness, AI providers are pre-warmed on app boot. A 5-minute health ping system keeps the server active, and the `/health` endpoint offers comprehensive monitoring of uptime, queue depth, and AI status.
+AI providers are pre-warmed on app boot, and a 5-minute health ping system maintains server activity. The `/health` endpoint monitors uptime, queue depth, and AI status.
 
 ### Background Processing System
-A thread pool with three worker threads handles background message processing, ensuring non-blocking webhook responses. It includes a 5-second timeout with automatic fallback replies. An intelligent AI recommendation layer, utilizing Gemini-2.5-flash-lite, categorizes expenses and offers personalized tips. A pluggable AI adapter system supports multiple providers with PII hygiene and failover mechanisms. A robust AI rate limiting system prevents abuse without blocking request threads.
+A thread pool handles background message processing to ensure non-blocking webhook responses, including a 5-second timeout with fallback replies. An intelligent AI recommendation layer (Gemini-2.5-flash-lite) categorizes expenses and provides tips. A pluggable AI adapter system supports multiple providers with PII hygiene and failover. A robust AI rate limiting system prevents abuse.
 
 ### Message Processing Pipeline
-Inbound messages are immediately acknowledged by the webhook and then queued for background processing. The system features an engagement-driven AI architecture with proactive onboarding and personalized user interactions. New users receive a welcome sequence with income assessment, spending category identification, and focus area selection using AI-powered input parsing. The AI onboarding parser uses Gemini-2.5-flash to understand natural language responses in various formats (numbered, natural language, mixed), enabling flexible user interaction patterns. 
+Inbound messages are acknowledged immediately and queued for background processing. The system features an engagement-driven AI architecture with proactive onboarding and personalized interactions. New users receive a welcome sequence with income assessment, spending category identification, and focus area selection using AI-powered input parsing (Gemini-2.5-flash).
 
-**Enhanced Multi-Item Expense Processing**: The system now includes an evolved AI expense parser that handles complex multi-item messages like "coffee 100, burger 300 and watermelon juice 300". The parser uses intelligent regex-based detection combined with AI fallback to accurately extract multiple expenses from comma-separated and "and"-separated lists, resolving the previous issue where only single items were logged from multi-item messages. This enhancement improves context awareness by ensuring all spending data is captured.
+The AI expense parser handles complex multi-item messages (e.g., "coffee 100, burger 300 and watermelon juice 300") using regex and AI fallback to extract multiple expenses, improving context awareness.
 
-The context-driven system builds user-specific data packets from 30-day spending patterns, enforcing structured responses through JSON schema validation. When user context is insufficient (<2 categories), the system guards against generic advice and prompts for data collection ("log 3 biggest spends"). All AI responses follow a summary/action/question structure and are limited to 280 characters with graceful clipping. A per-user AI rate limiter (4 requests/60s) prevents spam while maintaining engagement. Habit-forming UX elements trigger weekly challenges and check-ins after interaction thresholds.
+The context-driven system builds user-specific data packets from 30-day spending patterns, enforcing structured responses via JSON schema validation. AI responses follow a summary/action/question structure, are limited to 280 characters, and include graceful clipping. A per-user AI rate limiter (4 requests/60s) prevents spam. Habit-forming UX elements trigger weekly challenges and check-ins.
 
 ### AI-Enhanced Web Dashboard
-The system now includes comprehensive user-level AI integration through web interfaces. Each user has a personalized AI insights dashboard accessible via `/user/{psid_hash}/insights` that provides real-time financial analysis, personalized recommendations, and spending pattern insights generated by Gemini AI. The dashboard includes AI-generated financial summaries, smart tips, category-specific insights, and recent conversation history. Admin users can access a user management interface with direct links to AI insights for each user, enabling comprehensive oversight of AI-powered financial advice delivery.
+Each user has a personalized AI insights dashboard accessible via `/user/{psid_hash}/insights`, providing real-time financial analysis, recommendations, and spending pattern insights generated by Gemini AI. The dashboard includes AI-generated financial summaries, smart tips, category-specific insights, and recent conversation history. Admin users can access a user management interface with links to user insights.
 
 ### Facebook Messenger Integration
 The system integrates with the Facebook Messenger Platform via Graph API v17.0, using `facebook_handler.py` for platform-specific interactions and unified expense processing.
 
 ### Modular Architecture
-The codebase is highly modular, organized into a `utils` package containing specialized modules for expense parsing, categorization, security, database operations, rate limiting, Facebook messaging, webhook processing, background execution, AI adaptation, cold-start mitigation, health pings, routing, policy guarding, report generation, and scheduling.
+The codebase is modular, organized into a `utils` package containing modules for expense parsing, categorization, security, database operations, rate limiting, Facebook messaging, webhook processing, background execution, AI adaptation, cold-start mitigation, health pings, routing, policy guarding, report generation, and scheduling.
+
+### AI Constitution Implementation Status
+The system provides sophisticated AI-driven financial advice and learning capabilities. Key implemented AI capabilities include context awareness, multi-step reasoning, recommendation intelligence, self-learning, long-term intelligence, meta-intelligence, and safeguards.
 
 ## External Dependencies
 
@@ -47,9 +50,6 @@ The codebase is highly modular, organized into a `utils` package containing spec
 ### Database
 - **PostgreSQL**: Primary data storage.
 - **SQLAlchemy**: ORM for database interactions.
-
-### Task Scheduling
-- **APScheduler**: For background task execution (reports disabled for MVP).
 
 ### Security & Validation
 - **hashlib**: For SHA-256 hashing of user identifiers.
@@ -63,95 +63,3 @@ The codebase is highly modular, organized into a `utils` package containing spec
 ### Frontend
 - **Bootstrap 5**: CSS framework for the dashboard UI.
 - **Font Awesome 6**: Icon library for the dashboard UI.
-
-### Environment Configuration
-The application enforces strict boot validation, requiring specific environment variables for operation, including `DATABASE_URL`, `ADMIN_USER`, `ADMIN_PASS`, `FACEBOOK_PAGE_ACCESS_TOKEN`, and `FACEBOOK_VERIFY_TOKEN`. Optional configurations include `SENTRY_DSN`, `SESSION_SECRET`, rate limiting parameters, AI enablement, AI provider selection, and production mode settings.
-
-## AI Constitution Implementation Status
-
-### Current AI Capabilities (85% Complete)
-**Fully Implemented:**
-- Context Awareness: Persistent user profiles, historical trend analysis, personalized insights
-- Multi-Step Reasoning: Parse → reason → validate → respond pipeline with Gemini AI
-- Recommendation Intelligence: Personalized financial advice, threshold alerts, clear explanations
-- Self-Learning: Adaptive user models, AI onboarding that evolves with responses
-- Long-Term Intelligence: 30-day analysis, persistent profiles, spending pattern recognition
-- Meta-Intelligence: Confidence scoring, fallback mechanisms, dynamic response adjustment
-- Safeguards: Privacy protection, conservative assumptions, rate limiting, user benefit prioritization
-
-**Partially Implemented:**
-- Collaboration: Messenger and web dashboard integration (banking/calendar integrations pending)
-
-### Missing AI Capabilities (20% Gap)
-**Proactive Behavior:** Automated 24-48 hour nudges, milestone celebrations, background insights generation
-**Goal Tracking:** Structured goal management, progress monitoring, automated progress reports
-
-### Technical Requirements for Full AI Constitution
-- Background job scheduling system (Celery/Redis) for autonomous operations
-- Goal management database models and tracking infrastructure  
-- Push notification system for proactive user engagement
-- Automated report generation and milestone detection
-
-The current system provides sophisticated AI-driven financial advice and learning capabilities but requires automation infrastructure to achieve full autonomous operation as outlined in the AI Constitution.
-
-## Recent Evolution (August 2025)
-**Enhanced Multi-Item Expense Parser**: Successfully implemented intelligent parsing for complex expense messages containing multiple items (e.g., "coffee 100, burger 300 and watermelon juice 300"). The system now correctly extracts and logs all individual expenses from comma-separated and "and"-separated lists.
-
-**Write/Read Path Consistency Fix (August 17, 2025)**: Successfully resolved the final write/read path inconsistency that prevented conversational AI from accessing stored expense data. The breakthrough includes:
-
-- **Root Cause**: Double-hashing bug in legacy conversational AI methods caused different hash generation for same user
-- **Unified Crypto Module**: Created `utils/crypto.py` with `ensure_hashed()` function to prevent double-hashing
-- **Legacy Method Fix**: Updated `get_user_expense_context()` to use consistent hashing
-- **Database Field Alignment**: Confirmed expenses table (`user_id`) and users table (`user_id_hash`) access same data consistently
-- **Complete Data Access**: Both legacy and direct methods now return actual user expense data
-
-**Verification Results**: Test users now show "Has Data: True" and AI generates intelligent summaries: "Over the last 30 days, you've had 3 transactions totaling $700.00. It looks like all of your spending was on food."
-
-**Comprehensive Hardening (August 17, 2025)**: Implemented complete anti-regression measures:
-- **Unified Crypto Entry Point**: All code paths now use `utils/crypto.ensure_hashed()` exclusively
-- **Legacy Function Deprecation**: Removed all `hash_psid()` and `hash_user_id()` direct calls
-- **Strict Validation Guards**: Added `is_sha256_hex()` validation and `STRICT_IDS` debug mode
-- **Regression Test Suite**: Created comprehensive tests to prevent double-hashing regressions
-- **Database Field Standardization**: All writes/reads use `user_id` field consistently
-
-This final fix advances AI Constitution implementation from 95% to 98%, completing the core conversational AI functionality. Users now receive consistent, intelligent financial insights based on their actual transaction history across all code paths. The system maintains organic conversation flow with full access to user-level memory and spending patterns.
-
-**Runtime Error Resolution (August 17-18, 2025)**: Successfully completed comprehensive hotfix for "ensure_hashed is not defined" runtime errors through surgical implementation of:
-
-1. **Defensive Import Guards**: Added to `utils/production_router.py` with centralized resolver fallback
-2. **Single-Source Normalization**: Created `utils/user_manager.py` with `resolve_user_id()` as sole entry point  
-3. **Cross-Module Standardization**: Migrated 5 core modules to use centralized resolver pattern
-4. **Duplicate Cleanup**: Removed root-level `production_router.py` duplicate causing import conflicts
-5. **SHA-Based Verification**: Router loading confirmed with hash validation (`0789d554bdac`)
-
-**Technical Verification Results**: All modules now import user ID resolution through single entry point, preventing fragmented crypto imports. Background processor successfully loads with defensive guards active. Zero runtime errors in comprehensive 4-message canary test sequence. All acceptance criteria met with surgical precision - system ready for production.
-
-**Comprehensive UAT Validation (August 18, 2025)**: Successfully completed comprehensive User Acceptance Test with strict mode validation (`STRICT_IDS=true`, `SUMMARY_MODE=direct`, `AI_ENABLED=true`). All acceptance criteria met with enhanced error detection:
-- ✅ Hash consistency: 4/4 test cases show perfect crypto vs security hash alignment
-- ✅ Quickscan cross-verification: Raw PSID and hash parameters resolve identically
-- ✅ AI context access: Direct database mode confirms 3 expenses, $700 total for test user
-- ✅ Runtime stability: All 5 core modules import ensure_hashed successfully
-- ✅ Database normalization: Direct queries bypass cache, return accurate real-time data
-- ✅ Multi-user isolation: Each PSID generates unique hash with zero cross-contamination
-- ✅ Idempotency protection: Mathematical hash consistency proven under strict validation
-
-**Router Canonicality Fix (August 18, 2025)**: Successfully completed comprehensive router canonicality normalization to eliminate all non-canonical import paths:
-- **Canonical Path Enforcement**: All runtime paths now use `utils.production_router` (SHA: 0789d554bdac)
-- **Legacy Webhook Unification**: `/webhook` endpoint now forwards to canonical `/webhook/messenger` processor
-- **Admin Operations Normalized**: All admin blueprint handlers use canonical router imports
-- **Startup Self-Check**: Added `[BOOT] Canonical router loaded. SHA=0789d554bdac` verification
-- **Guardrail Testing**: Created `tests/test_router_canonicality.py` to prevent future regressions
-- **Import Graph Cleanup**: Eliminated non-canonical imports from `admin_ops.py`, `uat_context_system.py`, `uat_focused_retests.py`
-
-**Summary Routing Breakthrough (August 18, 2025)**: Successfully implemented robust summary detection system that routes summary commands BEFORE AI processing to bypass rate limits entirely. Key achievements:
-
-- **Early Summary Detection**: Summary intent detection happens as first priority in router flow
-- **Comprehensive Pattern Matching**: Case-insensitive regex covers "summary", "recap", "what did i spend", "show me my spending", etc.
-- **Deterministic Service**: Created `services/summaries.py` module for expense rollups without AI dependencies
-- **Zero Rate Limiting**: Summary commands never consume AI tokens or hit rate limits
-- **Clean UX**: Removed inappropriate "Try 'summary'" prompts from non-logging contexts
-- **Instant Response**: Database-driven summary generation provides immediate financial insights
-
-**Router Priority Flow**: Panic → Summary Detection → Expense Logging → Rate Limiting → AI → Rules
-
-**Production Deployment Status**: 🚀 **IMMEDIATELY DEPLOYABLE** with 98% AI Constitution implementation, bulletproof router canonicality, comprehensive summary routing, and feature completeness validated under enhanced error detection.
