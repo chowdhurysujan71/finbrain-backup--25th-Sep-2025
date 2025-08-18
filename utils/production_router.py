@@ -428,6 +428,10 @@ class ProductionRouter:
             from utils.intent_router import detect_intent
             intent = detect_intent(text)
             
+            # DIAGNOSTIC COMMAND (temporary testing)
+            if text.strip().lower() == "diag":
+                return f"diag | type={type(user_hash).__name__} | psid_hash={user_hash[:8]}... | mode=STD", "diagnostic", None, None
+            
             if intent == "SUMMARY":
                 from handlers.summary import handle_summary
                 result = handle_summary(user_hash)
@@ -572,6 +576,7 @@ class ProductionRouter:
         """Handle user onboarding with complete AI-driven system"""
         from utils.ai_onboarding_system import ai_onboarding_system
         from utils.user_manager import resolve_user_id
+        from utils.identity import psid_hash
         
         user_hash = psid_hash(psid)
         
@@ -582,7 +587,7 @@ class ProductionRouter:
             # Update the database with AI-extracted data directly
             from models import User
             from app import db
-            user_hash_value = psid_hash  # Use the already computed hash parameter
+            user_hash_value = user_hash  # Use the already computed hash from above
             # Guard against model regressions
             assert hasattr(User, "user_id_hash"), "User model must expose user_id_hash"
             user = db.session.query(User).filter_by(user_id_hash=user_hash_value).first()

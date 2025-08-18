@@ -231,6 +231,13 @@ Provide a conversational, insightful response that:
     
     def handle_conversational_query_with_hash(self, psid_hash: str, user_message: str) -> Tuple[str, str]:
         """Handle conversational queries using user-level memory with pre-computed hash"""
+        # --- DEFENSIVE TYPE GUARD ---
+        if callable(psid_hash) or not isinstance(psid_hash, str):
+            import logging
+            logging.error("BUG: psid_hash must be string, got %s", type(psid_hash))
+            raise ValueError("psid_hash must be a string")
+        # --- END GUARD ---
+        
         message_lower = user_message.lower()
         
         # Detect summary requests
