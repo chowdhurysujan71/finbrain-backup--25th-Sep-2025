@@ -6,7 +6,7 @@ import hashlib
 from datetime import datetime, timedelta
 from typing import Dict, Any, Tuple
 
-from utils.crypto import ensure_hashed
+from utils.user_manager import resolve_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ def process_log_intent(psid: str, amount_str: str, note: str) -> str:
         
         # Create expense record
         expense = Expense(
-            user_id=ensure_hashed(psid),
+            user_id=resolve_user_id(psid=psid),
             description=note[:100],  # Truncate for DB
             amount=amount,
             category=category,
@@ -61,7 +61,7 @@ def process_log_intent(psid: str, amount_str: str, note: str) -> str:
         )
         
         # Update or create user record with 24-hour policy tracking
-        user_hash = ensure_hashed(psid)
+        user_hash = resolve_user_id(psid=psid)
         user = User.query.filter_by(user_id_hash=user_hash).first()
         if not user:
             user = User(
@@ -101,7 +101,7 @@ def process_summary_intent(psid: str) -> str:
         # Import here to avoid circular import
         from models import Expense
         
-        user_hash = ensure_hashed(psid)
+        user_hash = resolve_user_id(psid=psid)
         seven_days_ago = datetime.now() - timedelta(days=7)
         
         # Get expenses from last 7 days
@@ -180,7 +180,7 @@ def log_structured_event(rid: str, psid: str, mid: str, route: str, duration_ms:
     """Log structured JSON event (no PII)"""
     log_data = {
         "rid": rid,
-        "psid_hash": ensure_hashed(psid),
+        "psid_hash": resolve_user_id(psid=psid),
         "mid": mid,
         "route": route,
         "duration_ms": round(duration_ms, 1),

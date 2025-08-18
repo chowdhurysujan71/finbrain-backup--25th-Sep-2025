@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
-from utils.crypto import ensure_hashed
+from utils.user_manager import resolve_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ def is_within_24_hour_window(psid: str) -> bool:
     try:
         from models import User, db
         
-        user_hash = ensure_hashed(psid)
+        user_hash = resolve_user_id(psid=psid)
         user = User.query.filter_by(user_id_hash=user_hash).first()
         
         if not user or not user.last_user_message_at:
@@ -38,7 +38,7 @@ def update_user_message_timestamp(psid: str):
     try:
         from models import User, db
         
-        user_hash = ensure_hashed(psid)
+        user_hash = resolve_user_id(psid=psid)
         user = User.query.filter_by(user_id_hash=user_hash).first()
         
         if not user:

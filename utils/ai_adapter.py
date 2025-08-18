@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
-from utils.crypto import ensure_hashed
+from utils.user_manager import resolve_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -375,7 +375,7 @@ class AIAdapter:
         
         # Hash PSID for PII protection
         from utils.security import hash_psid
-        psid_hash = ensure_hashed(psid)
+        psid_hash = resolve_user_id(psid=psid)
         
         # Sanitize context to remove PII
         safe_context = self._sanitize_context(context or {})

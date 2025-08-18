@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Optional, Dict, Any, Tuple
 
 from .logger import log_webhook_success, get_request_id
-from .crypto import ensure_hashed
+from .user_manager import resolve_user_id
 from .security import hash_psid
 from .rate_limiter import check_rate_limit
 from .policy_guard import update_user_message_timestamp, is_within_24_hour_window
@@ -66,8 +66,7 @@ class BackgroundProcessor:
             
             future = self.executor.submit(self._process_job_safe, job)
             
-            from utils.crypto import ensure_hashed
-            psid_hash = ensure_hashed(psid)
+            psid_hash = resolve_user_id(psid=psid)
             log_webhook_success(psid_hash, mid, "queued", None, None, 0)
             
             logger.info(f"Request {rid}: Message queued for background processing")
@@ -80,8 +79,7 @@ class BackgroundProcessor:
     def _process_job_safe(self, job: MessageJob) -> None:
         """Process job with timeout protection and RL-2 support"""
         start_time = time.time()
-        from utils.crypto import ensure_hashed
-        psid_hash = ensure_hashed(job.psid)
+        psid_hash = resolve_user_id(psid=job.psid)
         intent = "unknown"
         category = None
         amount = None

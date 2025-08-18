@@ -1,3 +1,12 @@
+# defensive import guard
+try:
+    from utils.crypto import ensure_hashed
+except Exception:
+    # lazy fallback (won't run unless top-level import failed)
+    def ensure_hashed(x):
+        from utils.crypto import ensure_hashed as _eh
+        return _eh(x)
+
 """
 Production routing system: Deterministic Core + Flag-Gated AI + Canary Rollout
 Implements single entry point with rate limiting, AI failover, and comprehensive telemetry
@@ -5,8 +14,11 @@ Implements single entry point with rate limiting, AI failover, and comprehensive
 import os
 import time
 import logging
+import pathlib
 from typing import Tuple, Optional, Dict, Any, List
 from datetime import datetime, timezone
+
+logging.warning("PRODUCTION_ROUTER_INIT file=%s", pathlib.Path(__file__).resolve())
 
 from utils.background_processor_rl2 import rl2_processor
 from utils.ai_limiter import advanced_ai_limiter
@@ -15,7 +27,6 @@ from utils.textutil import (
     format_logged_response, format_summary_response, format_help_response,
     format_undo_response, get_random_tip, normalize, PANIC_PLAIN_REPLY
 )
-from utils.crypto import ensure_hashed
 from utils.security import hash_psid
 from utils.parser import parse_expense
 from utils.categories import categorize_expense
