@@ -1,0 +1,150 @@
+Here’s a single, copy-paste **Replit prompt (no code)** you can drop into your workspace to generate a thorough system report. It tells the auditor exactly what to inspect, how to score it, and what to deliver—without making any changes to your system.
+
+---
+
+# FinBrain MVP — Full System Health Audit (Read-Only)
+
+**Goal:** Produce a single, comprehensive report that surfaces **outliers, issues, blockers, and bugs** preventing a clean MVP release.
+**Scope:** Facebook Messenger integration, webhook intake, background worker, routing, AI adapter, identity layer, database reads/writes, and user-visible responses.
+
+## Operating Rules
+
+* **Read-only.** Do **not** modify code, settings, env vars, or data. No retries that could mutate state.
+* **Evidence-based.** Every finding must include a **log excerpt** or **measured metric** (time range + source).
+* **User-centric.** Prioritize defects that produce wrong or missing behavior in Messenger.
+* **Deterministic.** If data is insufficient, say so and mark as **“Unverifiable — Data Gap”** (with the exact artifact missing).
+
+## Time Window
+
+* Analyze the **last 24 hours**, with a focused deep-dive on the **most recent 2 hours**.
+
+## Artifacts to Inspect
+
+1. **Runtime logs** from:
+
+   * `utils/webhook_processor`, `utils/background_processor`, `utils/production_router`, `utils/facebook_handler`, `utils/policy_guard`, `utils/security`, `finbrain.structured`, and any `ai/*`.
+2. **Messenger outcomes** (user-visible text) for a real account:
+
+   * Inputs: `coffee 50`, `spent 100 on lunch`, `blah blah`, `summary`.
+   * Check reply text + `psid_hash` + `mode` stamp.
+3. **DB evidence** (read-only):
+
+   * Most recent expense rows and last 7-day aggregates keyed by `psid_hash`.
+4. **Configuration snapshots** (read-only):
+
+   * App mode (Live vs Dev), page subscriptions & subscribed fields, primary receiver (handover), tokens present, `ID_SALT` present.
+5. **Latency & error rates**:
+
+   * Intake→queue→send timings, AI parse error/fallback rates, timeout counts.
+
+## What To Produce (Deliverables)
+
+Deliver one markdown report with these sections:
+
+1. **Executive Summary (≤10 bullets)**
+
+   * Overall status (Green / Yellow / Red) with 1-line justification.
+   * Top 3 blockers to MVP.
+   * Quick wins (can fix today).
+   * Medium fixes (1–3 days).
+   * Risks (unknowns or brittle areas).
+
+2. **MVP Readiness Checklist (Pass/Fail + Evidence)**
+
+   * **Identity Layer:**
+
+     * Single `psid_hash` per user across messages and restarts (**Pass/Fail**).
+     * No hashing on delivery/read events (**Pass/Fail**).
+     * `ID_SALT` mandatory at boot (**Pass/Fail**).
+     * Evidence: sample logs showing stable `psid_hash` for at least 3 messages from the same user.
+   * **Routing & Response Layer:**
+
+     * AI path reachable: at least one message processed with `mode=AI` in last 2 hours.
+     * Fallback path reachable and **not** masking errors (explicit logs on AI failure).
+     * No generic canned replies for clear intents like `coffee 50` (**Fail if present**).
+   * **Data Integrity:**
+
+     * Expense writes succeed for the same `psid_hash` used in `summary`.
+     * `summary` includes newly added expenses within 2 seconds.
+   * **Facebook Plumbing:**
+
+     * App is **Live**; Page is **subscribed** with `messages`, `messaging_postbacks`.
+     * Send API responses are **200** with `recipient_id` + `message_id`.
+     * No competing Primary Receiver stealing threads.
+   * **Performance:**
+
+     * p95 end-to-end < **2.5s** (intake → send).
+     * AI parse timeouts = **0** in last 2 hours.
+     * Fallback rate < **15%** over last 2 hours (note actual).
+   * **Observability:**
+
+     * Logs include: intake, parse result, DB write success, reply mode, and `psid_hash` echo.
+     * Any missing links? Mark **Data Gap**.
+
+3. **Outliers & Anomalies (with evidence)**
+
+   * **Identity outliers:** same `mid` with different `psid_hash`; slicing attempts `psid_hash[:N]` failing; any re-hashing outside intake.
+   * **Routing anomalies:** messages that should be AI → ending up `mode=STD`; repeated generic canned replies; unclassified intents.
+   * **AI adapter anomalies:** prior errors like “object of type 'function' has no len()” (confirm absence); any slow responses > 3s.
+   * **DB outliers:** writes without subsequent reads; mismatched `psid_hash` between write and summary; duplicate identities.
+   * **Facebook anomalies:** missing webhook POSTs vs successful `GET /me` and token checks; handover conflicts.
+
+4. **Known Blockers (Stop-Ship)**
+
+   * Each with: **Title**, **Symptom**, **Impact**, **Root Cause (hypothesis)**, **Evidence**, **How to Reproduce**, **Suggested Fix**, **ETA (effort)**.
+
+5. **Bugs & Gaps (Non-Blocking but Important)**
+
+   * Same template, but mark as **Non-Blocking**.
+
+6. **Quality Gates for MVP Sign-off**
+
+   * The exact conditions that must be **true** to declare MVP ready (identity stability, AI path green, write→summary within 2s, fallback <15%, p95 <2.5s, no canned replies on structured spend inputs, etc.).
+
+7. **Appendix: Evidence**
+
+   * Collated log excerpts with timestamps, anonymized IDs, and brief annotations.
+   * Table of sampled user inputs → system responses (input, expected, actual, mode, psid\_hash).
+
+## Scoring Rubric (use this language)
+
+* **Green:** Meets or exceeds target, no user-visible defects.
+* **Yellow:** Intermittent issue or minor deviation; user impact low.
+* **Red:** Consistent failure or severe degradation; user impact high.
+* **Data Gap:** Cannot verify; specify the missing artifact.
+
+## Specific Checks (call them out explicitly)
+
+* **Identity Consistency:** “For user X (psid\_hash prefix \*\*\*\*), messages A/B/C share identical hash; delivery/read events produce **no** new hashes.”
+* **Router Call-Site:** “No occurrences of passing `psid_hash` (function) instead of `job['psid_hash']` (string) into conversational handlers.”
+* **AI Reachability:** “At least one message in last 2 hours shows `mode=AI`; if none, explain why, with logs.”
+* **Fallback Transparency:** “When AI fails, logs show explicit exception **and** a deterministic regex fallback—not silent canned messages.”
+* **DB Round-Trip:** “Input `coffee 50` → write row appears for same `psid_hash` → `summary` returns it within 2s.”
+* **Latency:** Provide p50, p90, p95 for intake→send, plus distribution notes.
+* **Facebook Subscriptions:** Confirm subscribed fields; verify Send API 200s with IDs; no handover conflicts.
+* **Canned Replies:** Flag every instance where structured inputs (`spent {amt} on {cat}`) received generic guidance instead of logging.
+
+## Prioritization Guidance
+
+* **Stop-Ship if:** identity drift, AI path unreachable, DB writes not reflected in `summary`, or generic canned replies for structured spend inputs.
+* **High Priority:** fallback over-use (>15%), latency p95 >2.5s, missing explicit AI error logs.
+* **Medium:** observability gaps, missing indexes, or partial test coverage.
+* **Low:** copy tweaks, minor phrasing, cosmetic logging.
+
+## Output Format (exactly)
+
+* Title, Date/Time (with timezone)
+* One-line Status (Green/Yellow/Red)
+* Then sections 1–7 above, in order, with headings and checkboxes:
+
+  * `[x] Pass` / `[ ] Fail` / `[ ] Data Gap` per checklist item
+* Include **verbatim** log lines in the Appendix (redact secrets).
+
+## Sanity Inputs (non-mutating except user messages)
+
+* Use only the four messages: `coffee 50`, `spent 100 on lunch`, `blah blah`, `summary`.
+* Do **not** alter tokens, salts, or subscriptions. If config confirmation is needed, read current values without changing them.
+
+---
+
+**Deliver this full report in one message.** If any section cannot be completed due to missing data, mark it **Data Gap** and list the exact artifact needed to finish the verification.
