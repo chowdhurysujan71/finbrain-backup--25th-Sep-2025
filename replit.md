@@ -63,3 +63,13 @@ The system provides sophisticated AI-driven financial advice and learning capabi
 ### Frontend
 - **Bootstrap 5**: CSS framework for the dashboard UI.
 - **Font Awesome 6**: Icon library for the dashboard UI.
+
+## Recent Improvements (August 18, 2025)
+
+### Intent Routing Fix
+Fixed critical "log-ack" loop where all messages received generic responses. Implemented priority-based intent routing:
+
+- **Intent Priority**: SUMMARY → INSIGHT → UNDO → LOG_EXPENSE → UNKNOWN (commands checked before expense logging)
+- **Deterministic Handlers**: Created `handlers/` module with database-driven summary, rule-based insights, and multi-expense logging
+- **Multi-Expense Parser**: Enhanced parser extracts multiple amounts with context-aware category detection ("100 on Uber and 500 on shoes")
+- **Rate Limit Bypass**: Summary/Insight/Undo commands bypass AI rate limiting entirely for instant responses

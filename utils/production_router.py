@@ -122,46 +122,56 @@ class ProductionRouter:
                 self._log_routing_decision(rid, psid_hash, "panic", "immediate_ack")
                 return response, "panic", None, None
             
-            # Step 1: Summary FIRST, no rate-limit gate
-            if _is_summary_command(text):
-                logger.info(f"[ROUTER] intent=summary psid={psid}")
-                response = handle_summary(psid, text)
-                self._log_routing_decision(rid, psid_hash, "summary", "deterministic_bypass")
-                return normalize(response), "summary", None, None
+            # Step 1: Use intent router for command detection
+            from utils.intent_router import detect_intent
+            from utils.dispatcher import handle_message_dispatch
             
-            # Step 2: Evaluate rate limiter for AI/other paths
-            rate_limit_result = advanced_ai_limiter.check_rate_limit(psid_hash)
+            intent = detect_intent(text)
             
-            # Step 3: Expense logging (check before AI)
-            parsed_expense = parse_expense(text)
-            if parsed_expense:
-                response, intent, category, amount = self._handle_expense_log(parsed_expense, text, psid, psid_hash, rid)
-                # Append the tip ONLY after successful log
-                if response and isinstance(response, str) and intent == "log":
-                    response = f"{response}\n\nTip: type 'summary' anytime for a quick recap."
+            # Step 2: Route non-AI intents immediately (bypass rate limits)
+            if intent in ["SUMMARY", "INSIGHT", "UNDO"]:
+                logger.info(f"[ROUTER] Deterministic intent={intent} psid={psid}")
+                response_text, _ = handle_message_dispatch(psid_hash, text)
+                self._log_routing_decision(rid, psid_hash, intent.lower(), "deterministic_bypass")
+                return normalize(response_text), intent.lower(), None, None
+            
+            # Step 3: Handle expense logging with new parser
+            if intent == "LOG_EXPENSE":
+                from handlers.logger import handle_log
+                result = handle_log(psid_hash, text)
+                response = result.get('text', 'Unable to log expense')
+                self._log_routing_decision(rid, psid_hash, "log", "expense_logged")
                 self._record_processing_time(time.time() - start_time)
-                return normalize(response), intent, category, amount
+                return normalize(response), "log", None, None
+            
+            # Step 4: Evaluate rate limiter for AI paths only
+            rate_limit_result = advanced_ai_limiter.check_rate_limit(psid_hash)
 
             if not rate_limit_result.ai_allowed:
-                # Step 4: RL-2 path (rate limited)
+                # Step 5: RL-2 path (rate limited)
                 response, intent, category, amount = self._route_rl2(text, psid, psid_hash, rid, rate_limit_result)
                 self.telemetry['rl2_messages'] += 1
                 self._record_processing_time(time.time() - start_time)
                 return response, intent, category, amount
             
-            # Step 5: Check if AI should be used
+            # Step 6: Check if AI should be used
             if AI_ENABLED and production_ai_adapter.ai_mode(text):
-                # Step 6: AI branch
+                # Step 7: AI branch
                 response, intent, category, amount = self._route_ai(text, psid, psid_hash, rid, rate_limit_result)
                 self.telemetry['ai_messages'] += 1
                 self._record_processing_time(time.time() - start_time)
                 return response, intent, category, amount
             
-            # Step 7: Deterministic rules path
-            response, intent, category, amount = self._route_rules(text, psid, psid_hash, rid)
-            self.telemetry['rules_messages'] += 1
+            # Step 8: Unknown intent - provide help
+            response = (
+                "I can help you track expenses! Try:\n"
+                "• 'spent 100 on lunch' - to log an expense\n"
+                "• 'summary' - to see your spending\n"
+                "• 'insight' - for optimization tips"
+            )
+            self._log_routing_decision(rid, psid_hash, "help", "unknown_intent")
             self._record_processing_time(time.time() - start_time)
-            return response, intent, category, amount
+            return normalize(response), "help", None, None
             
         except Exception as e:
             logger.error(f"Production routing error: {e}")
