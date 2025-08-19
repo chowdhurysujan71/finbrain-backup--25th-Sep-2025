@@ -42,6 +42,12 @@ class LatencyMonitor:
             rank = n - 1
         
         return sorted_values[rank]
+    
+    def clear(self) -> None:
+        """Clear all recorded data for testing"""
+        self.buffer.clear()
+        self.index = 0
+        self.full = False
 
 
 # Global instance
@@ -58,3 +64,7 @@ def count() -> int:
 def p95() -> Optional[float]:
     """Get P95 latency"""
     return _monitor.p95()
+
+def clear() -> None:
+    """Clear all recorded data for testing"""
+    _monitor.clear()

@@ -31,6 +31,9 @@ try:
 except ImportError:
     perf = None
 
+# Flask imports for webhook blueprint
+from flask import Blueprint, request, jsonify
+
 # Log which router file each process loads with SHA verification
 _P = pathlib.Path(__file__).resolve()
 logging.warning("PRODUCTION_ROUTER_INIT file=%s sha=%s",
@@ -391,12 +394,18 @@ class ProductionRouter:
         from utils.uat_system import uat_system
         from app import db
         
+        # Start performance tracking
+        start_time = time.time()
+        
         # Check if we already have a hash (64 chars) or need to hash a PSID
-        if len(psid) == 64:  # Already hashed
+        if psid and len(psid) == 64:  # Already hashed
             user_hash = psid
         else:
             from utils.identity import psid_hash
-            user_hash = psid_hash(psid)
+            user_hash = psid_hash(psid or "unknown")
+        
+        # AI-path verification logging: log entry
+        ai_logger.info(f"ai_path_enter psid_hash={user_hash[:8]}... mid={rid} text_len={len(text)}")
         
         try:
             # Check for UAT commands first
@@ -432,11 +441,15 @@ class ProductionRouter:
                 return f"diag | type={type(user_hash).__name__} | psid_hash={user_hash[:8]}... | mode=STD", "diagnostic", None, None
             
             if intent == "SUMMARY":
+                # Log non-AI path
+                ai_logger.info(f"ai_path_exit psid_hash={user_hash[:8]}... mid={rid} intents=['summary'] mode=STD")
                 from handlers.summary import handle_summary
                 result = handle_summary(user_hash)
                 return result.get('text', 'No spending data available'), 'summary', None, None
             
             elif intent == "INSIGHT":
+                # Log non-AI path
+                ai_logger.info(f"ai_path_exit psid_hash={user_hash[:8]}... mid={rid} intents=['insight'] mode=STD")
                 from handlers.insight import handle_insight
                 result = handle_insight(user_hash)
                 return result.get('text', 'Unable to generate insights'), 'insight', None, None
@@ -454,15 +467,23 @@ class ProductionRouter:
                     'original_text': text,
                     'success': True
                 }
+                # Log expense logging path
+                ai_logger.info(f"ai_path_exit psid_hash={user_hash[:8]}... mid={rid} intents=['log_expense'] mode=LOG")
                 # Handle expense logging with multiple items
                 return self._handle_ai_expense_logging(expense_parse_result, psid, user_hash, rid)
             
             # Use conversational AI for non-expense messages
             from utils.conversational_ai import conversational_ai
             
+            # AI-path logging: entering AI processing
+            ai_logger.info(f"ai_path_enter psid_hash={user_hash[:8]}... mid={rid} intents=['conversational'] mode=AI")
+            
             # Handle conversational queries with user-level memory
             # Pass the already-computed hash directly to avoid double-hashing
             response, intent_type = conversational_ai.handle_conversational_query_with_hash(user_hash, text)
+            
+            # AI-path logging: exiting AI processing
+            ai_logger.info(f"ai_path_exit psid_hash={user_hash[:8]}... mid={rid} intents=['{intent_type}'] mode=AI")
             
             # Skip habit-forming elements for now (user_data not defined in this path)
                 
@@ -483,6 +504,14 @@ class ProductionRouter:
                 except Exception as summary_error:
                     logger.error(f"Summary handler fallback error: {summary_error}")
                     return "📊 Summary temporarily unavailable. Your expenses are still being tracked!", 'summary', None, None
+            
+            # Final fallback with performance logging
+            end_time = time.time()
+            latency = (end_time - start_time) * 1000  # Convert to ms
+            if perf:
+                perf.record(latency)
+            ai_logger.info(f"perf_e2e latency_ms={latency:.2f} psid_hash={user_hash[:8]}... mid={rid}")
+            ai_logger.info(f"ai_path_exit psid_hash={user_hash[:8]}... mid={rid} intents=['fallback'] mode=ERR")
             
             # Final fallback
             response = "Got it. Try 'summary' for a quick recap of your spending."
@@ -904,3 +933,47 @@ class ProductionRouter:
 
 # Global instance
 production_router = ProductionRouter()
+
+# Flask Blueprint for webhook endpoints
+webhook_bp = Blueprint('webhook', __name__)
+
+@webhook_bp.route('/webhook/messenger', methods=['GET', 'POST'])
+def webhook_messenger():
+    """Facebook Messenger webhook endpoint"""
+    if request.method == 'GET':
+        # Webhook verification
+        verify_token = request.args.get('hub.verify_token')
+        challenge = request.args.get('hub.challenge')
+        if verify_token == os.environ.get('FACEBOOK_VERIFY_TOKEN'):
+            return challenge
+        return 'Verification failed', 403
+    
+    elif request.method == 'POST':
+        # Process incoming message
+        data = request.get_json()
+        if not data or data.get('object') != 'page':
+            return jsonify({'status': 'ok'})
+        
+        # Extract events and process
+        for entry in data.get('entry', []):
+            for message_event in entry.get('messaging', []):
+                if 'message' in message_event and 'text' in message_event['message']:
+                    # Extract PSID with fallback
+                    psid = message_event.get('sender', {}).get('id')
+                    if not psid:
+                        continue  # Skip if no PSID
+                    
+                    text = message_event['message']['text']
+                    mid = message_event['message'].get('mid', 'unknown')
+                    rid = get_request_id() or mid
+                    
+                    # Route message through production router
+                    response, intent, category, amount = production_router.route_message_engagement(text, psid, rid)
+                    
+                    # Send response (simplified for testing)
+                    return jsonify({
+                        'recipient': {'id': psid},
+                        'message': {'text': response[:2000]}  # Facebook limit
+                    })
+        
+        return jsonify({'status': 'ok'})
