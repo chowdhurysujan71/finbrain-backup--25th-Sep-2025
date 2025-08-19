@@ -11,3 +11,6 @@ openai
 openai
 google-genai
 google-genai
+mypy
+pytest
+ruff

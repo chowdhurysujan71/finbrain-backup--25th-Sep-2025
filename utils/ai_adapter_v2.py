@@ -47,6 +47,30 @@ class ProductionAIAdapter:
         
         logger.info(f"Production AI Adapter initialized: enabled={self.enabled}, provider={self.provider}")
     
+    def phrase_summary(self, summary: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Shim for summary phrasing - maintains compatibility with existing calls
+        """
+        if not self.enabled:
+            return {"failover": True, "reason": "ai_disabled"}
+        
+        total = summary.get("total", 0)
+        currency = summary.get("currency", "BDT")
+        count = summary.get("count", 0)
+        
+        if count == 0:
+            text = "No expenses found in the selected period."
+        elif count == 1:
+            text = f"You spent {total} {currency} on 1 expense."
+        else:
+            text = f"You spent {total} {currency} across {count} expenses."
+        
+        return {
+            "text": text,
+            "failover": False,
+            "intent": "summary"
+        }
+    
     def ai_parse(self, text: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Parse text with AI and return structured response

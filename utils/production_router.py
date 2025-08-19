@@ -1,10 +1,10 @@
-# Single source of truth for user ID resolution  
-from utils.identity import psid_hash
-
 """
 Production routing system: Deterministic Core + Flag-Gated AI + Canary Rollout
 Implements single entry point with rate limiting, AI failover, and comprehensive telemetry
 """
+
+# Single source of truth for user ID resolution  
+from utils.identity import psid_hash
 import os
 import re
 import time
@@ -67,7 +67,7 @@ def handle_summary(psid: str, text: str):
         if AI_ENABLED:
             try:
                 from utils.ai_adapter_v2 import production_ai_adapter
-                context = {'user_hash': psid_hash(psid), 'request_id': 'summary'}
+
                 ai_result = production_ai_adapter.phrase_summary(rollup)
                 if ai_result and not ai_result.get('failover', False):
                     return ai_result.get('text', format_summary_text(rollup))
@@ -102,11 +102,11 @@ class ProductionRouter:
         import re
         
         # Look for numbers and expense-related keywords
-        has_number = re.search(r'\d+', text)
+        has_number = bool(re.search(r'\d+', text))
         expense_keywords = ['spent', 'paid', 'bought', 'cost', 'price', 'coffee', 'lunch', 'dinner', 'food', 'gas', 'fuel', 'uber', 'taxi']
         has_expense_keyword = any(keyword in text.lower() for keyword in expense_keywords)
         
-        return has_number and (has_expense_keyword or len(text.split()) <= 3)
+        return bool(has_number and (has_expense_keyword or len(text.split()) <= 3))
     
     def route_message(self, text: str, psid: str, rid: str = "") -> Tuple[str, str, Optional[str], Optional[float]]:
         """
@@ -236,7 +236,7 @@ class ProductionRouter:
             reply = f"✅ Logged: ৳{expense['amount']:.0f} for {expense['category'].lower()}"
             mode = "AI"
             
-        except Exception as e:
+        except Exception:
             logger.exception("AI expense logging error")
             
             # Deterministic fallback: try regex parser
@@ -270,16 +270,6 @@ class ProductionRouter:
         
         self._log_routing_decision(rid, psid_hash, "ai_expense", f"logged_with_mode_{mode}")
         return response, "ai_expense_logged", expense.get('category') if 'expense' in locals() else None, expense.get('amount') if 'expense' in locals() else None
-        
-        if intent == 'log':
-            return self._handle_ai_log(ai_result, text, psid, psid_hash, rid)
-        elif intent == 'summary':
-            return self._handle_ai_summary(ai_result, psid, psid_hash, rid)
-        elif intent == 'undo':
-            return self._handle_ai_undo(ai_result, psid, psid_hash, rid)
-        else:
-            # Help or unknown
-            return self._handle_ai_help(ai_result, psid_hash, rid)
     
     def _route_rules(self, text: str, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Route to deterministic rules processing"""
@@ -382,16 +372,11 @@ class ProductionRouter:
         self._log_routing_decision(rid, psid_hash, "ai_help", "help_provided")
         return normalize(response), "help", None, None
         
-    def route_message(self, text: str, psid: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
-        """Engagement-driven message routing with UAT testing and personalization"""
-        from utils.context_packet import build_context, is_context_thin, CONTEXT_SYSTEM_PROMPT, RESPONSE_SCHEMA
-        from ai_adapter_gemini import generate_with_schema
-        from utils.engagement import engagement_engine
-        from utils.user_manager import resolve_user_id
+    def route_message_engagement(self, text: str, psid: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+        """Engagement-driven message routing with UAT testing and personalization (deprecated)"""
         from utils.uat_system import uat_system
         from app import db
         
-        start_time = time.time()
         # Check if we already have a hash (64 chars) or need to hash a PSID
         if len(psid) == 64:  # Already hashed
             user_hash = psid
@@ -472,9 +457,6 @@ class ProductionRouter:
                 
         except Exception as e:
             logger.error(f"Engagement routing error: {e}", exc_info=True)
-            # Check if this is a simple command we can handle directly
-            text_lower = text.lower().strip()
-            
             # Try simple command handlers with proper intent detection
             from utils.intent_router import detect_intent
             intent = detect_intent(text)
@@ -499,7 +481,6 @@ class ProductionRouter:
             # Using canonical psid_hash from top-level import
             
             expenses = parse_result["expenses"]
-            total_amount = parse_result["total_amount"]
             item_count = parse_result["item_count"]
             
             logged_expenses = []
@@ -561,6 +542,9 @@ class ProductionRouter:
                 else:
                     response += "Great job tracking your spending!"
                 
+                # Ensure user_hash is properly bound for logging  
+                from utils.identity import psid_hash as psid_hash_func
+                user_hash = psid_hash_func(psid)
                 self._log_routing_decision(rid, user_hash, "ai_multi_expense", f"logged_{item_count}_items_total_{total_logged}")
                 return self._format_response(response), "ai_expense_logged", expenses[0]["category"] if expenses else None, total_logged
             else:
@@ -575,7 +559,6 @@ class ProductionRouter:
     def _handle_onboarding(self, text: str, psid: str, user_data: Dict[str, Any], rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Handle user onboarding with complete AI-driven system"""
         from utils.ai_onboarding_system import ai_onboarding_system
-        from utils.user_manager import resolve_user_id
         from utils.identity import psid_hash
         
         user_hash = psid_hash(psid)
@@ -593,7 +576,9 @@ class ProductionRouter:
             user = db.session.query(User).filter_by(user_id_hash=user_hash_value).first()
             if not user:
                 # Create new user - using correct field name
-                user = User(user_id_hash=user_hash_value, platform='messenger')
+                user = User()
+                user.user_id_hash = user_hash_value
+                user.platform = 'messenger'
                 db.session.add(user)
             
             # Update onboarding fields
@@ -759,7 +744,6 @@ class ProductionRouter:
         """Get summary data for user"""
         try:
             from app import db
-            from models import Expense
             from sqlalchemy import text
             from datetime import datetime, timedelta
             
