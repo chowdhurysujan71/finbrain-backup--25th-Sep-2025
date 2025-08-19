@@ -1,13 +1,9 @@
 import importlib
-from typing import Optional, Any
-from flask import Flask, Blueprint
+import pytest
+from flask import Flask
 
-def import_webhook_bp() -> Optional[Blueprint]:
-    candidates = [
-        "utils.production_router", 
-        "finbrain.router",
-        "app",
-    ]
+def import_webhook_bp():
+    candidates = ["utils.production_router", "finbrain.router", "app"]
     for name in candidates:
         try:
             mod = importlib.import_module(name)
@@ -15,13 +11,10 @@ def import_webhook_bp() -> Optional[Blueprint]:
             continue
         if hasattr(mod, "webhook_bp"):
             return getattr(mod, "webhook_bp")
-    return None
+    pytest.skip("webhook_bp not found")
 
 def test_webhook_smoke():
     bp = import_webhook_bp()
-    if bp is None:
-        # Skip test if webhook blueprint not found
-        return
     app = Flask(__name__)
     app.register_blueprint(bp)
     c = app.test_client()

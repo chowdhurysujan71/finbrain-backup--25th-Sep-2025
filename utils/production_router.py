@@ -3,8 +3,6 @@ Production routing system: Deterministic Core + Flag-Gated AI + Canary Rollout
 Implements single entry point with rate limiting, AI failover, and comprehensive telemetry
 """
 
-# Single source of truth for user ID resolution  
-from utils.identity import psid_hash
 import os
 import re
 import time
@@ -14,11 +12,8 @@ import hashlib
 from typing import Tuple, Optional, Dict, Any, List
 from datetime import datetime, timezone, timedelta
 
-# Log which router file each process loads with SHA verification
-_P = pathlib.Path(__file__).resolve()
-logging.warning("PRODUCTION_ROUTER_INIT file=%s sha=%s",
-                _P, hashlib.sha256(_P.read_bytes()).hexdigest()[:12])
-
+# Single source of truth for user ID resolution  
+from utils.identity import psid_hash
 from utils.background_processor_rl2 import rl2_processor
 from utils.ai_limiter import advanced_ai_limiter
 from utils.ai_adapter_v2 import production_ai_adapter
@@ -26,12 +21,31 @@ from utils.textutil import (
     format_logged_response, format_summary_response, format_help_response,
     format_undo_response, get_random_tip, normalize, PANIC_PLAIN_REPLY
 )
-# Removed old psid_hash import - using canonical psid_hash from top
 from utils.parser import parse_expense
 from utils.categories import categorize_expense
 from utils.logger import get_request_id
 
-logger = logging.getLogger(__name__)
+# Import performance monitoring
+try:
+    from finbrain.ops import perf
+except ImportError:
+    perf = None
+
+# Log which router file each process loads with SHA verification
+_P = pathlib.Path(__file__).resolve()
+logging.warning("PRODUCTION_ROUTER_INIT file=%s sha=%s",
+                _P, hashlib.sha256(_P.read_bytes()).hexdigest()[:12])
+
+logger = logging.getLogger("finbrain.router")
+
+# Performance tracking import
+try:
+    from finbrain.ops import perf
+except ImportError:
+    perf = None
+
+# AI-path verification logger
+ai_logger = logging.getLogger("finbrain.router")
 
 # Configuration
 AI_ENABLED = os.environ.get("AI_ENABLED", "false").lower() == "true"
