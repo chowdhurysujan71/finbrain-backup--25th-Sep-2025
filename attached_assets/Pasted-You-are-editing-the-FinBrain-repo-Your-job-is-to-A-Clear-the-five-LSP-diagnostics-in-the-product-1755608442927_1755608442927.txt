@@ -1,0 +1,43 @@
+You are editing the FinBrain repo. Your job is to:
+A) Clear the five LSP diagnostics in the production router.
+B) Add AI-path verification logs.
+C) Add intake→send latency measurement with a rolling p95.
+
+Hard constraints
+1) Do not change HTTP routes, payload shapes, Facebook signature verification, or Send API code.
+2) Do not change database schema or identity hashing. Keep psid_hash exactly as is.
+3) Keep current message handling, summaries, and copy. No UX changes.
+4) Use the existing types and modules as the single source of truth. Do not duplicate definitions.
+
+Tasks
+1) Fix diagnostics
+   a. Missing phrase_summary method used by the router. Implement a thin shim in the adapter that returns deterministic phrasing from a summary dict.
+   b. Replace any Optional[bool] configuration such that ai_enabled is a real bool. Coerce with bool(...).
+   c. Bind user_hash explicitly from the incoming payload using the canonical psid_hash function. It must not rely on outer scope.
+   d. Align the User model constructor call to the actual model fields. Use keyword args that match the model. Do not add or rename columns.
+   e. Unify adapter calls through a single entrypoint adapter.process(message, context). Keep phrase_summary only as a legacy shim if the router calls it.
+
+2) Create a contracts barrel
+   Create finbrain/ai/contracts.py that imports and re-exports the canonical InboundMessage, AIContext, and AIResult from their existing modules. If such classes do not exist, create minimal TypedDict shims with the same runtime fields, but only if necessary. Update router and adapter imports to use finbrain.ai.contracts.
+
+3) Add AI-path verification logs
+   Around the adapter call log two lines: "ai_path_enter" and "ai_path_exit".
+   Include extra fields: psid_hash, mid, intents, and a derived mode that is "AI" for summary or insights cases, otherwise "LOG".
+   Do not change behavior.
+
+4) Add performance baseline
+   Create finbrain/ops/perf.py with a ring buffer of the last 500 latencies and a nearest rank p95.
+   In the webhook, time intake→send with time.perf_counter, record latency, and log one line "perf_e2e" including latency_ms, p95_ms, and samples.
+   Do not change behavior.
+   Optionally add a perf section to the existing /health JSON response without removing any existing keys.
+
+5) Make all provided tests pass and remove LSP errors on the touched files.
+   Run ruff and mypy on finbrain/ai and utils/production_router.py and run pytest.
+
+Acceptance criteria
+1) ruff check shows no errors on finbrain/ai and utils/production_router.py.
+2) mypy shows no errors for changed files in those paths.
+3) pytest passes for the provided tests.
+4) A test or live POST to /webhook/messenger returns a JSON body with messages and logs show ai_path_enter and ai_path_exit. At least one ai_path_exit has mode="AI" when text is "summary" or "insights".
+5) perf_e2e logs include latency_ms, p95_ms, and samples. After about 15 requests, p95_ms stabilizes below 2500.
+6) No route names, payload shapes, database schema, identity hashing, or Facebook security are altered.
