@@ -181,8 +181,86 @@ def check_admin_auth():
 # Legacy admin login/logout routes removed - using HTTP Basic Auth now
 
 @app.route('/')
+def public_landing():
+    """Public landing page - no authentication required"""
+    try:
+        from models import Expense
+        from sqlalchemy import func
+        
+        # Get basic stats without requiring auth
+        total_transactions = db.session.query(func.count(Expense.id)).scalar() or 0
+        
+        return f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>FinBrain - AI-Powered Expense Tracking</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }}
+                .container {{ max-width: 800px; margin: 0 auto; padding: 50px 20px; text-align: center; }}
+                .logo {{ font-size: 3em; font-weight: bold; margin-bottom: 20px; }}
+                .tagline {{ font-size: 1.5em; margin-bottom: 30px; opacity: 0.9; }}
+                .stats {{ background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 30px 0; }}
+                .feature {{ margin: 20px 0; }}
+                .cta {{ background: #ff6b6b; padding: 15px 30px; border-radius: 25px; text-decoration: none; color: white; font-weight: bold; }}
+                .admin-link {{ margin-top: 40px; }}
+                .admin-link a {{ color: rgba(255,255,255,0.7); text-decoration: none; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="logo">🧠 FinBrain</div>
+                <div class="tagline">AI-Powered Expense Tracking via Messenger</div>
+                
+                <div class="stats">
+                    <h3>System Status: ✅ Operational</h3>
+                    <p>Total Transactions Processed: {total_transactions:,}</p>
+                    <p>AI Integration: Active</p>
+                    <p>Security: Enhanced</p>
+                </div>
+                
+                <div class="feature">
+                    <h3>💬 Natural Language Processing</h3>
+                    <p>Just message "spent 500 on groceries" and FinBrain handles the rest</p>
+                </div>
+                
+                <div class="feature">
+                    <h3>🤖 Intelligent Categorization</h3>
+                    <p>AI automatically categorizes expenses and provides insights</p>
+                </div>
+                
+                <div class="feature">
+                    <h3>📊 Smart Summaries</h3>
+                    <p>Get personalized spending analysis and financial advice</p>
+                </div>
+                
+                <div class="admin-link">
+                    <a href="/admin">Admin Dashboard</a>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+    except Exception as e:
+        logger.error(f"Landing page error: {e}")
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head><title>FinBrain</title></head>
+        <body style="font-family: Arial; text-align: center; padding: 50px;">
+            <h1>🧠 FinBrain</h1>
+            <p>AI-Powered Expense Tracking System</p>
+            <p>Status: Online</p>
+        </body>
+        </html>
+        """
+
+@app.route('/admin')
 @require_basic_auth
-def dashboard():
+def admin_dashboard():
     """Dashboard for viewing expense statistics (HTTP Basic Auth required)"""
     
     try:
