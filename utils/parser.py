@@ -76,7 +76,7 @@ def extract_expenses(text: str) -> List[Dict[str, Any]]:
     
     return expenses
 
-def parse_expense(text: str) -> tuple:
+def parse_expense(text: str) -> tuple[float, str] | None:
     """
     Legacy parser for backward compatibility
     Returns (amount, description) tuple or None

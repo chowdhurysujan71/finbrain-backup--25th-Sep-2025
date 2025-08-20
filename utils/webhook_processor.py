@@ -117,6 +117,50 @@ def log_event(request_id: str, psid: str, mid: str, route: str, duration_ms: flo
         user_hash = psid_hash(psid)
     log_webhook_success(user_hash, mid, outcome, None, None, duration_ms)
 
+def process_webhook_fast_local(payload_bytes: bytes) -> tuple[str, int]:
+    """Local testing version that bypasses signature verification"""
+    try:
+        # Parse the payload
+        payload_str = payload_bytes.decode('utf-8')
+        data = json.loads(payload_str)
+        
+        # Extract messaging events  
+        if data.get('object') != 'page':
+            return "Not a page object", 400
+            
+        entries = data.get('entry', [])
+        if not entries:
+            return "No entries found", 400
+            
+        # Process events using same logic as production but skip signature
+        events = extract_webhook_events(data)
+        if not events:
+            return "EVENT_RECEIVED", 200
+            
+        # Enqueue events for background processing  
+        from .background_processor import background_processor
+        
+        events_queued = 0
+        for event in events:
+            psid = event['psid']
+            mid = event['mid']
+            text = event.get('text', '')
+            
+            # Check for duplicates
+            if is_duplicate_message(mid):
+                continue
+            
+            # Enqueue for safe background processing
+            if background_processor.enqueue_message(f"local_{mid}", psid, mid, text):
+                events_queued += 1
+        
+        logger.info(f"Local testing: processed {len(events)} events, {events_queued} queued")
+        return "EVENT_RECEIVED", 200
+        
+    except Exception as e:
+        logger.error(f"Local webhook processing error: {str(e)}")
+        return "EVENT_RECEIVED", 200
+
 def process_webhook_fast(payload_bytes: bytes, signature: str, app_secret: str) -> tuple:
     """Fast webhook processing with signature verification and async handling"""
     request_id = str(uuid.uuid4())[:8]

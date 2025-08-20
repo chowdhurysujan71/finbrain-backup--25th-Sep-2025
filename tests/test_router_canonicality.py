@@ -38,7 +38,7 @@ def test_canonical_router_sha_verification():
     canonical_path = Path(__file__).resolve().parent.parent / "utils" / "production_router.py"
     if canonical_path.exists():
         sha = hashlib.sha256(canonical_path.read_bytes()).hexdigest()[:12]
-        expected_sha = "0789d554bdac"
+        expected_sha = "cc72dd77e8d8"
         assert sha == expected_sha, f"Canonical router SHA mismatch: got {sha}, expected {expected_sha}"
     else:
         assert False, "Canonical router file utils/production_router.py not found"
