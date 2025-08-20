@@ -15,3 +15,6 @@ mypy
 pytest
 ruff
 ruff
+mypy
+pytest
+ruff

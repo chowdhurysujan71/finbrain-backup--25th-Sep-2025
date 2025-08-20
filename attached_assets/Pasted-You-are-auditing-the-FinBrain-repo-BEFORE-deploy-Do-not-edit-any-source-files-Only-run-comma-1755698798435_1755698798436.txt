@@ -1,0 +1,91 @@
+You are auditing the FinBrain repo BEFORE deploy. 
+**Do not edit any source files.** Only run commands, start/stop the app, and read logs. 
+Produce a concise Markdown report with PASS/FAIL and short evidence per check.
+
+HARD CONSTRAINTS
+- Do NOT modify code, configs, or schema.
+- Do NOT call any external APIs (no Facebook). Local-only.
+- Keep the app ports and routes unchanged. 
+- If any check fails, include the failing command, the reason, and the shortest relevant log snippet (≤100 lines).
+
+AUDIT CHECKLIST (all required for GREEN)
+
+1) Environment & Config
+   - Verify ID_SALT is present and non-empty.
+   - Verify all expected Facebook envs are present (names may vary, but typically PAGE_ID / PAGE_TOKEN / APP_SECRET / VERIFY_TOKEN).
+   - Verify AI_ENABLED parses to a real boolean (bool-like).
+   Output lines like:
+   - ID_SALT: PRESENT
+   - FB_ENVS: PRESENT (list names found)
+   - AI_ENABLED: true/false (coerced)
+
+2) Static Quality Gates
+   - Install tools: `pip install -q ruff mypy pytest`
+   - `ruff check finbrain/ai utils/production_router.py`
+   - `mypy finbrain/ai utils/production_router.py`
+   - Report PASS/FAIL plus first offending line if any.
+
+3) Unit/Integration Tests
+   - Run `pytest -q` (or `pytest -q tests` if needed).
+   - Summarize: total tests, passed, failed, skipped.
+   - If failures, list the failing test names and first assertion error line.
+
+4) Runtime Smoke: Webhook + AI-path Logging
+   - Start the app using the repo’s normal entrypoint (infer from Procfile, app.py, README, or common patterns). 
+     Examples to try in order (pick the one that works, stop others):
+       * `python app.py`
+       * `python -m flask --app app run --port 5000 --no-reload`
+       * `python -m uvicorn app:app --port 5000` (only if app is ASGI)
+   - Wait until the server reports it is listening on localhost:5000 (timeout 30s).
+   - POST two local webhook requests to `/webhook/messenger`:
+       A) LOG case
+          JSON:
+          {
+            "object":"page",
+            "entry":[{"messaging":[
+              {"sender":{"id":"TEST_X"},"message":{"text":"coffee 100","mid":"mx"},"timestamp":1734567890000}
+            ]}]}
+          }
+       B) AI case
+          JSON:
+          {
+            "object":"page",
+            "entry":[{"messaging":[
+              {"sender":{"id":"TEST_Y"},"message":{"text":"summary","mid":"my"},"timestamp":1734567895000}
+            ]}]}
+          }
+     Use `curl -s -X POST -H "Content-Type: application/json" -d @payload.json http://127.0.0.1:5000/webhook/messenger`
+   - Expect 200 responses with JSON bodies that include either "messages" or "recipient".
+   - Tail the app logs during those requests and confirm presence of BOTH:
+       * `ai_path_enter ... psid_hash=<64hex> mid=<id>`
+       * `ai_path_exit ... intents=[...] mode=...`
+     Verify the first POST yields `mode=LOG`, the second yields `mode=AI`.
+   - Report PASS/FAIL with the two response status codes and a 1–2 line log excerpt for each case.
+
+5) Performance Baseline (p95)
+   - Send 15 local webhook POSTs total (mix the two payloads).
+   - Capture each emitted `perf_e2e` log line and compute the latest `p95_ms` as logged by the app.
+   - PASS if `p95_ms < 2500` with `samples >= 15`.
+   - Report `p95_ms` and `samples`.
+
+6) Optional Health Endpoint (if present)
+   - If the app exposes `/health`, GET it and include the JSON. 
+   - If it includes a `perf` section, show `perf.p95_ms` and `perf.count`.
+
+7) DB Write Sanity (best-effort, non-invasive)
+   - After the "coffee 100" POSTs, check that the process logs indicate an expense write path executed (do NOT inspect or mutate DB directly if there is no safe read path).
+   - If logs expose a structured line for writes or summaries, include a short excerpt. 
+   - If such logs do not exist, mark this as "INFO: not observable via logs" (does not fail audit).
+
+FINAL OUTPUT
+Return a Markdown table with each check and PASS/FAIL, followed by a compact “Evidence” section:
+- For each failed item, include the command used and the shortest relevant snippet (≤100 lines).
+- For passed items, include one-liners (e.g., “ruff clean”, “mypy clean”, “pytest 12 passed”).
+- Include the two webhook responses’ HTTP codes and the two log excerpts for ai_path_exit with mode=LOG and mode=AI.
+- Include the final performance line: `p95_ms=<value>, samples=<N>`.
+
+If ALL checks pass, end with:
+✅ READY TO DEPLOY
+
+If any fail, end with:
+❌ NOT READY — list the failing checks by name.
