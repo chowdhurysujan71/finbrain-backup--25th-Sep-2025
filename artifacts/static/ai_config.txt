@@ -1,0 +1,3 @@
+AI_ENABLED: true
+AI_PROVIDER: gemini
+GEMINI_API_KEY: present

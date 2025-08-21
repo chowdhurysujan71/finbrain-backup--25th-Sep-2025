@@ -1,0 +1,2 @@
+CRITICAL: Cold-start mitigation error: 'str' object has no attribute 'session'
+This indicates AI adapter configuration issue during warm-up

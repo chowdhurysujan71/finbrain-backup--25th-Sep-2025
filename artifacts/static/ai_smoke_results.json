@@ -1,0 +1,42 @@
+Testing: simple_expense
+Testing: ambiguous_sentence
+Testing: multi_expense
+{
+  "timestamp": "2025-08-21T06:33:35.679311",
+  "adapter_info": {
+    "class": "ProductionAIAdapter",
+    "provider": "gemini",
+    "enabled": true
+  },
+  "tests": [
+    {
+      "test": "simple_expense",
+      "input": "bought coffee for 150 taka",
+      "success": false,
+      "error": "'ProductionAIAdapter' object has no attribute 'parse_expense_message'",
+      "expense_count": 0,
+      "result": null
+    },
+    {
+      "test": "ambiguous_sentence",
+      "input": "had a good day today",
+      "success": false,
+      "error": "'ProductionAIAdapter' object has no attribute 'parse_expense_message'",
+      "expense_count": 0,
+      "result": null
+    },
+    {
+      "test": "multi_expense",
+      "input": "lunch 200 taka and uber 100 and shopping for shoes 1500",
+      "success": false,
+      "error": "'ProductionAIAdapter' object has no attribute 'parse_expense_message'",
+      "expense_count": 0,
+      "result": null
+    }
+  ],
+  "summary": {
+    "total_tests": 3,
+    "passed": 0,
+    "failed": 3
+  }
+}

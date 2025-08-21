@@ -1,0 +1,1 @@
+✓ Core modules compile successfully

@@ -1,0 +1,24 @@
+{
+  "object": "page",
+  "entry": [
+    {
+      "id": "test_page_id",
+      "time": 1692000305000,
+      "messaging": [
+        {
+          "sender": {
+            "id": "test_user_burst_5"
+          },
+          "recipient": {
+            "id": "test_page_id"
+          },
+          "timestamp": 1692000305000,
+          "message": {
+            "mid": "test_burst_5",
+            "text": "expense 5: coffee 250 taka"
+          }
+        }
+      ]
+    }
+  ]
+}

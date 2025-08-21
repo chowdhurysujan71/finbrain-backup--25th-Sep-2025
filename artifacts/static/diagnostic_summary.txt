@@ -1,0 +1,45 @@
+2025-08-21 06:35:55,118 - app - INFO - ✓ All required environment variables present
+2025-08-21 06:35:55,136 - utils.ai_limiter - INFO - Advanced AI Limiter initialized: redis=False, global_limit=120/min, per_psid_limit=4/min
+2025-08-21 06:35:55,138 - utils.ai_adapter_v2 - INFO - Production AI Adapter initialized: enabled=True, provider=gemini
+2025-08-21 06:35:55,143 - root - WARNING - PRODUCTION_ROUTER_INIT file=/home/runner/workspace/utils/production_router.py sha=cc72dd77e8d8
+2025-08-21 06:35:55,144 - finbrain.router - INFO - Production Router initialized with bulletproof RL-2 and flag-gated AI
+2025-08-21 06:35:55,144 - app - INFO - [BOOT] Canonical router loaded. SHA=cc72dd77e8d8
+2025-08-21 06:35:59,870 - app - INFO - Background reports disabled (ENABLE_REPORTS=false)
+2025-08-21 06:35:59,870 - app - INFO - Initializing background processor...
+2025-08-21 06:35:59,889 - utils.ai_rate_limiter - INFO - AI Rate Limiter initialized: max_global=120/min, max_per_psid=4/min
+2025-08-21 06:35:59,890 - utils.background_processor - INFO - Background processor initialized with 3 workers
+2025-08-21 06:35:59,890 - app - INFO - Background processor ready: {'max_workers': 3, 'ai_enabled': True, 'processing_timeout': 5.0, 'queue_size': 0}
+2025-08-21 06:35:59,891 - app - INFO - {'startup_configuration': {'rate_limits': {'ai_rl_user_limit': 4, 'ai_rl_window_sec': 60, 'ai_rl_global_limit': 120}, 'app_constants': {'msg_max_chars': 280, 'timezone': 'Asia/Dhaka', 'currency_symbol': '৳'}, 'ux_enhancements': {'fallback_copy': 'Taking a quick breather to stay fast & free...', 'system_prompt': '2-3 sentences max, action-oriented', 'quick_replies': 'structured messaging enabled'}}}
+2025-08-21 06:35:59,891 - app - INFO - Running cold-start mitigation...
+2025-08-21 06:35:59,892 - utils.cold_start_mitigation - INFO - Starting cold-start mitigation warm-up sequence...
+2025-08-21 06:35:59,898 - utils.cold_start_mitigation - INFO - DNS resolved api.openai.com -> 172.66.0.243 in 5.25ms
+2025-08-21 06:35:59,898 - utils.cold_start_mitigation - ERROR - AI provider warm-up failed: 'str' object has no attribute 'session'
+2025-08-21 06:35:59,898 - utils.cold_start_mitigation - WARNING - Cold-start mitigation completed with issues in 5.69ms
+2025-08-21 06:35:59,898 - app - INFO - Cold-start mitigation completed: {'started_at': '2025-08-21T06:35:59.892932', 'ai_enabled': True, 'dns_resolution': True, 'ai_warm_up': {'status': 'error', 'message': "'str' object has no attribute 'session'", 'response_time_ms': 0}, 'total_time_ms': 5.69462776184082, 'success': False}
+2025-08-21 06:35:59,901 - utils.health_ping - INFO - Health ping system started: http://localhost:5000/health every 300s
+2025-08-21 06:35:59,925 - app - INFO - Registered quickscan diagnostic endpoint at /ops/quickscan
+2025-08-21 06:36:01,234 - utils.ai_adapter_v2 - INFO - Production AI Adapter initialized: enabled=True, provider=gemini
+=== FINBRAIN DIAGNOSTIC SUMMARY ===
+Timestamp: 2025-08-21T06:35:53.247744
+
+1. Health Endpoint:
+   ✓ Healthy
+
+2. Database:
+   ✓ Connected
+   ✓ Users: 27
+   ✓ Expenses: 39
+
+3. AI Adapter:
+   ✓ Loaded
+   ✓ Provider: gemini
+   ✓ Enabled: True
+
+4. Critical Modules:
+   ✓ utils.production_router
+   ✗ utils.intent_router: missing: No module named 'utils.intent_router'
+   ✓ utils.ai_adapter_v2
+   ✓ utils.identity
+   ✓ models
+
+⚠️  ISSUES DETECTED: Missing critical modules
