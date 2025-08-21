@@ -3,6 +3,7 @@ Expense logger handler: Logs expenses to database
 """
 from typing import Dict, List
 import logging
+from datetime import datetime
 from utils.parser import extract_expenses
 from utils.user_manager import resolve_user_id as ensure_hashed
 
@@ -35,6 +36,15 @@ def handle_log(user_id: str, text: str) -> Dict[str, str]:
                 description=exp.get('description', ''),
                 original_message=text
             )
+            
+            # Ensure month is derived from date
+            if not hasattr(expense, 'date') or expense.date is None:
+                expense.date = datetime.now().date()
+            if not hasattr(expense, 'time') or expense.time is None:
+                expense.time = datetime.now().time()
+            if not hasattr(expense, 'month') or expense.month is None:
+                expense.month = expense.date.strftime("%Y-%m")
+            
             db.session.add(expense)
             logged.append(f"{exp['amount']:.0f} for {exp['category']}")
             total += exp['amount']
