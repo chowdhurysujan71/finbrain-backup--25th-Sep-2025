@@ -1,0 +1,227 @@
+2025-08-21 16:12:51.15
+f2ef5982
+User
+2025-08-21 10:12:51,150 - finbrain.structured - INFO - {"timestamp": "2025-08-21T10:12:51.150868", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "ee6598ac73f7928e58c86d4321609641a2cda216347e4dc3df5cce0440bc5605", "mid": "1_events", "intent": "success", "processing_ms": 0.77}
+2025-08-21 16:12:51.15
+f2ef5982
+User
+2025-08-21 10:12:51,151 - utils.webhook_processor - INFO - Request af0d7c4b: Webhook processed in 0.77ms, 1 events queued
+2025-08-21 16:12:51.33
+f2ef5982
+User
+2025-08-21 10:12:51,331 - utils.policy_guard - DEBUG - Updated 24h timestamp for PSID 30522114***
+2025-08-21 16:12:51.51
+f2ef5982
+User
+2025-08-21 10:12:51,510 - handlers.logger - ERROR - Log handler error: (psycopg2.errors.NotNullViolation) null value in column "unique_id" of relation "expenses" violates not-null constraint
+2025-08-21 16:12:51.51
+f2ef5982
+User
+DETAIL: Failing row contains (76, a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff, Expense from: Lunch 300 at KFC, 300.00, food, ৳, 2025-08-21, 10:12:51.438955, 2025-08, null, 2025-08-21 10:12:51.43968, messenger, Lunch 300 at KFC, ).
+2025-08-21 16:12:51.51
+f2ef5982
+User
+2025-08-21 16:12:51.51
+f2ef5982
+User
+[SQL: INSERT INTO expenses (user_id, description, amount, category, currency, date, time, month, unique_id, created_at, platform, original_message, ai_insights) VALUES (%(user_id)s, %(description)s, %(amount)s, %(category)s, %(currency)s, %(date)s, %(time)s, %(month)s, %(unique_id)s, %(created_at)s, %(platform)s, %(original_message)s, %(ai_insights)s) RETURNING expenses.id]
+2025-08-21 16:12:51.51
+f2ef5982
+User
+[parameters: {'user_id': 'a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff', 'description': 'Expense from: Lunch 300 at KFC', 'amount': 300.0, 'category': 'food', 'currency': '৳', 'date': datetime.date(2025, 8, 21), 'time': datetime.time(10, 12, 51, 438955), 'month': '2025-08', 'unique_id': None, 'created_at': datetime.datetime(2025, 8, 21, 10, 12, 51, 439680), 'platform': 'messenger', 'original_message': 'Lunch 300 at KFC', 'ai_insights': ''}]
+2025-08-21 16:12:51.51
+f2ef5982
+User
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2025-08-21 16:12:51.51
+f2ef5982
+User
+2025-08-21 10:12:51,510 - finbrain.router - INFO - Production routing: {"rid": "af0d7c4b", "psid_hash": "a20425ef...", "route": "log", "details": "expense_logged", "timestamp": "2025-08-21T10:12:51.510363+00:00"}
+2025-08-21 16:12:51.51
+f2ef5982
+User
+2025-08-21 10:12:51,514 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): graph.facebook.com:443
+2025-08-21 16:12:52.49
+f2ef5982
+User
+2025-08-21 10:12:52,496 - urllib3.connectionpool - DEBUG - https://graph.facebook.com:443 "POST /v19.0/me/messages?access_token=EAAQIpDHnY54BPM81e5RC6RTqGszDgIWjKKElVhxr6iwqyY5ZBsjBDuuZCP7xf5FFkpwebwkDpKI8aywZBlrOw92q69OTviZB642QoQc3tAm4BKkzwcNHnCgG9ziLai4dii9ZArBFZBmN7DRT8O06RmGQVExRkJyf8jTK6wo3eviYBfcB3aCW72ZCZCrzPJnyP5z6SVS3cN9VxFDjre73VoBnkXcZD HTTP/1.1" 200 140
+2025-08-21 16:12:52.49
+f2ef5982
+User
+{"timestamp": "2025-08-21T10:12:52.498081", "event_type": "graph_api_call", "rid": "unknown", "endpoint": "/v17.0/me/messages", "method": "POST", "status": 200, "duration_ms": 987.43}
+2025-08-21 16:12:52.49
+f2ef5982
+User
+2025-08-21 10:12:52,498 - finbrain.structured - INFO - {"timestamp": "2025-08-21T10:12:52.498081", "event_type": "graph_api_call", "rid": "unknown", "endpoint": "/v17.0/me/messages", "method": "POST", "status": 200, "duration_ms": 987.43}
+2025-08-21 16:12:52.49
+f2ef5982
+User
+2025-08-21 10:12:52,498 - utils.facebook_handler - INFO - Facebook message sent successfully: m_t4k8I5imgUCZMmMFN4AIclq3yeIemJTv7lBPtVv3PtTjbugXqDv0eKJNmT6ib0GDQzLv78CXTc9O8wJPEg-uZw
+2025-08-21 16:12:52.49
+f2ef5982
+User
+2025-08-21 10:12:52,498 - utils.background_processor - INFO - Request af0d7c4b: Response sent successfully to 3052211490*** (hash: a20425ef...)
+2025-08-21 16:12:54.01
+f2ef5982
+User
+2025-08-21 10:12:54,011 - utils.webhook_processor - DEBUG - Skipping non-message event (delivery/read/etc)
+2025-08-21 16:12:54.01
+f2ef5982
+User
+{"timestamp": "2025-08-21T10:12:54.011986", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.25}
+2025-08-21 16:12:54.01
+f2ef5982
+User
+2025-08-21 10:12:54,012 - finbrain.structured - INFO - {"timestamp": "2025-08-21T10:12:54.011986", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.25}
+2025-08-21 16:12:55.13
+f2ef5982
+User
+2025-08-21 10:12:55,132 - utils.webhook_processor - DEBUG - Skipping non-message event (delivery/read/etc)
+2025-08-21 16:12:55.13
+f2ef5982
+User
+{"timestamp": "2025-08-21T10:12:55.132377", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.26}
+2025-08-21 16:12:55.13
+f2ef5982
+User
+2025-08-21 10:12:55,132 - finbrain.structured - INFO - {"timestamp": "2025-08-21T10:12:55.132377", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.26}
+2025-08-21 16:12:56.42
+f2ef5982
+User
+{"timestamp": "2025-08-21T10:12:56.419763", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff", "mid": "m_YCu5RC187J4yQKetGR9r3lq3yeIemJTv7lBPtVv3PtTtcZ46puwJuClGfCB_HSHNrJKOS2ONJ4Wbjp5ZGGGw1Q", "intent": "queued"}
+2025-08-21 16:12:56.42
+f2ef5982
+User
+2025-08-21 10:12:56,419 - finbrain.structured - INFO - {"timestamp": "2025-08-21T10:12:56.419763", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff", "mid": "m_YCu5RC187J4yQKetGR9r3lq3yeIemJTv7lBPtVv3PtTtcZ46puwJuClGfCB_HSHNrJKOS2ONJ4Wbjp5ZGGGw1Q", "intent": "queued"}
+2025-08-21 16:12:56.42
+f2ef5982
+User
+2025-08-21 10:12:56,421 - utils.background_processor - INFO - Request 691a449b: Message queued for background processing
+2025-08-21 16:12:56.42
+f2ef5982
+User
+{"timestamp": "2025-08-21T10:12:56.421985", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff", "mid": "m_YCu5RC187J4yQKetGR9r3lq3yeIemJTv7lBPtVv3PtTtcZ46puwJuClGfCB_HSHNrJKOS2ONJ4Wbjp5ZGGGw1Q", "intent": "queued"}
+2025-08-21 16:12:56.42
+f2ef5982
+User
+2025-08-21 10:12:56,422 - finbrain.structured - INFO - {"timestamp": "2025-08-21T10:12:56.421985", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff", "mid": "m_YCu5RC187J4yQKetGR9r3lq3yeIemJTv7lBPtVv3PtTtcZ46puwJuClGfCB_HSHNrJKOS2ONJ4Wbjp5ZGGGw1Q", "intent": "queued"}
+2025-08-21 16:12:56.42
+f2ef5982
+User
+{"timestamp": "2025-08-21T10:12:56.422506", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "ee6598ac73f7928e58c86d4321609641a2cda216347e4dc3df5cce0440bc5605", "mid": "1_events", "intent": "success", "processing_ms": 2.96}
+2025-08-21 16:12:56.42
+f2ef5982
+User
+2025-08-21 10:12:56,422 - finbrain.structured - INFO - {"timestamp": "2025-08-21T10:12:56.422506", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "ee6598ac73f7928e58c86d4321609641a2cda216347e4dc3df5cce0440bc5605", "mid": "1_events", "intent": "success", "processing_ms": 2.96}
+2025-08-21 16:12:56.42
+f2ef5982
+User
+2025-08-21 10:12:56,422 - utils.webhook_processor - INFO - Request 691a449b: Webhook processed in 2.96ms, 1 events queued
+2025-08-21 16:12:56.60
+f2ef5982
+User
+2025-08-21 10:12:56,600 - utils.policy_guard - DEBUG - Updated 24h timestamp for PSID 30522114***
+2025-08-21 16:12:56.70
+f2ef5982
+User
+2025-08-21 10:12:56,707 - finbrain.router - INFO - [ROUTER] Deterministic intent=SUMMARY psid=30522114904098519
+2025-08-21 16:12:56.70
+f2ef5982
+User
+2025-08-21 10:12:56,707 - utils.dispatcher - INFO - Detected intent: SUMMARY for message: Show summary
+2025-08-21 16:12:56.77
+f2ef5982
+User
+2025-08-21 10:12:56,774 - finbrain.router - INFO - Production routing: {"rid": "691a449b", "psid_hash": "a20425ef...", "route": "summary", "details": "deterministic_bypass", "timestamp": "2025-08-21T10:12:56.774409+00:00"}
+2025-08-21 16:12:56.77
+f2ef5982
+User
+2025-08-21 10:12:56,777 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): graph.facebook.com:443
+2025-08-21 16:12:57.65
+f2ef5982
+User
+2025-08-21 10:12:57,657 - urllib3.connectionpool - DEBUG - https://graph.facebook.com:443 "POST /v19.0/me/messages?access_token=EAAQIpDHnY54BPM81e5RC6RTqGszDgIWjKKElVhxr6iwqyY5ZBsjBDuuZCP7xf5FFkpwebwkDpKI8aywZBlrOw92q69OTviZB642QoQc3tAm4BKkzwcNHnCgG9ziLai4dii9ZArBFZBmN7DRT8O06RmGQVExRkJyf8jTK6wo3eviYBfcB3aCW72ZCZCrzPJnyP5z6SVS3cN9VxFDjre73VoBnkXcZD HTTP/1.1" 200 140
+2025-08-21 16:12:57.65
+f2ef5982
+User
+{"timestamp": "2025-08-21T10:12:57.658415", "event_type": "graph_api_call", "rid": "unknown", "endpoint": "/v17.0/me/messages", "method": "POST", "status": 200, "duration_ms": 883.58}
+2025-08-21 16:12:57.65
+f2ef5982
+User
+2025-08-21 10:12:57,658 - finbrain.structured - INFO - {"timestamp": "2025-08-21T10:12:57.658415", "event_type": "graph_api_call", "rid": "unknown", "endpoint": "/v17.0/me/messages", "method": "POST", "status": 200, "duration_ms": 883.58}
+2025-08-21 16:12:57.65
+f2ef5982
+User
+2025-08-21 10:12:57,658 - utils.facebook_handler - INFO - Facebook message sent successfully: m_A7vgbomDsjK375jH_3ssdlq3yeIemJTv7lBPtVv3PtRQk1mVoRkGxLd2Z400qjlK_Bd4YDvcHy1d81sL3dKGPA
+2025-08-21 16:12:57.65
+f2ef5982
+User
+2025-08-21 10:12:57,658 - utils.background_processor - INFO - Request 691a449b: Response sent successfully to 3052211490*** (hash: a20425ef...)
+2025-08-21 16:12:58.87
+f2ef5982
+User
+2025-08-21 10:12:58,879 - utils.webhook_processor - DEBUG - Skipping non-message event (delivery/read/etc)
+2025-08-21 16:12:58.87
+f2ef5982
+User
+{"timestamp": "2025-08-21T10:12:58.879226", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.26}
+2025-08-21 16:12:58.87
+f2ef5982
+User
+2025-08-21 10:12:58,879 - finbrain.structured - INFO - {"timestamp": "2025-08-21T10:12:58.879226", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.26}
+2025-08-21 16:12:59.00
+f2ef5982
+User
+2025-08-21 10:12:59,005 - utils.webhook_processor - DEBUG - Skipping non-message event (delivery/read/etc)
+2025-08-21 16:12:59.00
+f2ef5982
+User
+{"timestamp": "2025-08-21T10:12:59.005573", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.26}
+2025-08-21 16:12:59.00
+f2ef5982
+User
+2025-08-21 10:12:59,005 - finbrain.structured - INFO - {"timestamp": "2025-08-21T10:12:59.005573", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.26}
+
+- all fail
+ChatGPT said:
+Thought for 42s
+
+You’re super close. The failures are because unique_id is NULL on insert. Everything else (routing, AI, month) is fine.
+
+What this means
+
+Your DB requires a unique id per expense. The insert is missing it, so the DB rejects the write.
+
+Safe fix (simple)
+
+Set unique_id before saving each expense. Best key = the Facebook message id (mid) for idempotency. If mid isn’t available, generate a UUID.
+
+Use this Replit Agent prompt to apply only that fix:
+
+You are editing the FinBrain repo. Apply ONE SAFE FIX: ensure every expense insert sets a non-null unique_id.
+
+TASK
+1) Find the code path that prepares the expense dict right before DB insert (same place we added month).
+2) Add logic:
+
+# prefer the Messenger message id (mid) if available for idempotency
+uid = locals().get("mid") or expense.get("mid")
+if not uid:
+    try:
+        from uuid import uuid4
+        uid = uuid4().hex
+    except Exception:
+        uid = "fallback"
+
+expense["unique_id"] = uid
+
+3) Do NOT change schema, routes, or other fields. Keep all existing behavior.
+4) If the insert uses a model constructor instead of a dict, set unique_id=<uid> in that call.
+
+ACCEPTANCE
+• The expense row is inserted with unique_id set.
+• No psycopg2 NotNullViolation on "unique_id".
+• When the same mid is retried, the helper treats it as the same expense (idempotent) if your code enforces that.
+
+OUTPUT
+Print edited file(s) and show the final expense payload keys before insert (redact sensitive values).
