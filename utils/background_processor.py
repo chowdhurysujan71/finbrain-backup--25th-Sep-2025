@@ -46,7 +46,7 @@ class BackgroundProcessor:
         self.fallback_reply = "Got it. I'll track that for you."
         
         # Import AI adapter from dedicated module
-        from utils.ai_adapter import ai_adapter
+        from utils.ai_adapter_v2 import production_ai_adapter as ai_adapter
         self.ai_adapter = ai_adapter
         
         # Context-driven processing now handled by production router

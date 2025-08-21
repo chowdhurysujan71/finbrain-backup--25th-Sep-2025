@@ -8,8 +8,8 @@ import os
 import time
 
 from flags import FLAGS, toggle_ai
-from simple_router import simple_router
-from ai_adapter import get_stats as get_ai_stats
+from utils.production_router import production_router
+from utils.ai_adapter_v2 import production_ai_adapter
 
 admin_ops = Blueprint('admin_ops', __name__)
 
@@ -50,7 +50,7 @@ def ai_status():
     from utils.production_router import production_router as router, get_ai_stats
     return jsonify({
         "ai_enabled": FLAGS.ai_enabled,
-        "ai_adapter": get_ai_stats(),
+        "ai_adapter": production_ai_adapter.get_stats() if hasattr(production_ai_adapter, 'get_stats') else {"status": "active"},
         "router_telemetry": router.get_telemetry()
     })
 

@@ -65,7 +65,7 @@ class ColdStartMitigation:
             }
         
         try:
-            from utils.ai_adapter import ai_adapter
+            from utils.ai_adapter_v2 import production_ai_adapter as ai_adapter
             session = ai_adapter.provider.session
             
             start_time = time.time()

@@ -11,7 +11,7 @@ from utils.ai_context_adapter import ContextDrivenAI, handle_context_driven_mess
 from utils.ux_components import safe_send_text, record_event, format_coach_reply
 from utils.facebook_handler import send_message
 from utils.quick_reply_system import send_custom_quick_replies
-from ai_adapter_gemini import generate_with_schema
+from utils.ai_adapter_v2 import production_ai_adapter
 from limiter import can_use_ai
 from app import db
 
@@ -261,7 +261,7 @@ def test_context_integration():
     
     # Test schema function availability
     try:
-        from ai_adapter_gemini import generate_with_schema
+        # Use production AI adapter instead
         print(f"✓ Schema generation function: {generate_with_schema.__name__}")
     except ImportError as e:
         print(f"⚠ Schema function not available: {e}")

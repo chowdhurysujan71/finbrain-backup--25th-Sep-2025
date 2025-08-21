@@ -15,8 +15,8 @@ def parse_expense(text: str) -> dict:
     """
     try:
         # Call the actual AI model (using existing AI adapter)
-        from utils.ai_adapter import get_ai_adapter
-        ai = get_ai_adapter()
+        from utils.ai_adapter_v2 import production_ai_adapter
+        ai = production_ai_adapter
         result = ai.parse_expense(text) if hasattr(ai, 'parse_expense') else _fallback_parse(text)
     except Exception:
         # If AI adapter fails, use fallback parsing
