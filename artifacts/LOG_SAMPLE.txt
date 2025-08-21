@@ -1,0 +1,4 @@
+Recent application logs:
+=========================
+Last 30 lines from workflow console:
+Workflow log not accessible, using current session capture

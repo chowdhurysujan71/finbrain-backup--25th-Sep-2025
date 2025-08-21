@@ -1,0 +1,143 @@
+# FinBrain Import Graph (Adjacency List)
+
+FINAL_PRODUCTION_TEST: app, sys, utils
+admin_ops: flags, flask, functools, os, time, utils
+ai.ai_reply_optimized: ai_adapter_gemini, json, limiter, logging, typing, utils
+ai.expense_parse: logging, re, typing, utils
+app: admin_ops, base64, config, datetime, flask, flask_sqlalchemy, functools, json, logging, models, os, routes, sqlalchemy, sys, time, utils, werkzeug
+archive.ai_adapter: abc, dataclasses, json, logging, os, requests, time, typing, utils
+archive.ai_adapter_gemini: config, google, json, logging, os, time
+archive.ai_adapter_openai: config, logging, openai, os, time
+archive.ai_onboarding_parser: ai_adapter_gemini, logging, typing
+archive.background_processor_corrupted: ai_rate_limiter, app, concurrent, dataclasses, datetime, facebook_handler, json, logger, logging, models, os, policy_guard, queue, rate_limiter, requests, security, sqlalchemy, threading, time, typing, utils
+archive.debug_conversational_ai: app, logging, models, sys, utils
+archive.debug_hash_flow: app, sys, utils
+archive.debug_inconsistent_responses: app, models, sqlalchemy, sys, utils
+archive.debug_user_data_flow: app, logging, models, sqlalchemy, sys, utils
+archive.expense_router: ai, logging, typing, utils
+archive.gemini_validation: json, os, requests
+archive.intent_router: re
+archive.migrate_identity: argparse, collections, datetime, hashlib, json, logging, os, psycopg2, sys, typing
+archive.mvp_router: datetime, hashlib, json, logging, models, re, typing, utils
+archive.performance_benchmark: concurrent, hashlib, hmac, json, requests, statistics, threading, time
+archive.production_debug: requests, time
+archive.provider_switch_demo: json, requests
+archive.release_tag: datetime, json, subprocess, sys
+archive.run_uat_test: app, datetime, hashlib, json, models, time, utils
+archive.simple_router: ai_adapter, flags, logging, time, typing, utils
+archive.test_ai_expense_evolution: logging, sys, utils
+archive.test_ai_vs_fallback: hashlib, hmac, json, requests, time
+archive.test_centralized_config: config, limiter, utils
+archive.test_complete_identity_system: json, os, traceback, utils
+archive.test_conversational_ai: app, datetime, logging, models, sys, traceback, utils
+archive.test_conversational_fix: app, os, sys, utils
+archive.test_direct_data_access: app, logging, sys, utils
+archive.test_evolution_integration: logging, sys, traceback, utils
+archive.test_existing_user: app, logging, sys, traceback, utils
+archive.test_fixed_conversational: app, sys, utils
+archive.test_gemini_live: json, requests
+archive.test_hash_consistency: app, os, pytest, sys, utils
+archive.test_identity_fix: json, os, traceback, utils
+archive.test_identity_production: json, os, requests, time, traceback, utils
+archive.test_intent_routing: sys, utils
+archive.test_no_double_hash: app, sys, utils
+archive.test_production: os, requests
+archive.test_production_context: app, logging, models, sys, traceback, utils
+archive.test_production_conversational: app, logging, sys, utils
+archive.test_production_fix: app, logging, sys, utils
+archive.test_real_psid: app, logging, models, sys, utils
+archive.test_real_scenario: app, sys, utils
+archive.test_real_webhook_flow: hashlib, hmac, json, requests, time
+archive.test_uat_demo: app, sys, time, utils
+archive.test_web_context: app, logging, sys, traceback, utils
+archive.uat_comprehensive: hashlib, json, requests, time
+archive.uat_context_system: ai_adapter_gemini, app, datetime, json, limiter, logging, models, time, utils
+archive.uat_conversational_ai: app, logging, models, sqlalchemy, sys, utils
+archive.uat_double_hashing_fix: app, datetime, json, models, sys, utils
+archive.uat_focused_retests: ai_adapter_gemini, app, json, logging, utils
+archive.uat_multi_user_isolation: app, concurrent, datetime, decimal, hashlib, json, logging, models, os, requests, sys, threading, time, utils
+archive.uat_real_data_verification: app, models, sys, utils
+archive.uat_test_script: datetime, hashlib, hmac, json, os, requests, time
+archive.unified_data_access_fix: app, sys, utils
+archive.validate_fixes: app, inspect, logging, models, os, re, sqlalchemy, sys, utils
+archive.validation_script: json, requests, time
+archive.verify_identity_debug: os, utils
+archive.webhook_test: os, requests
+config: os
+deterministic: utils
+fb_client: os, re, requests, utils
+finbrain.ai.contracts: typing
+finbrain.ai.gemini_adapter: contracts, logging, os, typing
+finbrain.ops.perf: time, typing
+fix_all_hashing: os, re
+flags: config
+handlers.insight: app, logging, models, summary, typing
+handlers.logger: app, logging, models, typing, utils
+handlers.summary: app, datetime, logging, models, typing
+limiter: collections, config, time
+main: app
+models: app, datetime, sqlalchemy
+prod_probe: hashlib, hmac, json, os, requests, time
+routes.ops_quickscan: app, flask, models, utils
+scripts.ai_smoke_test: datetime, json, os, sys, utils
+scripts.check_db_indexes: app, logging, sqlalchemy
+scripts.comprehensive_uat: datetime, json, os, requests, sys, time, utils
+scripts.diagnostics_cli: app, datetime, json, models, os, requests, sys, utils
+scripts.finbrain_diagnose: json, os, requests, time
+scripts.performance_test: concurrent, json, requests, statistics, sys, time
+scripts.probe_imports: sys, traceback
+scripts.security_audit: glob, json, os, requests, subprocess, time
+scripts.system_health_report: json, requests, time
+scripts.uat_ensure_hashed: app, os, sys, traceback, utils
+services.summaries: collections, datetime, logging, models, utils
+start_server: os, signal, subprocess, sys
+tests.test_adapter_signature: importlib
+tests.test_ai_mode_logging: app, flask, logging, utils
+tests.test_perf_log_hook: flask, logging, utils
+tests.test_perf_math: finbrain
+tests.test_phrase_summary_shim: importlib
+tests.test_router_canonicality: hashlib, os, pathlib, re, utils
+tests.test_summary_intent: utils
+tests.test_webhook_smoke: flask, importlib, pytest
+utils.ai_adapter_v2: datetime, json, logging, os, re, requests, time, typing
+utils.ai_context_adapter: json, limiter, logging, typing, utils
+utils.ai_expense_parser: logging, re, typing
+utils.ai_limiter: collections, config, dataclasses, datetime, json, logging, os, redis, time, typing
+utils.ai_onboarding_system: ai_adapter_gemini, json, logging, typing
+utils.ai_rate_limiter: config, dataclasses, datetime, logging, os, threading, time, typing
+utils.allowlist: os, typing
+utils.background_processor: ai_rate_limiter, app, background_processor_rl2, concurrent, dataclasses, datetime, facebook_handler, identity, json, logger, logging, models, os, policy_guard, queue, rate_limiter, requests, threading, time, typing, user_manager, utils
+utils.background_processor_rl2: app, datetime, json, logging, models, random, sqlalchemy, time, typing, utils
+utils.categories: logging
+utils.cold_start_mitigation: datetime, logging, os, requests, socket, time, typing, urllib, utils
+utils.context_integration: app, limiter, logging, sqlalchemy, typing, utils
+utils.context_packet: datetime, identity, logging, models, sqlalchemy, typing
+utils.conversational_ai: ai_adapter_gemini, app, datetime, logging, models, typing, utils
+utils.crypto: hashlib, logging, os
+utils.db: app, datetime, flask, logging, models, os, sqlalchemy, utils
+utils.debug_stamper: logging, os, utils
+utils.dispatcher: app, handlers, logging, models, typing, utils
+utils.engagement: datetime, logging, typing, utils
+utils.expense: datetime, logging, re, utils
+utils.facebook_handler: datetime, fb_client, json, logger, logging, os, time, utils
+utils.health_ping: datetime, logging, os, requests, threading, time, typing
+utils.identity: hashlib, os
+utils.intent_router: re, typing, utils
+utils.logger: datetime, flask, functools, json, logging, time, uuid
+utils.message_handlers: limiter, logging, models, typing, utils
+utils.parser: re, typing
+utils.policy_guard: datetime, hashlib, logging, models, typing, utils
+utils.production_router: ai, app, datetime, finbrain, flask, handlers, hashlib, logging, models, os, pathlib, random, re, services, sqlalchemy, time, typing, utils
+utils.quick_reply_system: logging, os, requests, sys, typing, utils
+utils.rate_limiter: app, datetime, logging, models, os, utils
+utils.report_generator: app, datetime, logging, models, utils
+utils.scheduler: apscheduler, datetime, logging, os, utils
+utils.security: hashlib, logging
+utils.textutil: config, logging, os, random, re, typing
+utils.token_manager: datetime, logging, os, requests, time, typing
+utils.token_refresh_reminder: datetime, logging, os, token_manager, typing
+utils.tracer: datetime, logging
+utils.uat_system: app, datetime, logging, models, typing, utils
+utils.user_manager: utils
+utils.ux_components: collections, config, logging, re, time, typing
+utils.webhook_processor: background_processor, concurrent, datetime, hashlib, hmac, identity, json, logger, logging, threading, time, typing, uuid

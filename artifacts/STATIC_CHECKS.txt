@@ -1,0 +1,4637 @@
+=== RUFF LINTING ===
+F541 [*] f-string without any placeholders
+  --> FINAL_PRODUCTION_TEST.py:50:27
+   |
+49 |                 if real_data_found and "start logging" not in response.lower():
+50 |                     print(f"   ✅ SUCCESS: Real data found")
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+51 |                 else:
+52 |                     print(f"   ❌ FAILED: No real data or fallback response")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> FINAL_PRODUCTION_TEST.py:52:27
+   |
+50 |                     print(f"   ✅ SUCCESS: Real data found")
+51 |                 else:
+52 |                     print(f"   ❌ FAILED: No real data or fallback response")
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+53 |                     
+54 |             except Exception as e:
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> FINAL_PRODUCTION_TEST.py:57:15
+   |
+55 |                 print(f"   ❌ ERROR: {e}")
+56 |         
+57 |         print(f"\n🎯 PRODUCTION STATUS: READY FOR USER TESTING")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+58 |
+59 | if __name__ == "__main__":
+   |
+help: Remove extraneous `f` prefix
+
+F401 [*] `time` imported but unused
+  --> admin_ops.py:8:8
+   |
+ 6 | from functools import wraps
+ 7 | import os
+ 8 | import time
+   |        ^^^^
+ 9 |
+10 | from flags import FLAGS, toggle_ai
+   |
+help: Remove unused import: `time`
+
+F401 [*] `utils.production_router.production_router` imported but unused
+  --> admin_ops.py:11:37
+   |
+10 | from flags import FLAGS, toggle_ai
+11 | from utils.production_router import production_router
+   |                                     ^^^^^^^^^^^^^^^^^
+12 | from utils.ai_adapter_v2 import production_ai_adapter
+   |
+help: Remove unused import: `utils.production_router.production_router`
+
+F401 [*] `utils.production_router.get_ai_stats` imported but unused
+  --> admin_ops.py:50:70
+   |
+48 | def ai_status():
+49 |     """Get AI system status"""
+50 |     from utils.production_router import production_router as router, get_ai_stats
+   |                                                                      ^^^^^^^^^^^^
+51 |     return jsonify({
+52 |         "ai_enabled": FLAGS.ai_enabled,
+   |
+help: Remove unused import: `utils.production_router.get_ai_stats`
+
+F401 [*] `typing.Dict` imported but unused
+  --> ai/ai_reply_optimized.py:8:20
+   |
+ 6 | import json
+ 7 | import logging
+ 8 | from typing import Dict, Any
+   |                    ^^^^
+ 9 | from utils.context_packet import build_context
+10 | from ai_adapter_gemini import generate_with_schema
+   |
+help: Remove unused import
+
+F401 [*] `typing.Any` imported but unused
+  --> ai/ai_reply_optimized.py:8:26
+   |
+ 6 | import json
+ 7 | import logging
+ 8 | from typing import Dict, Any
+   |                          ^^^
+ 9 | from utils.context_packet import build_context
+10 | from ai_adapter_gemini import generate_with_schema
+   |
+help: Remove unused import
+
+F401 [*] `typing.Dict` imported but unused
+ --> ai/expense_parse.py:7:20
+  |
+6 | import logging
+7 | from typing import Dict, Any, Optional
+  |                    ^^^^
+8 |
+9 | logger = logging.getLogger(__name__)
+  |
+help: Remove unused import
+
+F401 [*] `typing.Any` imported but unused
+ --> ai/expense_parse.py:7:26
+  |
+6 | import logging
+7 | from typing import Dict, Any, Optional
+  |                          ^^^
+8 |
+9 | logger = logging.getLogger(__name__)
+  |
+help: Remove unused import
+
+F401 [*] `typing.Optional` imported but unused
+ --> ai/expense_parse.py:7:31
+  |
+6 | import logging
+7 | from typing import Dict, Any, Optional
+  |                               ^^^^^^^^
+8 |
+9 | logger = logging.getLogger(__name__)
+  |
+help: Remove unused import
+
+E701 Multiple statements on one line (colon)
+  --> ai/expense_parse.py:36:21
+   |
+35 |     # Unwrap callables
+36 |     if callable(amt): amt = amt()
+   |                     ^
+37 |     if callable(cat): cat = cat()
+38 |     if callable(note): note = note()
+   |
+
+E701 Multiple statements on one line (colon)
+  --> ai/expense_parse.py:37:21
+   |
+35 |     # Unwrap callables
+36 |     if callable(amt): amt = amt()
+37 |     if callable(cat): cat = cat()
+   |                     ^
+38 |     if callable(note): note = note()
+   |
+
+E701 Multiple statements on one line (colon)
+  --> ai/expense_parse.py:38:22
+   |
+36 |     if callable(amt): amt = amt()
+37 |     if callable(cat): cat = cat()
+38 |     if callable(note): note = note()
+   |                      ^
+39 |     
+40 |     # Strict validation
+   |
+
+F401 [*] `flask.redirect` imported but unused
+ --> app.py:4:70
+  |
+2 | import logging
+3 | import sys
+4 | from flask import Flask, request, jsonify, render_template, session, redirect, url_for, make_response, g
+  |                                                                      ^^^^^^^^
+5 | from flask_sqlalchemy import SQLAlchemy
+6 | from sqlalchemy.orm import DeclarativeBase
+  |
+help: Remove unused import
+
+F401 [*] `flask.url_for` imported but unused
+ --> app.py:4:80
+  |
+2 | import logging
+3 | import sys
+4 | from flask import Flask, request, jsonify, render_template, session, redirect, url_for, make_response, g
+  |                                                                                ^^^^^^^
+5 | from flask_sqlalchemy import SQLAlchemy
+6 | from sqlalchemy.orm import DeclarativeBase
+  |
+help: Remove unused import
+
+F401 [*] `json` imported but unused
+  --> app.py:9:8
+   |
+ 7 | from werkzeug.middleware.proxy_fix import ProxyFix
+ 8 | from functools import wraps
+ 9 | import json
+   |        ^^^^
+10 | import base64
+11 | from datetime import datetime, timedelta, timezone
+   |
+help: Remove unused import: `json`
+
+F401 [*] `base64` imported but unused
+  --> app.py:10:8
+   |
+ 8 | from functools import wraps
+ 9 | import json
+10 | import base64
+   |        ^^^^^^
+11 | from datetime import datetime, timedelta, timezone
+   |
+help: Remove unused import: `base64`
+
+F401 [*] `models.User` imported but unused
+   --> app.py:267:37
+    |
+266 |     try:
+267 |         from models import Expense, User, MonthlySummary
+    |                                     ^^^^
+268 |         from datetime import datetime
+269 |         from sqlalchemy import func, extract
+    |
+help: Remove unused import
+
+F401 [*] `models.MonthlySummary` imported but unused
+   --> app.py:267:43
+    |
+266 |     try:
+267 |         from models import Expense, User, MonthlySummary
+    |                                           ^^^^^^^^^^^^^^
+268 |         from datetime import datetime
+269 |         from sqlalchemy import func, extract
+    |
+help: Remove unused import
+
+F541 [*] f-string without any placeholders
+   --> app.py:328:27
+    |
+326 |         if not token_healthy:
+327 |             health_status = "degraded"
+328 |             issues.append(f"token_issue")
+    |                           ^^^^^^^^^^^^^^
+329 |     except Exception as e:
+330 |         logger.error(f"Token health check failed: {str(e)}")
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `utils.logger.request_logger` imported but unused
+   --> app.py:389:30
+    |
+387 | def webhook_messenger() -> str | tuple[str, int]:
+388 |     """Facebook Messenger webhook with structured request logging"""
+389 |     from utils.logger import request_logger
+    |                              ^^^^^^^^^^^^^^
+390 |     
+391 |     if request.method == "GET":
+    |
+help: Remove unused import: `utils.logger.request_logger`
+
+F841 Local variable `production_router` is assigned to but never used
+   --> app.py:420:13
+    |
+418 |             from utils.production_router import production_router
+419 |         except ImportError:
+420 |             production_router = None
+    |             ^^^^^^^^^^^^^^^^^
+421 |         
+422 |         # Get raw payload and signature
+    |
+help: Remove assignment to unused variable `production_router`
+
+F401 [*] `json` imported but unused
+   --> app.py:568:16
+    |
+566 |         from utils.ai_adapter_v2 import production_ai_adapter
+567 |         from datetime import datetime, timedelta
+568 |         import json
+    |                ^^^^
+569 |         
+570 |         # Find user by PSID hash
+    |
+help: Remove unused import: `json`
+
+E402 Module level import not at top of file
+   --> app.py:945:1
+    |
+944 | # Register streamlined admin operations
+945 | from admin_ops import admin_ops
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+946 | app.register_blueprint(admin_ops)
+    |
+
+F401 [*] `utils.security.hash_psid` imported but unused
+   --> archive/ai_adapter.py:377:36
+    |
+376 |         # Hash PSID for PII protection
+377 |         from utils.security import hash_psid
+    |                                    ^^^^^^^^^
+378 |         psid_hash = resolve_user_id(psid=psid)
+    |
+help: Remove unused import: `utils.security.hash_psid`
+
+F401 [*] `os` imported but unused
+ --> archive/ai_adapter_gemini.py:5:8
+  |
+3 | Uses google-genai SDK with gemini-2.5-flash-lite model
+4 | """
+5 | import os
+  |        ^^
+6 | import time
+7 | import logging
+  |
+help: Remove unused import: `os`
+
+F401 `google.genai.types.GenerateContentConfig` imported but unused; consider using `importlib.util.find_spec` to test for availability
+  --> archive/ai_adapter_gemini.py:17:40
+   |
+15 |     try:
+16 |         from google.genai import Client
+17 |         from google.genai.types import GenerateContentConfig
+   |                                        ^^^^^^^^^^^^^^^^^^^^^
+18 |         client = Client(api_key=GEMINI_API_KEY)
+19 |     except ImportError as e:
+   |
+help: Remove unused import: `google.genai.types.GenerateContentConfig`
+
+F401 [*] `os` imported but unused
+ --> archive/ai_adapter_openai.py:5:8
+  |
+3 | Direct OpenAI integration with 3s timeout and immediate fallback
+4 | """
+5 | import os
+  |        ^^
+6 | import time
+7 | import logging
+  |
+help: Remove unused import: `os`
+
+invalid-syntax: Expected a statement
+   --> archive/ai_expense_parser_broken.py:295:9
+    |
+293 |         return 'other'
+294 |             
+295 |         except Exception as e:
+    |         ^^^^^^
+296 |             self.logger.error(f"Fallback parsing error: {e}")
+297 |             return {
+    |
+
+invalid-syntax: Expected a statement
+   --> archive/ai_expense_parser_broken.py:295:26
+    |
+293 |         return 'other'
+294 |             
+295 |         except Exception as e:
+    |                          ^^
+296 |             self.logger.error(f"Fallback parsing error: {e}")
+297 |             return {
+    |
+
+invalid-syntax: Expected an expression
+   --> archive/ai_expense_parser_broken.py:295:31
+    |
+293 |         return 'other'
+294 |             
+295 |         except Exception as e:
+    |                               ^
+296 |             self.logger.error(f"Fallback parsing error: {e}")
+297 |             return {
+    |
+
+invalid-syntax: Unexpected indentation
+   --> archive/ai_expense_parser_broken.py:296:1
+    |
+295 |         except Exception as e:
+296 |             self.logger.error(f"Fallback parsing error: {e}")
+    | ^^^^^^^^^^^^
+297 |             return {
+298 |                 "success": False,
+    |
+
+invalid-syntax: Expected a statement
+   --> archive/ai_expense_parser_broken.py:308:1
+    |
+307 | # Global instance
+308 | ai_expense_parser = AIExpenseParser()
+    | ^
+    |
+
+F401 [*] `typing.Optional` imported but unused
+ --> archive/ai_onboarding_parser.py:5:31
+  |
+3 | """
+4 | import logging
+5 | from typing import Dict, Any, Optional
+  |                               ^^^^^^^^
+6 | from ai_adapter_gemini import generate_with_schema
+  |
+help: Remove unused import: `typing.Optional`
+
+invalid-syntax: Unexpected indentation
+   --> archive/background_processor_broken.py:444:1
+    |
+443 |             # Add top categories
+444 |             sorted_categories = sorted(category_totals.items(), key=lambda x: x[1], reverse=True)
+    | ^^^^^^^^^^^^
+445 |             for category, amount in sorted_categories[:3]:
+446 |                 summary_lines.append(f"• {category}: ৳{amount:.0f}")
+    |
+
+invalid-syntax: unindent does not match any outer indentation level
+   --> archive/background_processor_broken.py:453:1
+    |
+451 |             return "\n".join(summary_lines)
+452 |             
+453 |         except Exception as e:
+    | ^^^^^^^^
+454 |             logger.error(f"Error generating deterministic summary: {str(e)}")
+455 |             return "📊 Summary temporarily unavailable. Check your dashboard for details."
+    |
+
+invalid-syntax: Expected a statement
+   --> archive/background_processor_broken.py:453:9
+    |
+451 |             return "\n".join(summary_lines)
+452 |             
+453 |         except Exception as e:
+    |         ^^^^^^
+454 |             logger.error(f"Error generating deterministic summary: {str(e)}")
+455 |             return "📊 Summary temporarily unavailable. Check your dashboard for details."
+    |
+
+invalid-syntax: Expected a statement
+   --> archive/background_processor_broken.py:453:26
+    |
+451 |             return "\n".join(summary_lines)
+452 |             
+453 |         except Exception as e:
+    |                          ^^
+454 |             logger.error(f"Error generating deterministic summary: {str(e)}")
+455 |             return "📊 Summary temporarily unavailable. Check your dashboard for details."
+    |
+
+invalid-syntax: Expected an expression
+   --> archive/background_processor_broken.py:453:31
+    |
+451 |             return "\n".join(summary_lines)
+452 |             
+453 |         except Exception as e:
+    |                               ^
+454 |             logger.error(f"Error generating deterministic summary: {str(e)}")
+455 |             return "📊 Summary temporarily unavailable. Check your dashboard for details."
+    |
+
+invalid-syntax: Unexpected indentation
+   --> archive/background_processor_broken.py:454:1
+    |
+453 |         except Exception as e:
+454 |             logger.error(f"Error generating deterministic summary: {str(e)}")
+    | ^^^^^^^^^^^^
+455 |             return "📊 Summary temporarily unavailable. Check your dashboard for details."
+    |
+
+invalid-syntax: unindent does not match any outer indentation level
+   --> archive/background_processor_broken.py:457:1
+    |
+455 |             return "📊 Summary temporarily unavailable. Check your dashboard for details."
+456 |     
+457 |     def _log_ai_rate_limit(self, rid: str, psid_hash: str, rate_limit_result) -> None:
+    | ^^^^
+458 |         """Log AI rate limit check with structured data"""
+459 |         log_data = {
+    |
+
+invalid-syntax: unindent does not match any outer indentation level
+   --> archive/background_processor_broken.py:474:5
+    |
+472 |             logger.warning(f"AI rate limited for PSID {psid_hash[:8]}...: {rate_limit_result.reason}")
+473 |     
+474 |     def _send_fallback_reply(self, psid: str, message: str) -> bool:
+    |     ^
+475 |         """Send fallback reply with error handling"""
+476 |         try:
+    |
+
+invalid-syntax: unindent does not match any outer indentation level
+   --> archive/background_processor_broken.py:482:5
+    |
+480 |             return False
+481 |     
+482 |     def get_stats(self) -> Dict[str, Any]:
+    |     ^
+483 |         """Get background processor statistics"""
+484 |         ai_status = self.ai_adapter.get_status() if hasattr(self.ai_adapter, 'get_status') else {"enabled": False}
+    |
+
+invalid-syntax: unindent does not match any outer indentation level
+   --> archive/background_processor_broken.py:492:1
+    |
+490 |         }
+491 |     
+492 |     def shutdown(self) -> None:
+    | ^^^^
+493 |         """Gracefully shutdown the background processor"""
+494 |         logger.info("Shutting down background processor...")
+    |
+
+invalid-syntax: Expected dedent, found end of file
+   --> archive/background_processor_broken.py:499:58
+    |
+498 | # Global background processor instance
+499 | background_processor = BackgroundProcessor(max_workers=3)
+    |                                                          ^
+    |
+
+F401 [*] `os` imported but unused
+ --> archive/background_processor_corrupted.py:5:8
+  |
+3 | Handles webhook message processing with timeout protection and fallbacks
+4 | """
+5 | import os
+  |        ^^
+6 | import time
+7 | import json
+  |
+help: Remove unused import: `os`
+
+F401 [*] `threading` imported but unused
+  --> archive/background_processor_corrupted.py:9:8
+   |
+ 7 | import json
+ 8 | import logging
+ 9 | import threading
+   |        ^^^^^^^^^
+10 | import requests
+11 | from datetime import datetime
+   |
+help: Remove unused import: `threading`
+
+F401 [*] `requests` imported but unused
+  --> archive/background_processor_corrupted.py:10:8
+   |
+ 8 | import logging
+ 9 | import threading
+10 | import requests
+   |        ^^^^^^^^
+11 | from datetime import datetime
+12 | from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+   |
+help: Remove unused import: `requests`
+
+F401 [*] `datetime.datetime` imported but unused
+  --> archive/background_processor_corrupted.py:11:22
+   |
+ 9 | import threading
+10 | import requests
+11 | from datetime import datetime
+   |                      ^^^^^^^^
+12 | from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+13 | from queue import Queue, Empty
+   |
+help: Remove unused import: `datetime.datetime`
+
+F401 [*] `concurrent.futures.TimeoutError` imported but unused
+  --> archive/background_processor_corrupted.py:12:68
+   |
+10 | import requests
+11 | from datetime import datetime
+12 | from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+   |                                                                    ^^^^^^^^^^^^^^^^^^
+13 | from queue import Queue, Empty
+14 | from dataclasses import dataclass
+   |
+help: Remove unused import: `concurrent.futures.TimeoutError`
+
+F401 [*] `queue.Empty` imported but unused
+  --> archive/background_processor_corrupted.py:13:26
+   |
+11 | from datetime import datetime
+12 | from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+13 | from queue import Queue, Empty
+   |                          ^^^^^
+14 | from dataclasses import dataclass
+15 | from typing import Optional, Dict, Any, Tuple
+   |
+help: Remove unused import: `queue.Empty`
+
+F401 [*] `.rate_limiter.check_rate_limit` imported but unused
+  --> archive/background_processor_corrupted.py:19:27
+   |
+17 | from .logger import log_webhook_success, get_request_id
+18 | from .security import hash_psid
+19 | from .rate_limiter import check_rate_limit
+   |                           ^^^^^^^^^^^^^^^^
+20 | from .policy_guard import update_user_message_timestamp, is_within_24_hour_window
+21 | from .facebook_handler import send_facebook_message
+   |
+help: Remove unused import: `.rate_limiter.check_rate_limit`
+
+F841 Local variable `future` is assigned to but never used
+  --> archive/background_processor_corrupted.py:68:13
+   |
+67 |             # Submit to thread pool
+68 |             future = self.executor.submit(self._process_job_safe, job)
+   |             ^^^^^^
+69 |             
+70 |             # Log successful enqueue
+   |
+help: Remove assignment to unused variable `future`
+
+F401 [*] `utils.expense.process_expense_message` imported but unused
+   --> archive/background_processor_corrupted.py:216:35
+    |
+214 |         """
+215 |         from utils.parser import parse_expense
+216 |         from utils.expense import process_expense_message
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^
+217 |         from utils.categories import categorize_expense
+218 |         from datetime import datetime, timedelta
+    |
+help: Remove unused import: `utils.expense.process_expense_message`
+
+F811 [*] Redefinition of unused `datetime` from line 11
+   --> archive/background_processor_corrupted.py:218:30
+    |
+216 |         from utils.expense import process_expense_message
+217 |         from utils.categories import categorize_expense
+218 |         from datetime import datetime, timedelta
+    |                              ^^^^^^^^
+219 |         from app import db
+220 |         from models import Expense
+    |
+help: Remove definition: `datetime`
+
+F401 [*] `datetime.timedelta` imported but unused
+   --> archive/background_processor_corrupted.py:218:40
+    |
+216 |         from utils.expense import process_expense_message
+217 |         from utils.categories import categorize_expense
+218 |         from datetime import datetime, timedelta
+    |                                        ^^^^^^^^^
+219 |         from app import db
+220 |         from models import Expense
+    |
+help: Remove unused import: `datetime.timedelta`
+
+F823 Local variable `hash_psid` referenced before assignment
+   --> archive/background_processor_corrupted.py:222:21
+    |
+220 |         from models import Expense
+221 |         
+222 |         psid_hash = hash_psid(psid)
+    |                     ^^^^^^^^^
+223 |         
+224 |         # RL-2: Handle "summary" command during rate limiting
+    |
+
+F401 [*] `models.Expense` imported but unused
+   --> archive/background_processor_corrupted.py:316:32
+    |
+314 |         try:
+315 |             from app import db
+316 |             from models import Expense
+    |                                ^^^^^^^
+317 |             from datetime import datetime, timedelta
+318 |             from sqlalchemy import func, text
+    |
+help: Remove unused import: `models.Expense`
+
+F401 [*] `sqlalchemy.func` imported but unused
+   --> archive/background_processor_corrupted.py:318:36
+    |
+316 |             from models import Expense
+317 |             from datetime import datetime, timedelta
+318 |             from sqlalchemy import func, text
+    |                                    ^^^^
+319 |             
+320 |             # Calculate time windows (today, 7d, 30d)
+    |
+help: Remove unused import: `sqlalchemy.func`
+
+F821 Undefined name `category_totals`
+   --> archive/background_processor_corrupted.py:441:40
+    |
+440 |             # Add top categories
+441 |             sorted_categories = sorted(category_totals.items(), key=lambda x: x[1], reverse=True)
+    |                                        ^^^^^^^^^^^^^^^
+442 |             for category, amount in sorted_categories[:3]:
+443 |                 summary_lines.append(f"• {category}: ৳{amount:.0f}")
+    |
+
+F821 Undefined name `summary_lines`
+   --> archive/background_processor_corrupted.py:443:17
+    |
+441 |             sorted_categories = sorted(category_totals.items(), key=lambda x: x[1], reverse=True)
+442 |             for category, amount in sorted_categories[:3]:
+443 |                 summary_lines.append(f"• {category}: ৳{amount:.0f}")
+    |                 ^^^^^^^^^^^^^
+444 |             
+445 |             # Add count
+    |
+
+F821 Undefined name `summary_lines`
+   --> archive/background_processor_corrupted.py:446:13
+    |
+445 |             # Add count
+446 |             summary_lines.append(f"📝 {len(expenses)} transactions logged")
+    |             ^^^^^^^^^^^^^
+447 |             
+448 |             return "\n".join(summary_lines)
+    |
+
+F821 Undefined name `expenses`
+   --> archive/background_processor_corrupted.py:446:43
+    |
+445 |             # Add count
+446 |             summary_lines.append(f"📝 {len(expenses)} transactions logged")
+    |                                            ^^^^^^^^
+447 |             
+448 |             return "\n".join(summary_lines)
+    |
+
+F821 Undefined name `summary_lines`
+   --> archive/background_processor_corrupted.py:448:30
+    |
+446 |             summary_lines.append(f"📝 {len(expenses)} transactions logged")
+447 |             
+448 |             return "\n".join(summary_lines)
+    |                              ^^^^^^^^^^^^^
+449 |             
+450 |         except Exception as e:
+    |
+
+F401 [*] `logging` imported but unused
+ --> archive/debug_conversational_ai.py:6:8
+  |
+4 | """
+5 |
+6 | import logging
+  |        ^^^^^^^
+7 | import sys
+8 | sys.path.insert(0, '.')
+  |
+help: Remove unused import: `logging`
+
+F401 [*] `app.db` imported but unused
+  --> archive/debug_conversational_ai.py:12:26
+   |
+10 | def debug_user_data():
+11 |     """Debug user expense data access"""
+12 |     from app import app, db
+   |                          ^^
+13 |     from models import Expense
+14 |     from utils.conversational_ai import conversational_ai
+   |
+help: Remove unused import: `app.db`
+
+F401 [*] `utils.security.hash_psid` imported but unused
+  --> archive/debug_conversational_ai.py:15:32
+   |
+13 |     from models import Expense
+14 |     from utils.conversational_ai import conversational_ai
+15 |     from utils.security import hash_psid
+   |                                ^^^^^^^^^
+16 |     
+17 |     with app.app_context():
+   |
+help: Remove unused import: `utils.security.hash_psid`
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_conversational_ai.py:38:19
+   |
+36 |             # Now test conversational AI with a reverse-engineered PSID
+37 |             # We need to find the original PSID that hashes to this user_id
+38 |             print(f"\n🧪 Testing conversational AI with hashed user_id...")
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+39 |             
+40 |             # Test the conversational AI context directly
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_conversational_ai.py:48:23
+   |
+46 |                 print(f"✅ Data found: {context['total_expenses']} expenses, total: {context['total_amount']}")
+47 |             else:
+48 |                 print(f"❌ No data found in context")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+49 |                 
+50 |         else:
+   |
+help: Remove extraneous `f` prefix
+
+F401 [*] `utils.security.hash_psid` imported but unused
+  --> archive/debug_conversational_ai.py:57:32
+   |
+55 |     from app import app
+56 |     from utils.conversational_ai import conversational_ai
+57 |     from utils.security import hash_psid
+   |                                ^^^^^^^^^
+58 |     
+59 |     with app.app_context():
+   |
+help: Remove unused import: `utils.security.hash_psid`
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_hash_flow.py:32:15
+   |
+31 |         # Now simulate what happens in conversational AI
+32 |         print(f"\n3. In conversational AI:")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+33 |         print(f"   - Receives PSID: {original_psid}")
+34 |         print(f"   - Should query with hash: {stored_hash[:16]}...")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_hash_flow.py:39:15
+   |
+37 |         double_hash = hash_psid(stored_hash)
+38 |         print(f"   - If we hash again: {double_hash[:16]}...")
+39 |         print(f"   - Result: NO DATA FOUND (different hash)")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+40 |         
+41 |         print(f"\n🎯 SOLUTION:")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_hash_flow.py:41:15
+   |
+39 |         print(f"   - Result: NO DATA FOUND (different hash)")
+40 |         
+41 |         print(f"\n🎯 SOLUTION:")
+   |               ^^^^^^^^^^^^^^^^^
+42 |         print(f"   - Production router: Pass original PSID")
+43 |         print(f"   - Conversational AI: Hash ONCE, then query")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_hash_flow.py:42:15
+   |
+41 |         print(f"\n🎯 SOLUTION:")
+42 |         print(f"   - Production router: Pass original PSID")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+43 |         print(f"   - Conversational AI: Hash ONCE, then query")
+44 |         print(f"   - Never hash an already-hashed value")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_hash_flow.py:43:15
+   |
+41 |         print(f"\n🎯 SOLUTION:")
+42 |         print(f"   - Production router: Pass original PSID")
+43 |         print(f"   - Conversational AI: Hash ONCE, then query")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+44 |         print(f"   - Never hash an already-hashed value")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_hash_flow.py:44:15
+   |
+42 |         print(f"   - Production router: Pass original PSID")
+43 |         print(f"   - Conversational AI: Hash ONCE, then query")
+44 |         print(f"   - Never hash an already-hashed value")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+45 |
+46 | if __name__ == "__main__":
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_inconsistent_responses.py:75:27
+   |
+74 |                 if has_data and no_data:
+75 |                     print(f"   ⚠️  INCONSISTENT: Contains both 'no data' and specific spending info")
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+76 |                 elif has_data:
+77 |                     print(f"   ✅ GOOD: Contains spending data")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_inconsistent_responses.py:77:27
+   |
+75 |                     print(f"   ⚠️  INCONSISTENT: Contains both 'no data' and specific spending info")
+76 |                 elif has_data:
+77 |                     print(f"   ✅ GOOD: Contains spending data")
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+78 |                 elif no_data:
+79 |                     print(f"   ❌ BAD: Says no data available")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_inconsistent_responses.py:79:27
+   |
+77 |                     print(f"   ✅ GOOD: Contains spending data")
+78 |                 elif no_data:
+79 |                     print(f"   ❌ BAD: Says no data available")
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+80 |                 else:
+81 |                     print(f"   ⚠️  UNCLEAR: Response type unknown")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_inconsistent_responses.py:81:27
+   |
+79 |                     print(f"   ❌ BAD: Says no data available")
+80 |                 else:
+81 |                     print(f"   ⚠️  UNCLEAR: Response type unknown")
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+82 |                     
+83 |             except Exception as e:
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_inconsistent_responses.py:87:15
+   |
+86 |         # Test different ways the PSID might come in
+87 |         print(f"\n3. TESTING DIFFERENT PSID FORMATS")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+88 |         
+89 |         # Simulate what happens if we get an actual Facebook PSID
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/debug_inconsistent_responses.py:111:23
+    |
+110 |             if "no data" in response.lower():
+111 |                 print(f"   ✅ EXPECTED: No data for new PSID")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+112 |             else:
+113 |                 print(f"   ⚠️  UNEXPECTED: Found data for new PSID")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/debug_inconsistent_responses.py:113:23
+    |
+111 |                 print(f"   ✅ EXPECTED: No data for new PSID")
+112 |             else:
+113 |                 print(f"   ⚠️  UNEXPECTED: Found data for new PSID")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+114 |                 
+115 |         except Exception as e:
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `logging` imported but unused
+ --> archive/debug_user_data_flow.py:6:8
+  |
+4 | """
+5 |
+6 | import logging
+  |        ^^^^^^^
+7 | import sys
+8 | sys.path.insert(0, '.')
+  |
+help: Remove unused import: `logging`
+
+F401 [*] `utils.security.hash_psid` imported but unused
+  --> archive/debug_user_data_flow.py:13:32
+   |
+11 |     """Debug the complete data flow from Facebook PSID to database lookup"""
+12 |     from app import app
+13 |     from utils.security import hash_psid
+   |                                ^^^^^^^^^
+14 |     from utils.conversational_ai import conversational_ai
+15 |     from utils.production_router import ProductionRouter
+   |
+help: Remove unused import: `utils.security.hash_psid`
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_user_data_flow.py:44:19
+   |
+42 |             # Direct conversational AI test
+43 |             context = conversational_ai.get_user_expense_context_direct(test_hash, days=30)
+44 |             print(f"   Direct context access:")
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+45 |             print(f"   - Has data: {context['has_data']}")
+46 |             print(f"   - Total expenses: {context['total_expenses']}")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_user_data_flow.py:51:23
+   |
+49 |             if context['has_data']:
+50 |                 # Test conversational response
+51 |                 print(f"\n3. Testing conversational AI with this hash:")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+52 |                 response, intent = conversational_ai.handle_conversational_query(test_hash, "Give me a summary")
+53 |                 print(f"   Response: {response}")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/debug_user_data_flow.py:57:23
+   |
+56 |                 # Test production router
+57 |                 print(f"\n4. Testing production router:")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+58 |                 router = ProductionRouter()
+   |
+help: Remove extraneous `f` prefix
+
+F401 [*] `typing.Optional` imported but unused
+ --> archive/expense_router.py:7:31
+  |
+6 | import logging
+7 | from typing import Dict, Any, Optional
+  |                               ^^^^^^^^
+8 |
+9 | from ai.expense_parse import parse_expense, regex_parse
+  |
+help: Remove unused import: `typing.Optional`
+
+F841 [*] Local variable `e` is assigned to but never used
+  --> archive/expense_router.py:35:25
+   |
+33 |         mode = "AI"
+34 |         
+35 |     except Exception as e:
+   |                         ^
+36 |         logger.exception("AI expense logging error")
+   |
+help: Remove assignment to unused variable `e`
+
+F401 [*] `os` imported but unused
+  --> archive/gemini_validation.py:9:8
+   |
+ 7 | import requests
+ 8 | import json
+ 9 | import os
+   |        ^^
+10 |
+11 | BASE_URL = "http://localhost:5000"
+   |
+help: Remove unused import: `os`
+
+F541 [*] f-string without any placeholders
+   --> archive/migrate_identity.py:281:15
+    |
+280 |         # Print summary
+281 |         print(f"\n=== MIGRATION SUMMARY ===")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+282 |         print(f"Total users: {plan['summary']['total_users']}")
+283 |         print(f"Test users to archive: {plan['summary']['test_users_to_archive']}")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/migrate_identity.py:288:19
+    |
+287 |         if args.apply:
+288 |             print(f"\nApplying migration...")
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+289 |             results = apply_migration(plan, conn)
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/migrate_identity.py:291:19
+    |
+289 |             results = apply_migration(plan, conn)
+290 |             
+291 |             print(f"\n=== MIGRATION RESULTS ===")
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+292 |             print(f"Archived users: {results['archived_users']}")
+293 |             print(f"Merged duplicates: {results['merged_duplicates']}")
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `typing.Dict` imported but unused
+ --> archive/mvp_router.py:7:20
+  |
+5 | import hashlib
+6 | from datetime import datetime, timedelta
+7 | from typing import Dict, Any, Tuple
+  |                    ^^^^
+8 |
+9 | from utils.user_manager import resolve_user_id
+  |
+help: Remove unused import
+
+F401 [*] `typing.Any` imported but unused
+ --> archive/mvp_router.py:7:26
+  |
+5 | import hashlib
+6 | from datetime import datetime, timedelta
+7 | from typing import Dict, Any, Tuple
+  |                          ^^^
+8 |
+9 | from utils.user_manager import resolve_user_id
+  |
+help: Remove unused import
+
+F401 [*] `threading` imported but unused
+  --> archive/performance_benchmark.py:10:8
+   |
+ 8 | import json
+ 9 | import time
+10 | import threading
+   |        ^^^^^^^^^
+11 | import statistics
+12 | from concurrent.futures import ThreadPoolExecutor, as_completed
+   |
+help: Remove unused import: `threading`
+
+F401 [*] `hashlib` imported but unused
+  --> archive/performance_benchmark.py:13:8
+   |
+11 | import statistics
+12 | from concurrent.futures import ThreadPoolExecutor, as_completed
+13 | import hashlib
+   |        ^^^^^^^
+14 | import hmac
+   |
+help: Remove unused import: `hashlib`
+
+F401 [*] `hmac` imported but unused
+  --> archive/performance_benchmark.py:14:8
+   |
+12 | from concurrent.futures import ThreadPoolExecutor, as_completed
+13 | import hashlib
+14 | import hmac
+   |        ^^^^
+15 |
+16 | BASE_URL = "http://localhost:5000"
+   |
+help: Remove unused import: `hmac`
+
+F841 Local variable `status_code` is assigned to but never used
+  --> archive/performance_benchmark.py:67:21
+   |
+65 |                 if result["success"]:
+66 |                     times.append(result["duration_ms"])
+67 |                     status_code = result["result"].status_code
+   |                     ^^^^^^^^^^^
+68 |                 else:
+69 |                     self.errors.append(f"{name}: {result['error']}")
+   |
+help: Remove assignment to unused variable `status_code`
+
+F541 [*] f-string without any placeholders
+   --> archive/performance_benchmark.py:467:11
+    |
+465 |         json.dump(results, f, indent=2)
+466 |     
+467 |     print(f"\nDetailed results saved to benchmark_results.json")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `time` imported but unused
+ --> archive/production_debug.py:5:8
+  |
+4 | import requests
+5 | import time
+  |        ^^^^
+6 |
+7 | def debug_production():
+  |
+help: Remove unused import: `time`
+
+F401 [*] `json` imported but unused
+  --> archive/provider_switch_demo.py:8:8
+   |
+ 7 | import requests
+ 8 | import json
+   |        ^^^^
+ 9 |
+10 | BASE_URL = "http://localhost:5000"
+   |
+help: Remove unused import: `json`
+
+F541 [*] f-string without any placeholders
+  --> archive/provider_switch_demo.py:43:15
+   |
+41 |         ping_data = resp.json()
+42 |         
+43 |         print(f"AI Ping Result:")
+   |               ^^^^^^^^^^^^^^^^^^
+44 |         print(f"  OK: {ping_data.get('ok', False)}")
+45 |         print(f"  Reply: {ping_data.get('reply', 'No reply')}")
+   |
+help: Remove extraneous `f` prefix
+
+F401 [*] `utils.user_manager.resolve_user_id` imported but unused
+  --> archive/run_uat_test.py:14:36
+   |
+12 |     """Run comprehensive UAT tests on the production router"""
+13 |     from utils.production_router import production_router
+14 |     from utils.user_manager import resolve_user_id
+   |                                    ^^^^^^^^^^^^^^^
+15 |     from app import app, db
+16 |     from models import User, Expense
+   |
+help: Remove unused import: `utils.user_manager.resolve_user_id`
+
+F541 [*] f-string without any placeholders
+  --> archive/run_uat_test.py:59:19
+   |
+57 |             db.session.add(test_user)
+58 |             db.session.commit()
+59 |             print(f"✓ Created test user")
+   |                   ^^^^^^^^^^^^^^^^^^^^^^
+60 |         else:
+61 |             print(f"✓ Using existing test user")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/run_uat_test.py:61:19
+   |
+59 |             print(f"✓ Created test user")
+60 |         else:
+61 |             print(f"✓ Using existing test user")
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+62 |         
+63 |         # Add some test expenses for summary
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/run_uat_test.py:75:15
+   |
+73 |         db.session.add(test_expense)
+74 |         db.session.commit()
+75 |         print(f"✓ Added test expense")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^
+76 |         print()
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/run_uat_test.py:118:31
+    |
+116 |                     print(f"   Response: {response[:150]}")
+117 |                     if has_fallback:
+118 |                         print(f"   ⚠️  Generic fallback detected")
+    |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+119 |                     if is_error:
+120 |                         print(f"   ⚠️  Error/fallback intent")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/run_uat_test.py:120:31
+    |
+118 |                         print(f"   ⚠️  Generic fallback detected")
+119 |                     if is_error:
+120 |                         print(f"   ⚠️  Error/fallback intent")
+    |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+121 |                 print()
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/run_uat_test.py:163:27
+    |
+161 |                     print(f"    Error: {r['error']}")
+162 |                 elif r.get("has_fallback"):
+163 |                     print(f"    Issue: Generic fallback response")
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+164 |                 elif r.get("is_error"):
+165 |                     print(f"    Issue: Error/fallback intent ({r.get('actual_intent')})")
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `typing.Optional` imported but unused
+ --> archive/simple_router.py:7:27
+  |
+5 | import time
+6 | import logging
+7 | from typing import Tuple, Optional, Dict, Any
+  |                           ^^^^^^^^
+8 |
+9 | from flags import is_ai_enabled
+  |
+help: Remove unused import: `typing.Optional`
+
+F841 Local variable `start_time` is assigned to but never used
+  --> archive/simple_router.py:35:9
+   |
+33 |         Returns: (response_text, metadata)
+34 |         """
+35 |         start_time = time.time()
+   |         ^^^^^^^^^^
+36 |         psid_hash = hash_psid(psid)
+   |
+help: Remove assignment to unused variable `start_time`
+
+F541 [*] f-string without any placeholders
+  --> archive/test_ai_expense_evolution.py:21:11
+   |
+19 |     test_message = "Logging today's expenses - coffee 100, burger 300 and watermelon juice 300"
+20 |     
+21 |     print(f"🧪 Testing AI Expense Parser Evolution")
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22 |     print(f"📝 Message: {test_message}")
+23 |     print(f"🎯 Expected: 3 expenses totaling 700")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_ai_expense_evolution.py:23:11
+   |
+21 |     print(f"🧪 Testing AI Expense Parser Evolution")
+22 |     print(f"📝 Message: {test_message}")
+23 |     print(f"🎯 Expected: 3 expenses totaling 700")
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+24 |     print("=" * 60)
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_ai_expense_evolution.py:37:19
+   |
+36 |         if result['success'] and result['expenses']:
+37 |             print(f"\n📋 Expense Breakdown:")
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+38 |             for i, expense in enumerate(result['expenses'], 1):
+39 |                 print(f"  {i}. {expense['amount']} - {expense['description']} ({expense['category']})")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_ai_expense_evolution.py:56:19
+   |
+54 |                 print(f"❌ Item count mismatch: got {result['item_count']}, expected {expected_count}")
+55 |         else:
+56 |             print(f"❌ Parsing failed - the evolution didn't work as expected")
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+57 |         
+58 |         return result
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_ai_expense_evolution.py:75:11
+   |
+73 |     ]
+74 |     
+75 |     print(f"\n🧪 Testing Simple Cases")
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+76 |     print("=" * 60)
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_ai_expense_evolution.py:94:11
+   |
+93 |     # Summary
+94 |     print(f"\n🎯 EVOLUTION TEST SUMMARY")
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+95 |     print("=" * 60)
+   |
+help: Remove extraneous `f` prefix
+
+F401 [*] `hmac` imported but unused
+  --> archive/test_ai_vs_fallback.py:11:8
+   |
+ 9 | import time
+10 | import hashlib
+11 | import hmac
+   |        ^^^^
+12 |
+13 | BASE_URL = "http://localhost:5000"
+   |
+help: Remove unused import: `hmac`
+
+F841 Local variable `test_psid` is assigned to but never used
+   --> archive/test_ai_vs_fallback.py:98:13
+    |
+ 96 |         try:
+ 97 |             # Create a test user ID
+ 98 |             test_psid = hashlib.sha256(f"test_user_{test_name}".encode()).hexdigest()[:16]
+    |             ^^^^^^^^^
+ 99 |             
+100 |             # We can't directly test the router without triggering rate limits,
+    |
+help: Remove assignment to unused variable `test_psid`
+
+F541 [*] f-string without any placeholders
+   --> archive/test_ai_vs_fallback.py:108:27
+    |
+107 |                 if ai_configured:
+108 |                     print(f"   Router decision: AI path (Gemini configured)")
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+109 |                     print(f"   Expected AI: {test_name.split('.')[1].strip()}")
+110 |                     self.results[f"routing_{test_name}"] = {"status": "ai_path", "configured": True}
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_ai_vs_fallback.py:112:27
+    |
+110 |                     self.results[f"routing_{test_name}"] = {"status": "ai_path", "configured": True}
+111 |                 else:
+112 |                     print(f"   Router decision: Fallback path (AI not configured)")
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+113 |                     print(f"   Expected fallback: Template response")
+114 |                     self.results[f"routing_{test_name}"] = {"status": "fallback_path", "configured": False}
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_ai_vs_fallback.py:113:27
+    |
+111 |                 else:
+112 |                     print(f"   Router decision: Fallback path (AI not configured)")
+113 |                     print(f"   Expected fallback: Template response")
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+114 |                     self.results[f"routing_{test_name}"] = {"status": "fallback_path", "configured": False}
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_ai_vs_fallback.py:250:19
+    |
+248 |         # Final assessment
+249 |         if ai_indicators >= 2:
+250 |             print(f"\n🟢 CONCLUSION: GEMINI AI IS ACTIVE")
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+251 |             print(f"Evidence: {ai_indicators}/{total_tests} tests confirm AI is responding")
+252 |             print("Your system is using real Gemini AI, not deterministic fallback")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_ai_vs_fallback.py:254:19
+    |
+252 |             print("Your system is using real Gemini AI, not deterministic fallback")
+253 |         elif ai_indicators == 1:
+254 |             print(f"\n🟡 CONCLUSION: MIXED EVIDENCE")
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+255 |             print(f"Evidence: {ai_indicators}/{total_tests} tests suggest AI may be partially active")
+256 |         else:
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_ai_vs_fallback.py:257:19
+    |
+255 |             print(f"Evidence: {ai_indicators}/{total_tests} tests suggest AI may be partially active")
+256 |         else:
+257 |             print(f"\n🔴 CONCLUSION: DETERMINISTIC FALLBACK ACTIVE")
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+258 |             print(f"Evidence: {ai_indicators}/{total_tests} tests suggest AI is not responding")
+259 |             print("System is using deterministic fallback logic")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_ai_vs_fallback.py:271:15
+    |
+269 |             }, f, indent=2)
+270 |         
+271 |         print(f"\nDetailed results saved to ai_fallback_test_results.json")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+272 |         
+273 |         return ai_indicators >= 2
+    |
+help: Remove extraneous `f` prefix
+
+E712 Avoid equality comparisons to `True`; use `allowed:` for truth checks
+  --> archive/test_centralized_config.py:42:12
+   |
+40 |     # Test rate limiting functionality
+41 |     allowed, retry = can_use_ai("test_user_config")
+42 |     assert allowed == True, "First request should be allowed"
+   |            ^^^^^^^^^^^^^^^
+43 |     print(f"✓ Rate limiter: {allowed}, retry: {retry}s")
+   |
+help: Replace with `allowed`
+
+E712 Avoid equality comparisons to `True`; use `allowed:` for truth checks
+  --> archive/test_centralized_config.py:48:16
+   |
+46 |     for i in range(2, AI_RL_USER_LIMIT + 1):
+47 |         allowed, retry = can_use_ai("test_user_config")
+48 |         assert allowed == True, f"Request {i} should be allowed"
+   |                ^^^^^^^^^^^^^^^
+49 |     
+50 |     # Test limit exceeded
+   |
+help: Replace with `allowed`
+
+E712 Avoid equality comparisons to `False`; use `not allowed:` for false checks
+  --> archive/test_centralized_config.py:52:12
+   |
+50 |     # Test limit exceeded
+51 |     allowed, retry = can_use_ai("test_user_config")
+52 |     assert allowed == False, "Request beyond limit should be denied"
+   |            ^^^^^^^^^^^^^^^^
+53 |     assert retry > 0, "Retry time should be positive"
+54 |     print(f"✓ Rate limit enforced: denied with {retry}s retry")
+   |
+help: Replace with `not allowed`
+
+F401 [*] `json` imported but unused
+  --> archive/test_complete_identity_system.py:8:8
+   |
+ 7 | import os
+ 8 | import json
+   |        ^^^^
+ 9 |
+10 | # Set ID_SALT for testing
+   |
+help: Remove unused import: `json`
+
+F541 [*] f-string without any placeholders
+  --> archive/test_complete_identity_system.py:81:11
+   |
+79 |     print(f"Job PSID: {job['psid']}")
+80 |     print(f"Job Hash: {job['psid_hash'][:12]}...")
+81 |     print(f"✅ Background worker uses pre-computed hash - no re-hashing")
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+82 |     
+83 |     # Test 3: Debug stamping
+   |
+help: Remove extraneous `f` prefix
+
+F401 [*] `utils.conversational_ai.conversational_ai` imported but unused
+  --> archive/test_conversational_ai.py:17:41
+   |
+15 |     from app import app, db
+16 |     from models import User, Expense
+17 |     from utils.conversational_ai import conversational_ai
+   |                                         ^^^^^^^^^^^^^^^^^
+18 |     from utils.production_router import ProductionRouter
+19 |     from utils.security import hash_psid
+   |
+help: Remove unused import: `utils.conversational_ai.conversational_ai`
+
+F541 [*] f-string without any placeholders
+   --> archive/test_conversational_ai.py:98:23
+    |
+ 96 |             # Check if response is intelligent and data-driven
+ 97 |             if "3355" in response or "expenses" in response.lower():
+ 98 |                 print(f"\n🎉 CONVERSATIONAL AI SUCCESS!")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 99 |                 print(f"✅ Uses actual user data for summary")
+100 |                 print(f"✅ Provides specific numbers and insights")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_conversational_ai.py:99:23
+    |
+ 97 |             if "3355" in response or "expenses" in response.lower():
+ 98 |                 print(f"\n🎉 CONVERSATIONAL AI SUCCESS!")
+ 99 |                 print(f"✅ Uses actual user data for summary")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+100 |                 print(f"✅ Provides specific numbers and insights")
+101 |                 print(f"✅ Maintains conversational flow")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_conversational_ai.py:100:23
+    |
+ 98 |                 print(f"\n🎉 CONVERSATIONAL AI SUCCESS!")
+ 99 |                 print(f"✅ Uses actual user data for summary")
+100 |                 print(f"✅ Provides specific numbers and insights")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+101 |                 print(f"✅ Maintains conversational flow")
+102 |                 return True
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_conversational_ai.py:101:23
+    |
+ 99 |                 print(f"✅ Uses actual user data for summary")
+100 |                 print(f"✅ Provides specific numbers and insights")
+101 |                 print(f"✅ Maintains conversational flow")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+102 |                 return True
+103 |             else:
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_conversational_ai.py:104:23
+    |
+102 |                 return True
+103 |             else:
+104 |                 print(f"\n⚠️ Response may not be using user data effectively")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+105 |                 return False
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_conversational_ai.py:119:15
+    |
+118 |     with app.app_context():
+119 |         print(f"\n🧪 Testing AI Analysis with User Context")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+120 |         print("=" * 50)
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_conversational_ai.py:138:23
+    |
+137 |             if any(word in response.lower() for word in ['food', 'shopping', 'transport', 'pattern']):
+138 |                 print(f"✅ Analysis uses real spending categories")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+139 |                 return True
+140 |             else:
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_conversational_ai.py:141:23
+    |
+139 |                 return True
+140 |             else:
+141 |                 print(f"⚠️ Analysis may be generic")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+142 |                 return False
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_conversational_ai.py:153:11
+    |
+151 |     analysis_success = test_analysis_request()
+152 |     
+153 |     print(f"\n🏁 CONVERSATIONAL AI TEST RESULTS")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+154 |     print("=" * 70)
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_conversational_ai.py:171:15
+    |
+170 |     if summary_success and analysis_success:
+171 |         print(f"\n🎯 AI CONSTITUTION ADVANCEMENT: 85% → 90%")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+172 |         print("📈 Enhanced conversational intelligence with user-level memory")
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `os` imported but unused
+ --> archive/test_conversational_fix.py:6:8
+  |
+4 | """
+5 | import sys
+6 | import os
+  |        ^^
+7 | sys.path.append('.')
+  |
+help: Remove unused import: `os`
+
+F401 [*] `utils.crypto.ensure_hashed` imported but unused
+  --> archive/test_conversational_fix.py:10:26
+   |
+ 9 | from utils.conversational_ai import ConversationalAI
+10 | from utils.crypto import ensure_hashed
+   |                          ^^^^^^^^^^^^^
+11 |
+12 | def test_conversational_ai_fix():
+   |
+help: Remove unused import: `utils.crypto.ensure_hashed`
+
+F401 [*] `app.db` imported but unused
+  --> archive/test_conversational_fix.py:14:26
+   |
+12 | def test_conversational_ai_fix():
+13 |     """Test the fixed conversational AI data access"""
+14 |     from app import app, db
+   |                          ^^
+15 |     
+16 |     # Real user hashes from database
+   |
+help: Remove unused import: `app.db`
+
+F401 [*] `logging` imported but unused
+ --> archive/test_direct_data_access.py:6:8
+  |
+4 | """
+5 |
+6 | import logging
+  |        ^^^^^^^
+7 | import sys
+8 | sys.path.insert(0, '.')
+  |
+help: Remove unused import: `logging`
+
+F541 [*] f-string without any placeholders
+  --> archive/test_direct_data_access.py:27:15
+   |
+25 |         context = conversational_ai.get_user_expense_context_direct(user_hash, days=30)
+26 |         
+27 |         print(f"📊 Context retrieved:")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^
+28 |         print(f"  - Has data: {context['has_data']}")
+29 |         print(f"  - Total expenses: {context['total_expenses']}")
+   |
+help: Remove extraneous `f` prefix
+
+F401 [*] `utils.security.hash_psid` imported but unused
+  --> archive/test_evolution_integration.py:16:32
+   |
+14 |     """Test the complete evolved system integration"""
+15 |     from utils.production_router import ProductionRouter
+16 |     from utils.security import hash_psid
+   |                                ^^^^^^^^^
+17 |     
+18 |     # Initialize router
+   |
+help: Remove unused import: `utils.security.hash_psid`
+
+F541 [*] f-string without any placeholders
+  --> archive/test_evolution_integration.py:25:11
+   |
+23 |     test_message = "Logging today's expenses - coffee 100, burger 300 and watermelon juice 300"
+24 |     
+25 |     print(f"🧪 Testing Complete Evolution Integration")
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+26 |     print(f"📝 Message: {test_message}")
+27 |     print(f"🔧 Expected: Multi-item expense logging with intelligent response")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_evolution_integration.py:27:11
+   |
+25 |     print(f"🧪 Testing Complete Evolution Integration")
+26 |     print(f"📝 Message: {test_message}")
+27 |     print(f"🔧 Expected: Multi-item expense logging with intelligent response")
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+28 |     print("=" * 80)
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_evolution_integration.py:45:19
+   |
+43 |         # Check if evolution was successful
+44 |         if intent == "ai_expense_logged" and amount == 700.0:
+45 |             print(f"\n🎉 EVOLUTION INTEGRATION SUCCESS!")
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+46 |             print(f"✅ Multi-item expense parsing works end-to-end")
+47 |             print(f"✅ Context awareness will receive proper data")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_evolution_integration.py:46:19
+   |
+44 |         if intent == "ai_expense_logged" and amount == 700.0:
+45 |             print(f"\n🎉 EVOLUTION INTEGRATION SUCCESS!")
+46 |             print(f"✅ Multi-item expense parsing works end-to-end")
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+47 |             print(f"✅ Context awareness will receive proper data")
+48 |             print(f"✅ Users will no longer see repetitive 'not enough data' messages")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_evolution_integration.py:47:19
+   |
+45 |             print(f"\n🎉 EVOLUTION INTEGRATION SUCCESS!")
+46 |             print(f"✅ Multi-item expense parsing works end-to-end")
+47 |             print(f"✅ Context awareness will receive proper data")
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+48 |             print(f"✅ Users will no longer see repetitive 'not enough data' messages")
+49 |         elif intent == "ai_context_driven":
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_evolution_integration.py:48:19
+   |
+46 |             print(f"✅ Multi-item expense parsing works end-to-end")
+47 |             print(f"✅ Context awareness will receive proper data")
+48 |             print(f"✅ Users will no longer see repetitive 'not enough data' messages")
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+49 |         elif intent == "ai_context_driven":
+50 |             print(f"\n⚠️ Still hitting context-thin logic - evolution needs refinement")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_evolution_integration.py:50:19
+   |
+48 |             print(f"✅ Users will no longer see repetitive 'not enough data' messages")
+49 |         elif intent == "ai_context_driven":
+50 |             print(f"\n⚠️ Still hitting context-thin logic - evolution needs refinement")
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+51 |         else:
+52 |             print(f"\n❌ Unexpected intent: {intent}")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_evolution_integration.py:71:11
+   |
+69 |     test_psid = "test_user_simple"
+70 |     
+71 |     print(f"\n🧪 Testing Simple Case Compatibility")
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+72 |     print(f"📝 Message: {test_message}")
+73 |     print("=" * 40)
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_evolution_integration.py:87:19
+   |
+86 |         if intent == "ai_expense_logged" and amount == 100.0:
+87 |             print(f"✅ Simple case still works correctly")
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+88 |         else:
+89 |             print(f"⚠️ Simple case behavior changed - Intent: {intent}")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_evolution_integration.py:101:11
+    |
+ 99 |     test_simple_case()
+100 |     
+101 |     print(f"\n🏁 FINAL EVOLUTION STATUS")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+102 |     print("=" * 80)
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `app.db` imported but unused
+  --> archive/test_existing_user.py:15:26
+   |
+13 | def test_with_existing_user():
+14 |     """Test evolution with a user who has completed onboarding"""
+15 |     from app import app, db
+   |                          ^^
+16 |     from utils.production_router import ProductionRouter
+17 |     from utils.user_manager import user_manager
+   |
+help: Remove unused import: `app.db`
+
+F841 Local variable `psid_hash` is assigned to but never used
+  --> archive/test_existing_user.py:26:9
+   |
+24 |         # Create a user who has completed onboarding
+25 |         test_psid = "existing_user_evolution_test"
+26 |         psid_hash = hash_psid(test_psid)
+   |         ^^^^^^^^^
+27 |         
+28 |         # Create an existing user with completed onboarding
+   |
+help: Remove assignment to unused variable `psid_hash`
+
+F541 [*] f-string without any placeholders
+  --> archive/test_existing_user.py:44:15
+   |
+43 |         print(f"📝 Message: {test_message}")
+44 |         print(f"👤 User: Existing user with completed onboarding")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+45 |         
+46 |         try:
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_existing_user.py:61:23
+   |
+59 |             # Check if evolution works with existing users
+60 |             if intent == "ai_expense_logged" and amount == 700.0:
+61 |                 print(f"\n🎉 EVOLUTION SUCCESS WITH EXISTING USERS!")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+62 |                 print(f"✅ Multi-item parsing works: 3 expenses totaling 700")
+63 |                 print(f"✅ No Flask context issues")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_existing_user.py:62:23
+   |
+60 |             if intent == "ai_expense_logged" and amount == 700.0:
+61 |                 print(f"\n🎉 EVOLUTION SUCCESS WITH EXISTING USERS!")
+62 |                 print(f"✅ Multi-item parsing works: 3 expenses totaling 700")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+63 |                 print(f"✅ No Flask context issues")
+64 |                 print(f"✅ Proper routing for existing users")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_existing_user.py:63:23
+   |
+61 |                 print(f"\n🎉 EVOLUTION SUCCESS WITH EXISTING USERS!")
+62 |                 print(f"✅ Multi-item parsing works: 3 expenses totaling 700")
+63 |                 print(f"✅ No Flask context issues")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+64 |                 print(f"✅ Proper routing for existing users")
+65 |                 return True
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_existing_user.py:64:23
+   |
+62 |                 print(f"✅ Multi-item parsing works: 3 expenses totaling 700")
+63 |                 print(f"✅ No Flask context issues")
+64 |                 print(f"✅ Proper routing for existing users")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+65 |                 return True
+66 |             elif intent == "ai_context_driven":
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_existing_user.py:67:23
+   |
+65 |                 return True
+66 |             elif intent == "ai_context_driven":
+67 |                 print(f"\n📊 Context-driven response (good sign!)")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+68 |                 print(f"✅ System recognized expense data and provided intelligent response")
+69 |                 return True
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_existing_user.py:68:23
+   |
+66 |             elif intent == "ai_context_driven":
+67 |                 print(f"\n📊 Context-driven response (good sign!)")
+68 |                 print(f"✅ System recognized expense data and provided intelligent response")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+69 |                 return True
+70 |             else:
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_existing_user.py:72:23
+   |
+70 |             else:
+71 |                 print(f"\n⚠️ Unexpected intent: {intent}")
+72 |                 print(f"This may indicate the expense wasn't logged properly")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+73 |                 return False
+   |
+help: Remove extraneous `f` prefix
+
+F401 [*] `utils.security.hash_psid` imported but unused
+  --> archive/test_existing_user.py:86:32
+   |
+84 |     from utils.production_router import ProductionRouter
+85 |     from utils.user_manager import user_manager
+86 |     from utils.security import hash_psid
+   |                                ^^^^^^^^^
+87 |     
+88 |     with app.app_context():
+   |
+help: Remove unused import: `utils.security.hash_psid`
+
+F541 [*] f-string without any placeholders
+  --> archive/test_existing_user.py:89:15
+   |
+88 |     with app.app_context():
+89 |         print(f"\n🧪 Testing Simple Case with Existing User")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+90 |         print("=" * 40)
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_existing_user.py:118:23
+    |
+117 |             if intent == "ai_expense_logged" and amount == 100.0:
+118 |                 print(f"✅ Simple case works with existing users")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+119 |                 return True
+120 |             elif intent == "ai_context_driven":
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_existing_user.py:121:23
+    |
+119 |                 return True
+120 |             elif intent == "ai_context_driven":
+121 |                 print(f"✅ Context-driven response for simple case")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+122 |                 return True
+123 |             else:
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_existing_user.py:136:11
+    |
+134 |     simple_success = test_simple_existing_user()
+135 |     
+136 |     print(f"\n🏁 EXISTING USER TEST RESULTS")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+137 |     print("=" * 60)
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_fixed_conversational.py:61:27
+   |
+60 |                 if has_no_data_msg:
+61 |                     print(f"   ❌ NO DATA MESSAGE")
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^
+62 |                     no_data_responses.append(f"Message {i}: {message}")
+63 |                     all_responses_have_data = False
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_fixed_conversational.py:65:27
+   |
+63 |                     all_responses_have_data = False
+64 |                 elif has_specific_data:
+65 |                     print(f"   ✅ HAS SPENDING DATA")
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+66 |                     data_responses.append(f"Message {i}: {message}")
+67 |                 else:
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_fixed_conversational.py:68:27
+   |
+66 |                     data_responses.append(f"Message {i}: {message}")
+67 |                 else:
+68 |                     print(f"   ⚠️  NEUTRAL RESPONSE")
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^
+69 |                     
+70 |             except Exception as e:
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_fixed_conversational.py:74:15
+   |
+72 |                 all_responses_have_data = False
+73 |         
+74 |         print(f"\n" + "=" * 50)
+   |               ^^^^^
+75 |         print(f"🎯 CONSISTENCY TEST RESULTS:")
+76 |         print(f"   Total messages tested: {len(test_messages)}")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_fixed_conversational.py:75:15
+   |
+74 |         print(f"\n" + "=" * 50)
+75 |         print(f"🎯 CONSISTENCY TEST RESULTS:")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+76 |         print(f"   Total messages tested: {len(test_messages)}")
+77 |         print(f"   Responses with data: {len(data_responses)}")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_fixed_conversational.py:81:19
+   |
+80 |         if all_responses_have_data:
+81 |             print(f"   ✅ SUCCESS: All responses consistent")
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+82 |         else:
+83 |             print(f"   ❌ INCONSISTENCY STILL EXISTS")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_fixed_conversational.py:83:19
+   |
+81 |             print(f"   ✅ SUCCESS: All responses consistent")
+82 |         else:
+83 |             print(f"   ❌ INCONSISTENCY STILL EXISTS")
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+84 |             if no_data_responses:
+85 |                 print(f"   No data responses: {no_data_responses}")
+   |
+help: Remove extraneous `f` prefix
+
+F401 [*] `json` imported but unused
+ --> archive/test_gemini_live.py:7:8
+  |
+6 | import requests
+7 | import json
+  |        ^^^^
+8 |
+9 | BASE_URL = "http://localhost:5000"
+  |
+help: Remove unused import: `json`
+
+F401 [*] `app.db` imported but unused
+  --> archive/test_hash_consistency.py:67:30
+   |
+65 |     def test_user_manager_consistency(self, method_name):
+66 |         """Test UserManager methods handle both raw PSID and hash consistently"""
+67 |         from app import app, db
+   |                              ^^
+68 |         
+69 |         with app.app_context():
+   |
+help: Remove unused import: `app.db`
+
+F401 [*] `app.db` imported but unused
+  --> archive/test_hash_consistency.py:89:30
+   |
+87 |     def test_conversational_ai_consistency(self):
+88 |         """Test ConversationalAI methods handle both raw PSID and hash consistently"""
+89 |         from app import app, db
+   |                              ^^
+90 |         
+91 |         with app.app_context():
+   |
+help: Remove unused import: `app.db`
+
+F541 [*] f-string without any placeholders
+   --> archive/test_hash_consistency.py:136:11
+    |
+135 |     # Test 2: Validation
+136 |     print(f"\nValidation Tests:")
+    |           ^^^^^^^^^^^^^^^^^^^^^^
+137 |     print(f"Is valid SHA-256: {is_sha256_hex(hashed_once)}")
+138 |     print(f"Invalid too short: {is_sha256_hex('short')}")
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `json` imported but unused
+  --> archive/test_identity_production.py:8:8
+   |
+ 7 | import os
+ 8 | import json
+   |        ^^^^
+ 9 | import requests
+10 | import time
+   |
+help: Remove unused import: `json`
+
+F401 [*] `requests` imported but unused
+  --> archive/test_identity_production.py:9:8
+   |
+ 7 | import os
+ 8 | import json
+ 9 | import requests
+   |        ^^^^^^^^
+10 | import time
+   |
+help: Remove unused import: `requests`
+
+F401 [*] `utils.identity.psid_from_event` imported but unused
+  --> archive/test_identity_production.py:16:28
+   |
+14 |     os.environ["ID_SALT"] = "3dcce5a0b1eeb774cc1e0320edb773fed53afbcdd4b14d6201373659278cae34"
+15 |
+16 | from utils.identity import psid_from_event, psid_hash
+   |                            ^^^^^^^^^^^^^^^
+17 | from utils.webhook_processor import extract_webhook_events
+   |
+help: Remove unused import: `utils.identity.psid_from_event`
+
+F541 [*] f-string without any placeholders
+   --> archive/test_identity_production.py:242:11
+    |
+240 |         assert computed_hash == expected_hash, "Hash inconsistency detected"
+241 |     
+242 |     print(f"✓ Production flow simulation successful:")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+243 |     print(f"  - {len(processed_events)} message events processed with consistent identity")
+244 |     print(f"  - {len(ignored_events)} delivery/read events properly ignored")
+    |
+help: Remove extraneous `f` prefix
+
+F841 Local variable `router` is assigned to but never used
+  --> archive/test_no_double_hash.py:25:9
+   |
+24 |         # This is what happens in production router
+25 |         router = ProductionRouter()
+   |         ^^^^^^
+26 |         
+27 |         # The router computes the hash once
+   |
+help: Remove assignment to unused variable `router`
+
+F401 [*] `os` imported but unused
+ --> archive/test_production.py:5:8
+  |
+4 | import requests
+5 | import os
+  |        ^^
+6 |
+7 | def test_production():
+  |
+help: Remove unused import: `os`
+
+F541 [*] f-string without any placeholders
+  --> archive/test_production_context.py:50:15
+   |
+48 |         db.session.commit()
+49 |         
+50 |         print(f"👤 Created existing user: onboarding_complete=True, interactions=15")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+51 |         
+52 |         # Initialize router
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_production_context.py:75:23
+   |
+73 |             # Check evolution success
+74 |             if intent == "ai_expense_logged":
+75 |                 print(f"\n🎉 EVOLUTION SUCCESS!")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+76 |                 print(f"✅ Multi-item expense parser works in production context")
+77 |                 print(f"✅ Amount logged: {amount} (expected: 700)")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_production_context.py:76:23
+   |
+74 |             if intent == "ai_expense_logged":
+75 |                 print(f"\n🎉 EVOLUTION SUCCESS!")
+76 |                 print(f"✅ Multi-item expense parser works in production context")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+77 |                 print(f"✅ Amount logged: {amount} (expected: 700)")
+78 |                 if amount == 700.0:
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_production_context.py:79:27
+   |
+77 |                 print(f"✅ Amount logged: {amount} (expected: 700)")
+78 |                 if amount == 700.0:
+79 |                     print(f"✅ Perfect! All 3 expenses logged correctly")
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+80 |                 else:
+81 |                     print(f"⚠️ Amount mismatch - partial logging detected")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_production_context.py:81:27
+   |
+79 |                     print(f"✅ Perfect! All 3 expenses logged correctly")
+80 |                 else:
+81 |                     print(f"⚠️ Amount mismatch - partial logging detected")
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+82 |                 return True
+83 |             elif intent == "ai_context_driven":
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_production_context.py:84:23
+   |
+82 |                 return True
+83 |             elif intent == "ai_context_driven":
+84 |                 print(f"\n📊 Context-driven AI response")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+85 |                 print(f"✅ Expenses processed, intelligent response generated")
+86 |                 print(f"✅ This is also a successful evolution outcome")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_production_context.py:85:23
+   |
+83 |             elif intent == "ai_context_driven":
+84 |                 print(f"\n📊 Context-driven AI response")
+85 |                 print(f"✅ Expenses processed, intelligent response generated")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+86 |                 print(f"✅ This is also a successful evolution outcome")
+87 |                 return True
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_production_context.py:86:23
+   |
+84 |                 print(f"\n📊 Context-driven AI response")
+85 |                 print(f"✅ Expenses processed, intelligent response generated")
+86 |                 print(f"✅ This is also a successful evolution outcome")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+87 |                 return True
+88 |             else:
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_production_context.py:106:15
+    |
+105 |     with app.app_context():
+106 |         print(f"\n🧪 Testing Simple Case in Production Context")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+107 |         print("=" * 50)
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_production_context.py:146:23
+    |
+145 |             if intent in ["ai_expense_logged", "ai_context_driven"]:
+146 |                 print(f"✅ Simple case works in production")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+147 |                 return True
+148 |             else:
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_production_context.py:161:11
+    |
+159 |     simple_success = test_simple_production()
+160 |     
+161 |     print(f"\n🏁 PRODUCTION CONTEXT TEST RESULTS")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+162 |     print("=" * 70)
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_production_context.py:178:11
+    |
+176 |         print("⚠️ Simple cases need production attention")
+177 |         
+178 |     print(f"\n💡 Note: New users will go through onboarding flow as designed")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+179 |     print(f"   This test confirms evolution works for existing users")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_production_context.py:179:11
+    |
+178 |     print(f"\n💡 Note: New users will go through onboarding flow as designed")
+179 |     print(f"   This test confirms evolution works for existing users")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `logging` imported but unused
+ --> archive/test_production_conversational.py:6:8
+  |
+4 | """
+5 |
+6 | import logging
+  |        ^^^^^^^
+7 | import sys
+8 | sys.path.insert(0, '.')
+  |
+help: Remove unused import: `logging`
+
+F401 [*] `utils.security.hash_psid` imported but unused
+  --> archive/test_production_conversational.py:15:32
+   |
+13 |     from utils.production_router import ProductionRouter
+14 |     from utils.conversational_ai import conversational_ai
+15 |     from utils.security import hash_psid
+   |                                ^^^^^^^^^
+16 |     
+17 |     with app.app_context():
+   |
+help: Remove unused import: `utils.security.hash_psid`
+
+F401 [*] `logging` imported but unused
+ --> archive/test_production_fix.py:6:8
+  |
+4 | """
+5 |
+6 | import logging
+  |        ^^^^^^^
+7 | import sys
+8 | sys.path.insert(0, '.')
+  |
+help: Remove unused import: `logging`
+
+F541 [*] f-string without any placeholders
+  --> archive/test_production_fix.py:37:15
+   |
+35 |         # This should work because our conversational AI now detects hash length
+36 |         
+37 |         print(f"\n1. Testing with hash as PSID (simulating real scenario):")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+38 |         
+39 |         router = ProductionRouter()
+   |
+help: Remove extraneous `f` prefix
+
+F401 [*] `logging` imported but unused
+ --> archive/test_real_psid.py:6:8
+  |
+4 | """
+5 |
+6 | import logging
+  |        ^^^^^^^
+7 | import sys
+8 | sys.path.insert(0, '.')
+  |
+help: Remove unused import: `logging`
+
+F401 [*] `utils.security.hash_psid` imported but unused
+  --> archive/test_real_psid.py:13:32
+   |
+11 |     """Find the original PSID that creates the hash in the database"""
+12 |     from app import app
+13 |     from utils.security import hash_psid
+   |                                ^^^^^^^^^
+14 |     from models import Expense
+   |
+help: Remove unused import: `utils.security.hash_psid`
+
+F541 [*] f-string without any placeholders
+  --> archive/test_real_scenario.py:48:15
+   |
+46 |         target_hash = "dc863d3aa69d518264428cadc7b19e19b5d723c980a0db219d8063a1746128dc"
+47 |         
+48 |         print(f"\n🎯 Testing direct hash access...")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+49 |         
+50 |         # Test the direct method with the exact hash
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_real_scenario.py:53:15
+   |
+51 |         context = conversational_ai.get_user_expense_context_direct(target_hash, days=30)
+52 |         
+53 |         print(f"Direct hash access result:")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+54 |         print(f"  - Has data: {context['has_data']}")
+55 |         print(f"  - Total expenses: {context['total_expenses']}")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_real_webhook_flow.py:124:23
+    |
+122 |             # Should always return 200 EVENT_RECEIVED for valid webhooks
+123 |             if response.status_code == 200:
+124 |                 print(f"  ✅ Webhook accepted")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^
+125 |             else:
+126 |                 print(f"  ⚠️  Status code: {response.status_code}")
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `sys` imported but unused
+ --> archive/test_uat_demo.py:5:8
+  |
+3 | Simulates a complete UAT flow to verify all features work
+4 | """
+5 | import sys
+  |        ^^^
+6 | import time
+7 | from app import app
+  |
+help: Remove unused import: `sys`
+
+F401 [*] `app.db` imported but unused
+  --> archive/test_web_context.py:15:26
+   |
+13 | def test_with_app_context():
+14 |     """Test the AI expense parser within Flask app context"""
+15 |     from app import app, db
+   |                          ^^
+16 |     from utils.production_router import ProductionRouter
+   |
+help: Remove unused import: `app.db`
+
+F541 [*] f-string without any placeholders
+  --> archive/test_web_context.py:46:23
+   |
+44 |             # Check if evolution works in proper context
+45 |             if intent == "ai_expense_logged":
+46 |                 print(f"\n🎉 SUCCESS: Evolution works perfectly in Flask context!")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+47 |                 print(f"✅ Multi-item parsing functional")
+48 |                 print(f"✅ Database operations successful")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_web_context.py:47:23
+   |
+45 |             if intent == "ai_expense_logged":
+46 |                 print(f"\n🎉 SUCCESS: Evolution works perfectly in Flask context!")
+47 |                 print(f"✅ Multi-item parsing functional")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+48 |                 print(f"✅ Database operations successful")
+49 |                 print(f"✅ No Flask context issues")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_web_context.py:48:23
+   |
+46 |                 print(f"\n🎉 SUCCESS: Evolution works perfectly in Flask context!")
+47 |                 print(f"✅ Multi-item parsing functional")
+48 |                 print(f"✅ Database operations successful")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+49 |                 print(f"✅ No Flask context issues")
+50 |                 return True
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_web_context.py:49:23
+   |
+47 |                 print(f"✅ Multi-item parsing functional")
+48 |                 print(f"✅ Database operations successful")
+49 |                 print(f"✅ No Flask context issues")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+50 |                 return True
+51 |             elif intent == "ai_context_driven":
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_web_context.py:52:23
+   |
+50 |                 return True
+51 |             elif intent == "ai_context_driven":
+52 |                 print(f"\n⚠️ Still hitting context-thin logic")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+53 |                 print(f"This means the expense parser integration needs adjustment")
+54 |                 return False
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_web_context.py:53:23
+   |
+51 |             elif intent == "ai_context_driven":
+52 |                 print(f"\n⚠️ Still hitting context-thin logic")
+53 |                 print(f"This means the expense parser integration needs adjustment")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+54 |                 return False
+55 |             else:
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_web_context.py:71:15
+   |
+70 |     with app.app_context():
+71 |         print(f"\n🧪 Testing Simple Case with App Context")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+72 |         print("=" * 40)
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/test_web_context.py:91:23
+   |
+90 |             if intent == "ai_expense_logged":
+91 |                 print(f"✅ Simple case works in Flask context")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+92 |                 return True
+93 |             else:
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/test_web_context.py:106:11
+    |
+104 |     simple_success = test_simple_case_context()
+105 |     
+106 |     print(f"\n🏁 FLASK CONTEXT TEST RESULTS")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+107 |     print("=" * 60)
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `json` imported but unused
+  --> archive/uat_comprehensive.py:8:8
+   |
+ 7 | import requests
+ 8 | import json
+   |        ^^^^
+ 9 | import time
+10 | import hashlib
+   |
+help: Remove unused import: `json`
+
+F401 [*] `hashlib` imported but unused
+  --> archive/uat_comprehensive.py:10:8
+   |
+ 8 | import json
+ 9 | import time
+10 | import hashlib
+   |        ^^^^^^^
+11 |
+12 | BASE_URL = "http://localhost:5000"
+   |
+help: Remove unused import: `hashlib`
+
+F401 [*] `json` imported but unused
+ --> archive/uat_context_system.py:6:8
+  |
+4 | """
+5 |
+6 | import json
+  |        ^^^^
+7 | import time
+8 | import logging
+  |
+help: Remove unused import: `json`
+
+F401 [*] `models.User` imported but unused
+  --> archive/uat_context_system.py:11:29
+   |
+ 9 | from datetime import datetime, timedelta
+10 | from app import app, db
+11 | from models import Expense, User
+   |                             ^^^^
+12 | from utils.security import hash_psid
+13 | from utils.production_router import production_router as router
+   |
+help: Remove unused import: `models.User`
+
+F541 [*] f-string without any placeholders
+   --> archive/uat_context_system.py:128:19
+    |
+126 |                 return False
+127 |             
+128 |             print(f"✓ Context built successfully:")
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+129 |             print(f"  - Total spend: ৳{total_spend:,}")
+130 |             print(f"  - Categories: {len(top_cats)}")
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `logging` imported but unused
+ --> archive/uat_conversational_ai.py:7:8
+  |
+5 | """
+6 |
+7 | import logging
+  |        ^^^^^^^
+8 | import sys
+9 | sys.path.insert(0, '.')
+  |
+help: Remove unused import: `logging`
+
+F401 [*] `utils.security.hash_psid` imported but unused
+  --> archive/uat_conversational_ai.py:15:32
+   |
+13 |     from app import app
+14 |     from utils.production_router import ProductionRouter
+15 |     from utils.security import hash_psid
+   |                                ^^^^^^^^^
+16 |     from models import db
+17 |     from sqlalchemy import text
+   |
+help: Remove unused import: `utils.security.hash_psid`
+
+F541 [*] f-string without any placeholders
+  --> archive/uat_conversational_ai.py:48:15
+   |
+47 |         # Step 2: Test the exact scenario from screenshots
+48 |         print(f"\n2. TESTING EXACT USER SCENARIOS FROM SCREENSHOTS")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+49 |         print("-" * 50)
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/uat_conversational_ai.py:99:27
+    |
+ 98 |                 if has_real_data and no_fallback:
+ 99 |                     print(f"   ✅ SUCCESS: Response contains real data")
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+100 |                     success_count += 1
+101 |                 else:
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/uat_conversational_ai.py:102:27
+    |
+100 |                     success_count += 1
+101 |                 else:
+102 |                     print(f"   ❌ FAILURE: Response missing expected content or using fallback")
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+103 |                     print(f"      Expected keywords: {scenario['expected']}")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/uat_conversational_ai.py:109:15
+    |
+108 |         # Step 3: Validate AI response quality
+109 |         print(f"\n3. AI RESPONSE QUALITY VALIDATION")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+110 |         print("-" * 40)
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/uat_conversational_ai.py:143:15
+    |
+142 |         # Step 4: Production readiness assessment
+143 |         print(f"\n4. PRODUCTION READINESS ASSESSMENT")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+144 |         print("-" * 45)
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `datetime.datetime` imported but unused
+  --> archive/uat_double_hashing_fix.py:18:26
+   |
+16 |     from utils.production_router import ProductionRouter
+17 |     from models import db, Expense
+18 |     from datetime import datetime
+   |                          ^^^^^^^^
+19 |     import json
+   |
+help: Remove unused import: `datetime.datetime`
+
+F401 [*] `json` imported but unused
+  --> archive/uat_double_hashing_fix.py:19:12
+   |
+17 |     from models import db, Expense
+18 |     from datetime import datetime
+19 |     import json
+   |            ^^^^
+20 |     
+21 |     with app.app_context():
+   |
+help: Remove unused import: `json`
+
+F541 [*] f-string without any placeholders
+   --> archive/uat_double_hashing_fix.py:177:15
+    |
+176 |         # Step 9: Cleanup
+177 |         print(f"\n9. CLEANING UP TEST DATA")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+178 |         cleanup_expenses = Expense.query.filter_by(user_id=demo_hash).all()
+179 |         for expense in cleanup_expenses:
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `json` imported but unused
+ --> archive/uat_focused_retests.py:6:8
+  |
+4 | """
+5 |
+6 | import json
+  |        ^^^^
+7 | import logging
+8 | from app import app, db
+  |
+help: Remove unused import: `json`
+
+F401 [*] `app.db` imported but unused
+  --> archive/uat_focused_retests.py:8:22
+   |
+ 6 | import json
+ 7 | import logging
+ 8 | from app import app, db
+   |                      ^^
+ 9 | from utils.context_packet import build_context, is_context_thin, CONTEXT_SYSTEM_PROMPT, RESPONSE_SCHEMA
+10 | from utils.production_router import production_router as router
+   |
+help: Remove unused import: `app.db`
+
+F401 [*] `utils.context_packet.build_context` imported but unused
+  --> archive/uat_focused_retests.py:9:34
+   |
+ 7 | import logging
+ 8 | from app import app, db
+ 9 | from utils.context_packet import build_context, is_context_thin, CONTEXT_SYSTEM_PROMPT, RESPONSE_SCHEMA
+   |                                  ^^^^^^^^^^^^^
+10 | from utils.production_router import production_router as router
+11 | from ai_adapter_gemini import generate_with_schema
+   |
+help: Remove unused import: `utils.context_packet.build_context`
+
+F401 [*] `hashlib` imported but unused
+  --> archive/uat_multi_user_isolation.py:24:8
+   |
+22 | import time
+23 | import logging
+24 | import hashlib
+   |        ^^^^^^^
+25 | import requests
+26 | import threading
+   |
+help: Remove unused import: `hashlib`
+
+F401 [*] `requests` imported but unused
+  --> archive/uat_multi_user_isolation.py:25:8
+   |
+23 | import logging
+24 | import hashlib
+25 | import requests
+   |        ^^^^^^^^
+26 | import threading
+27 | import concurrent.futures
+   |
+help: Remove unused import: `requests`
+
+F401 [*] `threading` imported but unused
+  --> archive/uat_multi_user_isolation.py:26:8
+   |
+24 | import hashlib
+25 | import requests
+26 | import threading
+   |        ^^^^^^^^^
+27 | import concurrent.futures
+28 | from datetime import datetime, date, timedelta
+   |
+help: Remove unused import: `threading`
+
+F401 [*] `datetime.timedelta` imported but unused
+  --> archive/uat_multi_user_isolation.py:28:38
+   |
+26 | import threading
+27 | import concurrent.futures
+28 | from datetime import datetime, date, timedelta
+   |                                      ^^^^^^^^^
+29 | from decimal import Decimal
+   |
+help: Remove unused import: `datetime.timedelta`
+
+F401 [*] `models.MonthlySummary` imported but unused
+  --> archive/uat_multi_user_isolation.py:35:35
+   |
+34 | from app import app, db
+35 | from models import User, Expense, MonthlySummary
+   |                                   ^^^^^^^^^^^^^^
+36 | from utils.security import hash_psid
+   |
+help: Remove unused import: `models.MonthlySummary`
+
+F541 [*] f-string without any placeholders
+   --> archive/uat_multi_user_isolation.py:519:15
+    |
+517 |         pass_rate = len(passed_tests) / total_tests * 100 if total_tests > 0 else 0
+518 |         
+519 |         print(f"\n📊 UAT SUMMARY")
+    |               ^^^^^^^^^^^^^^^^^^^
+520 |         print(f"Total Tests: {total_tests}")
+521 |         print(f"Passed: {len(passed_tests)} ({pass_rate:.1f}%)")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/uat_multi_user_isolation.py:526:19
+    |
+525 |         if passed_tests:
+526 |             print(f"\n✅ PASSED TESTS:")
+    |                   ^^^^^^^^^^^^^^^^^^^^^
+527 |             for test in passed_tests:
+528 |                 details = self.results[test].get('details', '')
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/uat_multi_user_isolation.py:532:19
+    |
+531 |         if failed_tests:
+532 |             print(f"\n❌ FAILED TESTS:")
+    |                   ^^^^^^^^^^^^^^^^^^^^^
+533 |             for test in failed_tests:
+534 |                 details = self.results[test].get('details', '')
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/uat_multi_user_isolation.py:538:19
+    |
+537 |         if error_tests:
+538 |             print(f"\n🚨 ERROR TESTS:")
+    |                   ^^^^^^^^^^^^^^^^^^^^
+539 |             for test in error_tests:
+540 |                 details = self.results[test].get('details', '')
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/uat_multi_user_isolation.py:551:19
+    |
+550 |         if critical_passed and len(failed_tests) == 0:
+551 |             print(f"\n🎯 OVERALL: PASS - Multi-user isolation is secure")
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+552 |         else:
+553 |             print(f"\n⚠️ OVERALL: NEEDS ATTENTION - Critical issues found")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/uat_multi_user_isolation.py:553:19
+    |
+551 |             print(f"\n🎯 OVERALL: PASS - Multi-user isolation is secure")
+552 |         else:
+553 |             print(f"\n⚠️ OVERALL: NEEDS ATTENTION - Critical issues found")
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+554 |         
+555 |         return {
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/uat_real_data_verification.py:36:15
+   |
+34 |         # 2. Using a fake PSID that we hash to create a different scenario
+35 |         
+36 |         print(f"\n1. TESTING WITH REAL HASH (simulating hashed input)")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+37 |         
+38 |         # Test User Manager with hash
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/uat_real_data_verification.py:59:15
+   |
+57 |         print(f"   Hash response: {hash_response[:80]}...")
+58 |         
+59 |         print(f"\n2. TESTING WITH SIMULATED RAW PSID")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+60 |         
+61 |         # Create a fake PSID and test the flow
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/uat_real_data_verification.py:79:15
+   |
+77 |         print(f"   PSID AI total: ${psid_context.get('total_amount', 0):.2f}")
+78 |         
+79 |         print(f"\n3. VERIFICATION")
+   |               ^^^^^^^^^^^^^^^^^^^^
+80 |         
+81 |         # Check database consistency
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> archive/uat_real_data_verification.py:112:15
+    |
+110 |         print(f"   Fake PSID returns empty (correct): {fake_data_empty}")
+111 |         
+112 |         print(f"\n🎯 OVERALL VERIFICATION")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+113 |         success = real_data_consistent and fake_data_empty and hash_length_ok
+114 |         print(f"   Result: {'PASS' if success else 'FAIL'}")
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `os` imported but unused
+  --> archive/uat_test_script.py:12:8
+   |
+10 | import hashlib
+11 | import hmac
+12 | import os
+   |        ^^
+13 | from datetime import datetime, timezone
+   |
+help: Remove unused import: `os`
+
+F401 [*] `datetime.datetime` imported but unused
+  --> archive/uat_test_script.py:13:22
+   |
+11 | import hmac
+12 | import os
+13 | from datetime import datetime, timezone
+   |                      ^^^^^^^^
+14 |
+15 | def create_signature(body, secret):
+   |
+help: Remove unused import
+
+F401 [*] `datetime.timezone` imported but unused
+  --> archive/uat_test_script.py:13:32
+   |
+11 | import hmac
+12 | import os
+13 | from datetime import datetime, timezone
+   |                                ^^^^^^^^
+14 |
+15 | def create_signature(body, secret):
+   |
+help: Remove unused import
+
+F841 Local variable `rl2_triggered` is assigned to but never used
+   --> archive/uat_test_script.py:105:5
+    |
+103 |     psid = "test_user_rate_limit"
+104 |     messages_sent = 0
+105 |     rl2_triggered = False
+    |     ^^^^^^^^^^^^^
+106 |     
+107 |     for i in range(5):  # Send 5 messages rapidly
+    |
+help: Remove assignment to unused variable `rl2_triggered`
+
+F401 [*] `utils.security.hash_psid` imported but unused
+  --> archive/unified_data_access_fix.py:12:32
+   |
+10 |     """Test both data access paths"""
+11 |     from app import app
+12 |     from utils.security import hash_psid
+   |                                ^^^^^^^^^
+13 |     from utils.user_manager import user_manager
+14 |     from utils.conversational_ai import conversational_ai
+   |
+help: Remove unused import: `utils.security.hash_psid`
+
+F541 [*] f-string without any placeholders
+  --> archive/unified_data_access_fix.py:61:15
+   |
+60 |         # Check if user_manager is handling the hash correctly
+61 |         print(f"   User manager uses hash_psid() internally")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+62 |         print(f"   Conversational AI uses hash directly")
+63 |         print(f"   This might cause the discrepancy!")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/unified_data_access_fix.py:62:15
+   |
+60 |         # Check if user_manager is handling the hash correctly
+61 |         print(f"   User manager uses hash_psid() internally")
+62 |         print(f"   Conversational AI uses hash directly")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+63 |         print(f"   This might cause the discrepancy!")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> archive/unified_data_access_fix.py:63:15
+   |
+61 |         print(f"   User manager uses hash_psid() internally")
+62 |         print(f"   Conversational AI uses hash directly")
+63 |         print(f"   This might cause the discrepancy!")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+64 |
+65 | if __name__ == "__main__":
+   |
+help: Remove extraneous `f` prefix
+
+F401 `utils.user_manager.resolve_user_id` imported but unused; consider using `importlib.util.find_spec` to test for availability
+  --> archive/validate_fixes.py:44:44
+   |
+42 |         print("\n3. Import Standardization Check:")
+43 |         try:
+44 |             from utils.user_manager import resolve_user_id
+   |                                            ^^^^^^^^^^^^^^^
+45 |             print("   ✅ resolve_user_id imports correctly")
+46 |         except ImportError as e:
+   |
+help: Remove unused import: `utils.user_manager.resolve_user_id`
+
+F401 `utils.security.ensure_hashed` imported but unused; consider using `importlib.util.find_spec` to test for availability
+  --> archive/validate_fixes.py:51:40
+   |
+50 |         try:
+51 |             from utils.security import ensure_hashed
+   |                                        ^^^^^^^^^^^^^
+52 |             print("   ✅ ensure_hashed imports correctly from utils.security")
+53 |         except ImportError as e:
+   |
+help: Remove unused import: `utils.security.ensure_hashed`
+
+F401 [*] `time` imported but unused
+ --> archive/validation_script.py:8:8
+  |
+7 | import requests
+8 | import time
+  |        ^^^^
+9 | import json
+  |
+help: Remove unused import: `time`
+
+E712 Avoid equality comparisons to `False`; use `not data.get("ai_enabled"):` for false checks
+   --> archive/validation_script.py:102:12
+    |
+100 |         print(f"Toggle response: {json.dumps(data, indent=2)}")
+101 |         
+102 |         if data.get("ai_enabled") == False:
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+103 |             print("✓ PASS: AI toggled off successfully")
+    |
+help: Replace with `not data.get("ai_enabled")`
+
+E712 Avoid equality comparisons to `True`; use `resp2.json().get("ai_enabled"):` for truth checks
+   --> archive/validation_script.py:113:16
+    |
+111 |             )
+112 |             
+113 |             if resp2.json().get("ai_enabled") == True:
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+114 |                 print("✓ PASS: AI toggled back on")
+115 |                 return True
+    |
+help: Replace with `resp2.json().get("ai_enabled")`
+
+F401 [*] `os` imported but unused
+ --> archive/webhook_test.py:5:8
+  |
+4 | import requests
+5 | import os
+  |        ^^
+6 |
+7 | def test_webhook_verification():
+  |
+help: Remove unused import: `os`
+
+E722 Do not use bare `except`
+  --> config.py:13:5
+   |
+11 |     try: 
+12 |         return int(os.getenv(k, str(d)))
+13 |     except: 
+   |     ^^^^^^
+14 |         return d
+   |
+
+E401 [*] Multiple imports on one line
+ --> fb_client.py:1:1
+  |
+1 | import os, re, requests
+  | ^^^^^^^^^^^^^^^^^^^^^^^
+2 |
+3 | PAGE_TOKEN = os.environ["FACEBOOK_PAGE_ACCESS_TOKEN"]
+  |
+help: Split imports
+
+F401 [*] `time` imported but unused
+ --> finbrain/ops/perf.py:5:8
+  |
+3 | """
+4 |
+5 | import time
+  |        ^^^^
+6 | from typing import Optional, List
+  |
+help: Remove unused import: `time`
+
+F401 [*] `typing.List` imported but unused
+ --> handlers/logger.py:4:26
+  |
+2 | Expense logger handler: Logs expenses to database
+3 | """
+4 | from typing import Dict, List
+  |                          ^^^^
+5 | import logging
+6 | from utils.parser import extract_expenses
+  |
+help: Remove unused import: `typing.List`
+
+F401 [*] `utils.user_manager.resolve_user_id` imported but unused
+ --> handlers/logger.py:7:51
+  |
+5 | import logging
+6 | from utils.parser import extract_expenses
+7 | from utils.user_manager import resolve_user_id as ensure_hashed
+  |                                                   ^^^^^^^^^^^^^
+8 |
+9 | logger = logging.getLogger(__name__)
+  |
+help: Remove unused import: `utils.user_manager.resolve_user_id`
+
+F401 [*] `datetime.time` imported but unused
+ --> models.py:2:38
+  |
+1 | from app import db
+2 | from datetime import datetime, date, time
+  |                                      ^^^^
+3 | from sqlalchemy import JSON
+  |
+help: Remove unused import: `datetime.time`
+
+F811 Redefinition of unused `time` from line 2
+  --> models.py:16:5
+   |
+14 |     currency = db.Column(db.String(10), default='৳')  # Currency symbol
+15 |     date = db.Column(db.Date, nullable=False, default=date.today)  # Expense date
+16 |     time = db.Column(db.Time, nullable=False, default=lambda: datetime.now().time())  # Expense time
+   |     ^^^^
+17 |     month = db.Column(db.String(7), nullable=False)  # Format: YYYY-MM
+18 |     unique_id = db.Column(db.Text, nullable=False)  # Unique identifier per expense
+   |
+help: Remove definition: `time`
+
+E401 [*] Multiple imports on one line
+ --> prod_probe.py:2:1
+  |
+1 | # prod_probe.py
+2 | import os, hmac, hashlib, json, time, requests
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+3 |
+4 | PROD_URL        = os.environ.get("PROD_URL", "https://<your-deploy-domain>/webhook/messenger")
+  |
+help: Split imports
+
+E701 Multiple statements on one line (colon)
+  --> prod_probe.py:46:15
+   |
+45 | print("PROD URL:", PROD_URL)
+46 | for t in tests: send(t)
+   |               ^
+   |
+
+F401 [*] `app.db` imported but unused
+ --> routes/ops_quickscan.py:7:17
+  |
+5 | from utils.crypto import ensure_hashed
+6 | from models import Expense, User
+7 | from app import db
+  |                 ^^
+8 |
+9 | bp = Blueprint("quickscan", __name__)
+  |
+help: Remove unused import: `app.db`
+
+F401 [*] `os` imported but unused
+ --> scripts/ai_smoke_test.py:8:8
+  |
+6 | import json
+7 | import sys
+8 | import os
+  |        ^^
+9 | from datetime import datetime
+  |
+help: Remove unused import: `os`
+
+F541 [*] f-string without any placeholders
+  --> scripts/check_db_indexes.py:44:27
+   |
+42 |                 print(f"  - {idx_name}")
+43 |                 if "user_id" in idx_def:
+44 |                     print(f"    ✓ Has user_id index")
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+45 |         
+46 |         # Create missing indexes
+   |
+help: Remove extraneous `f` prefix
+
+F401 [*] `time` imported but unused
+  --> scripts/comprehensive_uat.py:8:8
+   |
+ 6 | import sys
+ 7 | import os
+ 8 | import time
+   |        ^^^^
+ 9 | import json
+10 | import requests
+   |
+help: Remove unused import: `time`
+
+F401 [*] `json` imported but unused
+ --> scripts/diagnostics_cli.py:5:8
+  |
+3 | FinBrain Diagnostic CLI - Health monitoring script for development
+4 | """
+5 | import json
+  |        ^^^^
+6 | import sys
+7 | import os
+  |
+help: Remove unused import: `json`
+
+F401 [*] `os` imported but unused
+ --> scripts/diagnostics_cli.py:7:8
+  |
+5 | import json
+6 | import sys
+7 | import os
+  |        ^^
+8 | from datetime import datetime
+9 | import requests
+  |
+help: Remove unused import: `os`
+
+E401 [*] Multiple imports on one line
+ --> scripts/finbrain_diagnose.py:2:1
+  |
+1 | # finbrain_diagnose.py
+2 | import os, time, json, requests
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+3 |
+4 | BASE = os.environ.get("BASE_URL", "http://127.0.0.1:5000").rstrip("/")
+  |
+help: Split imports
+
+E701 Multiple statements on one line (colon)
+  --> scripts/finbrain_diagnose.py:52:17
+   |
+50 | try:
+51 |     ai_flag = (body2 or {}).get("ai_status") or (body2 or {}).get("AI_ENABLED")
+52 | except Exception: pass
+   |                 ^
+53 | print("GET /ops/telemetry ->", code2, "| AI:", ai_flag, "| Extra:", clip(body2))
+   |
+
+F401 [*] `concurrent.futures.ThreadPoolExecutor` imported but unused
+  --> scripts/performance_test.py:10:32
+   |
+ 8 | import statistics
+ 9 | import requests
+10 | from concurrent.futures import ThreadPoolExecutor
+   |                                ^^^^^^^^^^^^^^^^^^
+11 | import sys
+   |
+help: Remove unused import: `concurrent.futures.ThreadPoolExecutor`
+
+F401 [*] `sys` imported but unused
+  --> scripts/performance_test.py:11:8
+   |
+ 9 | import requests
+10 | from concurrent.futures import ThreadPoolExecutor
+11 | import sys
+   |        ^^^
+12 |
+13 | BASE_URL = "http://localhost:5000"
+   |
+help: Remove unused import: `sys`
+
+F401 [*] `sys` imported but unused
+ --> scripts/probe_imports.py:5:8
+  |
+3 | Runtime import probe to detect circular dependencies and broken imports
+4 | """
+5 | import sys
+  |        ^^^
+6 | import traceback
+  |
+help: Remove unused import: `sys`
+
+F401 [*] `json` imported but unused
+ --> scripts/security_audit.py:8:8
+  |
+6 | import os
+7 | import requests
+8 | import json
+  |        ^^^^
+9 | import time
+  |
+help: Remove unused import: `json`
+
+E722 Do not use bare `except`
+  --> scripts/security_audit.py:91:17
+   |
+89 |                             hardcoded_found = True
+90 |                             break
+91 |                 except:
+   |                 ^^^^^^
+92 |                     continue
+   |
+
+F541 [*] f-string without any placeholders
+  --> scripts/system_health_report.py:87:19
+   |
+85 |         if resp.status_code == 200:
+86 |             print(f"   Dashboard Load: {db_query_time:.2f}ms")
+87 |             print(f"   Connection: ✅ HEALTHY")
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+88 |             
+89 |             # Check if dashboard has data
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> scripts/system_health_report.py:91:23
+   |
+89 |             # Check if dashboard has data
+90 |             if "expense" in resp.text.lower() or "total" in resp.text.lower():
+91 |                 print(f"   Data Access: ✅ ACTIVE")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+92 |             else:
+93 |                 print(f"   Data Access: ⚠️ NO DATA")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> scripts/system_health_report.py:93:23
+   |
+91 |                 print(f"   Data Access: ✅ ACTIVE")
+92 |             else:
+93 |                 print(f"   Data Access: ⚠️ NO DATA")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+94 |         else:
+95 |             print(f"   ❌ Database query failed: {resp.status_code}")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/system_health_report.py:104:19
+    |
+102 |         resp = requests.get(f"{BASE_URL}/ops", auth=AUTH, timeout=10)
+103 |         if resp.status_code == 200:
+104 |             print(f"   Token Monitoring: ✅ ACTIVE")
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+105 |             print(f"   Ops Dashboard: ✅ ACCESSIBLE")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/system_health_report.py:105:19
+    |
+103 |         if resp.status_code == 200:
+104 |             print(f"   Token Monitoring: ✅ ACTIVE")
+105 |             print(f"   Ops Dashboard: ✅ ACCESSIBLE")
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+106 |             
+107 |             # Check webhook security
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/system_health_report.py:111:23
+    |
+109 |                                        json={"test": "security"}, timeout=5)
+110 |             if webhook_resp.status_code in [400, 401, 403]:
+111 |                 print(f"   Webhook Security: ✅ ENFORCED")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+112 |             else:
+113 |                 print(f"   Webhook Security: ⚠️ CHECK NEEDED")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/system_health_report.py:113:23
+    |
+111 |                 print(f"   Webhook Security: ✅ ENFORCED")
+112 |             else:
+113 |                 print(f"   Webhook Security: ⚠️ CHECK NEEDED")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+114 |         else:
+115 |             print(f"   ❌ Facebook ops failed: {resp.status_code}")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/system_health_report.py:130:19
+    |
+128 |             ai_limiter = telemetry.get("ai_limiter", {})
+129 |             config = ai_limiter.get("config", {})
+130 |             print(f"   AI Rate Limiting: ✅ ACTIVE")
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+131 |             print(f"   Per-user Limit: {config.get('AI_MAX_CALLS_PER_MIN_PER_PSID', 0)}/min")
+132 |             print(f"   Global Limit: {config.get('AI_MAX_CALLS_PER_MIN', 0)}/min")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/system_health_report.py:258:11
+    |
+256 |         json.dump(report_data, f, indent=2)
+257 |     
+258 |     print(f"\nDetailed health data saved to system_health_report.json")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+259 |     
+260 |     return health_percentage >= 75
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `utils.crypto.ensure_hashed` imported but unused
+  --> scripts/uat_ensure_hashed.py:11:26
+   |
+10 | from app import app
+11 | from utils.crypto import ensure_hashed
+   |                          ^^^^^^^^^^^^^
+12 | from utils.security import hash_psid
+13 | from utils.db import record_expense, get_user_spending_summary
+   |
+help: Remove unused import: `utils.crypto.ensure_hashed`
+
+F541 [*] f-string without any placeholders
+  --> scripts/uat_ensure_hashed.py:68:23
+   |
+67 |             if success:
+68 |                 print(f"✓ Both raw PSID and hash parameter produce identical results")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+69 |                 print(f"✓ Total expenses: ${summary_raw.get('total', 0)}")
+70 |                 print(f"✓ Transaction count: {summary_raw.get('total_transactions', 0)}")
+   |
+help: Remove extraneous `f` prefix
+
+F401 [*] `os` imported but unused
+ --> start_server.py:6:8
+  |
+4 | Starts gunicorn without the --reload flag to prevent WINCH signal loops
+5 | """
+6 | import os
+  |        ^^
+7 | import sys
+8 | import subprocess
+  |
+help: Remove unused import: `os`
+
+F401 [*] `os` imported but unused
+ --> tests/test_router_canonicality.py:6:8
+  |
+4 | """
+5 |
+6 | import os
+  |        ^^
+7 | import re
+8 | from pathlib import Path
+  |
+help: Remove unused import: `os`
+
+F401 [*] `typing.Optional` imported but unused
+  --> utils/ai_adapter_v2.py:10:31
+   |
+ 8 | import logging
+ 9 | import requests
+10 | from typing import Dict, Any, Optional
+   |                               ^^^^^^^^
+11 | from datetime import datetime
+   |
+help: Remove unused import: `typing.Optional`
+
+F401 [*] `datetime.datetime` imported but unused
+  --> utils/ai_adapter_v2.py:11:22
+   |
+ 9 | import requests
+10 | from typing import Dict, Any, Optional
+11 | from datetime import datetime
+   |                      ^^^^^^^^
+12 |
+13 | logger = logging.getLogger(__name__)
+   |
+help: Remove unused import: `datetime.datetime`
+
+E722 Do not use bare `except`
+   --> utils/ai_adapter_v2.py:244:29
+    |
+242 | …                         else:
+243 | …                             raise json_error
+244 | …                     except:
+    |                       ^^^^^^
+245 | …                         # If all repair attempts fail, create minimal valid response
+246 | …                         ai_response = {
+    |
+
+F401 [*] `typing.Tuple` imported but unused
+  --> utils/ai_context_adapter.py:8:41
+   |
+ 6 | import json
+ 7 | import logging
+ 8 | from typing import Dict, Any, Optional, Tuple
+   |                                         ^^^^^
+ 9 | from utils.context_packet import (
+10 |     build_context, is_context_thin, get_thin_context_reply,
+   |
+help: Remove unused import: `typing.Tuple`
+
+F401 [*] `typing.List` imported but unused
+  --> utils/ai_expense_parser.py:9:20
+   |
+ 7 | import logging
+ 8 | import re
+ 9 | from typing import List, Dict, Any, Optional, Tuple
+   |                    ^^^^
+10 |
+11 | logger = logging.getLogger(__name__)
+   |
+help: Remove unused import
+
+F401 [*] `typing.Optional` imported but unused
+  --> utils/ai_expense_parser.py:9:37
+   |
+ 7 | import logging
+ 8 | import re
+ 9 | from typing import List, Dict, Any, Optional, Tuple
+   |                                     ^^^^^^^^
+10 |
+11 | logger = logging.getLogger(__name__)
+   |
+help: Remove unused import
+
+F401 [*] `typing.Tuple` imported but unused
+  --> utils/ai_expense_parser.py:9:47
+   |
+ 7 | import logging
+ 8 | import re
+ 9 | from typing import List, Dict, Any, Optional, Tuple
+   |                                               ^^^^^
+10 |
+11 | logger = logging.getLogger(__name__)
+   |
+help: Remove unused import
+
+F401 [*] `json` imported but unused
+ --> utils/ai_limiter.py:7:8
+  |
+5 | import os
+6 | import time
+7 | import json
+  |        ^^^^
+8 | import logging
+9 | from datetime import datetime, timezone, timedelta
+  |
+help: Remove unused import: `json`
+
+E402 Module level import not at top of file
+  --> utils/ai_limiter.py:17:1
+   |
+16 | # Configuration from centralized config
+17 | from config import AI_RL_GLOBAL_LIMIT, AI_RL_USER_LIMIT
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+18 | AI_ENABLED = os.environ.get("AI_ENABLED", "false").lower() == "true"
+19 | AI_MAX_CALLS_PER_MIN = AI_RL_GLOBAL_LIMIT
+   |
+
+F401 [*] `json` imported but unused
+ --> utils/ai_onboarding_system.py:5:8
+  |
+3 | """
+4 | import logging
+5 | import json
+  |        ^^^^
+6 | from typing import Dict, Any, Optional, Tuple
+7 | from ai_adapter_gemini import generate_with_schema
+  |
+help: Remove unused import: `json`
+
+F401 [*] `typing.Optional` imported but unused
+ --> utils/ai_onboarding_system.py:6:31
+  |
+4 | import logging
+5 | import json
+6 | from typing import Dict, Any, Optional, Tuple
+  |                               ^^^^^^^^
+7 | from ai_adapter_gemini import generate_with_schema
+  |
+help: Remove unused import: `typing.Optional`
+
+F401 [*] `typing.Tuple` imported but unused
+  --> utils/ai_rate_limiter.py:10:32
+   |
+ 8 | import threading
+ 9 | from datetime import datetime, timezone
+10 | from typing import Dict, List, Tuple, Optional
+   |                                ^^^^^
+11 | from dataclasses import dataclass
+   |
+help: Remove unused import: `typing.Tuple`
+
+F401 [*] `os` imported but unused
+ --> utils/background_processor.py:5:8
+  |
+3 | Includes RL-2 graceful non-AI fallback system
+4 | """
+5 | import os
+  |        ^^
+6 | import time
+7 | import json
+  |
+help: Remove unused import: `os`
+
+F401 [*] `threading` imported but unused
+  --> utils/background_processor.py:9:8
+   |
+ 7 | import json
+ 8 | import logging
+ 9 | import threading
+   |        ^^^^^^^^^
+10 | import requests
+11 | from datetime import datetime
+   |
+help: Remove unused import: `threading`
+
+F401 [*] `requests` imported but unused
+  --> utils/background_processor.py:10:8
+   |
+ 8 | import logging
+ 9 | import threading
+10 | import requests
+   |        ^^^^^^^^
+11 | from datetime import datetime
+12 | from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+   |
+help: Remove unused import: `requests`
+
+F401 [*] `datetime.datetime` imported but unused
+  --> utils/background_processor.py:11:22
+   |
+ 9 | import threading
+10 | import requests
+11 | from datetime import datetime
+   |                      ^^^^^^^^
+12 | from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+13 | from queue import Queue, Empty
+   |
+help: Remove unused import: `datetime.datetime`
+
+F401 [*] `concurrent.futures.TimeoutError` imported but unused
+  --> utils/background_processor.py:12:68
+   |
+10 | import requests
+11 | from datetime import datetime
+12 | from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+   |                                                                    ^^^^^^^^^^^^^^^^^^
+13 | from queue import Queue, Empty
+14 | from dataclasses import dataclass
+   |
+help: Remove unused import: `concurrent.futures.TimeoutError`
+
+F401 [*] `queue.Empty` imported but unused
+  --> utils/background_processor.py:13:26
+   |
+11 | from datetime import datetime
+12 | from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+13 | from queue import Queue, Empty
+   |                          ^^^^^
+14 | from dataclasses import dataclass
+15 | from typing import Optional, Dict, Any, Tuple
+   |
+help: Remove unused import: `queue.Empty`
+
+F401 [*] `.logger.get_request_id` imported but unused
+  --> utils/background_processor.py:17:42
+   |
+15 | from typing import Optional, Dict, Any, Tuple
+16 |
+17 | from .logger import log_webhook_success, get_request_id
+   |                                          ^^^^^^^^^^^^^^
+18 | from .user_manager import resolve_user_id
+19 | from .identity import psid_hash
+   |
+help: Remove unused import: `.logger.get_request_id`
+
+F401 [*] `.rate_limiter.check_rate_limit` imported but unused
+  --> utils/background_processor.py:20:27
+   |
+18 | from .user_manager import resolve_user_id
+19 | from .identity import psid_hash
+20 | from .rate_limiter import check_rate_limit
+   |                           ^^^^^^^^^^^^^^^^
+21 | from .policy_guard import update_user_message_timestamp, is_within_24_hour_window
+22 | from .facebook_handler import send_facebook_message
+   |
+help: Remove unused import: `.rate_limiter.check_rate_limit`
+
+F401 [*] `.ai_rate_limiter.ai_rate_limiter` imported but unused
+  --> utils/background_processor.py:23:30
+   |
+21 | from .policy_guard import update_user_message_timestamp, is_within_24_hour_window
+22 | from .facebook_handler import send_facebook_message
+23 | from .ai_rate_limiter import ai_rate_limiter
+   |                              ^^^^^^^^^^^^^^^
+24 | from .background_processor_rl2 import rl2_processor
+25 | from utils.production_router import production_router
+   |
+help: Remove unused import: `.ai_rate_limiter.ai_rate_limiter`
+
+F401 [*] `.background_processor_rl2.rl2_processor` imported but unused
+  --> utils/background_processor.py:24:39
+   |
+22 | from .facebook_handler import send_facebook_message
+23 | from .ai_rate_limiter import ai_rate_limiter
+24 | from .background_processor_rl2 import rl2_processor
+   |                                       ^^^^^^^^^^^^^
+25 | from utils.production_router import production_router
+   |
+help: Remove unused import: `.background_processor_rl2.rl2_processor`
+
+F841 Local variable `future` is assigned to but never used
+  --> utils/background_processor.py:67:13
+   |
+65 |             )
+66 |             
+67 |             future = self.executor.submit(self._process_job_safe, job)
+   |             ^^^^^^
+68 |             
+69 |             psid_hash = resolve_user_id(psid=psid)
+   |
+help: Remove assignment to unused variable `future`
+
+F811 [*] Redefinition of unused `datetime` from line 11
+   --> utils/background_processor.py:212:30
+    |
+210 |         from app import db
+211 |         from models import Expense
+212 |         from datetime import datetime, timedelta
+    |                              ^^^^^^^^
+213 |         
+214 |         try:
+    |
+help: Remove definition: `datetime`
+
+F401 [*] `models.Expense` imported but unused
+  --> utils/background_processor_rl2.py:81:32
+   |
+79 |         try:
+80 |             from app import db
+81 |             from models import Expense
+   |                                ^^^^^^^
+82 |             from sqlalchemy import text
+   |
+help: Remove unused import: `models.Expense`
+
+E722 Do not use bare `except`
+   --> utils/background_processor_rl2.py:194:17
+    |
+192 |                 try:
+193 |                     db.session.rollback()
+194 |                 except:
+    |                 ^^^^^^
+195 |                     pass
+    |
+
+F401 [*] `typing.Optional` imported but unused
+  --> utils/cold_start_mitigation.py:11:20
+   |
+ 9 | import requests
+10 | from datetime import datetime
+11 | from typing import Optional, Dict, Any
+   |                    ^^^^^^^^
+12 |
+13 | logger = logging.getLogger(__name__)
+   |
+help: Remove unused import: `typing.Optional`
+
+F401 [*] `typing.Optional` imported but unused
+ --> utils/context_integration.py:7:31
+  |
+6 | import logging
+7 | from typing import Dict, Any, Optional
+  |                               ^^^^^^^^
+8 | from sqlalchemy.orm import Session
+9 | from utils.context_packet import build_context, is_context_thin, get_thin_context_reply, format_context_for_ai, CONTEXT_SYSTEM_PROMPT,…
+  |
+help: Remove unused import: `typing.Optional`
+
+F401 [*] `utils.ai_context_adapter.ContextDrivenAI` imported but unused
+  --> utils/context_integration.py:10:38
+   |
+ 8 | from sqlalchemy.orm import Session
+ 9 | from utils.context_packet import build_context, is_context_thin, get_thin_context_reply, format_context_for_ai, CONTEXT_SYSTEM_PROMPT,…
+10 | from utils.ai_context_adapter import ContextDrivenAI, handle_context_driven_message
+   |                                      ^^^^^^^^^^^^^^^
+11 | from utils.ux_components import safe_send_text, record_event, format_coach_reply
+12 | from utils.facebook_handler import send_message
+   |
+help: Remove unused import
+
+F401 [*] `utils.ai_context_adapter.handle_context_driven_message` imported but unused
+  --> utils/context_integration.py:10:55
+   |
+ 8 | from sqlalchemy.orm import Session
+ 9 | from utils.context_packet import build_context, is_context_thin, get_thin_context_reply, format_context_for_ai, CONTEXT_SYSTEM_PROMPT,…
+10 | from utils.ai_context_adapter import ContextDrivenAI, handle_context_driven_message
+   |                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11 | from utils.ux_components import safe_send_text, record_event, format_coach_reply
+12 | from utils.facebook_handler import send_message
+   |
+help: Remove unused import
+
+F401 [*] `utils.ux_components.safe_send_text` imported but unused
+  --> utils/context_integration.py:11:33
+   |
+ 9 | from utils.context_packet import build_context, is_context_thin, get_thin_context_reply, format_context_for_ai, CONTEXT_SYSTEM_PROMPT,…
+10 | from utils.ai_context_adapter import ContextDrivenAI, handle_context_driven_message
+11 | from utils.ux_components import safe_send_text, record_event, format_coach_reply
+   |                                 ^^^^^^^^^^^^^^
+12 | from utils.facebook_handler import send_message
+13 | from utils.quick_reply_system import send_custom_quick_replies
+   |
+help: Remove unused import: `utils.ux_components.safe_send_text`
+
+F401 [*] `utils.ai_adapter_v2.production_ai_adapter` imported but unused
+  --> utils/context_integration.py:14:33
+   |
+12 | from utils.facebook_handler import send_message
+13 | from utils.quick_reply_system import send_custom_quick_replies
+14 | from utils.ai_adapter_v2 import production_ai_adapter
+   |                                 ^^^^^^^^^^^^^^^^^^^^^
+15 | from limiter import can_use_ai
+16 | from app import db
+   |
+help: Remove unused import: `utils.ai_adapter_v2.production_ai_adapter`
+
+F821 Undefined name `generate_with_schema`
+  --> utils/context_integration.py:83:25
+   |
+81 |             full_user_text = f"Question: {text}\n\n{ai_context}"
+82 |             
+83 |             ai_result = generate_with_schema(
+   |                         ^^^^^^^^^^^^^^^^^^^^
+84 |                 user_text=full_user_text,
+85 |                 system_prompt=CONTEXT_SYSTEM_PROMPT,
+   |
+
+F821 Undefined name `generate_with_schema`
+   --> utils/context_integration.py:265:48
+    |
+263 |     try:
+264 |         # Use production AI adapter instead
+265 |         print(f"✓ Schema generation function: {generate_with_schema.__name__}")
+    |                                                ^^^^^^^^^^^^^^^^^^^^
+266 |     except ImportError as e:
+267 |         print(f"⚠ Schema function not available: {e}")
+    |
+
+F401 [*] `models.User` imported but unused
+  --> utils/context_packet.py:10:29
+   |
+ 8 | from datetime import datetime, timedelta
+ 9 | from sqlalchemy.orm import Session
+10 | from models import Expense, User
+   |                             ^^^^
+11 | from .identity import psid_hash
+   |
+help: Remove unused import: `models.User`
+
+F841 Local variable `now` is assigned to but never used
+  --> utils/context_packet.py:28:9
+   |
+26 |     try:
+27 |         user_hash = psid_hash(psid)
+28 |         now = datetime.utcnow()
+   |         ^^^
+29 |         
+30 |         # Get 30-day and previous 30-day spending by category
+   |
+help: Remove assignment to unused variable `now`
+
+F401 [*] `typing.Optional` imported but unused
+ --> utils/conversational_ai.py:7:37
+  |
+6 | import logging
+7 | from typing import Dict, Any, List, Optional, Tuple
+  |                                     ^^^^^^^^
+8 | from datetime import datetime, timedelta
+9 | from utils.identity import psid_hash
+  |
+help: Remove unused import: `typing.Optional`
+
+F401 [*] `app.db` imported but unused
+  --> utils/conversational_ai.py:22:25
+   |
+20 |         """Get comprehensive user expense context for conversations"""
+21 |         from models import Expense
+22 |         from app import db
+   |                         ^^
+23 |         from utils.identity import psid_hash as ensure_hashed
+24 |         from utils.tracer import trace_event
+   |
+help: Remove unused import: `app.db`
+
+F841 Local variable `message_lower` is assigned to but never used
+   --> utils/conversational_ai.py:257:9
+    |
+255 |     def handle_conversational_query(self, psid_or_hash: str, user_message: str) -> Tuple[str, str]:
+256 |         """Handle conversational queries using user-level memory (legacy method for backwards compatibility)"""
+257 |         message_lower = user_message.lower()
+    |         ^^^^^^^^^^^^^
+258 |         
+259 |         # Determine if we have a PSID or hash (hash length is 64 chars)
+    |
+help: Remove assignment to unused variable `message_lower`
+
+F401 [*] `app.db` imported but unused
+   --> utils/conversational_ai.py:318:25
+    |
+316 |         """Get user expense context using pre-hashed PSID (no double hashing)"""
+317 |         from models import Expense
+318 |         from app import db
+    |                         ^^
+319 |         
+320 |         cutoff_date = datetime.utcnow() - timedelta(days=days)
+    |
+help: Remove unused import: `app.db`
+
+F401 [*] `flask.current_app` imported but unused
+  --> utils/db.py:12:23
+   |
+10 |     """Get existing user or create new one with hashed ID"""
+11 |     from models import User
+12 |     from flask import current_app
+   |                       ^^^^^^^^^^^
+13 |     
+14 |     if db_session is None:
+   |
+help: Remove unused import: `flask.current_app`
+
+F401 [*] `models.User` imported but unused
+  --> utils/db.py:43:33
+   |
+41 | def save_expense(user_identifier, description, amount, category, platform, original_message, unique_id, db_session=None):
+42 |     """Save expense to database and update monthly summaries"""
+43 |     from models import Expense, User, MonthlySummary
+   |                                 ^^^^
+44 |     from utils.tracer import trace_event
+45 |     from utils.identity import psid_hash
+   |
+help: Remove unused import: `models.User`
+
+F401 [*] `utils.identity.psid_hash` imported but unused
+  --> utils/db.py:45:32
+   |
+43 |     from models import Expense, User, MonthlySummary
+44 |     from utils.tracer import trace_event
+45 |     from utils.identity import psid_hash
+   |                                ^^^^^^^^^
+46 |     
+47 |     if db_session is None:
+   |
+help: Remove unused import: `utils.identity.psid_hash`
+
+F401 [*] `typing.Dict` imported but unused
+ --> utils/dispatcher.py:5:20
+  |
+3 | """
+4 | import logging
+5 | from typing import Dict, Tuple
+  |                    ^^^^
+6 | from utils.intent_router import detect_intent
+7 | from handlers.summary import handle_summary
+  |
+help: Remove unused import: `typing.Dict`
+
+F401 [*] `typing.List` imported but unused
+ --> utils/engagement.py:6:41
+  |
+4 | """
+5 | import logging
+6 | from typing import Dict, Any, Optional, List
+  |                                         ^^^^
+7 | from datetime import datetime, timedelta
+  |
+help: Remove unused import: `typing.List`
+
+F401 [*] `datetime.datetime` imported but unused
+ --> utils/expense.py:4:22
+  |
+2 | import re
+3 | import logging
+4 | from datetime import datetime
+  |                      ^^^^^^^^
+5 | from utils.categories import categorize_expense
+6 | from utils.db import save_expense
+  |
+help: Remove unused import: `datetime.datetime`
+
+F401 [*] `json` imported but unused
+ --> utils/facebook_handler.py:4:8
+  |
+2 | import os
+3 | import logging
+4 | import json
+  |        ^^^^
+5 | import time
+6 | from datetime import datetime
+  |
+help: Remove unused import: `json`
+
+F401 [*] `datetime.datetime` imported but unused
+ --> utils/facebook_handler.py:6:22
+  |
+4 | import json
+5 | import time
+6 | from datetime import datetime
+  |                      ^^^^^^^^
+7 | from utils.expense import process_expense_message
+8 | from .logger import log_graph_call
+  |
+help: Remove unused import: `datetime.datetime`
+
+F401 [*] `utils.expense.process_expense_message` imported but unused
+ --> utils/facebook_handler.py:7:27
+  |
+5 | import time
+6 | from datetime import datetime
+7 | from utils.expense import process_expense_message
+  |                           ^^^^^^^^^^^^^^^^^^^^^^^
+8 | from .logger import log_graph_call
+  |
+help: Remove unused import: `utils.expense.process_expense_message`
+
+F401 [*] `typing.Optional` imported but unused
+  --> utils/health_ping.py:11:20
+   |
+ 9 | import threading
+10 | from datetime import datetime
+11 | from typing import Optional
+   |                    ^^^^^^^^
+12 |
+13 | logger = logging.getLogger(__name__)
+   |
+help: Remove unused import: `typing.Optional`
+
+F401 [*] `typing.Optional` imported but unused
+ --> utils/intent_router.py:7:20
+  |
+6 | import re
+7 | from typing import Optional
+  |                    ^^^^^^^^
+  |
+help: Remove unused import: `typing.Optional`
+
+F841 [*] Local variable `e` is assigned to but never used
+   --> utils/logger.py:151:29
+    |
+149 |             return response
+150 |             
+151 |         except Exception as e:
+    |                             ^
+152 |             # Calculate duration even for errors
+153 |             duration_ms = (time.time() - g.request_start_time) * 1000
+    |
+help: Remove assignment to unused variable `e`
+
+F401 [*] `typing.Optional` imported but unused
+ --> utils/message_handlers.py:7:31
+  |
+6 | import logging
+7 | from typing import Dict, Any, Optional
+  |                               ^^^^^^^^
+8 | from utils.ux_components import (
+9 |     handle_enhanced_message, handle_payload, get_ux_metrics,
+  |
+help: Remove unused import: `typing.Optional`
+
+F401 [*] `utils.ux_components.safe_send_text` imported but unused
+  --> utils/message_handlers.py:10:20
+   |
+ 8 | from utils.ux_components import (
+ 9 |     handle_enhanced_message, handle_payload, get_ux_metrics,
+10 |     parse_expense, safe_send_text, send_picker, record_event
+   |                    ^^^^^^^^^^^^^^
+11 | )
+12 | from utils.facebook_handler import send_message
+   |
+help: Remove unused import
+
+F401 [*] `utils.ux_components.send_picker` imported but unused
+  --> utils/message_handlers.py:10:36
+   |
+ 8 | from utils.ux_components import (
+ 9 |     handle_enhanced_message, handle_payload, get_ux_metrics,
+10 |     parse_expense, safe_send_text, send_picker, record_event
+   |                                    ^^^^^^^^^^^
+11 | )
+12 | from utils.facebook_handler import send_message
+   |
+help: Remove unused import
+
+F401 [*] `models.User` imported but unused
+  --> utils/message_handlers.py:63:45
+   |
+61 |                 psid, category, amount = args
+62 |                 # Integrate with your existing expense logging
+63 |                 from models import Expense, User
+   |                                             ^^^^
+64 |                 from utils.security import hash_psid
+   |
+help: Remove unused import: `models.User`
+
+F401 [*] `typing.Optional` imported but unused
+ --> utils/policy_guard.py:4:20
+  |
+2 | import logging
+3 | from datetime import datetime, timedelta
+4 | from typing import Optional
+  |                    ^^^^^^^^
+5 |
+6 | from utils.user_manager import resolve_user_id
+  |
+help: Remove unused import: `typing.Optional`
+
+F401 [*] `models.db` imported but unused
+  --> utils/policy_guard.py:13:34
+   |
+11 |     """Check if user's last message was within 24 hours (policy-safe to respond)"""
+12 |     try:
+13 |         from models import User, db
+   |                                  ^^
+14 |         
+15 |         user_hash = resolve_user_id(psid=psid)
+   |
+help: Remove unused import: `models.db`
+
+F401 [*] `typing.Any` imported but unused
+ --> utils/quick_reply_system.py:7:32
+  |
+6 | import logging
+7 | from typing import List, Dict, Any, Optional
+  |                                ^^^
+8 | import sys
+9 | import os
+  |
+help: Remove unused import
+
+F401 [*] `typing.Optional` imported but unused
+ --> utils/quick_reply_system.py:7:37
+  |
+6 | import logging
+7 | from typing import List, Dict, Any, Optional
+  |                                     ^^^^^^^^
+8 | import sys
+9 | import os
+  |
+help: Remove unused import
+
+F541 [*] f-string without any placeholders
+  --> utils/quick_reply_system.py:33:19
+   |
+31 |         """
+32 |         try:
+33 |             url = f"https://graph.facebook.com/v17.0/me/messages"
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+34 |             
+35 |             quick_replies = [
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> utils/quick_reply_system.py:78:19
+   |
+76 |         """Send persistent menu (appears as hamburger menu in chat)"""
+77 |         try:
+78 |             url = f"https://graph.facebook.com/v17.0/me/messenger_profile"
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+79 |             
+80 |             menu_data = {
+   |
+help: Remove extraneous `f` prefix
+
+F401 [*] `datetime.timedelta` imported but unused
+ --> utils/rate_limiter.py:4:38
+  |
+2 | import os
+3 | import logging
+4 | from datetime import datetime, date, timedelta
+  |                                      ^^^^^^^^^
+5 | from utils.security import hash_user_id
+  |
+help: Remove unused import: `datetime.timedelta`
+
+F401 [*] `utils.security.hash_user_id` imported but unused
+ --> utils/rate_limiter.py:5:28
+  |
+3 | import logging
+4 | from datetime import datetime, date, timedelta
+5 | from utils.security import hash_user_id
+  |                            ^^^^^^^^^^^^
+6 |
+7 | logger = logging.getLogger(__name__)
+  |
+help: Remove unused import: `utils.security.hash_user_id`
+
+F821 Undefined name `ensure_hashed`
+  --> utils/rate_limiter.py:19:21
+   |
+18 |     try:
+19 |         user_hash = ensure_hashed(user_identifier)
+   |                     ^^^^^^^^^^^^^
+20 |         current_date = date.today()
+21 |         current_hour = datetime.now().replace(minute=0, second=0, microsecond=0)
+   |
+
+F821 Undefined name `ensure_hashed`
+  --> utils/rate_limiter.py:78:21
+   |
+77 |     try:
+78 |         user_hash = ensure_hashed(user_identifier)
+   |                     ^^^^^^^^^^^^^
+79 |         
+80 |         rate_limit = RateLimit.query.filter_by(
+   |
+
+F401 [*] `datetime.datetime` imported but unused
+ --> utils/report_generator.py:3:22
+  |
+1 | """Automated report generation for daily and weekly summaries"""
+2 | import logging
+3 | from datetime import datetime, date, timedelta
+  |                      ^^^^^^^^
+4 | from utils.db import get_monthly_summary, get_user_expenses
+  |
+help: Remove unused import: `datetime.datetime`
+
+F401 [*] `utils.db.get_user_expenses` imported but unused
+ --> utils/report_generator.py:4:43
+  |
+2 | import logging
+3 | from datetime import datetime, date, timedelta
+4 | from utils.db import get_monthly_summary, get_user_expenses
+  |                                           ^^^^^^^^^^^^^^^^^
+5 |
+6 | from utils.facebook_handler import send_facebook_report
+  |
+help: Remove unused import: `utils.db.get_user_expenses`
+
+F401 [*] `utils.facebook_handler.send_facebook_report` imported but unused
+ --> utils/report_generator.py:6:36
+  |
+4 | from utils.db import get_monthly_summary, get_user_expenses
+5 |
+6 | from utils.facebook_handler import send_facebook_report
+  |                                    ^^^^^^^^^^^^^^^^^^^^
+7 | from models import User, Expense
+8 | from app import db
+  |
+help: Remove unused import: `utils.facebook_handler.send_facebook_report`
+
+F401 [*] `models.User` imported but unused
+ --> utils/report_generator.py:7:20
+  |
+6 | from utils.facebook_handler import send_facebook_report
+7 | from models import User, Expense
+  |                    ^^^^
+8 | from app import db
+  |
+help: Remove unused import: `models.User`
+
+F401 [*] `app.db` imported but unused
+  --> utils/report_generator.py:8:17
+   |
+ 6 | from utils.facebook_handler import send_facebook_report
+ 7 | from models import User, Expense
+ 8 | from app import db
+   |                 ^^
+ 9 |
+10 | logger = logging.getLogger(__name__)
+   |
+help: Remove unused import: `app.db`
+
+F401 [*] `utils.security.hash_user_id` imported but unused
+  --> utils/report_generator.py:15:36
+   |
+13 |     """Generate daily expense report for user"""
+14 |     try:
+15 |         from utils.security import hash_user_id
+   |                                    ^^^^^^^^^^^^
+16 |         
+17 |         user_hash = ensure_hashed(user_identifier)
+   |
+help: Remove unused import: `utils.security.hash_user_id`
+
+F821 Undefined name `ensure_hashed`
+  --> utils/report_generator.py:17:21
+   |
+15 |         from utils.security import hash_user_id
+16 |         
+17 |         user_hash = ensure_hashed(user_identifier)
+   |                     ^^^^^^^^^^^^^
+18 |         today = date.today()
+   |
+
+F401 [*] `utils.security.hash_user_id` imported but unused
+  --> utils/report_generator.py:65:36
+   |
+63 |     """Generate weekly expense report for user"""
+64 |     try:
+65 |         from utils.security import hash_user_id
+   |                                    ^^^^^^^^^^^^
+66 |         
+67 |         user_hash = ensure_hashed(user_identifier)
+   |
+help: Remove unused import: `utils.security.hash_user_id`
+
+F821 Undefined name `ensure_hashed`
+  --> utils/report_generator.py:67:21
+   |
+65 |         from utils.security import hash_user_id
+66 |         
+67 |         user_hash = ensure_hashed(user_identifier)
+   |                     ^^^^^^^^^^^^^
+68 |         today = date.today()
+69 |         week_start = today - timedelta(days=6)  # Last 7 days
+   |
+
+F541 [*] f-string without any placeholders
+   --> utils/report_generator.py:123:31
+    |
+121 |                     report += f"\n📉 Trend: ৳{trend:.2f} vs yesterday"
+122 |                 else:
+123 |                     report += f"\n➡️ Trend: Same as yesterday"
+    |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+124 |         
+125 |         return report
+    |
+help: Remove extraneous `f` prefix
+
+F401 [*] `os` imported but unused
+ --> utils/scheduler.py:2:8
+  |
+1 | """Task scheduling for automated reports"""
+2 | import os
+  |        ^^
+3 | import logging
+4 | from datetime import datetime
+  |
+help: Remove unused import: `os`
+
+F401 [*] `datetime.datetime` imported but unused
+ --> utils/scheduler.py:4:22
+  |
+2 | import os
+3 | import logging
+4 | from datetime import datetime
+  |                      ^^^^^^^^
+5 | from apscheduler.schedulers.background import BackgroundScheduler
+6 | from apscheduler.triggers.cron import CronTrigger
+  |
+help: Remove unused import: `datetime.datetime`
+
+F541 [*] f-string without any placeholders
+  --> utils/security.py:20:22
+   |
+18 |         hashed_id = hash_object.hexdigest()
+19 |         
+20 |         logger.debug(f"User ID hashed successfully")
+   |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+21 |         return hashed_id
+   |
+help: Remove extraneous `f` prefix
+
+E402 Module level import not at top of file
+  --> utils/textutil.py:14:1
+   |
+13 | # Configuration from centralized config and environment
+14 | from config import MSG_MAX_CHARS
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+15 | SAY_ENABLED = os.environ.get("SAY_ENABLED", "true").lower() == "true"
+16 | EMOJI_ENABLED = os.environ.get("EMOJI_ENABLED", "true").lower() == "true"
+   |
+
+F401 [*] `datetime.timedelta` imported but unused
+ --> utils/token_manager.py:6:32
+  |
+4 | import time
+5 | import requests
+6 | from datetime import datetime, timedelta
+  |                                ^^^^^^^^^
+7 | from typing import Dict, Optional, Tuple
+  |
+help: Remove unused import: `datetime.timedelta`
+
+F541 [*] f-string without any placeholders
+  --> utils/token_manager.py:33:19
+   |
+32 |         try:
+33 |             url = f"https://graph.facebook.com/v17.0/me"
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+34 |             params = {
+35 |                 'fields': 'id,name',
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> utils/token_manager.py:45:29
+   |
+44 |                 # Get token expiration info using debug_token
+45 |                 debug_url = f"https://graph.facebook.com/v17.0/debug_token"
+   |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+46 |                 debug_params = {
+47 |                     'input_token': self.page_access_token,
+   |
+help: Remove extraneous `f` prefix
+
+F401 [*] `os` imported but unused
+ --> utils/token_refresh_reminder.py:3:8
+  |
+1 | """Token refresh reminder and monitoring system"""
+2 | import logging
+3 | import os
+  |        ^^
+4 | from datetime import datetime, timedelta
+5 | from typing import Dict, List, Optional
+  |
+help: Remove unused import: `os`
+
+F401 [*] `typing.Optional` imported but unused
+ --> utils/token_refresh_reminder.py:5:32
+  |
+3 | import os
+4 | from datetime import datetime, timedelta
+5 | from typing import Dict, List, Optional
+  |                                ^^^^^^^^
+6 | from .token_manager import token_manager
+  |
+help: Remove unused import: `typing.Optional`
+
+F401 [*] `typing.List` imported but unused
+ --> utils/uat_system.py:6:41
+  |
+4 | """
+5 | import logging
+6 | from typing import Dict, Any, Optional, List
+  |                                         ^^^^
+7 | from datetime import datetime
+8 | from app import db
+  |
+help: Remove unused import: `typing.List`
+
+F401 [*] `app.db` imported but unused
+  --> utils/uat_system.py:8:17
+   |
+ 6 | from typing import Dict, Any, Optional, List
+ 7 | from datetime import datetime
+ 8 | from app import db
+   |                 ^^
+ 9 | from models import User
+10 | from utils.security import hash_psid
+   |
+help: Remove unused import: `app.db`
+
+F401 [*] `models.User` imported but unused
+  --> utils/uat_system.py:9:20
+   |
+ 7 | from datetime import datetime
+ 8 | from app import db
+ 9 | from models import User
+   |                    ^^^^
+10 | from utils.security import hash_psid
+   |
+help: Remove unused import: `models.User`
+
+F401 [*] `time` imported but unused
+ --> utils/ux_components.py:7:8
+  |
+6 | import re
+7 | import time
+  |        ^^^^
+8 | import logging
+9 | from typing import Dict, List, Optional, Tuple, Any
+  |
+help: Remove unused import: `time`
+
+F401 [*] `typing.List` imported but unused
+  --> utils/ux_components.py:9:26
+   |
+ 7 | import time
+ 8 | import logging
+ 9 | from typing import Dict, List, Optional, Tuple, Any
+   |                          ^^^^
+10 | from collections import Counter
+11 | from config import MSG_MAX_CHARS
+   |
+help: Remove unused import: `typing.List`
+
+F401 [*] `threading` imported but unused
+  --> utils/webhook_processor.py:8:8
+   |
+ 6 | import time
+ 7 | import uuid
+ 8 | import threading
+   |        ^^^^^^^^^
+ 9 | from concurrent.futures import ThreadPoolExecutor
+10 | from datetime import datetime, timedelta
+   |
+help: Remove unused import: `threading`
+
+F401 [*] `datetime.datetime` imported but unused
+  --> utils/webhook_processor.py:10:22
+   |
+ 8 | import threading
+ 9 | from concurrent.futures import ThreadPoolExecutor
+10 | from datetime import datetime, timedelta
+   |                      ^^^^^^^^
+11 | from typing import Dict, Any, Optional
+12 | from .logger import log_webhook_success, get_request_id
+   |
+help: Remove unused import
+
+F401 [*] `datetime.timedelta` imported but unused
+  --> utils/webhook_processor.py:10:32
+   |
+ 8 | import threading
+ 9 | from concurrent.futures import ThreadPoolExecutor
+10 | from datetime import datetime, timedelta
+   |                                ^^^^^^^^^
+11 | from typing import Dict, Any, Optional
+12 | from .logger import log_webhook_success, get_request_id
+   |
+help: Remove unused import
+
+F401 [*] `typing.Optional` imported but unused
+  --> utils/webhook_processor.py:11:31
+   |
+ 9 | from concurrent.futures import ThreadPoolExecutor
+10 | from datetime import datetime, timedelta
+11 | from typing import Dict, Any, Optional
+   |                               ^^^^^^^^
+12 | from .logger import log_webhook_success, get_request_id
+   |
+help: Remove unused import: `typing.Optional`
+
+F401 [*] `.logger.get_request_id` imported but unused
+  --> utils/webhook_processor.py:12:42
+   |
+10 | from datetime import datetime, timedelta
+11 | from typing import Dict, Any, Optional
+12 | from .logger import log_webhook_success, get_request_id
+   |                                          ^^^^^^^^^^^^^^
+13 |
+14 | logger = logging.getLogger(__name__)
+   |
+help: Remove unused import: `.logger.get_request_id`
+
+F841 Local variable `user_hash` is assigned to but never used
+  --> utils/webhook_processor.py:85:9
+   |
+84 |         # Compute hash once at intake
+85 |         user_hash = psid_hash(psid)
+   |         ^^^^^^^^^
+86 |         
+87 |         for messaging in entry.get('messaging', []):
+   |
+help: Remove assignment to unused variable `user_hash`
+
+Found 404 errors.
+[*] 343 fixable with the `--fix` option (17 hidden fixes can be enabled with the `--unsafe-fixes` option).
+Ruff check completed with warnings
+
+=== MYPY TYPE CHECKING ===
+archive/ai_expense_parser_broken.py:295: error: Invalid syntax  [syntax]
+Found 1 error in 1 file (errors prevented further checking)
+Mypy check completed with issues
+
+=== STATIC CHECK SUMMARY ===
+Ruff Issues:
+4624
+Mypy Issues:
+1
