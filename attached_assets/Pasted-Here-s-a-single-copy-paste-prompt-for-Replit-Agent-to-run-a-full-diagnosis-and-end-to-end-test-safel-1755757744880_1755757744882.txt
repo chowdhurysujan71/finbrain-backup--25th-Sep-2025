@@ -1,0 +1,98 @@
+Here’s a single copy-paste prompt for Replit Agent to run a full diagnosis and end-to-end test safely. It won’t change runtime behavior, only inspect, simulate, and report.
+
+```
+You are editing the FinBrain repository. Perform a COMPLETE DIAGNOSIS AND END-TO-END TEST. Do not modify payload shapes, routes, DB schema, or secrets. Only add temporary test helpers or docs if needed. Output clear reports and artifacts.
+
+OBJECTIVE
+Verify the system from config to Messenger-style webhook ingestion, AI parsing, DB writes, and reply composition. Produce a single TEST_REPORT.md with results, plus supporting artifacts.
+
+HARD CONSTRAINTS
+1) Keep production behavior unchanged.
+2) Use any existing dev-only webhook bypass if present (e.g., X-Local-Testing). Do not weaken production security.
+3) If something is ambiguous, choose the least invasive action and document it.
+
+DELIVERABLES
+1) TEST_REPORT.md covering environment, static checks, DB, AI adapter, webhook path, idempotency, performance, and logs.
+2) PERF_REPORT.md with P50, P90, P95, P99 for the AI path and DB writes, sample size N, time window, and test inputs.
+3) SECURITY_CHECKLIST.md with pass or fail for signature verification, env handling, dependency CVEs scan summary, and dangerous debug endpoints.
+4) A /diagnostics summary endpoint in dev mode only, or a CLI script, that prints key health signals. Do not expose in production.
+5) A scripts/e2e_local_http.sh that runs a local webhook E2E with realistic payloads and captures responses to artifacts/e2e/.
+6) Artifacts directory with raw logs, sample payloads, and timing CSVs.
+
+STEP 0 ENV AND ENTRYPOINT
+1) Detect run command from .replit or Procfile and the main entry module.
+2) List required env vars that the app references (Facebook secrets, DB URL, ID_SALT, AI keys). Redact values in reports.
+
+STEP 1 STATIC HEALTH
+1) Run ruff and mypy. Summarize errors and warnings. Do not refactor code, only note hotspots.
+2) Run safety or pip-audit against requirements and summarize high severity CVEs.
+
+STEP 2 DATABASE VERIFICATION
+1) Connect to DB with the configured URL. Print server version, extensions, and connectivity.
+2) Verify existence and shape of key tables used by message logging and identity. Confirm indexes on primary keys and any idempotency keys.
+3) If migrations exist, verify they have been applied. Do not run destructive operations.
+
+STEP 3 AI ADAPTER SMOKE TEST
+1) Import the production AI adapter that the router uses.
+2) Run three smoke tests in dry-run mode if available:
+   a) Simple expense sentence to JSON.
+   b) Ambiguous sentence to verify graceful fallback.
+   c) Large or noisy sentence to test robustness.
+3) Capture model name, temperature, and parsing validation results. Do not send external calls if keys are missing; document skipped.
+
+STEP 4 LOCAL WEBHOOK E2E
+1) Start the app as it runs in Replit.
+2) If a dev-only signature bypass exists, use it. Otherwise generate a properly signed request if possible.
+3) Create realistic Messenger-style payloads:
+   a) New user, single text message.
+   b) Returning user, duplicate mid to verify idempotency.
+   c) Burst of 10 messages to test ordering and queuing.
+4) Send with curl and save responses and timings to artifacts/e2e/.
+5) Verify DB writes: user created or found, message rows upserted, AI result logged if enabled.
+
+STEP 5 IDEMPOTENCY AND RETRY BEHAVIOR
+1) Re-send the same mid and confirm no duplicate write. Record the unique key that prevents duplicates.
+2) Simulate transient AI failure by toggling AI_ENABLED or injecting a mock failure if available. Confirm retry or graceful fallback and log entries.
+
+STEP 6 PERFORMANCE BASELINE
+1) Exercise the full AI path N=30 times with a fixed input and N=30 with varied inputs.
+2) Measure end-to-end latency at the HTTP layer and, if instrumented, internal spans: AI call time, DB write time.
+3) Compute P50, P90, P95, P99. Save raw timings as CSV in artifacts/perf/ and produce PERF_REPORT.md.
+
+STEP 7 LOGGING AND OBSERVABILITY
+1) Verify that each request logs: timestamp, psid_hash, mid, route taken, status code, latency ms.
+2) Check that no secrets appear in logs. If any sensitive value appears, flag FAIL but do not change code.
+3) Export a 100-line sample of recent logs with sensitive values redacted to artifacts/logs/sample.log.
+
+STEP 8 SECURITY CHECKS
+1) Confirm production path enforces signature verification and HTTPS assumptions. Document header or signature library used.
+2) Ensure debug endpoints are not enabled in production mode.
+3) Summarize dependency CVE findings from Step 1 and recommended upgrades without making changes.
+
+STEP 9 ADMIN UI AND REPORTS
+1) If an admin dashboard exists, verify it reads from the same DB and shows recent messages. Capture a screenshot or HTML dump if feasible and save in artifacts/admin/.
+2) Confirm health endpoint returns OK and includes build hash if available.
+
+STEP 10 CLEAN OUTPUT
+1) Create TEST_REPORT.md that includes:
+   a) Entry command and main module.
+   b) Env summary (redacted).
+   c) Static check status.
+   d) DB connectivity and schema summary.
+   e) AI adapter smoke results.
+   f) Webhook E2E results and idempotency verdict.
+   g) Performance percentiles and whether target SLO is met.
+   h) Logging and security findings, with a risk rating and next actions.
+2) Print a short console summary with green or red indicators for each section and paths to artifacts.
+
+NOTES
+• Do not commit secrets.
+• Keep all helper scripts inside scripts/ and artifacts in artifacts/.
+• Use clear headings and tables in the markdown reports.
+
+FINAL OUTPUT
+Print:
+1) Paths to TEST_REPORT.md, PERF_REPORT.md, SECURITY_CHECKLIST.md.
+2) How to re-run the E2E locally with one command.
+3) A one-paragraph go or no-go recommendation for production testing on real Messenger traffic.
+```
