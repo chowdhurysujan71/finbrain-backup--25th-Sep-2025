@@ -398,7 +398,7 @@ def webhook_messenger() -> str | tuple[str, int]:
         
         if mode == "subscribe" and verify_token == os.environ.get("FACEBOOK_VERIFY_TOKEN"):
             logger.info("Webhook verification successful")
-            return challenge
+            return challenge or ""
         else:
             logger.warning(f"Webhook verification failed: mode={mode}, token_match={verify_token == os.environ.get('FACEBOOK_VERIFY_TOKEN')}")
             return "Verification token mismatch", 403
