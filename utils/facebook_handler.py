@@ -29,10 +29,21 @@ def send_facebook_message(recipient_id, message_text):
         
         # Clear PSID validation with detailed error logging
         if not is_valid_psid(recipient_id):
-            duration_ms = (time.time() - start_time) * 1000
-            log_graph_call(endpoint, "POST", None, duration_ms, f"Invalid PSID: {recipient_id}")
-            logger.error(f"PSID validation failed: '{recipient_id}' is not a valid Facebook page-scoped ID. Must be 10+ digit numeric string from real chat.")
-            raise ValueError(f"Invalid PSID '{recipient_id}'. Must be a numeric page-scoped ID from a real chat.")
+            # In non-production, check dev allowlist before failing
+            if os.getenv("ENV") != "production":
+                from utils.allowlist import is_dev_psid
+                if is_dev_psid(recipient_id):
+                    logger.info(f"Dev PSID allowed: {recipient_id} (non-production)")
+                else:
+                    duration_ms = (time.time() - start_time) * 1000
+                    log_graph_call(endpoint, "POST", None, duration_ms, f"Invalid PSID: {recipient_id}")
+                    logger.error(f"PSID validation failed: '{recipient_id}' is not a valid Facebook page-scoped ID. Must be 10+ digit numeric string from real chat.")
+                    raise ValueError(f"Invalid PSID '{recipient_id}'. Must be a numeric page-scoped ID from a real chat.")
+            else:
+                duration_ms = (time.time() - start_time) * 1000
+                log_graph_call(endpoint, "POST", None, duration_ms, f"Invalid PSID: {recipient_id}")
+                logger.error(f"PSID validation failed: '{recipient_id}' is not a valid Facebook page-scoped ID. Must be 10+ digit numeric string from real chat.")
+                raise ValueError(f"Invalid PSID '{recipient_id}'. Must be a numeric page-scoped ID from a real chat.")
         
         # Send via validated client
         response_data = send_text(recipient_id, message_text)

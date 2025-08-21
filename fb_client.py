@@ -6,7 +6,20 @@ GRAPH = "https://graph.facebook.com/v19.0/me/messages"
 _psid_re = re.compile(r"^\d{10,}$")  # page-scoped IDs are long numeric strings
 
 def is_valid_psid(psid: str) -> bool:
-    return bool(psid and _psid_re.match(psid))
+    if not psid:
+        return False
+    
+    # Check normal PSID format first
+    if _psid_re.match(psid):
+        return True
+    
+    # In non-production, allow dev PSIDs from allowlist
+    if os.getenv("ENV") != "production":
+        from utils.allowlist import is_dev_psid
+        if is_dev_psid(psid):
+            return True
+    
+    return False
 
 def send_text(psid: str, text: str):
     if not is_valid_psid(psid):

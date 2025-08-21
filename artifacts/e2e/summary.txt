@@ -1,21 +1,21 @@
 === E2E TEST SUMMARY ===
-Timestamp: Thu Aug 21 06:34:16 AM UTC 2025
+Timestamp: Thu Aug 21 06:49:58 AM UTC 2025
 
 Test 1:
   HTTP Code: 200
-  Response Time: 0.017653s
+  Response Time: 0.916761s
 
 Test 2:
   HTTP Code: 200
-  Response Time: 0.003160s
+  Response Time: 0.861587s
 
 Test 3:
   HTTP Code: 200
-  Response Time: 0.004384s
+  Response Time: 0.862855s
 
 Test 4:
   HTTP Code: 200
-  Response Time: 0.002795s
+  Response Time: 0.877460s
 
 Burst test results:
   Burst 1: HTTP 200
