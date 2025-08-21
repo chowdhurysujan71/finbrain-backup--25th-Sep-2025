@@ -1,0 +1,39 @@
+You are editing the FinBrain repository. Perform a READ-ONLY GO/NO-GO CHECK for production readiness. Do not modify code or configs. Only verify conditions and print a decision.
+
+GO/NO-GO CRITERIA
+✅ Canonical helpers present for all main tables (users, expenses, monthly_summaries, rate_limits)
+✅ No active bypass paths writing directly to DB
+✅ Health endpoint responds 200 under 2s
+✅ AI adapter imports and exposes expected methods (parse/summary)
+✅ Identity hashing consistent and psid_hash 64-char SHA-256
+✅ Webhook signature verification active in production mode
+✅ At least one end-to-end expense insert succeeds with month field set (dry run allowed if test flag exists)
+✅ Static checks (ruff + mypy) show no CRITICAL errors in active code
+✅ Logs include psid_hash, mid, status, latency, no secrets printed
+
+TASKS
+1. Confirm canonical helpers exist in utils/db.py (save_expense, save_user, save_summary) and utils/rate_limiter.py.
+2. Search for direct INSERT or model constructors in active code outside helpers. Count active bypasses.
+3. Run health check: curl localhost:$PORT/health. Record status + latency.
+4. Import AI adapter module. Print available methods.
+5. Verify psid_hash generation: check utils/identity.py for SHA-256 length = 64.
+6. Check webhook processor for signature verification logic in production.
+7. If safe, run a dry-run insert via canonical save_expense with date set. Confirm month field populated.
+8. Run ruff and mypy, filter for errors in active code (ignore archive/ and tests/).
+9. Tail last 50 log lines. Confirm required fields appear, secrets redacted.
+
+OUTPUT
+At the end, PRINT EXACTLY:
+
+=== PRODUCTION GO/NO-GO DECISION ===
+Canonical helpers verified: Yes/No
+Active DB bypasses found: <count>
+Health endpoint OK under 2s: Yes/No
+AI adapter ready: Yes/No
+Identity hashing valid: Yes/No
+Webhook security active: Yes/No
+Expense insert month verified: Yes/No
+Static checks critical errors: Yes/No
+Logs structured & safe: Yes/No
+FINAL RECOMMENDATION: GO / CONDITIONAL GO / NO-GO
+===================================
