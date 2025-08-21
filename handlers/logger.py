@@ -45,6 +45,18 @@ def handle_log(user_id: str, text: str) -> Dict[str, str]:
             if not hasattr(expense, 'month') or expense.month is None:
                 expense.month = expense.date.strftime("%Y-%m")
             
+            # Ensure unique_id is set (critical for DB constraint)
+            if not hasattr(expense, 'unique_id') or expense.unique_id is None:
+                # Prefer Facebook message ID for idempotency, fallback to UUID
+                uid = locals().get("mid") or exp.get("mid")
+                if not uid:
+                    try:
+                        import uuid
+                        uid = uuid.uuid4().hex
+                    except Exception:
+                        uid = f"fallback_{datetime.now().isoformat()}"
+                expense.unique_id = uid
+            
             db.session.add(expense)
             logged.append(f"{exp['amount']:.0f} for {exp['category']}")
             total += exp['amount']
