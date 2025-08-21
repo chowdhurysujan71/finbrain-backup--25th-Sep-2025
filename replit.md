@@ -6,6 +6,14 @@ FinBrain is an AI-first expense tracking application delivered via Facebook Mess
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (August 2025)
+- **Critical Fix Applied (Aug 21):** Resolved database constraint violation preventing expense logging
+  - Issue: Missing unique_id field causing "Unable to log expense" errors
+  - Solution: Added idempotent unique_id generation using Facebook message ID + UUID fallback
+  - Location: handlers/logger.py lines 49-57
+  - Result: System now stable and functioning as expected
+  - Status: Production ready - user confirmed system stability
+
 ## System Architecture
 
 ### Web Framework and Database
