@@ -1,0 +1,108 @@
+You are editing the FinBrain repository. Perform a READ-ONLY DEEP DIVE AUDIT. Do not modify any source files, configs, env vars, dependencies, or git history. You may create new markdown and data files under artifacts/ for reporting, but do not commit anything and do not alter runtime behavior.
+
+OBJECTIVE
+Create a comprehensive audit that management can use for planning. Produce clear findings, evidence, and a prioritized roadmap. Absolutely no fixes or refactors.
+
+HARD RULES
+• No edits to code or configs
+• No package installs or changes to requirements
+• No git commits or branch changes
+• You may start the app to query health and capture logs
+• You may write new files only under artifacts/ and do not commit them
+• Redact all secrets in outputs
+
+FINAL DELIVERABLES
+• artifacts/DEEP_AUDIT_REPORT.md
+• artifacts/SECURITY_AUDIT.md
+• artifacts/PERF_AUDIT.md
+• artifacts/DB_AUDIT.md
+• artifacts/IMPORT_GRAPH.txt and, if possible, artifacts/IMPORT_GRAPH.png
+• artifacts/STATIC_CHECKS.txt
+• artifacts/LOG_SAMPLE.txt
+• Console summary with a Yes or No checklist
+
+STEP 0  SAFETY AND CONTEXT
+1. Detect run command from .replit or Procfile and locate the main entry module
+2. Identify the canonical production router module and print its path and sha256 of file contents
+3. Record current UTC time and local time for Asia/Dhaka and write to the report header
+
+STEP 1  ENVIRONMENT AND CONFIG SNAPSHOT  READ ONLY
+1. Scan code for required environment variable names and list them by name only
+2. At runtime, check os.environ for presence and print Present or Missing without values
+3. Summarize .replit run configuration, Python version, and any pyproject or tool configs
+
+STEP 2  STATIC HEALTH  READ ONLY
+1. Run configured linters and type checks if available, for example ruff and mypy
+2. Do not apply fixes  only capture output to artifacts/STATIC_CHECKS.txt
+3. Extract counts of errors and warnings and list top five most important diagnostics with file and line numbers
+
+STEP 3  CODE SHAPE AND COMPLEXITY  READ ONLY
+1. Build an import graph by parsing Python files with the standard library ast module
+2. Write a plain text adjacency list to artifacts/IMPORT_GRAPH.txt
+3. If graphviz is already available, also render a png to artifacts/IMPORT_GRAPH.png  otherwise skip
+4. Compute simple metrics per module  file count, average function length in lines, top ten largest functions or classes
+
+STEP 4  SECURITY REVIEW  READ ONLY
+1. Scan repository for likely secrets in tracked files using simple regex heuristics  api key patterns, bearer tokens, private keys  and redact values
+2. If bandit or pip audit or safety are already available, run them and capture output to artifacts/SECURITY_AUDIT.md  otherwise record that the tool is not present and was skipped
+3. Confirm webhook signature verification paths exist in code and note the libraries or functions used
+4. Verify that any dev only bypasses are gated by an environment check and are not active for production
+
+STEP 5  DATABASE AUDIT  READ ONLY
+1. Using the configured DB URL, open a read only connection if the role permits
+2. Record server version, schema names, table list, row counts for key tables, index list on critical tables, and approximate table sizes if available
+3. For the top three write paths referenced by the router, run EXPLAIN on representative queries without executing writes and copy the plans to artifacts/DB_AUDIT.md
+4. Summarize idempotency keys and constraints the system relies on
+
+STEP 6  RUNTIME HEALTH AND OBSERVABILITY  READ ONLY
+1. Start the app using the normal run command
+2. Hit the health endpoint and record status and latency
+3. Capture the last one hundred log lines from the running process or log files to artifacts/LOG_SAMPLE.txt
+4. Verify required log fields exist  timestamp, psid_hash, mid, route, status code, latency ms  confirm that no secrets are printed
+5. If a diagnostics or metrics endpoint already exists, query it and record counters for uptime, queue depth, error counts
+
+STEP 7  AI ADAPTER AND ROUTING VERIFICATION  READ ONLY
+1. Import the production AI adapter module in a Python one liner to confirm it imports without error  do not send external API calls
+2. Staticaly inspect the adapter interface to list available methods and expected argument names  for example phrase_summary or parse_expense
+3. Cross check the router call sites to confirm the method names and signatures align
+4. If the repository already contains a local E2E script  for example scripts/e2e_local_http.sh  you may run it exactly as is and capture its outputs into artifacts, otherwise skip with a note
+
+STEP 8  PERFORMANCE BASELINE FROM EXISTING DATA  READ ONLY
+1. If logs include timing fields, compute percentiles P50, P90, P95, P99 for the last N requests while the app runs
+2. If no timing data exists, perform a light measurement by calling only safe read endpoints such as health multiple times and record latency distribution
+3. Write metrics and charts as markdown tables to artifacts/PERF_AUDIT.md
+
+STEP 9  GAP ANALYSIS AND ROADMAP  READ ONLY
+1. In artifacts/DEEP_AUDIT_REPORT.md produce these sections
+   Executive summary with Green Yellow Red rating and one paragraph rationale
+   System map covering entrypoint, router, AI adapter, DB tables, admin UI
+   Current risks grouped by likelihood and impact
+   Validation status for sign off gates  identity stable, webhook security active, zero critical static errors open, AI path verified, summary round trip timing, P95 intake to send, fallback rate
+   Top ten recommended actions with effort estimates  S, M, L and expected impact
+   Test coverage status if tests exist  estimate only if exact coverage is not available
+   Dependencies and toolchain maturity  list key pinned versions
+2. In artifacts/SECURITY_AUDIT.md include a short checklist of pass or fail for signature verification active in production, secrets in logs, dependency CVEs summary, dev bypass gated, debug endpoints disabled in production
+3. In artifacts/DB_AUDIT.md include table shapes, indexes, and any risk around missing unique constraints or idempotency enforcement
+4. In artifacts/PERF_AUDIT.md include percentile table and any clearly slow steps observed from logs
+
+STEP 10  PRINT FINAL CHECKLIST TO CONSOLE  YES OR NO ONLY
+Print exactly the block below filled from actual findings
+
+=== READ ONLY AUDIT CHECKLIST ===
+Entry command and canonical router identified           Yes/No
+All required env names discovered and presence checked  Yes/No
+Static checks captured without code changes             Yes/No
+Import graph generated                                  Yes/No
+Security scan executed or cleanly skipped               Yes/No
+Database inspected read only                            Yes/No
+Health endpoint measured                                Yes/No
+AI adapter and router interfaces cross checked          Yes/No
+Performance baseline derived from existing data         Yes/No
+Deep audit and security reports written to artifacts    Yes/No
+Recommendation                                          GO / CONDITIONAL GO / NO-GO for production testing
+=======================================================
+
+NOTES
+• If any step cannot be performed without changing code or installing packages, skip it and clearly mark as Skipped with reason in the reports
+• Never print raw secret values
+• Do not leave the server running after the audit completes
