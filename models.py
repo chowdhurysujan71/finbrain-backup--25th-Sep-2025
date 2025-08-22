@@ -21,6 +21,11 @@ class Expense(db.Model):
     original_message = db.Column(db.Text, default='')  # Full original message
     ai_insights = db.Column(db.Text, default='')  # Future AI insights storage
     
+    # Expense correction tracking (backwards-compatible)
+    superseded_by = db.Column(db.BigInteger, nullable=True)  # ID of expense that supersedes this one
+    corrected_at = db.Column(db.DateTime(timezone=True), nullable=True)  # When this expense was corrected
+    corrected_reason = db.Column(db.Text, nullable=True)  # Short reason for correction
+    
     def __repr__(self):
         return f'<Expense {self.id}: {self.description} - {self.amount}>'
 

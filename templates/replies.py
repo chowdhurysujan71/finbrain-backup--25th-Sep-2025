@@ -1,186 +1,164 @@
 """
-Coach-tone Reply Templates for FinBrain
-Provides consistent, friendly messaging across STD and AI modes
+FinBrain Template Replies: Coach-style messaging for corrections and general responses
+Provides consistent, encouraging tone across STD and AI modes
 """
 
-import random
-from typing import Optional, Dict, Any
+from typing import Optional
 from decimal import Decimal
 
-# Currency symbol mapping
-CURRENCY_SYMBOLS = {
-    'BDT': '৳',
-    'USD': '$',
-    'GBP': '£', 
-    'EUR': '€',
-    'INR': '₹'
-}
+def format_corrected_reply(old_amount: float, old_currency: str, new_amount: float, 
+                         new_currency: str, category: str, merchant: Optional[str] = None) -> str:
+    """
+    Format coach-style confirmation for successful correction.
+    
+    Args:
+        old_amount: Original expense amount
+        old_currency: Original currency  
+        new_amount: Corrected amount
+        new_currency: Corrected currency
+        category: Expense category
+        merchant: Optional merchant name
+        
+    Returns:
+        Formatted confirmation message
+    """
+    # Format currency symbols
+    old_symbol = '৳' if old_currency == 'BDT' else old_currency
+    new_symbol = '৳' if new_currency == 'BDT' else new_currency
+    
+    # Build merchant part
+    merchant_part = ""
+    if merchant:
+        merchant_part = f" at {merchant}"
+    
+    # Create confirmation message
+    category_display = category if category != 'general' else 'expense'
+    
+    base_msg = f"Got it — corrected {category_display} from {old_symbol}{old_amount:.0f} → {new_symbol}{new_amount:.0f}{merchant_part}."
+    
+    # Add next step suggestion (keep under 280 chars total)
+    if len(base_msg) < 220:
+        base_msg += " Type 'summary' to review your week."
+    
+    return base_msg
 
-def get_currency_symbol(currency: str) -> str:
-    """Get currency symbol for display"""
-    return CURRENCY_SYMBOLS.get(currency.upper(), currency)
+def format_correction_no_candidate_reply(amount: Decimal, currency: str, category: str) -> str:
+    """
+    Format reply when no expense found to correct - logged as new.
+    
+    Args:
+        amount: New expense amount
+        currency: Currency
+        category: Expense category
+        
+    Returns:
+        Formatted message explaining it was logged as new
+    """
+    symbol = '৳' if currency == 'BDT' else currency
+    category_display = category if category != 'general' else 'expense'
+    
+    return f"Logged {category_display} {symbol}{amount:.0f} as new. No recent expense found to correct. Type 'summary' to see totals."
+
+def format_correction_duplicate_reply() -> str:
+    """
+    Format reply for duplicate correction attempts.
+    
+    Returns:
+        Polite message about duplicate request
+    """
+    return "I've already processed that correction request. Type 'summary' to see your updated totals."
+
+def format_correction_confirmation_request(old_amount: float, old_currency: str, category: str) -> str:
+    """
+    Format confirmation request for corrections outside the time window.
+    
+    Args:
+        old_amount: Amount of expense to correct
+        old_currency: Currency of old expense  
+        category: Category of old expense
+        
+    Returns:
+        Confirmation request message
+    """
+    symbol = '৳' if old_currency == 'BDT' else old_currency
+    category_display = category if category != 'general' else 'expense'
+    
+    return f"Replace your last {category_display} ({symbol}{old_amount:.0f}) from earlier? Reply 'yes' to confirm or ignore to log as new."
 
 def format_expense_logged_reply(amount: Decimal, currency: str, category: str, 
-                               merchant: Optional[str] = None, 
-                               weekly_total: Optional[Decimal] = None,
-                               category_share: Optional[str] = None) -> str:
+                               merchant: Optional[str] = None) -> str:
     """
-    Format coach-tone reply for successful expense logging.
-    
-    Template: Acknowledge + Insight + Next Action
+    Format coach-style confirmation for regular expense logging.
     
     Args:
         amount: Expense amount
-        currency: Currency code (BDT, USD, etc)
-        category: Expense category 
+        currency: Currency
+        category: Expense category  
         merchant: Optional merchant name
-        weekly_total: Optional 7-day total for insight
-        category_share: Optional category percentage for insight
         
     Returns:
-        Formatted reply string
+        Formatted confirmation message
     """
-    currency_symbol = get_currency_symbol(currency)
+    symbol = '৳' if currency == 'BDT' else currency
     merchant_part = f" at {merchant}" if merchant else ""
+    category_display = category if category != 'general' else 'expense'
     
-    # Acknowledge
-    acknowledge = f"Logged {currency_symbol}{amount:.0f} for {category}{merchant_part}."
+    base_msg = f"Logged {category_display} {symbol}{amount:.0f}{merchant_part}."
     
-    # Insight (if data available)
-    insights = []
-    if weekly_total and weekly_total > 0:
-        insights.append(f"This week: {currency_symbol}{weekly_total:.0f}")
+    # Add encouragement if space allows
+    if len(base_msg) < 200:
+        base_msg += " Great job tracking your spending!"
     
-    if category_share:
-        insights.append(f"{category} is {category_share} of spending")
-    
-    insight_part = " " + " • ".join(insights) if insights else ""
-    
-    # Next action
-    next_actions = [
-        "Type 'summary' to see your week or 'insight' for a tip.",
-        "Say 'summary' for your overview or 'insight' for advice.",
-        "Try 'summary' for weekly view or 'insight' for optimization tips."
-    ]
-    next_action = random.choice(next_actions)
-    
-    return f"{acknowledge}{insight_part} {next_action}"
+    return base_msg
 
-def format_duplicate_reply(timestamp: str, amount: Optional[Decimal] = None, 
-                          currency: Optional[str] = None) -> str:
+def format_duplicate_reply() -> str:
     """
-    Format reply for duplicate expense detection.
+    Format reply for duplicate expense logging attempts.
     
-    Args:
-        timestamp: When original expense was logged
-        amount: Optional amount for context
-        currency: Optional currency for context
-        
     Returns:
-        Formatted duplicate detection reply
+        Friendly duplicate message
     """
-    amount_part = ""
-    if amount and currency:
-        currency_symbol = get_currency_symbol(currency)
-        amount_part = f" ({currency_symbol}{amount:.0f})"
-    
-    return f"Looks like a repeat—already logged at {timestamp}{amount_part}. Reply 'yes' to log again or 'summary' to see your expenses."
+    return "Already logged that expense! Type 'summary' to see your totals."
 
-def format_help_reply(is_new_user: bool = False) -> str:
+def format_help_reply() -> str:
     """
-    Format helpful reply for non-expense messages.
+    Format standard help message.
     
-    Args:
-        is_new_user: Whether user is new (affects messaging)
-        
     Returns:
-        Formatted help reply
+        Help message with examples
     """
-    if is_new_user:
-        return ("Welcome to FinBrain! I help track your expenses. "
-                "Try: • 'spent 100 on lunch' - to log an expense "
-                "• 'summary' - to see your spending "
-                "• 'insight' - for optimization tips")
+    return ("I help track expenses! Try:\n"
+            "• 'spent 100 on lunch' - log expense\n" 
+            "• 'summary' - see totals\n"
+            "• 'actually 500' - fix last amount")
+
+def format_parsing_error_reply() -> str:
+    """
+    Format reply when expense parsing fails.
+    
+    Returns:
+        Helpful error message
+    """
+    return "I didn't catch the amount. Try like: 'spent 100 on coffee' or '৳500 lunch'."
+
+# Legacy compatibility functions
+
+def format_logged_response(amount: float, description: str, category: str) -> str:
+    """Legacy compatibility wrapper for expense logging."""
+    return format_expense_logged_reply(Decimal(str(amount)), 'BDT', category)
+
+def format_summary_response(totals: dict, tip: str) -> str:
+    """Format summary response with tip."""
+    total = totals.get('total', 0)
+    return f"Week: ৳{total:.0f} total. {tip}"
+
+def format_help_response() -> str:
+    """Legacy compatibility wrapper for help."""
+    return format_help_reply()
+
+def format_undo_response(amount: Optional[float] = None, note: Optional[str] = None) -> str:
+    """Format undo confirmation."""
+    if amount:
+        return f"Removed ৳{amount:.0f} expense. Type 'summary' for updated totals."
     else:
-        return ("I can help you track expenses! "
-                "Try: • 'spent 100 on lunch' - to log an expense "
-                "• 'summary' - to see your spending "
-                "• 'insight' - for optimization tips")
-
-def format_error_reply(error_context: str = "general") -> str:
-    """
-    Format user-friendly error reply.
-    
-    Args:
-        error_context: Context of error (parsing, saving, etc)
-        
-    Returns:
-        Formatted error reply
-    """
-    error_messages = {
-        "parsing": "I couldn't understand that expense. Try: 'spent 100 on lunch' or '৳50 coffee'",
-        "saving": "Unable to save that expense right now. Please try again in a moment.",
-        "general": "Something went wrong. Please try again or type 'help' for examples."
-    }
-    
-    return error_messages.get(error_context, error_messages["general"])
-
-def format_summary_intro(user_name: Optional[str] = None, 
-                        period: str = "week") -> str:
-    """
-    Format intro for summary responses.
-    
-    Args:
-        user_name: Optional user first name
-        period: Time period (week, month, etc)
-        
-    Returns:
-        Formatted summary intro
-    """
-    name_part = f"{user_name}, " if user_name else ""
-    return f"Here's {name_part}your {period} so far:"
-
-def format_no_expenses_reply(period: str = "week") -> str:
-    """
-    Format reply when user has no expenses in period.
-    
-    Args:
-        period: Time period being queried
-        
-    Returns:
-        Formatted no expenses reply
-    """
-    encouragement = [
-        f"No expenses logged this {period} yet! Start with 'spent 100 on lunch'",
-        f"Clean slate for this {period}! Log your first expense: 'coffee 50'", 
-        f"Fresh start this {period}! Try logging: '৳100 for groceries'"
-    ]
-    
-    return random.choice(encouragement)
-
-# Template constants for consistency
-COACH_TONE_PRINCIPLES = {
-    "acknowledge_first": "Always acknowledge the user's action",
-    "provide_context": "Add relevant spending insights when available", 
-    "guide_next_step": "Suggest logical next actions",
-    "stay_concise": "Keep under 280 characters when possible",
-    "be_encouraging": "Use positive, supportive language"
-}
-
-def validate_reply_length(reply: str, max_chars: int = 280) -> str:
-    """
-    Ensure reply stays within character limits.
-    
-    Args:
-        reply: The formatted reply
-        max_chars: Maximum character limit
-        
-    Returns:
-        Truncated reply if needed
-    """
-    if len(reply) <= max_chars:
-        return reply
-    
-    # Graceful truncation
-    truncated = reply[:max_chars-3] + "..."
-    return truncated
+        return "Nothing recent to undo. All your expenses are still tracked!"

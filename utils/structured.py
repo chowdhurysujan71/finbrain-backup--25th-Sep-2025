@@ -185,6 +185,54 @@ def log_feature_flag_usage(psid_hash: str, flag_name: str, enabled: bool,
         psid_hash=psid_hash[:8] + "..."
     )
 
+# ========================================
+# CORRECTION TELEMETRY FUNCTIONS
+# ========================================
+
+def log_correction_detected(user_hash: str, request_id: str, intent: str, reason: str, mode: str, version: str):
+    """Log correction intent detection."""
+    emit_telemetry(
+        event_type="correction_detected",
+        intent=intent,
+        reason=reason,
+        mode=mode,
+        version=version,
+        psid_hash=user_hash[:8] + "...",
+        mid=request_id
+    )
+
+def log_correction_applied(user_hash: str, request_id: str, old_id: int, new_id: int, old_amount: float, new_amount: float, version: str):
+    """Log successful correction application."""
+    emit_telemetry(
+        event_type="correction_applied",
+        old_id=old_id,
+        new_id=new_id,
+        old_amount=old_amount,
+        new_amount=new_amount,
+        amount_change=new_amount - old_amount,
+        version=version,
+        psid_hash=user_hash[:8] + "...",
+        mid=request_id
+    )
+
+def log_correction_no_candidate(user_hash: str, request_id: str, action: str):
+    """Log when no correction candidate found."""
+    emit_telemetry(
+        event_type="correction_no_candidate",
+        action=action,
+        psid_hash=user_hash[:8] + "...",
+        mid=request_id
+    )
+
+def log_correction_duplicate(user_hash: str, request_id: str):
+    """Log duplicate correction attempt."""
+    emit_telemetry(
+        event_type="correction_duplicate",
+        reason="duplicate_request",
+        psid_hash=user_hash[:8] + "...",
+        mid=request_id
+    )
+
 def log_router_performance(psid_hash: str, mid: str, operation: str, 
                           duration_ms: float, success: bool) -> None:
     """

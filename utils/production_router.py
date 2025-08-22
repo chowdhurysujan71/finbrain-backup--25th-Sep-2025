@@ -17,9 +17,10 @@ from finbrain.router import contains_money
 from parsers.expense import parse_amount_currency_category, parse_expense
 
 # SMART_NLP_ROUTING system components
-from utils.feature_flags import is_smart_nlp_enabled, is_smart_tone_enabled
-from utils.structured import log_intent_decision, log_expense_logged, log_duplicate_detected
+from utils.feature_flags import is_smart_nlp_enabled, is_smart_tone_enabled, is_smart_corrections_enabled
+from utils.structured import log_intent_decision, log_expense_logged, log_duplicate_detected, log_correction_detected
 from templates.replies import format_expense_logged_reply, format_duplicate_reply, format_help_reply
+from parsers.expense import is_correction_message
 
 # Single source of truth for user ID resolution  
 from utils.identity import psid_hash
@@ -154,7 +155,37 @@ class ProductionRouter:
                 self._log_routing_decision(rid, user_hash, "panic", "immediate_ack")
                 return response, "panic", None, None
             
-            # Step 1: MONEY DETECTION - Prioritizes LOG over SUMMARY
+            # Step 1: CORRECTION DETECTION - Check first before regular money detection
+            # This ensures corrections are caught before being treated as new expenses
+            corrections_enabled = is_smart_corrections_enabled(user_hash)
+            if corrections_enabled and is_correction_message(text):
+                logger.info(f"[ROUTER] Correction message detected: user={user_hash[:8]}...")
+                
+                # Handle correction flow
+                try:
+                    from handlers.expense import handle_correction  # Lazy import to avoid circular dependency
+                    correction_result = handle_correction(user_hash, rid, text, datetime.utcnow())
+                    
+                    self._emit_structured_telemetry(rid, user_hash, "CORRECTION", "processed", {
+                        'smart_corrections_enabled': True,
+                        'intent_result': correction_result.get('intent'),
+                        'amount': correction_result.get('amount'),
+                        'category': correction_result.get('category')
+                    })
+                    
+                    self._record_processing_time(time.time() - start_time)
+                    return (
+                        normalize(correction_result['text']),
+                        correction_result['intent'],
+                        correction_result.get('category'),
+                        correction_result.get('amount')
+                    )
+                    
+                except Exception as e:
+                    logger.error(f"Correction handling failed: {e}")
+                    # Fall through to regular expense logging as fallback
+                    
+            # Step 2: MONEY DETECTION - Prioritizes LOG over SUMMARY
             # This must run before any SUMMARY logic to ensure new users can log expenses
             if contains_money(text):
                 logger.info(f"[ROUTER] Money detected - forcing LOG intent: psid={psid[:8]}... text='{text[:50]}...'")

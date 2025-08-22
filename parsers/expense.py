@@ -332,6 +332,146 @@ def parse_expense(text: str, now_ts: datetime) -> Dict[str, Any]:
     
     return result
 
+# ========================================
+# CORRECTION PARSING FUNCTIONS
+# ========================================
+
+# Correction phrase patterns (case-insensitive, compiled for performance)
+CORRECTION_PATTERNS = re.compile(
+    r'\b(?:sorry|i meant|meant|actually|correction|correct that|replace last|change that|'
+    r'not (?:\d+|\$\d+|৳\d+)|should be|make it|update to|typo|fix|replace|change)\b',
+    re.IGNORECASE
+)
+
+def is_correction_message(text: str) -> bool:
+    """
+    Check if message contains correction phrases.
+    
+    Args:
+        text: User message text
+        
+    Returns:
+        True if message contains correction indicators
+    """
+    if not text or not text.strip():
+        return False
+        
+    # Must contain correction phrases AND money amounts
+    has_correction_phrase = bool(CORRECTION_PATTERNS.search(text))
+    from finbrain.router import contains_money
+    has_money = contains_money(text)
+    
+    return has_correction_phrase and has_money
+
+def parse_correction_reason(text: str) -> str:
+    """
+    Extract short correction reason from correction message.
+    
+    Args:
+        text: User correction message
+        
+    Returns:
+        Short reason string (max 50 chars)
+    """
+    text_lower = text.lower().strip()
+    
+    # Common correction patterns
+    if 'sorry' in text_lower and 'meant' in text_lower:
+        return "sorry, i meant"
+    elif 'meant' in text_lower:
+        return "meant"
+    elif 'actually' in text_lower:
+        return "actually"
+    elif 'typo' in text_lower:
+        return "typo fix"
+    elif 'correct' in text_lower:
+        return "correction"
+    elif 'replace' in text_lower:
+        return "replace"
+    elif 'should be' in text_lower:
+        return "should be"
+    else:
+        return "amount correction"
+
+def similar_category(cat_a: str, cat_b: str) -> bool:
+    """
+    Check if two categories are similar (loose matching).
+    
+    Args:
+        cat_a: First category
+        cat_b: Second category
+        
+    Returns:
+        True if categories are similar
+    """
+    if not cat_a or not cat_b:
+        return False
+        
+    # Normalize categories
+    norm_a = cat_a.lower().strip()
+    norm_b = cat_b.lower().strip()
+    
+    # Direct match
+    if norm_a == norm_b:
+        return True
+        
+    # Check if one contains the other
+    if norm_a in norm_b or norm_b in norm_a:
+        return True
+        
+    # Common category aliases
+    food_aliases = {'food', 'meal', 'lunch', 'dinner', 'breakfast', 'snack', 'restaurant', 'cafe'}
+    transport_aliases = {'transport', 'taxi', 'uber', 'bus', 'ride', 'fuel', 'cab', 'cng'}
+    health_aliases = {'health', 'medical', 'medicine', 'pharmacy', 'doctor', 'hospital'}
+    
+    if (norm_a in food_aliases and norm_b in food_aliases) or \
+       (norm_a in transport_aliases and norm_b in transport_aliases) or \
+       (norm_a in health_aliases and norm_b in health_aliases):
+        return True
+        
+    return False
+
+def similar_merchant(merchant_a: Optional[str], merchant_b: Optional[str]) -> bool:
+    """
+    Check if two merchants are similar (loose matching).
+    
+    Args:
+        merchant_a: First merchant name
+        merchant_b: Second merchant name
+        
+    Returns:
+        True if merchants are similar
+    """
+    if not merchant_a or not merchant_b:
+        return False
+        
+    # Normalize merchants (remove punctuation, case-fold)
+    norm_a = re.sub(r'[^\w\s]', '', merchant_a.lower()).strip()
+    norm_b = re.sub(r'[^\w\s]', '', merchant_b.lower()).strip()
+    
+    if not norm_a or not norm_b:
+        return False
+    
+    # Direct match
+    if norm_a == norm_b:
+        return True
+        
+    # Check if one contains the other (partial match)
+    if norm_a in norm_b or norm_b in norm_a:
+        return True
+        
+    # Check word overlap (at least 50% common words)
+    words_a = set(norm_a.split())
+    words_b = set(norm_b.split())
+    
+    if len(words_a) == 0 or len(words_b) == 0:
+        return False
+        
+    common_words = words_a & words_b
+    overlap_ratio = len(common_words) / min(len(words_a), len(words_b))
+    
+    return overlap_ratio >= 0.5
+
 def parse_amount_currency_category(text: str) -> Dict[str, Any]:
     """
     Parse expense text and extract amount, currency, category, and note.
