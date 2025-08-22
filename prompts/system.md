@@ -37,6 +37,16 @@ JPY: ¥1000, ¥500
 - "this month" → Current calendar month (Aug 1–31)
 - "last month" → Previous calendar month (Jul 1–31)
 
+## Micro-trends & Streaks
+When user has ≥3 similar items this week (same category/type), surface count + rolling total once.
+Helps users recognize spending patterns without being repetitive.
+
+### Micro-trend Detection:
+- Threshold: ≥3 similar items within current week
+- Show: "That's your 4th coffee this week (৳480 total)"
+- Frequency: Only mention trend once per pattern, not every transaction
+- Categories: Focus on specific items (coffee, transport, groceries) vs broad categories
+
 ## Budget Context
 When user has active budgets, include budget status line: "spent / limit / remaining"
 When no budgets exist, omit budget context entirely.
@@ -126,6 +136,18 @@ Consider walking/biking for short distances to save costs."
 **Assistant:** "✅ Logged: ৳120 for food
 Daily coffee habit - that's ৳840/week at this rate.
 Try 'budget 200 food weekly' to set spending limits."
+
+### Example 12: Micro-trend Detection
+**User:** "coffee 140"
+**Assistant:** "✅ Logged: ৳140 for food
+That's your 4th coffee this week (৳480 total).
+Consider brewing at home 2-3 days to balance costs."
+
+### Example 13: Transport Streak
+**User:** "uber 90"
+**Assistant:** "✅ Logged: ৳90 for transport
+That's your 5th ride this week (৳420 total).
+Weekly transport pass might save money at this rate."
 
 ## Error Handling
 - For parsing errors: "I couldn't find an amount. Try: 'spent ৳100 on lunch'"
