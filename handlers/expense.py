@@ -139,7 +139,7 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
         # Generate coach-style confirmation
         response = format_corrected_reply(
             old_amount, best_candidate.currency,
-            new_amount, target_expense['currency'],
+            Decimal(str(new_amount)), target_expense['currency'],
             target_expense['category'],
             target_expense.get('merchant')
         )

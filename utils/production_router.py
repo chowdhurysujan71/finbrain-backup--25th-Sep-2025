@@ -14,14 +14,15 @@ from datetime import datetime, timezone, timedelta
 
 # Money detection and unified parsing (enhanced)
 from finbrain.router import contains_money
-from parsers.expense import parse_amount_currency_category, parse_expense
+from parsers.expense import parse_amount_currency_category, parse_expense as parse_expense_enhanced
 
 # SMART_NLP_ROUTING and SMART_CORRECTIONS system components
 from utils.feature_flags import is_smart_nlp_enabled, is_smart_tone_enabled, is_smart_corrections_enabled
 from utils.structured import log_routing_decision, log_money_detection_fallback
 from parsers.expense import is_correction_message
 from finbrain.router import contains_money_with_correction_fallback
-from handlers.expense import handle_correction
+# Lazy import for handle_correction to break circular dependency
+# from handlers.expense import handle_correction
 
 # Single source of truth for user ID resolution  
 from utils.identity import psid_hash
@@ -198,7 +199,7 @@ class ProductionRouter:
                 
                 if smart_nlp_enabled:
                     # Use enhanced parse_expense function
-                    parsed_data = parse_expense(text, datetime.utcnow())
+                    parsed_data = parse_expense_enhanced(text, datetime.utcnow())
                     self._log_routing_decision(rid, user_hash, "LOG", "smart_nlp_money_detected")
                     logger.info(f"[SMART_NLP] Enhanced parsing enabled: user={user_hash[:8]}...")
                 else:
@@ -1125,7 +1126,7 @@ def webhook_messenger():
                     rid = get_request_id() or mid
                     
                     # Route message through production router
-                    response, intent, category, amount = production_router.route_message_engagement(text, psid, rid)
+                    response, intent, category, amount = production_router.route_message(text, psid, rid)
                     
                     # Send response (simplified for testing)
                     return jsonify({
