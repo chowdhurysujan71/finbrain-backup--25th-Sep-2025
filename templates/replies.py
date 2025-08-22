@@ -1,164 +1,108 @@
 """
-FinBrain Template Replies: Coach-style messaging for corrections and general responses
-Provides consistent, encouraging tone across STD and AI modes
+Reply Templates for FinBrain Corrections
+Coach-style, natural, and helpful response formatting
 """
 
-from typing import Optional
 from decimal import Decimal
-
-def format_corrected_reply(old_amount: float, old_currency: str, new_amount: float, 
-                         new_currency: str, category: str, merchant: Optional[str] = None) -> str:
-    """
-    Format coach-style confirmation for successful correction.
-    
-    Args:
-        old_amount: Original expense amount
-        old_currency: Original currency  
-        new_amount: Corrected amount
-        new_currency: Corrected currency
-        category: Expense category
-        merchant: Optional merchant name
-        
-    Returns:
-        Formatted confirmation message
-    """
-    # Format currency symbols
-    old_symbol = '৳' if old_currency == 'BDT' else old_currency
-    new_symbol = '৳' if new_currency == 'BDT' else new_currency
-    
-    # Build merchant part
-    merchant_part = ""
-    if merchant:
-        merchant_part = f" at {merchant}"
-    
-    # Create confirmation message
-    category_display = category if category != 'general' else 'expense'
-    
-    base_msg = f"Got it — corrected {category_display} from {old_symbol}{old_amount:.0f} → {new_symbol}{new_amount:.0f}{merchant_part}."
-    
-    # Add next step suggestion (keep under 280 chars total)
-    if len(base_msg) < 220:
-        base_msg += " Type 'summary' to review your week."
-    
-    return base_msg
+from typing import Optional
 
 def format_correction_no_candidate_reply(amount: Decimal, currency: str, category: str) -> str:
     """
-    Format reply when no expense found to correct - logged as new.
+    Format reply when no correction candidate is found.
     
     Args:
-        amount: New expense amount
-        currency: Currency
+        amount: Corrected amount
+        currency: Currency code
         category: Expense category
         
     Returns:
-        Formatted message explaining it was logged as new
+        Formatted reply text
     """
-    symbol = '৳' if currency == 'BDT' else currency
-    category_display = category if category != 'general' else 'expense'
+    currency_symbol = {
+        'BDT': '৳',
+        'USD': '$',
+        'EUR': '€',
+        'GBP': '£',
+        'INR': '₹'
+    }.get(currency, currency)
     
-    return f"Logged {category_display} {symbol}{amount:.0f} as new. No recent expense found to correct. Type 'summary' to see totals."
+    return (f"Got it! I didn't find a recent expense to correct, so I've logged "
+            f"{currency_symbol}{amount} for {category} as a new expense. 📝")
+
+def format_corrected_reply(old_amount: float, old_currency: str, new_amount: Decimal, 
+                          new_currency: str, category: str, merchant: Optional[str] = None) -> str:
+    """
+    Format successful correction confirmation.
+    
+    Args:
+        old_amount: Original amount
+        old_currency: Original currency
+        new_amount: Corrected amount
+        new_currency: Corrected currency
+        category: Expense category
+        merchant: Merchant name if available
+        
+    Returns:
+        Formatted confirmation text
+    """
+    old_symbol = {
+        'BDT': '৳',
+        'USD': '$',
+        'EUR': '€',
+        'GBP': '£',
+        'INR': '₹'
+    }.get(old_currency, old_currency)
+    
+    new_symbol = {
+        'BDT': '৳',
+        'USD': '$',
+        'EUR': '€',
+        'GBP': '£',
+        'INR': '₹'
+    }.get(new_currency, new_currency)
+    
+    merchant_part = f" at {merchant}" if merchant else ""
+    
+    return (f"✅ Corrected: {old_symbol}{old_amount} → {new_symbol}{new_amount} "
+            f"for {category}{merchant_part}")
 
 def format_correction_duplicate_reply() -> str:
     """
     Format reply for duplicate correction attempts.
     
     Returns:
-        Polite message about duplicate request
+        Formatted duplicate correction message
     """
-    return "I've already processed that correction request. Type 'summary' to see your updated totals."
+    return "I've already processed that correction. Need to correct something else?"
 
-def format_correction_confirmation_request(old_amount: float, old_currency: str, category: str) -> str:
+def format_correction_error_reply() -> str:
     """
-    Format confirmation request for corrections outside the time window.
-    
-    Args:
-        old_amount: Amount of expense to correct
-        old_currency: Currency of old expense  
-        category: Category of old expense
-        
-    Returns:
-        Confirmation request message
-    """
-    symbol = '৳' if old_currency == 'BDT' else old_currency
-    category_display = category if category != 'general' else 'expense'
-    
-    return f"Replace your last {category_display} ({symbol}{old_amount:.0f}) from earlier? Reply 'yes' to confirm or ignore to log as new."
-
-def format_expense_logged_reply(amount: Decimal, currency: str, category: str, 
-                               merchant: Optional[str] = None) -> str:
-    """
-    Format coach-style confirmation for regular expense logging.
-    
-    Args:
-        amount: Expense amount
-        currency: Currency
-        category: Expense category  
-        merchant: Optional merchant name
-        
-    Returns:
-        Formatted confirmation message
-    """
-    symbol = '৳' if currency == 'BDT' else currency
-    merchant_part = f" at {merchant}" if merchant else ""
-    category_display = category if category != 'general' else 'expense'
-    
-    base_msg = f"Logged {category_display} {symbol}{amount:.0f}{merchant_part}."
-    
-    # Add encouragement if space allows
-    if len(base_msg) < 200:
-        base_msg += " Great job tracking your spending!"
-    
-    return base_msg
-
-def format_duplicate_reply() -> str:
-    """
-    Format reply for duplicate expense logging attempts.
+    Format generic error reply for correction failures.
     
     Returns:
-        Friendly duplicate message
+        Formatted error message
     """
-    return "Already logged that expense! Type 'summary' to see your totals."
+    return "Sorry, I couldn't process the correction. Please try logging the expense again."
 
-def format_help_reply() -> str:
+def format_no_amount_in_correction_reply() -> str:
     """
-    Format standard help message.
+    Format reply when correction message has no valid amount.
     
     Returns:
-        Help message with examples
+        Formatted no amount message
     """
-    return ("I help track expenses! Try:\n"
-            "• 'spent 100 on lunch' - log expense\n" 
-            "• 'summary' - see totals\n"
-            "• 'actually 500' - fix last amount")
+    return "I didn't see a valid amount to correct to. Please try again with the new amount."
 
-def format_parsing_error_reply() -> str:
-    """
-    Format reply when expense parsing fails.
-    
-    Returns:
-        Helpful error message
-    """
-    return "I didn't catch the amount. Try like: 'spent 100 on coffee' or '৳500 lunch'."
+# Coach-tone variations for different correction scenarios
+CORRECTION_SUCCESS_VARIATIONS = [
+    "✅ Updated! {old_amount} → {new_amount} for {category}",
+    "Corrected: {old_amount} → {new_amount} for {category} ✓",
+    "Fixed! Changed from {old_amount} to {new_amount} for {category}",
+    "Updated your {category} expense from {old_amount} to {new_amount} ✅"
+]
 
-# Legacy compatibility functions
-
-def format_logged_response(amount: float, description: str, category: str) -> str:
-    """Legacy compatibility wrapper for expense logging."""
-    return format_expense_logged_reply(Decimal(str(amount)), 'BDT', category)
-
-def format_summary_response(totals: dict, tip: str) -> str:
-    """Format summary response with tip."""
-    total = totals.get('total', 0)
-    return f"Week: ৳{total:.0f} total. {tip}"
-
-def format_help_response() -> str:
-    """Legacy compatibility wrapper for help."""
-    return format_help_reply()
-
-def format_undo_response(amount: Optional[float] = None, note: Optional[str] = None) -> str:
-    """Format undo confirmation."""
-    if amount:
-        return f"Removed ৳{amount:.0f} expense. Type 'summary' for updated totals."
-    else:
-        return "Nothing recent to undo. All your expenses are still tracked!"
+CORRECTION_NO_CANDIDATE_VARIATIONS = [
+    "No recent expense to correct, so logged {new_amount} for {category} as new 📝",
+    "Couldn't find a recent match, created new {category} expense for {new_amount} ✓",
+    "Added {new_amount} for {category} as a fresh entry since no recent one matched 📝"
+]

@@ -9,6 +9,12 @@ from typing import Tuple, Optional
 
 logger = logging.getLogger("finbrain.router")
 
+# Correction message patterns - compiled for performance
+CORRECTION_PATTERNS = re.compile(
+    r'\b(?:sorry|i meant|meant|actually|replace last|correct that|correction|should be|update to|make it|not\s+\d+|typo)\b',
+    re.IGNORECASE
+)
+
 # Precompiled patterns for performance
 CURRENCY_SYMBOL_PATTERN = re.compile(r'[৳$£€₹]\s*\d+(?:[.,]\d{1,2})?', re.IGNORECASE)
 CURRENCY_WORD_PATTERN = re.compile(r'\b\d+(?:[.,]\d{1,2})?\s*(tk|taka|bdt|usd|eur|inr|rs|peso|php)\b|\b(tk|taka|bdt|usd|eur|inr|rs|peso|php)\s*\d+(?:[.,]\d{1,2})?\b', re.IGNORECASE)
@@ -76,6 +82,64 @@ def contains_money(text: str) -> bool:
     # Rule 5: Handle multipliers like "1.2k" or "1K"
     multiplier_pattern = re.compile(r'\b\d+(?:\.\d+)?[kK]\b.*?\b(tk|taka|spent|paid|bought|on|for)\b', re.IGNORECASE)
     if multiplier_pattern.search(normalized_text):
+        return True
+    
+    return False
+
+def is_correction_message(text: str) -> bool:
+    """
+    Detect correction messages using pattern matching.
+    
+    Args:
+        text: Input text to check for correction patterns
+        
+    Returns:
+        True if text contains correction patterns, False otherwise
+    """
+    if not text or not text.strip():
+        return False
+    
+    # Check for correction patterns
+    return bool(CORRECTION_PATTERNS.search(text.lower()))
+
+def contains_money_with_correction_fallback(text: str, psid_hash: str) -> bool:
+    """
+    Enhanced money detection that includes correction-specific fallbacks.
+    Only applies fallback when SMART_CORRECTIONS is enabled and message is a correction.
+    
+    Args:
+        text: Input text to analyze
+        psid_hash: User's PSID hash for feature flag check
+        
+    Returns:
+        True if money detected (including correction fallbacks), False otherwise
+    """
+    # First try standard money detection
+    if contains_money(text):
+        return True
+    
+    # If standard detection failed, check if this is a correction message with fallback enabled
+    from utils.feature_flags import feature_enabled
+    
+    if not feature_enabled(psid_hash, "SMART_CORRECTIONS"):
+        return False
+        
+    if not is_correction_message(text):
+        return False
+    
+    # Correction-specific fallback patterns (only for correction messages)
+    normalized_text = normalize_text(text)
+    
+    # Pattern 1: Bare numbers (2-7 digits) with optional decimals
+    bare_number_pattern = re.compile(r'\b\d{1,7}(?:[.,]\d{1,2})?\b')
+    if bare_number_pattern.search(normalized_text):
+        logger.debug(f"Correction fallback: bare number detected in '{text[:50]}...'")
+        return True
+    
+    # Pattern 2: k shorthand (1.2k, 500k, etc.)
+    k_shorthand_pattern = re.compile(r'\b\d+(?:\.\d+)?k\b', re.IGNORECASE)
+    if k_shorthand_pattern.search(normalized_text):
+        logger.debug(f"Correction fallback: k shorthand detected in '{text[:50]}...'")
         return True
     
     return False

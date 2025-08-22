@@ -16,11 +16,12 @@ from datetime import datetime, timezone, timedelta
 from finbrain.router import contains_money
 from parsers.expense import parse_amount_currency_category, parse_expense
 
-# SMART_NLP_ROUTING system components
+# SMART_NLP_ROUTING and SMART_CORRECTIONS system components
 from utils.feature_flags import is_smart_nlp_enabled, is_smart_tone_enabled, is_smart_corrections_enabled
-from utils.structured import log_intent_decision, log_expense_logged, log_duplicate_detected, log_correction_detected
-from templates.replies import format_expense_logged_reply, format_duplicate_reply, format_help_reply
+from utils.structured import log_routing_decision, log_money_detection_fallback
 from parsers.expense import is_correction_message
+from finbrain.router import contains_money_with_correction_fallback
+from handlers.expense import handle_correction
 
 # Single source of truth for user ID resolution  
 from utils.identity import psid_hash
@@ -185,9 +186,11 @@ class ProductionRouter:
                     logger.error(f"Correction handling failed: {e}")
                     # Fall through to regular expense logging as fallback
                     
-            # Step 2: MONEY DETECTION - Prioritizes LOG over SUMMARY
-            # This must run before any SUMMARY logic to ensure new users can log expenses
-            if contains_money(text):
+            # Step 2: MONEY DETECTION (with correction fallback) - Prioritizes LOG over SUMMARY  
+            # Uses enhanced money detection that includes correction-specific fallbacks
+            money_detected = contains_money_with_correction_fallback(text, user_hash)
+            
+            if money_detected:
                 logger.info(f"[ROUTER] Money detected - forcing LOG intent: psid={psid[:8]}... text='{text[:50]}...'")
                 
                 # Check if SMART_NLP_ROUTING is enabled for this user
@@ -196,12 +199,12 @@ class ProductionRouter:
                 if smart_nlp_enabled:
                     # Use enhanced parse_expense function
                     parsed_data = parse_expense(text, datetime.utcnow())
-                    log_intent_decision(user_hash, rid, "LOG", "smart_nlp_money_detected", "SMART_NLP", "smart_nlp_v1")
+                    self._log_routing_decision(rid, user_hash, "LOG", "smart_nlp_money_detected")
                     logger.info(f"[SMART_NLP] Enhanced parsing enabled: user={user_hash[:8]}...")
                 else:
                     # Use legacy parser for backwards compatibility
                     parsed_data = parse_amount_currency_category(text)
-                    log_intent_decision(user_hash, rid, "LOG", "legacy_money_detected", "STD", "legacy_v1")
+                    self._log_routing_decision(rid, user_hash, "LOG", "legacy_money_detected")
                     
                 if parsed_data and parsed_data.get('amount'):
                     # Route to unified LOG handler with idempotency protection

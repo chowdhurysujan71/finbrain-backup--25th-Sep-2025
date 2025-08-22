@@ -12,8 +12,8 @@ from decimal import Decimal
 from app import db
 from models import Expense, User
 from parsers.expense import parse_expense, parse_correction_reason, similar_category, similar_merchant
-from templates.replies import format_corrected_reply, format_correction_no_candidate_reply, format_correction_duplicate_reply
-from utils.structured import log_correction_applied, log_correction_detected, log_correction_no_candidate, log_correction_duplicate
+from utils.structured import log_correction_detected, log_correction_no_candidate, log_correction_duplicate, log_correction_applied
+from templates.replies import format_correction_no_candidate_reply, format_corrected_reply, format_correction_duplicate_reply
 from utils.identity import psid_hash
 
 logger = logging.getLogger("handlers.expense")
@@ -35,7 +35,7 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
     
     try:
         # Step 1: Parse the new target expense from correction message
-        target_expense = parse_expense(text, now)
+        target_expense = parse_expense(text, now, correction_context=True)
         
         if not target_expense or not target_expense.get('amount'):
             logger.warning(f"No valid amount found in correction: {text}")

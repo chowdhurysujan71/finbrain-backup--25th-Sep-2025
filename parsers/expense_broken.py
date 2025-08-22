@@ -1,78 +1,97 @@
 """
-Enhanced Expense Parser for FinBrain
-Handles natural language expense parsing with correction context support
+Enhanced Unified Expense Parser: Robust NLP for STD and AI modes
+Implements parse_expense() with comprehensive merchant extraction and multilingual support
 """
 
 import re
-import logging
 from decimal import Decimal, InvalidOperation
-from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
+from datetime import datetime, timedelta
+import logging
 
 logger = logging.getLogger("parsers.expense")
 
-# Currency mappings
+# Currency symbol mapping
 CURRENCY_SYMBOLS = {
     '৳': 'BDT',
     '$': 'USD', 
     '£': 'GBP',
     '€': 'EUR',
-    '₹': 'INR',
-    'Rs': 'INR',
-    'Rs.': 'INR'
+    '₹': 'INR'
 }
 
+# Currency word mapping
 CURRENCY_WORDS = {
-    'taka': 'BDT',
     'tk': 'BDT',
+    '৳': 'BDT', 
     'bdt': 'BDT',
-    'dollar': 'USD',
     'usd': 'USD',
-    'pound': 'GBP',
-    'gbp': 'GBP',
-    'euro': 'EUR',
-    'eur': 'EUR',
-    'rupee': 'INR',
-    'inr': 'INR'
+    'eur': 'EUR', 
+    'inr': 'INR',
+    'rs': 'INR',
+    'rs.': 'INR'
 }
 
-# Bangla numerals mapping
+# Bangla numeral mapping
 BANGLA_NUMERALS = {
     '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
     '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
 }
 
-# Category aliases for intelligent matching
+# Enhanced category mapping with strength scoring
 CATEGORY_ALIASES = {
     # Food & Dining (strength: 10)
-    'food': ('food', 10),
-    'lunch': ('food', 9),
-    'dinner': ('food', 9),
-    'breakfast': ('food', 9),
-    'coffee': ('food', 8),
-    'restaurant': ('food', 9),
+    'lunch': ('food', 10),
+    'dinner': ('food', 10), 
+    'breakfast': ('food', 10),
+    'coffee': ('food', 10),
     'meal': ('food', 9),
+    'snack': ('food', 8),
+    'tea': ('food', 8),
+    'restaurant': ('food', 9),
+    'cafe': ('food', 9),
+    'café': ('food', 9),
+    'food': ('food', 8),
     
-    # Transport (strength: 9)
-    'transport': ('transport', 9),
-    'taxi': ('transport', 10),
+    # Transport (strength: 10)
     'uber': ('transport', 10),
-    'bus': ('transport', 9),
-    'fuel': ('transport', 8),
-    'cng': ('transport', 10),
+    'taxi': ('transport', 10),
+    'bus': ('transport', 10),
+    'ride': ('transport', 9),
+    'fuel': ('transport', 10),
+    'petrol': ('transport', 10),
+    'transport': ('transport', 8),
+    'cab': ('transport', 9),
+    'cng': ('transport', 9),
+    'rickshaw': ('transport', 8),
+    
+    # Groceries (strength: 10)
+    'grocery': ('groceries', 10),
+    'groceries': ('groceries', 10),
+    'market': ('groceries', 9),
+    'vegetables': ('groceries', 9),
+    'fruits': ('groceries', 9),
+    
+    # Health (strength: 10)
+    'medicine': ('health', 10),
+    'pharmacy': ('health', 10),
+    'doctor': ('health', 9),
+    'hospital': ('health', 9),
+    'meds': ('health', 9),
+    'chemist': ('health', 9),
     
     # Shopping (strength: 8)
     'shopping': ('shopping', 8),
     'clothes': ('shopping', 9),
-    'grocery': ('shopping', 10),
+    'shirt': ('shopping', 8),
+    'dress': ('shopping', 8),
+    'shoes': ('shopping', 8),
     
-    # Health (strength: 9)
-    'health': ('health', 9),
-    'medicine': ('health', 10),
-    'pharmacy': ('health', 9),
-    'doctor': ('health', 9),
-    
-    # Bills (strength: 9)
+    # Bills & Utilities (strength: 9)
+    'bills': ('bills', 9),
+    'bill': ('bills', 9),
+    'electricity': ('bills', 10),
+    'water': ('bills', 10),
     'internet': ('bills', 10),
     'phone': ('bills', 9),
     'rent': ('bills', 10),
@@ -195,6 +214,47 @@ def similar_merchant(merchant1: str, merchant2: str) -> bool:
     return (merchant1.lower() in merchant2.lower() or 
             merchant2.lower() in merchant1.lower())
 
+def parse_expense(text: str, now: datetime, correction_context: bool = False) -> Optional[Dict[str, Any]]:
+    """
+    Enhanced expense parser with correction context support.
+    
+    Args:
+        text: Input text to parse
+        now: Current timestamp for date resolution
+        correction_context: True if parsing a correction message
+        
+    Returns:
+        Dict with keys: amount, currency, category, merchant, ts_client, note
+        Returns None if no valid expense found
+    """
+    if not text or not text.strip():
+        return None
+    
+    # Normalize text for better parsing
+    normalized = normalize_text_for_parsing(text)
+    
+    # For correction context, support bare numbers and k shorthand
+    if correction_context:
+        # Pattern 1: Bare numbers (allow None for other fields to be inherited)
+        bare_number_match = re.search(r'\b(\d{1,7}(?:[.,]\d{1,2})?)\b', normalized)
+        if bare_number_match:
+            try:
+                amount = Decimal(bare_number_match.group(1).replace(',', '.'))
+                return {
+                    'amount': amount,
+                    'currency': None,  # Will be inherited from candidate
+                    'category': None,  # Will be inherited from candidate  
+                    'merchant': None,  # Will be inherited from candidate
+                    'ts_client': now,
+                    'note': text.strip(),
+                    'correction_context': True
+                }
+            except (InvalidOperation, ValueError):
+                pass
+    
+    # Standard parsing logic continues...
+    return _parse_standard_expense(normalized, text, now)
+
 def extract_merchant(text: str) -> Optional[str]:
     """
     Extract merchant name from text using patterns like "at", "in", "from".
@@ -261,47 +321,6 @@ def infer_category_with_strength(text: str) -> str:
                 best_category = category
     
     return best_category
-
-def parse_expense(text: str, now: datetime, correction_context: bool = False) -> Optional[Dict[str, Any]]:
-    """
-    Enhanced expense parser with correction context support.
-    
-    Args:
-        text: Input text to parse
-        now: Current timestamp for date resolution
-        correction_context: True if parsing a correction message
-        
-    Returns:
-        Dict with keys: amount, currency, category, merchant, ts_client, note
-        Returns None if no valid expense found
-    """
-    if not text or not text.strip():
-        return None
-    
-    # Normalize text for better parsing
-    normalized = normalize_text_for_parsing(text)
-    
-    # For correction context, support bare numbers and k shorthand
-    if correction_context:
-        # Pattern 1: Bare numbers (allow None for other fields to be inherited)
-        bare_number_match = re.search(r'\b(\d{1,7}(?:[.,]\d{1,2})?)\b', normalized)
-        if bare_number_match:
-            try:
-                amount = Decimal(bare_number_match.group(1).replace(',', '.'))
-                return {
-                    'amount': amount,
-                    'currency': None,  # Will be inherited from candidate
-                    'category': None,  # Will be inherited from candidate  
-                    'merchant': None,  # Will be inherited from candidate
-                    'ts_client': now,
-                    'note': text.strip(),
-                    'correction_context': True
-                }
-            except (InvalidOperation, ValueError):
-                pass
-    
-    # Standard parsing logic
-    return _parse_standard_expense(normalized, text, now)
 
 def _parse_standard_expense(normalized: str, original_text: str, now_ts: datetime) -> Optional[Dict[str, Any]]:
     """
@@ -423,6 +442,125 @@ def _parse_standard_expense(normalized: str, original_text: str, now_ts: datetim
     
     return result
 
+# ========================================
+# CORRECTION PARSING FUNCTIONS
+# ========================================
+
+# Correction phrase patterns (case-insensitive, compiled for performance)
+CORRECTION_PATTERNS = re.compile(
+    r'\b(?:sorry|i meant|meant|actually|correction|correct that|replace last|change that|'
+    r'not (?:\d+|\$\d+|৳\d+)|should be|make it|update to|typo|fix|replace|change)\b',
+    re.IGNORECASE
+)
+
+def is_correction_message(text: str) -> bool:
+    """
+    Check if message contains correction phrases.
+    
+    Args:
+        text: User message text
+        
+    Returns:
+        True if message contains correction indicators
+    """
+    if not text or not text.strip():
+        return False
+        
+    # Must contain correction phrases AND money amounts
+    has_correction_phrase = bool(CORRECTION_PATTERNS.search(text))
+    from finbrain.router import contains_money
+    has_money = contains_money(text)
+    
+    return has_correction_phrase and has_money
+
+def parse_correction_reason(text: str) -> str:
+    """
+    Extract short correction reason from correction message.
+    
+    Args:
+        text: User correction message
+        
+    Returns:
+        Short reason string (max 50 chars)
+    """
+    text_lower = text.lower().strip()
+    
+    # Common correction patterns
+    if 'sorry' in text_lower and 'meant' in text_lower:
+        return "sorry, i meant"
+    elif 'meant' in text_lower:
+        return "meant"
+    elif 'actually' in text_lower:
+        return "actually"
+    elif 'typo' in text_lower:
+        return "typo fix"
+    elif 'correct' in text_lower:
+        return "correction"
+    elif 'replace' in text_lower:
+        return "replace"
+    elif 'should be' in text_lower:
+        return "should be"
+    else:
+        return "amount correction"
+
+def similar_category(cat_a: str, cat_b: str) -> bool:
+    """
+    Check if two categories are similar (loose matching).
+    
+    Args:
+        cat_a: First category
+        cat_b: Second category
+        
+    Returns:
+        True if categories are similar
+    """
+    if not cat_a or not cat_b:
+        return False
+    
+    # Exact match (case-insensitive)
+    if cat_a.lower().strip() == cat_b.lower().strip():
+        return True
+    
+    # Parent category matching (food vs food delivery)
+    parent_cats = {
+        'food', 'transport', 'entertainment', 'bills', 'shopping', 
+        'health', 'education', 'family', 'general'
+    }
+    
+    for parent in parent_cats:
+        if parent in cat_a.lower() and parent in cat_b.lower():
+            return True
+    
+    return False
+
+def similar_merchant(merchant_a: str, merchant_b: str) -> bool:
+    """
+    Check if two merchants are similar (fuzzy matching).
+    
+    Args:
+        merchant_a: First merchant
+        merchant_b: Second merchant
+        
+    Returns:
+        True if merchants are similar
+    """
+    if not merchant_a or not merchant_b:
+        return False
+    
+    # Normalize
+    a = merchant_a.lower().strip()
+    b = merchant_b.lower().strip()
+    
+    # Exact match
+    if a == b:
+        return True
+    
+    # Substring matching (either direction)
+    if len(a) >= 3 and len(b) >= 3:
+        return a in b or b in a
+    
+    return False
+
 def parse_amount_currency_category(text: str) -> Dict[str, Any]:
     """
     Parse expense text and extract amount, currency, category, and note.
@@ -448,3 +586,76 @@ def parse_amount_currency_category(text: str) -> Dict[str, Any]:
         'category': result.get('category', 'general'),
         'note': result.get('note', text.strip())
     }
+        return {}
+    
+    # Step 2: Extract category
+    # Look for word after "on" or "for"
+    category_pattern = re.compile(r'(?i)\b(?:on|for)\s+(\w+)')
+    category_match = category_pattern.search(text_clean)
+    
+    if category_match:
+        category_word = category_match.group(1).lower()
+        # Map to normalized category
+        if category_word in CATEGORY_ALIASES:
+            result['category'] = CATEGORY_ALIASES[category_word]
+        else:
+            result['category'] = category_word
+    else:
+        # Try to find category keywords anywhere in text
+        text_lower = text_clean.lower()
+        for keyword, category in CATEGORY_ALIASES.items():
+            if keyword in text_lower:
+                result['category'] = category
+                break
+    
+    return result
+
+def test_parse_amount_currency_category():
+    """Test cases for unified parser"""
+    test_cases = [
+        # Basic patterns
+        ("Spent 100 on lunch", {'amount': Decimal('100'), 'currency': 'BDT', 'category': 'food'}),
+        ("৳100 coffee", {'amount': Decimal('100'), 'currency': 'BDT', 'category': 'food'}),
+        ("paid $25 for transport", {'amount': Decimal('25'), 'currency': 'USD', 'category': 'transport'}),
+        ("bought €30 groceries", {'amount': Decimal('30'), 'currency': 'EUR', 'category': 'groceries'}),
+        ("100 tk for lunch", {'amount': Decimal('100'), 'currency': 'BDT', 'category': 'food'}),
+        ("₹200 on dinner", {'amount': Decimal('200'), 'currency': 'INR', 'category': 'food'}),
+        
+        # Decimal amounts
+        ("spent 150.50 on shopping", {'amount': Decimal('150.50'), 'currency': 'BDT', 'category': 'shopping'}),
+        ("£15.99 for books", {'amount': Decimal('15.99'), 'currency': 'GBP', 'category': 'general'}),
+        
+        # No amount cases
+        ("summary", {}),
+        ("hello", {}),
+        ("", {}),
+    ]
+    
+    all_passed = True
+    for text, expected in test_cases:
+        result = parse_amount_currency_category(text)
+        
+        if not expected:  # Empty dict expected
+            if result:
+                print(f"FAIL: parse_amount_currency_category('{text}') = {result}, expected empty dict")
+                all_passed = False
+            else:
+                print(f"PASS: parse_amount_currency_category('{text}') = empty (correct)")
+        else:
+            # Check key fields
+            matches = True
+            for key in ['amount', 'currency', 'category']:
+                if key in expected:
+                    if result.get(key) != expected[key]:
+                        print(f"FAIL: parse_amount_currency_category('{text}') {key} = {result.get(key)}, expected {expected[key]}")
+                        matches = False
+                        all_passed = False
+            
+            if matches:
+                print(f"PASS: parse_amount_currency_category('{text}') = correct")
+    
+    return all_passed
+
+if __name__ == "__main__":
+    print("Testing parse_amount_currency_category() function:")
+    test_parse_amount_currency_category()

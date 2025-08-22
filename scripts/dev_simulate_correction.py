@@ -1,237 +1,396 @@
 #!/usr/bin/env python3
 """
-FinBrain Correction Flow Simulation
-Demonstrates the complete correction flow with realistic test scenarios
+SMART_CORRECTIONS Development Simulation Script
+End-to-end testing tool for correction system with realistic scenarios
 """
 
 import os
 import sys
+import json
 import time
-import uuid
 from datetime import datetime, timedelta
-from unittest.mock import patch, MagicMock
-from decimal import Decimal
+from typing import Dict, Any, List
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-def simulate_correction_flow():
-    """Simulate complete correction flow: original expense → correction → verification"""
-    
-    print("🧪 Simulating FinBrain Correction Flow")
-    print("=" * 50)
-    
-    # Generate test identifiers
-    user_psid = "sim_correction_user_" + str(int(time.time()))
-    original_mid = "sim_msg_original_" + str(int(time.time() * 1000))
-    correction_mid = "sim_msg_correction_" + str(int(time.time() * 1000) + 1)
-    
-    try:
-        # Import correction system components
-        from utils.feature_flags import is_smart_corrections_enabled, get_canary_status
-        from parsers.expense import is_correction_message, parse_correction_reason
-        from handlers.expense import handle_correction
-        from utils.identity import psid_hash
-        from app import db
-        from models import Expense, User
-        
-        # Generate user hash
-        user_hash = psid_hash(user_psid)
-        now = datetime.utcnow()
-        
-        print(f"📋 Test Setup:")
-        print(f"   PSID: {user_psid}")
-        print(f"   Hash: {user_hash[:8]}...")
-        print(f"   Original MID: {original_mid}")
-        print(f"   Correction MID: {correction_mid}")
-        print()
-        
-        # Step 1: Check feature flag status
-        print("🏁 Step 1: Feature Flag Status")
-        corrections_enabled = is_smart_corrections_enabled(user_hash)
-        flag_status = get_canary_status()
-        print(f"   SMART_CORRECTIONS enabled: {corrections_enabled}")
-        print(f"   Global default: {flag_status.get('smart_corrections_default', False)}")
-        print(f"   Allowlist size: {flag_status.get('allowlist_sizes', {}).get('smart_corrections', 0)}")
-        print()
-        
-        if not corrections_enabled:
-            print("⚠️  Corrections disabled for this user - would fall through to regular expense logging")
-            print()
-        
-        # Step 2: Test correction message detection
-        print("🔍 Step 2: Correction Message Detection")
-        test_messages = [
-            ("coffee 50", False, "Original expense"),
-            ("sorry, I meant 500", True, "Classic correction phrase"),
-            ("actually 300 for lunch", True, "Actually pattern"),
-            ("typo - make it $100", True, "Typo fix pattern"),
-            ("sorry for the delay", False, "Apology without money")
-        ]
-        
-        for msg, expected, desc in test_messages:
-            detected = is_correction_message(msg)
-            status = "✅" if detected == expected else "❌"
-            print(f"   {status} '{msg}' → {detected} ({desc})")
-        print()
-        
-        # Step 3: Simulate original expense creation
-        print("💰 Step 3: Create Original Expense")
-        original_text = "coffee 50"
-        print(f"   Message: '{original_text}'")
-        
-        with patch('app.db.session') as mock_session:
-            # Mock successful expense creation
-            mock_session.add = MagicMock()
-            mock_session.commit = MagicMock()
-            
-            # Create mock original expense
-            original_expense = MagicMock()
-            original_expense.id = 12345
-            original_expense.user_id = user_hash
-            original_expense.amount = Decimal('50.00')
-            original_expense.currency = 'BDT'
-            original_expense.category = 'food'
-            original_expense.description = 'coffee 50'
-            original_expense.created_at = now - timedelta(minutes=2)
-            original_expense.superseded_by = None
-            original_expense.corrected_at = None
-            original_expense.corrected_reason = None
-            
-            print(f"   ✅ Original expense created:")
-            print(f"      ID: {original_expense.id}")
-            print(f"      Amount: ৳{original_expense.amount}")
-            print(f"      Category: {original_expense.category}")
-            print(f"      Created: 2 minutes ago")
-        print()
-        
-        # Step 4: Test correction reason parsing
-        print("📝 Step 4: Correction Reason Parsing")
-        correction_text = "sorry, I meant 500 for coffee"
-        reason = parse_correction_reason(correction_text)
-        print(f"   Correction: '{correction_text}'")
-        print(f"   Parsed reason: '{reason}'")
-        print()
-        
-        # Step 5: Simulate correction handling
-        print("🔄 Step 5: Handle Correction")
-        print(f"   Message: '{correction_text}'")
-        
-        if corrections_enabled:
-            with patch('app.db.session') as mock_session:
-                # Mock database queries for correction
-                mock_session.query.return_value.filter.return_value.order_by.return_value.limit.return_value.all.return_value = [original_expense]
-                mock_session.query.return_value.filter.return_value.first.return_value = None  # No duplicate
-                mock_session.add = MagicMock()
-                mock_session.flush = MagicMock()
-                mock_session.commit = MagicMock()
-                
-                # Mock user query for totals update
-                mock_user = MagicMock()
-                mock_user.user_id_hash = user_hash
-                mock_user.total_expenses = Decimal('50.00')
-                mock_user.expense_count = 1
-                mock_session.query.return_value.filter_by.return_value.first.return_value = mock_user
-                
-                try:
-                    start_time = time.time()
-                    result = handle_correction(user_hash, correction_mid, correction_text, now)
-                    processing_time = (time.time() - start_time) * 1000
-                    
-                    print(f"   ✅ Correction processed in {processing_time:.2f}ms")
-                    print(f"   Intent: {result['intent']}")
-                    print(f"   Amount: ৳{result['amount']}")
-                    print(f"   Category: {result['category']}")
-                    print(f"   Response: {result['text']}")
-                    print()
-                    
-                    # Verify supersede logic was applied
-                    if hasattr(original_expense, 'superseded_by'):
-                        print("   📊 Supersede Logic Verification:")
-                        print(f"      Original expense ID: {original_expense.id}")
-                        print(f"      Superseded by: {getattr(original_expense, 'superseded_by', 'Not set')}")
-                        print(f"      Corrected at: {getattr(original_expense, 'corrected_at', 'Not set')}")
-                        print(f"      Correction reason: {getattr(original_expense, 'corrected_reason', 'Not set')}")
-                        print()
-                    
-                except Exception as e:
-                    print(f"   ❌ Correction failed: {e}")
-                    print()
-        else:
-            print("   ⏭️  Corrections disabled - would process as regular expense")
-            print()
-        
-        # Step 6: Summary calculation test
-        print("📊 Step 6: Summary Calculation (Excludes Superseded)")
-        
-        with patch('app.db.session') as mock_session:
-            # Mock corrected expense (active)
-            corrected_expense = MagicMock()
-            corrected_expense.amount = Decimal('500.00')
-            corrected_expense.currency = 'BDT'
-            corrected_expense.category = 'food'
-            corrected_expense.superseded_by = None
-            
-            # Mock query that excludes superseded expenses
-            mock_session.query.return_value.filter.return_value.all.return_value = [corrected_expense]
-            
-            total_before = 50.00  # Original amount
-            total_after = 500.00  # Corrected amount
-            
-            print(f"   Summary before correction: ৳{total_before}")
-            print(f"   Summary after correction: ৳{total_after}")
-            print(f"   ✅ Only active expenses included in totals")
-        print()
-        
-        # Step 7: Telemetry verification
-        print("📡 Step 7: Telemetry Generated")
-        telemetry_events = [
-            "correction_detected - Intent detection logged",
-            "correction_applied - Supersede operation logged", 
-            "expense_logged - New corrected expense logged",
-            "performance - Processing time recorded"
-        ]
-        
-        for event in telemetry_events:
-            print(f"   ✅ {event}")
-        print()
-        
-        # Final summary
-        print("🎯 Correction Flow Summary")
-        print("=" * 30)
-        print("✅ Feature flags working correctly")
-        print("✅ Correction message detection accurate")
-        print("✅ Original expense creation simulated")
-        print("✅ Correction parsing successful")
-        print("✅ Supersede logic applied correctly")
-        print("✅ Summary calculations exclude superseded")
-        print("✅ Comprehensive telemetry generated")
-        print("✅ Coach-style confirmations provided")
-        print()
-        
-        print("🚀 Correction flow simulation completed successfully!")
-        
-        # Environment variables for enabling
-        print()
-        print("🔧 Environment Variables for Deployment:")
-        print("   # Enable for specific users (canary rollout)")
-        print(f"   FEATURE_ALLOWLIST_SMART_CORRECTIONS={user_hash[:8]}...")
-        print()
-        print("   # Enable globally (full deployment)")
-        print("   SMART_CORRECTIONS_DEFAULT=true")
-        print()
-        print("   # Disable instantly (rollback)")
-        print("   SMART_CORRECTIONS_DEFAULT=false")
-        print("   FEATURE_ALLOWLIST_SMART_CORRECTIONS=")
-        
-    except Exception as e:
-        print(f"💥 Simulation failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-    
-    return True
+from parsers.expense import parse_expense, is_correction_message
+from finbrain.router import contains_money_with_correction_fallback
+from utils.feature_flags import is_smart_corrections_enabled
+from templates.replies import format_corrected_reply, format_correction_no_candidate_reply
 
-if __name__ == "__main__":
-    success = simulate_correction_flow()
-    sys.exit(0 if success else 1)
+class CorrectionSimulator:
+    """Simulates the complete correction flow for development testing"""
+    
+    def __init__(self):
+        self.test_user = "dev_test_user_hash_12345"
+        self.scenarios = self._load_test_scenarios()
+        
+    def _load_test_scenarios(self) -> List[Dict[str, Any]]:
+        """Load comprehensive test scenarios"""
+        return [
+            {
+                'name': 'Basic Amount Correction',
+                'original': 'coffee 50',
+                'correction': 'sorry, I meant 500',
+                'expected_old_amount': 50,
+                'expected_new_amount': 500,
+                'expected_category': 'food'
+            },
+            {
+                'name': 'K Shorthand Correction',
+                'original': 'lunch 200',
+                'correction': 'actually 1.5k',
+                'expected_old_amount': 200,
+                'expected_new_amount': 1500,
+                'expected_category': 'food'
+            },
+            {
+                'name': 'Decimal Amount Correction',
+                'original': 'transport 100',
+                'correction': 'typo, meant 25.50',
+                'expected_old_amount': 100,
+                'expected_new_amount': 25.50,
+                'expected_category': 'transport'
+            },
+            {
+                'name': 'Cross-Category Correction',
+                'original': 'groceries 300',
+                'correction': 'correction: should be 250',
+                'expected_old_amount': 300,
+                'expected_new_amount': 250,
+                'expected_category': 'shopping'
+            },
+            {
+                'name': 'No Candidate Scenario',
+                'original': None,  # No prior expense
+                'correction': 'meant 400 for dinner',
+                'expected_old_amount': None,
+                'expected_new_amount': 400,
+                'expected_category': 'food'
+            },
+            {
+                'name': 'Multiple Phrase Correction',
+                'original': 'coffee 100 at Starbucks',
+                'correction': 'not 100, actually 150',
+                'expected_old_amount': 100,
+                'expected_new_amount': 150,
+                'expected_category': 'food',
+                'expected_merchant': 'Starbucks'
+            }
+        ]
+    
+    def test_correction_detection(self) -> Dict[str, Any]:
+        """Test correction message detection"""
+        print("\n🔍 Testing Correction Detection...")
+        results = {
+            'passed': 0,
+            'failed': 0,
+            'details': []
+        }
+        
+        for scenario in self.scenarios:
+            correction_text = scenario['correction']
+            detected = is_correction_message(correction_text)
+            
+            result = {
+                'scenario': scenario['name'],
+                'text': correction_text,
+                'detected': detected,
+                'expected': True,
+                'passed': detected == True
+            }
+            
+            if result['passed']:
+                results['passed'] += 1
+                print(f"✅ {scenario['name']}: Detected correction in '{correction_text}'")
+            else:
+                results['failed'] += 1
+                print(f"❌ {scenario['name']}: Failed to detect correction in '{correction_text}'")
+            
+            results['details'].append(result)
+        
+        return results
+    
+    def test_money_detection_fallback(self) -> Dict[str, Any]:
+        """Test enhanced money detection with correction fallbacks"""
+        print("\n💰 Testing Money Detection with Correction Fallbacks...")
+        results = {
+            'passed': 0,
+            'failed': 0,
+            'details': []
+        }
+        
+        # Test cases for fallback detection
+        fallback_cases = [
+            ("sorry, I meant 500", True, "Bare number in correction"),
+            ("actually 1.5k", True, "K shorthand in correction"),
+            ("typo, should be 25.50", True, "Decimal in correction"),
+            ("coffee 50", True, "Standard money detection"),
+            ("hello world", False, "No money"),
+            ("sorry about that", False, "Correction phrase but no money")
+        ]
+        
+        for text, expected, description in fallback_cases:
+            detected = contains_money_with_correction_fallback(text, self.test_user)
+            
+            result = {
+                'text': text,
+                'description': description,
+                'detected': detected,
+                'expected': expected,
+                'passed': detected == expected
+            }
+            
+            if result['passed']:
+                results['passed'] += 1
+                print(f"✅ {description}: {'Detected' if detected else 'No detection'} in '{text}'")
+            else:
+                results['failed'] += 1
+                print(f"❌ {description}: Expected {expected}, got {detected} for '{text}'")
+                
+            results['details'].append(result)
+        
+        return results
+    
+    def test_correction_parsing(self) -> Dict[str, Any]:
+        """Test correction-context parsing"""
+        print("\n📝 Testing Correction Parsing...")
+        results = {
+            'passed': 0,
+            'failed': 0,
+            'details': []
+        }
+        
+        now = datetime.now()
+        
+        # Test parsing in correction context
+        correction_cases = [
+            ("500", 500, "Bare number"),
+            ("1.5k", 1500, "K shorthand"),  # Depends on normalization
+            ("25.50", 25.50, "Decimal amount"),
+            ("300", 300, "Integer amount")
+        ]
+        
+        for text, expected_amount, description in correction_cases:
+            try:
+                parsed = parse_expense(text, now, correction_context=True)
+                
+                if parsed and parsed.get('amount'):
+                    detected_amount = float(parsed['amount'])
+                    passed = abs(detected_amount - expected_amount) < 0.01
+                    
+                    result = {
+                        'text': text,
+                        'description': description,
+                        'parsed_amount': detected_amount,
+                        'expected_amount': expected_amount,
+                        'passed': passed,
+                        'correction_context': parsed.get('correction_context', False)
+                    }
+                    
+                    if passed:
+                        results['passed'] += 1
+                        print(f"✅ {description}: Parsed {detected_amount} from '{text}'")
+                    else:
+                        results['failed'] += 1
+                        print(f"❌ {description}: Expected {expected_amount}, got {detected_amount}")
+                else:
+                    results['failed'] += 1
+                    print(f"❌ {description}: Failed to parse '{text}'")
+                    result = {
+                        'text': text,
+                        'description': description,
+                        'parsed_amount': None,
+                        'expected_amount': expected_amount,
+                        'passed': False
+                    }
+                    
+                results['details'].append(result)
+                
+            except Exception as e:
+                results['failed'] += 1
+                print(f"❌ {description}: Exception parsing '{text}': {e}")
+        
+        return results
+    
+    def test_reply_formatting(self) -> Dict[str, Any]:
+        """Test correction reply formatting"""
+        print("\n💬 Testing Reply Formatting...")
+        results = {
+            'passed': 0,
+            'failed': 0,
+            'details': []
+        }
+        
+        # Test correction reply formatting
+        try:
+            corrected_reply = format_corrected_reply(
+                old_amount=100.0,
+                old_currency='BDT',
+                new_amount=500,
+                new_currency='BDT',
+                category='food',
+                merchant='Starbucks'
+            )
+            
+            # Check if reply contains expected elements
+            required_elements = ['100', '500', 'food', '৳', '→']
+            all_present = all(element in corrected_reply for element in required_elements)
+            
+            if all_present:
+                results['passed'] += 1
+                print(f"✅ Corrected reply: {corrected_reply}")
+            else:
+                results['failed'] += 1
+                print(f"❌ Corrected reply missing elements: {corrected_reply}")
+                
+        except Exception as e:
+            results['failed'] += 1
+            print(f"❌ Error formatting corrected reply: {e}")
+        
+        # Test no candidate reply
+        try:
+            no_candidate_reply = format_correction_no_candidate_reply(
+                amount=300,
+                currency='BDT',
+                category='transport'
+            )
+            
+            required_elements = ['300', 'transport', '৳']
+            all_present = all(element in no_candidate_reply for element in required_elements)
+            
+            if all_present:
+                results['passed'] += 1
+                print(f"✅ No candidate reply: {no_candidate_reply}")
+            else:
+                results['failed'] += 1
+                print(f"❌ No candidate reply missing elements: {no_candidate_reply}")
+                
+        except Exception as e:
+            results['failed'] += 1
+            print(f"❌ Error formatting no candidate reply: {e}")
+        
+        return results
+    
+    def test_feature_flags(self) -> Dict[str, Any]:
+        """Test feature flag system"""
+        print("\n🚩 Testing Feature Flag System...")
+        results = {
+            'passed': 0,
+            'failed': 0,
+            'details': []
+        }
+        
+        try:
+            # Test feature flag check
+            corrections_enabled = is_smart_corrections_enabled(self.test_user)
+            
+            result = {
+                'user': self.test_user,
+                'corrections_enabled': corrections_enabled,
+                'expected': False,  # Default should be False
+                'passed': corrections_enabled == False
+            }
+            
+            if result['passed']:
+                results['passed'] += 1
+                print(f"✅ Feature flag: SMART_CORRECTIONS disabled by default")
+            else:
+                results['failed'] += 1
+                print(f"❌ Feature flag: Expected disabled, got {corrections_enabled}")
+                
+            results['details'].append(result)
+            
+        except Exception as e:
+            results['failed'] += 1
+            print(f"❌ Error checking feature flags: {e}")
+        
+        return results
+    
+    def run_comprehensive_test(self) -> Dict[str, Any]:
+        """Run comprehensive test suite"""
+        print("🧪 SMART_CORRECTIONS Development Simulation")
+        print("=" * 50)
+        
+        start_time = time.time()
+        
+        # Run all tests
+        detection_results = self.test_correction_detection()
+        money_results = self.test_money_detection_fallback()
+        parsing_results = self.test_correction_parsing()
+        reply_results = self.test_reply_formatting()
+        flag_results = self.test_feature_flags()
+        
+        # Aggregate results
+        total_passed = (detection_results['passed'] + money_results['passed'] + 
+                       parsing_results['passed'] + reply_results['passed'] + 
+                       flag_results['passed'])
+        total_failed = (detection_results['failed'] + money_results['failed'] + 
+                       parsing_results['failed'] + reply_results['failed'] + 
+                       flag_results['failed'])
+        
+        duration = time.time() - start_time
+        
+        # Summary report
+        print("\n📊 Test Results Summary")
+        print("=" * 30)
+        print(f"✅ Passed: {total_passed}")
+        print(f"❌ Failed: {total_failed}")
+        print(f"⏱️  Duration: {duration:.2f}s")
+        print(f"📈 Success Rate: {(total_passed / (total_passed + total_failed) * 100):.1f}%")
+        
+        if total_failed == 0:
+            print("\n🎉 All tests passed! SMART_CORRECTIONS is ready for deployment.")
+        else:
+            print(f"\n⚠️  {total_failed} tests failed. Review issues before deployment.")
+        
+        return {
+            'summary': {
+                'passed': total_passed,
+                'failed': total_failed,
+                'duration_seconds': duration,
+                'success_rate_percent': (total_passed / (total_passed + total_failed) * 100)
+            },
+            'detailed_results': {
+                'correction_detection': detection_results,
+                'money_detection_fallback': money_results,
+                'correction_parsing': parsing_results,
+                'reply_formatting': reply_results,
+                'feature_flags': flag_results
+            }
+        }
+
+def main():
+    """Main entry point for development testing"""
+    simulator = CorrectionSimulator()
+    
+    # Check if running individual tests
+    if len(sys.argv) > 1:
+        test_name = sys.argv[1].lower()
+        if test_name == 'detection':
+            simulator.test_correction_detection()
+        elif test_name == 'money':
+            simulator.test_money_detection_fallback()
+        elif test_name == 'parsing':
+            simulator.test_correction_parsing()
+        elif test_name == 'replies':
+            simulator.test_reply_formatting()
+        elif test_name == 'flags':
+            simulator.test_feature_flags()
+        else:
+            print(f"Unknown test: {test_name}")
+            print("Available tests: detection, money, parsing, replies, flags")
+    else:
+        # Run comprehensive test suite
+        results = simulator.run_comprehensive_test()
+        
+        # Save results to file for CI/CD
+        with open('smart_corrections_test_results.json', 'w') as f:
+            json.dump(results, f, indent=2, default=str)
+        
+        # Exit with proper code
+        sys.exit(0 if results['summary']['failed'] == 0 else 1)
+
+if __name__ == '__main__':
+    main()
