@@ -1,0 +1,238 @@
+{
+  "timestamp": "2025-08-22T16:37:20.119837",
+  "environment": {
+    "SMART_NLP_ROUTING_DEFAULT": "NOT_SET",
+    "SMART_NLP_TONE_FOR_STD": "NOT_SET",
+    "SMART_CORRECTIONS_DEFAULT": "NOT_SET",
+    "FEATURE_ALLOWLIST_SMART_NLP_ROUTING": "NOT_SET",
+    "FEATURE_ALLOWLIST_SMART_CORRECTIONS": "NOT_SET",
+    "DATABASE_URL": "SET",
+    "PAGE_ACCESS_TOKEN": "NOT_SET"
+  },
+  "feature_flags": {
+    "smart_nlp_routing_default": false,
+    "smart_nlp_tone_for_std": false,
+    "smart_corrections_default": false,
+    "allowlist_sizes": {
+      "smart_nlp": 0,
+      "smart_corrections": 0
+    },
+    "allowlist_previews": {
+      "smart_nlp": [],
+      "smart_corrections": []
+    },
+    "rollback_instructions": {
+      "instant_disable": "Set SMART_NLP_ROUTING_DEFAULT=false and SMART_NLP_TONE_FOR_STD=false",
+      "canary_only": "Clear SMART_NLP_ROUTING_DEFAULT, use FEATURE_ALLOWLIST_SMART_NLP only"
+    },
+    "test_results": {
+      "test_user_123": {
+        "hash": "336a8331...",
+        "smart_nlp": false,
+        "smart_corrections": false
+      },
+      "allowlist_user_abc123": {
+        "hash": "4e57621f...",
+        "smart_nlp": false,
+        "smart_corrections": false
+      }
+    }
+  },
+  "router": {
+    "precedence_tests": {
+      "coffee 100": {
+        "expected_intent": "LOG",
+        "actual_intent": "LOG",
+        "category": null,
+        "amount": null,
+        "duration_ms": 468.46532821655273,
+        "status": "PASS",
+        "response_preview": "\u2705 Logged: 100 for food Tip: type 'summary' for your spending overview."
+      },
+      "summary": {
+        "expected_intent": "SUMMARY",
+        "actual_intent": "SUMMARY",
+        "category": null,
+        "amount": null,
+        "duration_ms": 677.7594089508057,
+        "status": "PASS",
+        "response_preview": "\ud83d\udcca Last 7 days: 100 BDT across 1 entries. Categories: \u2022 food: 100 (100%) Tip: type 'insight' for spen..."
+      },
+      "spent 50 at cafe": {
+        "expected_intent": "LOG",
+        "actual_intent": "LOG",
+        "category": [
+          "food",
+          9
+        ],
+        "amount": 50.0,
+        "duration_ms": 225.2192497253418,
+        "status": "PASS",
+        "response_preview": "\u2705 Logged: \u09f350 for ('food', 9)"
+      },
+      "help": {
+        "expected_intent": "HELP",
+        "actual_intent": "HELP",
+        "category": null,
+        "amount": null,
+        "duration_ms": 0.34618377685546875,
+        "status": "PASS",
+        "response_preview": "I can help you track expenses! Try: \u2022 'spent 100 on lunch' - to log an expense \u2022 'summary' - to see ..."
+      }
+    }
+  },
+  "nlp_parser": {
+    "money_detection": {
+      "coffee 100": {
+        "detected": true,
+        "expected": true,
+        "status": "PASS",
+        "desc": "Basic food expense"
+      },
+      "spent $5 at Starbucks": {
+        "detected": true,
+        "expected": true,
+        "status": "PASS",
+        "desc": "USD with merchant"
+      },
+      "\u09f3250 groceries from Mina Bazar": {
+        "detected": true,
+        "expected": true,
+        "status": "PASS",
+        "desc": "BDT with merchant"
+      },
+      "blew 1.2k tk": {
+        "detected": true,
+        "expected": true,
+        "status": "PASS",
+        "desc": "Shorthand amount"
+      },
+      "summary": {
+        "detected": false,
+        "expected": false,
+        "status": "PASS",
+        "desc": "Summary request"
+      },
+      "help": {
+        "detected": false,
+        "expected": false,
+        "status": "PASS",
+        "desc": "Help request"
+      }
+    },
+    "parsing": {
+      "coffee 100": {
+        "success": true,
+        "amount": 100.0,
+        "currency": "BDT",
+        "category": "food",
+        "merchant": null,
+        "parse_time_ms": 2.66265869140625
+      },
+      "spent $5 at Starbucks": {
+        "success": true,
+        "amount": 5.0,
+        "currency": "USD",
+        "category": "general",
+        "merchant": "Starbucks",
+        "parse_time_ms": 0.1735687255859375
+      },
+      "\u09f3250 groceries from Mina Bazar": {
+        "success": true,
+        "amount": 250.0,
+        "currency": "BDT",
+        "category": "groceries",
+        "merchant": "Mina Bazar",
+        "parse_time_ms": 0.20432472229003906
+      },
+      "blew 1.2k tk on fuel yesterday": {
+        "success": true,
+        "amount": 1200.0,
+        "currency": "BDT",
+        "category": "transport",
+        "merchant": null,
+        "parse_time_ms": 0.2505779266357422
+      }
+    }
+  },
+  "database": {
+    "connection_time_ms": 668.4024333953857,
+    "total_expenses": 44,
+    "active_expenses": 44,
+    "superseded_expenses": 0,
+    "total_users": 28,
+    "recent_expenses_24h": 1,
+    "query_time_ms": 237.7152442932129,
+    "status": "HEALTHY"
+  },
+  "corrections": {
+    "detection": {
+      "sorry, I meant 500": {
+        "pattern_match": true,
+        "has_money": false,
+        "detected": false,
+        "expected": true,
+        "status": "FAIL",
+        "desc": "Classic correction phrase"
+      },
+      "actually 300 for lunch": {
+        "pattern_match": true,
+        "has_money": false,
+        "detected": false,
+        "expected": true,
+        "status": "FAIL",
+        "desc": "Actually pattern"
+      },
+      "typo - make it $100": {
+        "pattern_match": true,
+        "has_money": true,
+        "detected": true,
+        "expected": true,
+        "status": "PASS",
+        "desc": "Typo fix with USD"
+      },
+      "replace last with 400": {
+        "pattern_match": true,
+        "has_money": false,
+        "detected": false,
+        "expected": true,
+        "status": "FAIL",
+        "desc": "Replace pattern"
+      },
+      "correction: should be 250": {
+        "pattern_match": true,
+        "has_money": false,
+        "detected": false,
+        "expected": true,
+        "status": "FAIL",
+        "desc": "Correction label"
+      },
+      "sorry for the delay": {
+        "pattern_match": true,
+        "has_money": false,
+        "detected": false,
+        "expected": false,
+        "status": "PASS",
+        "desc": "Apology without money"
+      },
+      "coffee 50": {
+        "pattern_match": false,
+        "has_money": true,
+        "detected": false,
+        "expected": false,
+        "status": "PASS",
+        "desc": "Regular expense"
+      }
+    }
+  },
+  "telemetry": {},
+  "performance": {},
+  "issues": [
+    "Correction detection failed: \"sorry, I meant 500\" expected True, got False",
+    "Correction detection failed: \"actually 300 for lunch\" expected True, got False",
+    "Correction detection failed: \"replace last with 400\" expected True, got False",
+    "Correction detection failed: \"correction: should be 250\" expected True, got False",
+    "Database connection slow: 668.4ms > 100ms"
+  ],
+  "verdict": "\u274c NEEDS FIXES"
+}
