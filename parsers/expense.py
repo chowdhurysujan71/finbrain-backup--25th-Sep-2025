@@ -1,11 +1,12 @@
 """
-Unified Expense Parser: Shared by STD and AI modes
-Extracts amount, currency, category, and note from text
+Enhanced Unified Expense Parser: Robust NLP for STD and AI modes
+Implements parse_expense() with comprehensive merchant extraction and multilingual support
 """
 
 import re
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Dict, Any, Optional
+from datetime import datetime, timedelta
 import logging
 
 logger = logging.getLogger("parsers.expense")
@@ -31,66 +32,305 @@ CURRENCY_WORDS = {
     'rs.': 'INR'
 }
 
-# Category aliases for normalization
-CATEGORY_ALIASES = {
-    # Food & Dining
-    'food': 'food',
-    'lunch': 'food',
-    'dinner': 'food', 
-    'breakfast': 'food',
-    'meal': 'food',
-    'snack': 'food',
-    'coffee': 'food',
-    'tea': 'food',
-    'restaurant': 'food',
-    'cafe': 'food',
-    
-    # Transport
-    'transport': 'transport',
-    'uber': 'transport',
-    'taxi': 'transport',
-    'bus': 'transport', 
-    'train': 'transport',
-    'ride': 'transport',
-    'gas': 'transport',
-    'fuel': 'transport',
-    
-    # Shopping
-    'shopping': 'shopping',
-    'clothes': 'shopping',
-    'shirt': 'shopping',
-    'dress': 'shopping',
-    'shoes': 'shopping',
-    
-    # Groceries
-    'groceries': 'groceries',
-    'grocery': 'groceries',
-    'market': 'groceries',
-    'vegetables': 'groceries',
-    'fruits': 'groceries',
-    
-    # Entertainment
-    'entertainment': 'entertainment',
-    'movie': 'entertainment',
-    'cinema': 'entertainment',
-    'game': 'entertainment',
-    
-    # Health
-    'health': 'health',
-    'medicine': 'health',
-    'doctor': 'health',
-    'hospital': 'health',
-    'pharmacy': 'health',
-    
-    # Bills
-    'bills': 'bills',
-    'bill': 'bills',
-    'electricity': 'bills',
-    'water': 'bills',
-    'internet': 'bills',
-    'phone': 'bills',
-    'rent': 'bills'
+# Bangla numeral mapping
+BANGLA_NUMERALS = {
+    '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+    '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
 }
+
+# Enhanced category mapping with strength scoring
+CATEGORY_ALIASES = {
+    # Food & Dining (strength: 10)
+    'lunch': ('food', 10),
+    'dinner': ('food', 10), 
+    'breakfast': ('food', 10),
+    'coffee': ('food', 10),
+    'meal': ('food', 9),
+    'snack': ('food', 8),
+    'tea': ('food', 8),
+    'restaurant': ('food', 9),
+    'cafe': ('food', 9),
+    'café': ('food', 9),
+    'food': ('food', 8),
+    
+    # Transport (strength: 10)
+    'uber': ('transport', 10),
+    'taxi': ('transport', 10),
+    'bus': ('transport', 10),
+    'ride': ('transport', 9),
+    'fuel': ('transport', 10),
+    'petrol': ('transport', 10),
+    'transport': ('transport', 8),
+    'cab': ('transport', 9),
+    'cng': ('transport', 9),
+    'rickshaw': ('transport', 8),
+    
+    # Groceries (strength: 10)
+    'grocery': ('groceries', 10),
+    'groceries': ('groceries', 10),
+    'market': ('groceries', 9),
+    'vegetables': ('groceries', 9),
+    'fruits': ('groceries', 9),
+    
+    # Health (strength: 10)
+    'medicine': ('health', 10),
+    'pharmacy': ('health', 10),
+    'doctor': ('health', 9),
+    'hospital': ('health', 9),
+    'meds': ('health', 9),
+    'chemist': ('health', 9),
+    
+    # Shopping (strength: 8)
+    'shopping': ('shopping', 8),
+    'clothes': ('shopping', 9),
+    'shirt': ('shopping', 8),
+    'dress': ('shopping', 8),
+    'shoes': ('shopping', 8),
+    
+    # Bills & Utilities (strength: 9)
+    'bills': ('bills', 9),
+    'bill': ('bills', 9),
+    'electricity': ('bills', 10),
+    'water': ('bills', 10),
+    'internet': ('bills', 10),
+    'phone': ('bills', 9),
+    'rent': ('bills', 10),
+    'utilities': ('bills', 9),
+    
+    # Entertainment (strength: 8)
+    'entertainment': ('entertainment', 8),
+    'movie': ('entertainment', 9),
+    'cinema': ('entertainment', 9),
+    'game': ('entertainment', 8),
+    'travel': ('entertainment', 8),
+    
+    # Kids & Education (strength: 9)
+    'kids': ('family', 9),
+    'baby': ('family', 9),
+    'education': ('education', 10),
+    'school': ('education', 9),
+    'tuition': ('education', 10)
+}
+
+def normalize_text_for_parsing(text: str) -> str:
+    """
+    Normalize text for parsing: handle Bangla numerals, clean spacing, handle multipliers.
+    """
+    if not text:
+        return ""
+    
+    normalized = text
+    
+    # Convert Bangla numerals to ASCII
+    for bangla, ascii_num in BANGLA_NUMERALS.items():
+        normalized = normalized.replace(bangla, ascii_num)
+    
+    # Handle comma decimals in European style (100,50 -> 100.50)
+    # Only convert if currency context suggests it
+    comma_decimal_pattern = re.compile(r'\b(\d+),(\d{1,2})\b')
+    matches = comma_decimal_pattern.finditer(normalized)
+    for match in matches:
+        # Check if this looks like a decimal (not thousands)
+        before_text = normalized[:match.start()].lower()
+        if any(curr in before_text for curr in ['eur', '€']):  # European currencies
+            replacement = f"{match.group(1)}.{match.group(2)}"
+            normalized = normalized[:match.start()] + replacement + normalized[match.end():]
+    
+    # Handle multipliers: 1.2k -> 1200, 1K -> 1000
+    multiplier_pattern = re.compile(r'\b(\d+(?:\.\d+)?)[kK]\b')
+    def expand_multiplier(match):
+        base = float(match.group(1))
+        return str(int(base * 1000))
+    normalized = multiplier_pattern.sub(expand_multiplier, normalized)
+    
+    # Collapse extra spaces
+    normalized = re.sub(r'\s+', ' ', normalized)
+    
+    return normalized.strip()
+
+def extract_merchant(text: str) -> Optional[str]:
+    """
+    Extract merchant name from text using patterns like "at", "in", "from".
+    """
+    # Look for merchant patterns
+    merchant_patterns = [
+        r'\b(?:at|in|from)\s+([^,;.!?\n]+?)(?:\s+(?:today|yesterday|this|last|next|summary|insight|and|but|because)|\s*[,.!?;]|$)',
+        r'\b(?:at|in|from)\s+([A-Z][^,;.!?\n]*?)(?:\s+(?:today|yesterday)|\s*[,.!?;]|$)'
+    ]
+    
+    for pattern in merchant_patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            merchant = match.group(1).strip()
+            
+            # Clean up the merchant name
+            # Remove leading articles
+            merchant = re.sub(r'^(?:the|a|an)\s+', '', merchant, flags=re.IGNORECASE)
+            
+            # Title case for better presentation
+            merchant = ' '.join(word.capitalize() for word in merchant.split())
+            
+            if len(merchant) > 2:  # Avoid single letters
+                return merchant
+    
+    return None
+
+def extract_date_context(text: str, now_ts: datetime) -> Optional[datetime]:
+    """
+    Extract date context from text (today, yesterday, last night, etc.).
+    """
+    text_lower = text.lower()
+    
+    if any(term in text_lower for term in ['yesterday', 'last night']):
+        # Return yesterday at midnight
+        yesterday = now_ts - timedelta(days=1)
+        return yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    if any(term in text_lower for term in ['this morning', 'earlier today']):
+        # Return today at 8 AM
+        return now_ts.replace(hour=8, minute=0, second=0, microsecond=0)
+    
+    # Default to None (use current timestamp)
+    return None
+
+def infer_category_with_strength(text: str) -> str:
+    """
+    Infer category from text with strength-based scoring.
+    """
+    text_lower = text.lower()
+    best_category = 'general'
+    best_strength = 0
+    
+    # Check each category alias
+    for keyword, (category, strength) in CATEGORY_ALIASES.items():
+        if keyword in text_lower:
+            # Boost strength if word appears after "on" or "for"
+            boost_pattern = rf'\b(?:on|for)\s+\w*\b{re.escape(keyword)}\b'
+            if re.search(boost_pattern, text_lower):
+                strength += 2
+            
+            if strength > best_strength:
+                best_strength = strength
+                best_category = category
+    
+    return best_category
+
+def parse_expense(text: str, now_ts: datetime) -> Dict[str, Any]:
+    """
+    Enhanced expense parser with comprehensive extraction.
+    
+    Args:
+        text: Input text to parse
+        now_ts: Current timestamp for date resolution
+        
+    Returns:
+        Dict with keys: amount, currency, category, merchant, ts_client, note
+        Returns empty dict if no valid expense found
+    """
+    if not text or not text.strip():
+        return {}
+    
+    # Normalize text for better parsing
+    original_text = text.strip()
+    normalized_text = normalize_text_for_parsing(original_text)
+    
+    result = {
+        'amount': None,
+        'currency': 'BDT',  # Default to BDT
+        'category': 'general',
+        'merchant': None,
+        'ts_client': None,
+        'note': original_text
+    }
+    
+    # Step 1: Extract amount and currency
+    amount_found = False
+    
+    # Try currency symbols first (highest priority)
+    for symbol, currency_code in CURRENCY_SYMBOLS.items():
+        pattern = rf'{re.escape(symbol)}\s*(\d+(?:\.\d{{1,2}})?)'
+        match = re.search(pattern, normalized_text)
+        if match:
+            try:
+                result['amount'] = Decimal(match.group(1))
+                result['currency'] = currency_code
+                amount_found = True
+                break
+            except InvalidOperation:
+                continue
+    
+    # Try currency words
+    if not amount_found:
+        for word, currency_code in CURRENCY_WORDS.items():
+            # Pattern: amount + currency word OR currency word + amount
+            patterns = [
+                rf'\b(\d+(?:\.\d{{1,2}})?)\s*{re.escape(word)}\b',
+                rf'\b{re.escape(word)}\s*(\d+(?:\.\d{{1,2}})?)\b'
+            ]
+            
+            for pattern in patterns:
+                match = re.search(pattern, normalized_text, re.IGNORECASE)
+                if match:
+                    try:
+                        result['amount'] = Decimal(match.group(1))
+                        result['currency'] = currency_code
+                        amount_found = True
+                        break
+                    except InvalidOperation:
+                        continue
+            
+            if amount_found:
+                break
+    
+    # Try action verbs (spent, paid, bought, etc.)
+    if not amount_found:
+        action_pattern = re.compile(r'\b(spent|paid|bought|blew|burned|used)\b.*?(\d+(?:\.\d{1,2})?)', re.IGNORECASE)
+        match = action_pattern.search(normalized_text)
+        if match:
+            try:
+                result['amount'] = Decimal(match.group(2))
+                amount_found = True
+            except InvalidOperation:
+                pass
+    
+    # Try first numeric token as fallback
+    if not amount_found:
+        # Find first number that's not a year or date
+        number_pattern = re.compile(r'\b(\d+(?:\.\d{1,2})?)\b')
+        for match in number_pattern.finditer(normalized_text):
+            num_str = match.group(1)
+            num_val = float(num_str)
+            
+            # Skip if looks like a year (1900-2100)
+            if 1900 <= num_val <= 2100:
+                continue
+            
+            # Skip if followed by month names
+            following_text = normalized_text[match.end():match.end()+20].lower()
+            if any(month in following_text for month in ['jan', 'feb', 'mar', 'apr', 'may', 'jun',
+                                                        'jul', 'aug', 'sep', 'oct', 'nov', 'dec']):
+                continue
+            
+            try:
+                result['amount'] = Decimal(num_str)
+                amount_found = True
+                break
+            except InvalidOperation:
+                continue
+    
+    # If no amount found, return empty dict
+    if not amount_found or not result['amount']:
+        return {}
+    
+    # Clip amount to two decimal places
+    result['amount'] = result['amount'].quantize(Decimal('0.01'))
+    
+    # Step 2: Extract other components
+    result['category'] = infer_category_with_strength(original_text)
+    result['merchant'] = extract_merchant(original_text)
+    result['ts_client'] = extract_date_context(original_text, now_ts)
+    
+    return result
 
 def parse_amount_currency_category(text: str) -> Dict[str, Any]:
     """

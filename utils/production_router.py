@@ -12,9 +12,14 @@ import hashlib
 from typing import Tuple, Optional, Dict, Any, List
 from datetime import datetime, timezone, timedelta
 
-# Money detection and unified parsing
+# Money detection and unified parsing (enhanced)
 from finbrain.router import contains_money
-from parsers.expense import parse_amount_currency_category
+from parsers.expense import parse_amount_currency_category, parse_expense
+
+# SMART_NLP_ROUTING system components
+from utils.feature_flags import is_smart_nlp_enabled, is_smart_tone_enabled
+from utils.structured import log_intent_decision, log_expense_logged, log_duplicate_detected
+from templates.replies import format_expense_logged_reply, format_duplicate_reply, format_help_reply
 
 # Single source of truth for user ID resolution  
 from utils.identity import psid_hash
@@ -154,15 +159,28 @@ class ProductionRouter:
             if contains_money(text):
                 logger.info(f"[ROUTER] Money detected - forcing LOG intent: psid={psid[:8]}... text='{text[:50]}...'")
                 
-                # Parse using unified parser
-                parsed_data = parse_amount_currency_category(text)
+                # Check if SMART_NLP_ROUTING is enabled for this user
+                smart_nlp_enabled = is_smart_nlp_enabled(user_hash)
+                
+                if smart_nlp_enabled:
+                    # Use enhanced parse_expense function
+                    parsed_data = parse_expense(text, datetime.utcnow())
+                    log_intent_decision(user_hash, rid, "LOG", "smart_nlp_money_detected", "SMART_NLP", "smart_nlp_v1")
+                    logger.info(f"[SMART_NLP] Enhanced parsing enabled: user={user_hash[:8]}...")
+                else:
+                    # Use legacy parser for backwards compatibility
+                    parsed_data = parse_amount_currency_category(text)
+                    log_intent_decision(user_hash, rid, "LOG", "legacy_money_detected", "STD", "legacy_v1")
+                    
                 if parsed_data and parsed_data.get('amount'):
                     # Route to unified LOG handler with idempotency protection
                     response, intent, category, amount = self._handle_unified_log(text, psid, user_hash, rid, parsed_data)
                     self._emit_structured_telemetry(rid, user_hash, "LOG", "money_detected", {
                         'amount': float(parsed_data['amount']),
                         'currency': parsed_data['currency'],
-                        'category': parsed_data['category']
+                        'category': parsed_data['category'],
+                        'smart_nlp_enabled': smart_nlp_enabled,
+                        'merchant': parsed_data.get('merchant') if smart_nlp_enabled else None
                     })
                     self._record_processing_time(time.time() - start_time)
                     return response, intent, category, amount

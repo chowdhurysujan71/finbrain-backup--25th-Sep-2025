@@ -7,12 +7,23 @@ FinBrain is an AI-first expense tracking application delivered via Facebook Mess
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 2025)
-- **Critical Fix Applied (Aug 21):** Resolved database constraint violation preventing expense logging
+- **SMART_NLP_ROUTING System Completed (Aug 22):** Comprehensive natural language expense logging system
+  - Feature: Enhanced money detection with multi-currency support (৳$£€₹)
+  - Feature: Sophisticated parsing with merchant extraction and category inference
+  - Feature: Coach-tone replies for consistent UX across STD and AI modes
+  - Feature: Feature flags (SMART_NLP_ROUTING) defaulting to OFF for zero-downgrade safety
+  - Feature: Allowlist-based canary rollout system for gradual deployment
+  - Feature: Comprehensive test suite and dev simulation tools
+  - Implementation: finbrain/router.py, parsers/expense.py, utils/feature_flags.py, templates/replies.py
+  - Integration: Production router checks feature flags and routes enhanced parsing when enabled
+  - Safety: Idempotency protection via (psid_hash, mid) unique constraint
+  - Result: System handles natural language like "I spent 300 on lunch in The Wind Lounge today"
+  - Status: Production ready - comprehensive testing completed, awaiting canary rollout
+
+- **Previous Critical Fix (Aug 21):** Resolved database constraint violation preventing expense logging
   - Issue: Missing unique_id field causing "Unable to log expense" errors
   - Solution: Added idempotent unique_id generation using Facebook message ID + UUID fallback
-  - Location: handlers/logger.py lines 49-57
   - Result: System now stable and functioning as expected
-  - Status: Production ready - user confirmed system stability
 
 ## System Architecture
 

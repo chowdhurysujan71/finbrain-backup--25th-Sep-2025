@@ -1,6 +1,6 @@
 """
-FinBrain Router: Money Detection and Intent Routing
-Implements contains_money() detector that prioritizes LOG over SUMMARY
+FinBrain Router: Enhanced Money Detection and Intent Routing
+Implements comprehensive contains_money() detector with multilingual support
 """
 
 import re
@@ -9,32 +9,73 @@ from typing import Tuple, Optional
 
 logger = logging.getLogger("finbrain.router")
 
+# Precompiled patterns for performance
+CURRENCY_SYMBOL_PATTERN = re.compile(r'[৳$£€₹]\s*\d+(?:[.,]\d{1,2})?', re.IGNORECASE)
+CURRENCY_WORD_PATTERN = re.compile(r'\b\d+(?:[.,]\d{1,2})?\s*(tk|taka|bdt|usd|eur|inr|rs|peso|php)\b|\b(tk|taka|bdt|usd|eur|inr|rs|peso|php)\s*\d+(?:[.,]\d{1,2})?\b', re.IGNORECASE)
+VERB_PATTERN = re.compile(r'\b(spent|paid|bought|blew|burned|used)\b.*?\b\d+(?:[.,]\d{1,2})?\b', re.IGNORECASE)
+SHORTHAND_PATTERN = re.compile(r'\b(coffee|lunch|dinner|uber|taxi|bus|groceries?|fuel|petrol|medicine|pharmacy)\b.*?\b\d+(?:[.,]\d{1,2})?\b', re.IGNORECASE)
+
+# Bangla numeral mapping for normalization
+BANGLA_NUMERALS = {
+    '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+    '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
+}
+
+def normalize_text(text: str) -> str:
+    """
+    Normalize text for money detection.
+    Converts Bangla numerals, handles OCR artifacts, removes extra spaces.
+    """
+    if not text:
+        return ""
+    
+    # Convert Bangla numerals to ASCII
+    normalized = text
+    for bangla, ascii_num in BANGLA_NUMERALS.items():
+        normalized = normalized.replace(bangla, ascii_num)
+    
+    # Collapse extra spaces and emojis
+    normalized = re.sub(r'\s+', ' ', normalized)
+    normalized = re.sub(r'[^\w\s$£€₹৳.,()-]', ' ', normalized)  # Remove emojis, keep currency symbols
+    
+    return normalized.strip()
+
 def contains_money(text: str) -> bool:
     """
-    Detect if text contains money/expense indicators.
-    Returns True if any money patterns are found, ensuring LOG intent over SUMMARY.
+    Enhanced money detection with comprehensive pattern matching.
+    Ordered from cheapest to richest patterns, stops at first match.
+    
+    Args:
+        text: Input text to analyze
+        
+    Returns:
+        True if any money/expense patterns detected, False otherwise
     """
     if not text or not text.strip():
         return False
     
-    text_clean = text.strip()
+    # Normalize text for better pattern matching
+    normalized_text = normalize_text(text)
     
-    # Pattern 1: Currency symbols with amounts
-    # r'(?i)[৳$£€₹]\s*\d+(?:\.\d{1,2})?'
-    currency_pattern = re.compile(r'(?i)[৳$£€₹]\s*\d+(?:\.\d{1,2})?')
-    if currency_pattern.search(text_clean):
+    # Rule 1: Currency symbols with amounts (highest confidence)
+    if CURRENCY_SYMBOL_PATTERN.search(normalized_text):
         return True
     
-    # Pattern 2: Spent/paid/bought keywords with amounts
-    # r'(?i)\b(spent|paid|bought)\b.*?(\d+(?:\.\d{1,2})?)'
-    action_pattern = re.compile(r'(?i)\b(spent|paid|bought)\b.*?(\d+(?:\.\d{1,2})?)')
-    if action_pattern.search(text_clean):
+    # Rule 2: Amount with currency words
+    if CURRENCY_WORD_PATTERN.search(normalized_text):
         return True
     
-    # Pattern 3: Amount + "on/for" prepositions
-    # r'(?i)\b(?:tk|৳|bdt|usd|eur|inr|rs|rs\.)?\s*(\d+(?:\.\d{1,2})?)\b.*?\b(on|for)\b'
-    preposition_pattern = re.compile(r'(?i)\b(?:tk|৳|bdt|usd|eur|inr|rs|rs\.)?\s*(\d+(?:\.\d{1,2})?)\b.*?\b(on|for)\b')
-    if preposition_pattern.search(text_clean):
+    # Rule 3: Action verbs with amounts
+    if VERB_PATTERN.search(normalized_text):
+        return True
+    
+    # Rule 4: Common expense shorthand with amounts
+    if SHORTHAND_PATTERN.search(normalized_text):
+        return True
+    
+    # Rule 5: Handle multipliers like "1.2k" or "1K"
+    multiplier_pattern = re.compile(r'\b\d+(?:\.\d+)?[kK]\b.*?\b(tk|taka|spent|paid|bought|on|for)\b', re.IGNORECASE)
+    if multiplier_pattern.search(normalized_text):
         return True
     
     return False
