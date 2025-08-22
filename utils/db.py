@@ -187,3 +187,113 @@ def get_user_expenses(user_identifier, limit=10):
     except SQLAlchemyError as e:
         logger.error(f"Database error getting user expenses: {str(e)}")
         return []
+
+def save_expense_idempotent(user_identifier, description, amount, category, currency, platform, original_message, unique_id, db_session=None):
+    """
+    Save expense with idempotency protection using Facebook message ID.
+    Returns: {'duplicate': bool, 'timestamp': str, 'success': bool}
+    """
+    from models import Expense, User, MonthlySummary
+    from utils.tracer import trace_event
+    from datetime import datetime, date
+    import hashlib
+    
+    if db_session is None:
+        from app import db
+        db_session = db
+    
+    try:
+        user_hash = user_identifier  # Already hashed
+        
+        # Compute idempotency key: SHA256(psid_hash + mid)
+        idempotency_key = hashlib.sha256(f"{user_hash}{unique_id}".encode()).hexdigest()
+        
+        # Check for existing expense with same idempotency key
+        existing_expense = db_session.session.query(Expense).filter_by(
+            user_id=user_hash,
+            mid=unique_id  # Use mid field for Facebook message ID
+        ).first()
+        
+        if existing_expense:
+            # Return duplicate info with timestamp
+            timestamp = existing_expense.created_at.strftime("%H:%M") if existing_expense.created_at else "earlier"
+            logger.info(f"Duplicate expense detected: user={user_hash[:8]}... mid={unique_id}")
+            return {
+                'duplicate': True,
+                'timestamp': timestamp,
+                'success': False,
+                'expense_id': existing_expense.id
+            }
+        
+        # No duplicate found - proceed with normal save
+        trace_event("record_expense_idempotent", user_id=user_hash, amount=amount, category=category, mid=unique_id)
+        
+        current_date = date.today()
+        current_time = datetime.now().time()
+        current_month = current_date.strftime('%Y-%m')
+        
+        # Create expense record with idempotency protection
+        expense = Expense(
+            user_id=user_hash,
+            description=description,
+            amount=amount,
+            category=category,
+            currency=currency,
+            date=current_date,
+            time=current_time,
+            month=current_month,
+            unique_id=idempotency_key,  # Store computed idempotency key
+            mid=unique_id,  # Store Facebook message ID for duplicate detection
+            platform=platform,
+            original_message=original_message
+        )
+        
+        db_session.session.add(expense)
+        
+        # Update user totals
+        user = get_or_create_user(user_hash, platform, db_session)
+        if user:
+            user.total_expenses = float(user.total_expenses) + float(amount)
+            user.expense_count += 1
+            user.last_interaction = datetime.utcnow()
+        
+        # Update monthly summary  
+        monthly_summary = MonthlySummary.query.filter_by(
+            user_id_hash=user_hash,
+            month=current_month
+        ).first()
+        
+        if not monthly_summary:
+            monthly_summary = MonthlySummary(
+                user_id_hash=user_hash,
+                month=current_month,
+                total_amount=amount,
+                expense_count=1,
+                categories={category: float(amount)}
+            )
+            db_session.session.add(monthly_summary)
+        else:
+            monthly_summary.total_amount = float(monthly_summary.total_amount) + float(amount)
+            monthly_summary.expense_count += 1
+            
+            # Update category breakdown
+            categories = monthly_summary.categories or {}
+            categories[category] = categories.get(category, 0) + float(amount)
+            monthly_summary.categories = categories
+            monthly_summary.updated_at = datetime.utcnow()
+        
+        db_session.session.commit()
+        
+        logger.info(f"Expense saved with idempotency: user={user_hash[:8]}... mid={unique_id} amount={amount}")
+        return {
+            'duplicate': False,
+            'success': True,
+            'expense_id': expense.id,
+            'monthly_total': float(monthly_summary.total_amount),
+            'expense_count': monthly_summary.expense_count
+        }
+        
+    except SQLAlchemyError as e:
+        logger.error(f"Database error in save_expense_idempotent: {str(e)}")
+        db_session.session.rollback()
+        return {'duplicate': False, 'success': False, 'error': str(e)}

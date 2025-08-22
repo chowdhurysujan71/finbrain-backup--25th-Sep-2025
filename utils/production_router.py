@@ -12,6 +12,10 @@ import hashlib
 from typing import Tuple, Optional, Dict, Any, List
 from datetime import datetime, timezone, timedelta
 
+# Money detection and unified parsing
+from finbrain.router import contains_money
+from parsers.expense import parse_amount_currency_category
+
 # Single source of truth for user ID resolution  
 from utils.identity import psid_hash
 from utils.background_processor_rl2 import rl2_processor
@@ -145,24 +149,58 @@ class ProductionRouter:
                 self._log_routing_decision(rid, user_hash, "panic", "immediate_ack")
                 return response, "panic", None, None
             
-            # Step 1: Use intent router for command detection
+            # Step 1: MONEY DETECTION - Prioritizes LOG over SUMMARY
+            # This must run before any SUMMARY logic to ensure new users can log expenses
+            if contains_money(text):
+                logger.info(f"[ROUTER] Money detected - forcing LOG intent: psid={psid[:8]}... text='{text[:50]}...'")
+                
+                # Parse using unified parser
+                parsed_data = parse_amount_currency_category(text)
+                if parsed_data and parsed_data.get('amount'):
+                    # Route to unified LOG handler with idempotency protection
+                    response, intent, category, amount = self._handle_unified_log(text, psid, user_hash, rid, parsed_data)
+                    self._emit_structured_telemetry(rid, user_hash, "LOG", "money_detected", {
+                        'amount': float(parsed_data['amount']),
+                        'currency': parsed_data['currency'],
+                        'category': parsed_data['category']
+                    })
+                    self._record_processing_time(time.time() - start_time)
+                    return response, intent, category, amount
+            
+            # Step 2: Use intent router for command detection (only if no money detected)
             from utils.intent_router import detect_intent
             from utils.dispatcher import handle_message_dispatch
             
             intent = detect_intent(text)
             
-            # Step 2: Route non-AI intents immediately (bypass rate limits)
+            # Step 3: Route non-AI intents immediately (bypass rate limits)
             if intent in ["DIAGNOSTIC", "SUMMARY", "INSIGHT", "UNDO"]:
+                # Only allow SUMMARY if no money was detected
+                if intent == "SUMMARY" and contains_money(text):
+                    logger.info(f"[ROUTER] Blocking SUMMARY due to money detection: psid={psid[:8]}...")
+                    # Force to LOG path instead
+                    parsed_data = parse_amount_currency_category(text)
+                    if parsed_data and parsed_data.get('amount'):
+                        response, intent, category, amount = self._handle_unified_log(text, psid, user_hash, rid, parsed_data)
+                        self._emit_structured_telemetry(rid, user_hash, "LOG", "summary_blocked_by_money", {
+                            'amount': float(parsed_data['amount']),
+                            'currency': parsed_data['currency'], 
+                            'category': parsed_data['category']
+                        })
+                        return response, intent, category, amount
+                
                 logger.info(f"[ROUTER] Deterministic intent={intent} psid={psid}")
                 response_text, _ = handle_message_dispatch(user_hash, text)
+                self._emit_structured_telemetry(rid, user_hash, intent, "deterministic_bypass", {})
                 self._log_routing_decision(rid, user_hash, intent.lower(), "deterministic_bypass")
                 return normalize(response_text), intent.lower(), None, None
             
-            # Step 3: Handle expense logging with new parser
+            # Step 4: Handle expense logging with new parser
             if intent == "LOG_EXPENSE":
                 from handlers.logger import handle_log
                 result = handle_log(user_hash, text)
                 response = result.get('text', 'Unable to log expense')
+                self._emit_structured_telemetry(rid, user_hash, "LOG", "intent_log_expense", {})
                 self._log_routing_decision(rid, user_hash, "log", "expense_logged")
                 self._record_processing_time(time.time() - start_time)
                 return normalize(response), "log", None, None
@@ -890,6 +928,73 @@ class ProductionRouter:
         except Exception as e:
             logger.error(f"Undo expense error: {e}")
             return None
+
+    def _handle_unified_log(self, text: str, psid: str, psid_hash: str, rid: str, parsed_data: Dict) -> Tuple[str, str, Optional[str], Optional[float]]:
+        """Handle expense logging with unified parser and idempotency protection"""
+        try:
+            amount = parsed_data['amount']
+            currency = parsed_data['currency']
+            category = parsed_data['category']
+            note = parsed_data['note']
+            
+            # Store expense with idempotency protection using Facebook message ID (rid)
+            from utils.db import save_expense_idempotent
+            result = save_expense_idempotent(
+                user_identifier=psid_hash,
+                description=f"{category} expense",
+                amount=float(amount),
+                category=category,
+                currency=currency,
+                platform="facebook",
+                original_message=text,
+                unique_id=rid  # Use Facebook message ID for idempotency
+            )
+            
+            if result.get('duplicate'):
+                # Return duplicate message with timestamp
+                timestamp = result.get('timestamp', 'earlier')
+                response = f"Looks like a repeat—already logged at {timestamp}. Reply 'yes' to log again."
+                return normalize(response), "log_duplicate", category, float(amount)
+            
+            # Generate success response
+            currency_symbol = '৳' if currency == 'BDT' else '$' if currency == 'USD' else '€' if currency == 'EUR' else '£' if currency == 'GBP' else '₹'
+            response = f"✅ Logged: {currency_symbol}{amount:.0f} for {category}"
+            
+            self._log_routing_decision(rid, psid_hash, "log", f"unified_logged: {amount} {currency} {category}")
+            return normalize(response), "log", category, float(amount)
+            
+        except Exception as e:
+            logger.error(f"Unified log error: {e}")
+            response = "Unable to log expense. Please try again."
+            return normalize(response), "error", None, None
+    
+    def _emit_structured_telemetry(self, rid: str, psid_hash: str, intent: str, reason: str, data: Dict):
+        """Emit structured telemetry for tracking and debugging"""
+        try:
+            # Create structured telemetry entry
+            telemetry_data = {
+                'timestamp': datetime.utcnow().isoformat(),
+                'request_id': rid,
+                'psid_hash': psid_hash[:8] + "...",  # Truncated for privacy
+                'intent': intent,
+                'reason': reason,
+                **data
+            }
+            
+            # Log structured data for analytics
+            logger.info(f"TELEMETRY: {telemetry_data}")
+            
+            # Emit to specialized telemetry system if available
+            try:
+                from finbrain.structured import emit_telemetry
+                emit_telemetry(telemetry_data)
+            except ImportError:
+                # Telemetry system not available, just log
+                pass
+                
+        except Exception as e:
+            logger.warning(f"Telemetry emission error: {e}")
+            # Never fail the main flow for telemetry issues
     
     def _log_routing_decision(self, rid: str, psid_hash: str, route: str, details: str):
         """Log routing decision for telemetry"""
