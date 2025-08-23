@@ -39,7 +39,7 @@ def get_or_create_user(user_identifier, platform, db_session=None):
         db_session.session.rollback()
         return None
 
-def save_expense(user_identifier, description, amount, category, platform, original_message, unique_id, db_session=None):
+def save_expense(user_identifier, description, amount, category, platform, original_message, unique_id, mid=None, db_session=None):
     """Save expense to database and update monthly summaries"""
     from models import Expense, User, MonthlySummary
     from utils.tracer import trace_event
@@ -76,7 +76,8 @@ def save_expense(user_identifier, description, amount, category, platform, origi
             month=current_month,
             unique_id=unique_id,
             platform=platform,
-            original_message=original_message
+            original_message=original_message,
+            mid=mid
         )
         
         db_session.session.add(expense)

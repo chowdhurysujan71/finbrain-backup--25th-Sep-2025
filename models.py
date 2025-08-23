@@ -20,6 +20,7 @@ class Expense(db.Model):
     platform = db.Column(db.String(20), default='messenger')  # Facebook Messenger
     original_message = db.Column(db.Text, default='')  # Full original message
     ai_insights = db.Column(db.Text, default='')  # Future AI insights storage
+    mid = db.Column(db.String(255), nullable=True)  # Facebook message ID for idempotency
     
     # Expense correction tracking (backwards-compatible)
     superseded_by = db.Column(db.BigInteger, nullable=True)  # ID of expense that supersedes this one
