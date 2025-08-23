@@ -54,6 +54,22 @@ def log_correction_no_candidate(psid_hash: str, mid: str, action: str) -> None:
     
     logger.info(f"CORRECTION_NO_CANDIDATE {json.dumps(event)}")
 
+def log_structured_event(event_name: str, data: Dict[str, Any]) -> None:
+    """
+    Log structured event for coaching flow telemetry
+    
+    Args:
+        event_name: Name of the event (e.g., COACH_START)
+        data: Event data dictionary
+    """
+    event = {
+        'timestamp': datetime.utcnow().isoformat(),
+        'event_type': event_name,
+        **data
+    }
+    
+    logger.info(f"{event_name} {json.dumps(event)}")
+
 def log_correction_duplicate(psid_hash: str, mid: str) -> None:
     """
     Log duplicate correction attempt.

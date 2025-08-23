@@ -250,11 +250,38 @@ class ProductionRouter:
                 
                 logger.info(f"[ROUTER] Deterministic intent={intent} psid={psid}")
                 response_text, _ = handle_message_dispatch(user_hash, text)
+                
+                # Check for coaching opportunity after SUMMARY/INSIGHT
+                if intent in ["SUMMARY", "INSIGHT"]:
+                    try:
+                        from handlers.coaching import maybe_continue
+                        coaching_reply = maybe_continue(user_hash, intent.lower(), {})
+                        if coaching_reply:
+                            # Return coaching reply instead of normal response
+                            return normalize(coaching_reply['text']), coaching_reply['intent'], coaching_reply.get('category'), coaching_reply.get('amount')
+                    except Exception as e:
+                        logger.error(f"[COACH][ERROR] Failed to start coaching: {e}")
+                        # Continue with normal response
+                
                 self._emit_structured_telemetry(rid, user_hash, intent, "deterministic_bypass", {})
                 self._log_routing_decision(rid, user_hash, intent.lower(), "deterministic_bypass")
                 return normalize(response_text), intent.lower(), None, None
             
-            # Step 5: Handle expense logging with new parser
+            # Step 5: Check for active coaching session first
+            try:
+                from handlers.coaching import handle_coaching_response
+                coaching_reply = handle_coaching_response(user_hash, text)
+                if coaching_reply:
+                    # User is in active coaching session
+                    self._emit_structured_telemetry(rid, user_hash, "COACHING", "session_response", {})
+                    self._log_routing_decision(rid, user_hash, "coaching", "session_active")
+                    self._record_processing_time(time.time() - start_time)
+                    return normalize(coaching_reply['text']), coaching_reply['intent'], coaching_reply.get('category'), coaching_reply.get('amount')
+            except Exception as e:
+                logger.error(f"[COACH][ERROR] Session check failed: {e}")
+                # Continue with normal flow
+            
+            # Step 6: Handle expense logging with new parser
             if intent == "LOG_EXPENSE":
                 from handlers.logger import handle_log
                 result = handle_log(user_hash, text)

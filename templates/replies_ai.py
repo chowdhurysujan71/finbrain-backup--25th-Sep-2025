@@ -58,7 +58,7 @@ def format_ai_multi_expense_reply(expenses: List[Dict[str, Any]], total_amount: 
 
 # AI Summary Templates  
 def format_ai_summary_reply(period: str, total_amount: float, total_entries: int, 
-                           categories: List[str] = None) -> str:
+                           categories: Optional[List[str]] = None) -> str:
     """AI-style summary with coaching tone"""
     
     if total_amount == 0:
@@ -89,7 +89,7 @@ def format_ai_summary_reply(period: str, total_amount: float, total_entries: int
     return summary
 
 # AI Insight Templates
-def format_ai_insight_reply(insights: List[str], total_amount: float = None) -> str:
+def format_ai_insight_reply(insights: List[str], total_amount: Optional[float] = None) -> str:
     """AI-style insights with personalized coaching"""
     
     if not insights:
@@ -183,3 +183,60 @@ def clean_ai_reply(text: str) -> str:
     lines = text.split('\n')
     clean_lines = [line for line in lines if not (line.strip().startswith('pong |') or 'mode=' in line)]
     return '\n'.join(clean_lines).strip()
+
+# Coaching Flow Templates
+def coach_focus(topic_suggestions: List[str]) -> Dict[str, Any]:
+    """Generate focus question for coaching flow"""
+    suggestions_text = ", ".join(topic_suggestions[:-1]) + f" or {topic_suggestions[-1]}" if len(topic_suggestions) > 1 else topic_suggestions[0]
+    
+    text = f"Which area do you want to improve first—{suggestions_text}? 🎯"
+    
+    quick_replies = [{'title': topic.title(), 'payload': f'COACH_{topic.upper()}'} for topic in topic_suggestions]
+    quick_replies.append({'title': 'Skip', 'payload': 'COACH_SKIP'})
+    
+    return {
+        'text': text,
+        'intent': 'coaching',
+        'category': None,
+        'amount': None,
+        'quick_replies': quick_replies
+    }
+
+def coach_commit(topic: str, action_options: List[str]) -> Dict[str, Any]:
+    """Generate commitment question for coaching flow"""
+    options_text = " or ".join(action_options)
+    
+    text = f"Nice choice! Let's try one small step: {options_text}. Which sounds doable this week? 💪"
+    
+    quick_replies = [{'title': option.title(), 'payload': f'COACH_{option.upper().replace(" ", "_")}'} for option in action_options]
+    quick_replies.extend([
+        {'title': 'Something Else', 'payload': 'COACH_OTHER'},
+        {'title': 'Skip', 'payload': 'COACH_SKIP'}
+    ])
+    
+    return {
+        'text': text,
+        'intent': 'coaching',
+        'category': None,
+        'amount': None,
+        'quick_replies': quick_replies
+    }
+
+def coach_done(action: str) -> Dict[str, Any]:
+    """Generate completion message for coaching flow"""
+    variations = [
+        f"💪 Perfect! I'll check back in a few days to see how {action} is going.",
+        f"🌟 Great choice! {action.title()} is a solid step forward.",
+        f"✨ Awesome! {action.title()} will make a real difference."
+    ]
+    
+    # Use action length as seed for variation
+    text = variations[len(action) % len(variations)]
+    text += " Type 'summary' anytime to track your progress!"
+    
+    return {
+        'text': text,
+        'intent': 'coaching_complete',
+        'category': None,
+        'amount': None
+    }

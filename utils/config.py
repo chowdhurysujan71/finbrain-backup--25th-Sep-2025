@@ -16,6 +16,12 @@ AI_FEATURES_ENABLED = True
 TONE_FEATURES_ENABLED = True
 CORRECTIONS_FEATURES_ENABLED = True
 
+# Coaching configuration
+COACH_MAX_TURNS = int(os.getenv('COACH_MAX_TURNS', '3'))
+COACH_SESSION_TTL_SEC = int(os.getenv('COACH_SESSION_TTL_SEC', '300'))  # 5 min
+COACH_COOLDOWN_SEC = int(os.getenv('COACH_COOLDOWN_SEC', '900'))  # 15 min
+COACH_PER_DAY_MAX = int(os.getenv('COACH_PER_DAY_MAX', '6'))
+
 def get_config_summary():
     """Get current configuration summary"""
     return {
