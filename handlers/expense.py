@@ -4,6 +4,7 @@ Handles expense corrections with idempotent supersede logic and coach-style conf
 """
 
 import logging
+import re
 import time
 from typing import Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
@@ -11,12 +12,263 @@ from decimal import Decimal
 
 from app import db
 from models import Expense, User
-from parsers.expense import parse_expense, parse_correction_reason, similar_category, similar_merchant
+from parsers.expense import parse_expense, extract_all_expenses, parse_correction_reason, similar_category, similar_merchant
 from utils.structured import log_correction_detected, log_correction_no_candidate, log_correction_duplicate, log_correction_applied
 from templates.replies import format_correction_no_candidate_reply, format_corrected_reply, format_correction_duplicate_reply
 from utils.identity import psid_hash
 
 logger = logging.getLogger("handlers.expense")
+
+# Context cache for Q&A intent (2-minute TTL)
+_recent_expense_context = {}
+
+def handle_multi_expense_logging(psid_hash_val: str, mid: str, text: str, now: datetime) -> Dict[str, Any]:
+    """
+    Handle logging of multiple expenses from a single message.
+    
+    Args:
+        psid_hash_val: User's PSID hash
+        mid: Message ID for idempotency
+        text: Message text containing multiple expenses
+        now: Current timestamp
+        
+    Returns:
+        Dict with response text, intent, category, and amount
+    """
+    start_time = time.time()
+    
+    try:
+        # Extract all expenses from the message
+        expenses = extract_all_expenses(text, now)
+        
+        if not expenses:
+            return {
+                'text': "I didn't find any valid expenses in that message. Please try again.",
+                'intent': 'log_error',
+                'category': None,
+                'amount': None
+            }
+        
+        if len(expenses) == 1:
+            # Single expense - use existing handler
+            return _handle_single_expense(psid_hash_val, mid, expenses[0], text, now)
+        
+        # Multiple expenses - create derived message IDs
+        logged_expenses = []
+        total_amount = 0
+        derived_mids = []
+        
+        for i, expense_data in enumerate(expenses, 1):
+            derived_mid = f"{mid}:{i}"
+            derived_mids.append(derived_mid)
+            
+            # Check for existing expense with this derived mid (idempotency)
+            existing = db.session.query(Expense).filter(
+                Expense.user_id == psid_hash_val,
+                Expense.unique_id == derived_mid
+            ).first()
+            
+            if existing:
+                # Skip duplicate
+                continue
+                
+            # Create new expense
+            expense = _create_expense_from_data(psid_hash_val, derived_mid, expense_data, text, now)
+            db.session.add(expense)
+            
+            logged_expenses.append(expense_data)
+            total_amount += float(expense_data['amount'])
+        
+        if not logged_expenses:
+            # All were duplicates
+            return {
+                'text': "I've already logged those expenses from this message.",
+                'intent': 'log_duplicate',
+                'category': None,
+                'amount': None
+            }
+        
+        # Update user totals
+        _update_user_totals(psid_hash_val, total_amount)
+        
+        # Commit transaction
+        db.session.commit()
+        
+        # Cache context for Q&A (2-minute TTL)
+        _cache_expense_context(psid_hash_val, derived_mids, logged_expenses, now)
+        
+        # Emit telemetry
+        logger.info(f"LOG_MULTI: {len(logged_expenses)} expenses, total ৳{total_amount}, mids: {derived_mids}")
+        
+        # Generate coach-style summary reply
+        response = _format_multi_expense_reply(logged_expenses)
+        
+        return {
+            'text': response,
+            'intent': 'log_multi',
+            'category': 'multiple',
+            'amount': total_amount
+        }
+        
+    except Exception as e:
+        logger.error(f"Multi-expense handling error: {e}", exc_info=True)
+        db.session.rollback()
+        
+        return {
+            'text': "Sorry, I couldn't log those expenses. Please try again.",
+            'intent': 'log_error',
+            'category': None,
+            'amount': None
+        }
+
+def handle_qa_intent(psid_hash_val: str, text: str, now: datetime) -> Optional[Dict[str, Any]]:
+    """
+    Handle Q&A intent for questions like 'did you log my breakfast above?'
+    
+    Args:
+        psid_hash_val: User's PSID hash
+        text: Question text
+        now: Current timestamp
+        
+    Returns:
+        Response dict if Q&A intent detected, None otherwise
+    """
+    qa_patterns = [
+        r'\b(?:did you|have you)\s+(?:log|logged)\s+(?:my|the)\s+(\w+)',
+        r'\b(?:was|is)\s+(?:my|the)\s+(\w+)\s+(?:logged|recorded)',
+        r'\b(?:did|do)\s+(?:I|you)\s+(?:log|record)\s+(?:my|the)\s+(\w+)'
+    ]
+    
+    for pattern in qa_patterns:
+        match = re.search(pattern, text.lower())
+        if match:
+            item = match.group(1)  # e.g., "breakfast", "coffee", "uber"
+            
+            # Check recent context cache
+            context = _recent_expense_context.get(psid_hash_val)
+            if context and (now - context['timestamp']).total_seconds() <= 120:  # 2 minutes
+                # Search for matching item in recent expenses
+                for expense in context['expenses']:
+                    if (item in expense.get('note', '').lower() or 
+                        item in expense.get('category', '').lower()):
+                        return {
+                            'text': f"Yes—logged ৳{expense['amount']} for {expense['category']}.",
+                            'intent': 'qa_confirmed',
+                            'category': expense['category'],
+                            'amount': float(expense['amount'])
+                        }
+                
+                # Item not found in recent context
+                return {
+                    'text': f"Not yet—want me to add the {item}?",
+                    'intent': 'qa_not_found',
+                    'category': None,
+                    'amount': None
+                }
+    
+    return None  # Not a Q&A intent
+
+def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: Dict[str, Any], original_text: str, now: datetime) -> Dict[str, Any]:
+    """
+    Handle logging of a single expense.
+    """
+    # Check for existing expense (idempotency)
+    existing = db.session.query(Expense).filter(
+        Expense.user_id == psid_hash_val,
+        Expense.unique_id == mid
+    ).first()
+    
+    if existing:
+        return {
+            'text': "I've already logged that expense.",
+            'intent': 'log_duplicate',
+            'category': existing.category,
+            'amount': float(existing.amount)
+        }
+    
+    # Create new expense
+    expense = _create_expense_from_data(psid_hash_val, mid, expense_data, original_text, now)
+    db.session.add(expense)
+    
+    # Update user totals
+    amount = float(expense_data['amount'])
+    _update_user_totals(psid_hash_val, amount)
+    
+    # Commit transaction
+    db.session.commit()
+    
+    # Cache context for Q&A
+    _cache_expense_context(psid_hash_val, [mid], [expense_data], now)
+    
+    # Generate friendly reply
+    from utils.feature_flags import is_smart_tone_enabled
+    if is_smart_tone_enabled(psid_hash_val):
+        response = f"✅ Logged: ৳{expense_data['amount']} for {expense_data['category']}. Type 'summary' to see your week."
+    else:
+        response = f"Logged ৳{expense_data['amount']} for {expense_data['category']}."
+    
+    return {
+        'text': response,
+        'intent': 'log_single',
+        'category': expense_data['category'],
+        'amount': amount
+    }
+
+def _create_expense_from_data(psid_hash_val: str, unique_id: str, expense_data: Dict[str, Any], original_text: str, now: datetime) -> Expense:
+    """
+    Create Expense record from parsed expense data.
+    """
+    expense = Expense()
+    expense.user_id = psid_hash_val
+    expense.amount = expense_data['amount']
+    expense.currency = expense_data.get('currency', 'BDT')
+    expense.category = expense_data.get('category', 'general')
+    expense.description = expense_data.get('note', original_text)
+    expense.date = (expense_data.get('ts_client') or now).date()
+    expense.time = (expense_data.get('ts_client') or now).time()
+    expense.month = now.strftime('%Y-%m')
+    expense.unique_id = unique_id
+    expense.created_at = now
+    expense.platform = 'messenger'
+    expense.original_message = original_text[:500]
+    
+    return expense
+
+def _format_multi_expense_reply(expenses: list) -> str:
+    """
+    Format coach-style reply for multiple expense logging.
+    """
+    if len(expenses) == 1:
+        exp = expenses[0]
+        return f"✅ Logged: ৳{exp['amount']} {exp['category']}. Type 'summary' to see your week."
+    
+    # Group by category for cleaner display
+    summary_parts = []
+    for expense in expenses:
+        summary_parts.append(f"৳{expense['amount']} {expense['category']}")
+    
+    summary = "; ".join(summary_parts)
+    return f"✅ Logged: {summary}. Type 'summary' to see your week."
+
+def _cache_expense_context(psid_hash_val: str, mids: list, expenses: list, timestamp: datetime):
+    """
+    Cache recent expense context for Q&A intent (2-minute TTL).
+    """
+    _recent_expense_context[psid_hash_val] = {
+        'mids': mids,
+        'expenses': expenses,
+        'timestamp': timestamp
+    }
+    
+    # Clean up old cache entries (basic cleanup)
+    cutoff = timestamp - timedelta(minutes=3)
+    keys_to_remove = []
+    for key, context in _recent_expense_context.items():
+        if context['timestamp'] < cutoff:
+            keys_to_remove.append(key)
+    
+    for key in keys_to_remove:
+        del _recent_expense_context[key]
 
 def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) -> Dict[str, Any]:
     """

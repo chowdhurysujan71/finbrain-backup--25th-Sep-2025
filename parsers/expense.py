@@ -7,7 +7,7 @@ import re
 import logging
 from decimal import Decimal, InvalidOperation
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 logger = logging.getLogger("parsers.expense")
 
@@ -262,9 +262,172 @@ def infer_category_with_strength(text: str) -> str:
     
     return best_category
 
+def extract_all_expenses(text: str, now: Optional[datetime] = None) -> List[Dict[str, Any]]:
+    """
+    Extract all expenses from text that may contain multiple amounts.
+    
+    Args:
+        text: Input text to parse (e.g., "Uber 2500 and breakfast 700")
+        now: Current timestamp for date resolution
+        
+    Returns:
+        List of expense dicts, each with keys: amount, currency, category, merchant, ts_client, note
+    """
+    if not text or not text.strip():
+        return []
+    
+    if now is None:
+        now = datetime.now()
+    
+    # Normalize text for better parsing
+    normalized = normalize_text_for_parsing(text)
+    expenses = []
+    
+    # Find all amounts in the text (symbols, words, bare numbers)
+    amount_patterns = [
+        # Currency symbols with amounts
+        (r'([৳$£€₹])\s*(\d+(?:[.,]\d{1,2})?)', 'symbol'),
+        # Amount with currency words  
+        (r'(\d+(?:[.,]\d{1,2})?)\s*(tk|taka|bdt|usd|eur|inr|rs|dollar|pound|euro|rupee)\b', 'word'),
+        # Action verbs with amounts
+        (r'\b(spent|paid|bought|blew|burned|used)\s+[^\d]*(\d+(?:[.,]\d{1,2})?)', 'verb'),
+        # Category + amount patterns (coffee 50, uber 2500)  
+        (r'\b(coffee|lunch|dinner|breakfast|uber|taxi|cng|bus|grocery|groceries|medicine|pharmacy)\s+(\d+(?:[.,]\d{1,2})?)', 'category'),
+        # Bare numbers (2+ digits, but prioritize context)
+        (r'\b(\d{2,7}(?:[.,]\d{1,2})?)\b', 'bare')
+    ]
+    
+    found_amounts = []
+    
+    for pattern, pattern_type in amount_patterns:
+        matches = re.finditer(pattern, normalized, re.IGNORECASE)
+        for match in matches:
+            if pattern_type == 'symbol':
+                symbol, amount_str = match.groups()
+                currency = CURRENCY_SYMBOLS.get(symbol, 'BDT')
+                amount_val = amount_str
+            elif pattern_type == 'word':
+                amount_val, currency_word = match.groups()
+                currency = CURRENCY_WORDS.get(currency_word.lower(), 'BDT')
+            elif pattern_type == 'verb':
+                amount_val = match.group(2)
+                currency = 'BDT'  # Default
+            elif pattern_type == 'category':
+                category_word, amount_val = match.groups()
+                currency = 'BDT'  # Default
+            else:  # bare
+                amount_val = match.group(1)
+                currency = 'BDT'  # Default
+            
+            try:
+                amount = Decimal(amount_val.replace(',', '.'))
+                if amount > 0:  # Skip zero amounts
+                    found_amounts.append({
+                        'amount': amount,
+                        'currency': currency,
+                        'start': match.start(),
+                        'end': match.end(),
+                        'context_start': max(0, match.start() - 50),
+                        'context_end': min(len(text), match.end() + 50)
+                    })
+            except (InvalidOperation, ValueError):
+                continue
+    
+    # Remove duplicate amounts at same position
+    unique_amounts = []
+    for amount_info in found_amounts:
+        is_duplicate = False
+        for existing in unique_amounts:
+            if (abs(amount_info['start'] - existing['start']) < 10 and 
+                amount_info['amount'] == existing['amount']):
+                is_duplicate = True
+                break
+        if not is_duplicate:
+            unique_amounts.append(amount_info)
+    
+    # For each amount, infer category from nearby context (±6 words)
+    for amount_info in unique_amounts:
+        # Extract context window around the amount
+        context_text = text[amount_info['context_start']:amount_info['context_end']]
+        
+        # Infer category from context
+        category = _infer_category_from_context(context_text)
+        
+        # Extract merchant if present in context
+        merchant = extract_merchant(context_text)
+        
+        # Extract date context
+        date_context = extract_date_context(text, now)
+        
+        expense = {
+            'amount': amount_info['amount'].quantize(Decimal('0.01')),
+            'currency': amount_info['currency'],
+            'category': category,
+            'merchant': merchant,
+            'ts_client': date_context or now,
+            'note': text.strip()
+        }
+        expenses.append(expense)
+    
+    return expenses
+
+def _infer_category_from_context(context_text: str) -> str:
+    """
+    Infer category from context text using a ±6 word window.
+    
+    Args:
+        context_text: Text context around the amount
+        
+    Returns:
+        Inferred category string
+    """
+    if not context_text:
+        return 'general'
+    
+    context_lower = context_text.lower()
+    best_category = 'general'
+    best_strength = 0
+    
+    # Enhanced category matching with context-specific boosts
+    category_keywords = {
+        # Transport (strong indicators)
+        'transport': ['uber', 'taxi', 'cng', 'bus', 'ride', 'lyft', 'grab', 'pathao', 'fuel', 'petrol', 'gas'],
+        # Food (strong indicators)
+        'food': ['breakfast', 'lunch', 'dinner', 'coffee', 'restaurant', 'meal', 'pizza', 'burger', 'food'],
+        # Shopping
+        'shopping': ['shopping', 'clothes', 'grocery', 'groceries', 'market', 'store', 'buy', 'bought'],
+        # Health
+        'health': ['medicine', 'pharmacy', 'doctor', 'hospital', 'medical', 'health'],
+        # Bills
+        'bills': ['internet', 'phone', 'rent', 'utilities', 'bill', 'electricity', 'water'],
+        # Entertainment
+        'entertainment': ['movie', 'cinema', 'game', 'entertainment', 'travel', 'vacation']
+    }
+    
+    for category, keywords in category_keywords.items():
+        for keyword in keywords:
+            if keyword in context_lower:
+                # Base strength
+                strength = 8
+                
+                # Boost if keyword appears multiple times
+                if context_lower.count(keyword) > 1:
+                    strength += 2
+                
+                # Boost for exact category matches
+                if keyword in ['uber', 'taxi', 'breakfast', 'lunch', 'dinner', 'grocery']:
+                    strength += 3
+                
+                if strength > best_strength:
+                    best_strength = strength
+                    best_category = category
+    
+    return best_category
+
 def parse_expense(text: str, now: datetime, correction_context: bool = False) -> Optional[Dict[str, Any]]:
     """
     Enhanced expense parser with correction context support.
+    Preserved for backward compatibility - returns first expense from extract_all_expenses.
     
     Args:
         text: Input text to parse
@@ -278,11 +441,11 @@ def parse_expense(text: str, now: datetime, correction_context: bool = False) ->
     if not text or not text.strip():
         return None
     
-    # Normalize text for better parsing
-    normalized = normalize_text_for_parsing(text)
-    
     # For correction context, support bare numbers and k shorthand
     if correction_context:
+        # Normalize text for better parsing
+        normalized = normalize_text_for_parsing(text)
+        
         # Pattern 1: Bare numbers (allow None for other fields to be inherited)
         bare_number_match = re.search(r'\b(\d{1,7}(?:[.,]\d{1,2})?)\b', normalized)
         if bare_number_match:
@@ -300,8 +463,9 @@ def parse_expense(text: str, now: datetime, correction_context: bool = False) ->
             except (InvalidOperation, ValueError):
                 pass
     
-    # Standard parsing logic
-    return _parse_standard_expense(normalized, text, now)
+    # Use multi-expense parser and return first result
+    all_expenses = extract_all_expenses(text, now)
+    return all_expenses[0] if all_expenses else None
 
 def _parse_standard_expense(normalized: str, original_text: str, now_ts: datetime) -> Optional[Dict[str, Any]]:
     """
