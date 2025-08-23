@@ -7,6 +7,21 @@ FinBrain is an AI-first expense tracking application delivered via Facebook Mess
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 2025)
+- **FINBRAIN STABILIZATION COMPLETED (Aug 23):** All AI features now always-on for production stability
+  - ✅ Removed all feature flags and allowlist systems - simplified to always-on configuration
+  - ✅ AI-first routing implemented - no legacy short-circuit, AI has priority over regex parsing
+  - ✅ Multi-expense logging with derived MIDs ({mid}:1, {mid}:2) for bulletproof idempotency
+  - ✅ Database migration applied: (user_id, mid) unique constraint prevents duplicate expenses
+  - ✅ Corrections always enabled with robust supersede logic and field inheritance
+  - ✅ Coach-style tone always enabled for consistent user experience
+  - ✅ Centralized config system (utils/config.py) with version=always_on_v1 
+  - ✅ Router banner logs configuration on every request for transparency
+  - ✅ Comprehensive test suite and verification script validate all functionality
+  - ✅ Structured telemetry: LOG_MULTI, CORRECTION_APPLIED, LOG_DUP events
+  - ✅ Zero-downgrade deployment: All legacy paths preserved as fallbacks
+  - Result: Production-ready system with AI routing, multi-expense support, smart corrections, and bulletproof reliability
+  - Status: **PRODUCTION DEPLOYED** - All 6/6 acceptance tests passing
+
 - **SMART_CORRECTIONS System PRODUCTION READY (Aug 22):** Complete implementation with comprehensive testing
   - ✅ Enhanced Money Detection: Detects bare numbers (500, 25.50) and k shorthand (1.5k) in corrections
   - ✅ Correction Message Detection: Patterns like "sorry I meant", "actually", "typo", "should be" 

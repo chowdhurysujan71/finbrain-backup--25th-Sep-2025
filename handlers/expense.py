@@ -65,7 +65,7 @@ def handle_multi_expense_logging(psid_hash_val: str, mid: str, text: str, now: d
             # Check for existing expense with this derived mid (idempotency)
             existing = db.session.query(Expense).filter(
                 Expense.user_id == psid_hash_val,
-                Expense.unique_id == derived_mid
+                Expense.mid == derived_mid
             ).first()
             
             if existing:
@@ -73,7 +73,7 @@ def handle_multi_expense_logging(psid_hash_val: str, mid: str, text: str, now: d
                 continue
                 
             # Create new expense
-            expense = _create_expense_from_data(psid_hash_val, derived_mid, expense_data, text, now)
+            expense = _create_expense_from_data(psid_hash_val, derived_mid, expense_data, text, now, derived_mid)
             db.session.add(expense)
             
             logged_expenses.append(expense_data)
@@ -187,7 +187,7 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: Dict[str,
         }
     
     # Create new expense
-    expense = _create_expense_from_data(psid_hash_val, mid, expense_data, original_text, now)
+    expense = _create_expense_from_data(psid_hash_val, mid, expense_data, original_text, now, mid)
     db.session.add(expense)
     
     # Update user totals
@@ -214,7 +214,7 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: Dict[str,
         'amount': amount
     }
 
-def _create_expense_from_data(psid_hash_val: str, unique_id: str, expense_data: Dict[str, Any], original_text: str, now: datetime) -> Expense:
+def _create_expense_from_data(psid_hash_val: str, unique_id: str, expense_data: Dict[str, Any], original_text: str, now: datetime, mid: str = None) -> Expense:
     """
     Create Expense record from parsed expense data.
     """
@@ -228,6 +228,7 @@ def _create_expense_from_data(psid_hash_val: str, unique_id: str, expense_data: 
     expense.time = (expense_data.get('ts_client') or now).time()
     expense.month = now.strftime('%Y-%m')
     expense.unique_id = unique_id
+    expense.mid = mid or unique_id  # Use mid for idempotency, fallback to unique_id
     expense.created_at = now
     expense.platform = 'messenger'
     expense.original_message = original_text[:500]
@@ -316,7 +317,7 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
             log_correction_no_candidate(psid_hash_val, mid, "logged_as_new")
             
             # Save as new expense with normal logging
-            new_expense = _create_new_expense(psid_hash_val, mid, target_expense, text, now)
+            new_expense = _create_new_expense(psid_hash_val, mid, target_expense, text, now, mid)
             db.session.add(new_expense)
             
             # Update user totals
@@ -363,8 +364,17 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
         # Step 5: Perform supersede operation
         correction_reason = parse_correction_reason(text)
         
-        # Create new corrected expense
-        new_expense = _create_new_expense(psid_hash_val, mid, target_expense, text, now)
+        # Create corrected expense data with inheritance from original
+        corrected_expense_data = {
+            'amount': target_expense['amount'],
+            'category': target_expense.get('category') or best_candidate.category,
+            'currency': target_expense.get('currency') or best_candidate.currency,
+            'merchant': target_expense.get('merchant') or getattr(best_candidate, 'merchant', None),
+            'note': target_expense.get('note') or text
+        }
+        
+        # Create new corrected expense  
+        new_expense = _create_new_expense(psid_hash_val, mid, corrected_expense_data, text, now, mid)
         db.session.add(new_expense)
         db.session.flush()  # Get the new expense ID
         
@@ -375,7 +385,7 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
         
         # Update user totals (remove old, add new)
         old_amount = float(best_candidate.amount)
-        new_amount = float(target_expense['amount'])
+        new_amount = float(corrected_expense_data['amount'])
         amount_difference = new_amount - old_amount
         _update_user_totals(psid_hash_val, amount_difference)
         
@@ -402,7 +412,7 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
         return {
             'text': response,
             'intent': 'correction_applied',
-            'category': target_expense['category'],
+            'category': corrected_expense_data['category'],
             'amount': new_amount
         }
         
@@ -431,8 +441,8 @@ def _find_best_correction_candidate(candidates: list, target_expense: Dict[str, 
     if not candidates:
         return None
     
-    target_category = target_expense.get('category', '').lower()
-    target_merchant = target_expense.get('merchant', '').lower() if target_expense.get('merchant') else None
+    target_category = (target_expense.get('category') or '').lower()
+    target_merchant = (target_expense.get('merchant') or '').lower() if target_expense.get('merchant') else None
     
     scored_candidates = []
     
@@ -466,7 +476,7 @@ def _find_best_correction_candidate(candidates: list, target_expense: Dict[str, 
         # Fall back to most recent if no semantic match
         return candidates[0]
 
-def _create_new_expense(psid_hash_val: str, mid: str, expense_data: Dict[str, Any], original_text: str, now: datetime) -> Expense:
+def _create_new_expense(psid_hash_val: str, mid: str, expense_data: Dict[str, Any], original_text: str, now: datetime, message_id: str = None) -> Expense:
     """
     Create new expense record from parsed data.
     
@@ -490,6 +500,7 @@ def _create_new_expense(psid_hash_val: str, mid: str, expense_data: Dict[str, An
     expense.time = (expense_data.get('ts_client') or now).time()
     expense.month = now.strftime('%Y-%m')
     expense.unique_id = f"correction_{mid}_{int(now.timestamp() * 1000)}"
+    expense.mid = message_id or f"correction_{mid}_{int(now.timestamp() * 1000)}"  # Use message_id for idempotency
     expense.created_at = now
     expense.platform = 'messenger'
     expense.original_message = original_text[:500]

@@ -151,25 +151,27 @@ class ProductionRouter:
         self.telemetry['total_messages'] += 1
         
         try:
+            # Always log router banner with current config
+            from utils.config import FEATURE_FLAGS_VERSION
+            logger.info(f"[ROUTER] mode=AI features=[NLP_ROUTING,TONE,CORRECTIONS] config_version={FEATURE_FLAGS_VERSION} psid={psid[:8]}...")
+            
             # Panic mode - immediate acknowledgment
             if PANIC_PLAIN_REPLY:
                 response = normalize("OK")
                 self._log_routing_decision(rid, user_hash, "panic", "immediate_ack")
                 return response, "panic", None, None
             
-            # Step 1: CORRECTION DETECTION - Check first before regular money detection
-            # This ensures corrections are caught before being treated as new expenses
-            corrections_enabled = is_smart_corrections_enabled(user_hash)
-            if corrections_enabled and is_correction_message(text):
-                logger.info(f"[ROUTER] Correction message detected: user={user_hash[:8]}...")
+            # Step 1: CORRECTION DETECTION - Always enabled, no flags
+            if is_correction_message(text):
+                logger.info(f"[ROUTER] Correction detected: user={user_hash[:8]}...")
                 
-                # Handle correction flow
+                # Handle correction flow (always enabled)
                 try:
                     from handlers.expense import handle_correction  # Lazy import to avoid circular dependency
                     correction_result = handle_correction(user_hash, rid, text, datetime.utcnow())
                     
                     self._emit_structured_telemetry(rid, user_hash, "CORRECTION", "processed", {
-                        'smart_corrections_enabled': True,
+                        'corrections_always_on': True,
                         'intent_result': correction_result.get('intent'),
                         'amount': correction_result.get('amount'),
                         'category': correction_result.get('category')
@@ -187,46 +189,50 @@ class ProductionRouter:
                     logger.error(f"Correction handling failed: {e}")
                     # Fall through to regular expense logging as fallback
                     
-            # Step 2: MONEY DETECTION (with correction fallback) - Prioritizes LOG over SUMMARY  
-            # Uses enhanced money detection that includes correction-specific fallbacks
+            # Step 2: AI ROUTING FIRST - No legacy short-circuit, AI has priority
+            # Check if this looks like an expense for AI routing
             money_detected = contains_money_with_correction_fallback(text, user_hash)
             
             if money_detected:
-                logger.info(f"[ROUTER] Money detected - forcing LOG intent: psid={psid[:8]}... text='{text[:50]}...'")
-                
-                # Check if SMART_NLP_ROUTING is enabled for this user
-                smart_nlp_enabled = is_smart_nlp_enabled(user_hash)
-                
-                if smart_nlp_enabled:
-                    # Use enhanced parse_expense function
-                    parsed_data = parse_expense_enhanced(text, datetime.utcnow())
-                    self._log_routing_decision(rid, user_hash, "LOG", "smart_nlp_money_detected")
-                    logger.info(f"[SMART_NLP] Enhanced parsing enabled: user={user_hash[:8]}...")
-                else:
-                    # Use legacy parser for backwards compatibility
-                    parsed_data = parse_amount_currency_category(text)
-                    self._log_routing_decision(rid, user_hash, "LOG", "legacy_money_detected")
+                # Try AI parsing first (always enabled)
+                try:
+                    from handlers.expense import handle_multi_expense_logging
+                    result = handle_multi_expense_logging(user_hash, rid, text, datetime.utcnow())
                     
+                    if result.get('intent') in ['log_single', 'log_multi']:
+                        self._emit_structured_telemetry(rid, user_hash, "LOG", "ai_routing_success", {
+                            'amount': result.get('amount'),
+                            'category': result.get('category'),
+                            'multi_expense': result.get('intent') == 'log_multi'
+                        })
+                        self._record_processing_time(time.time() - start_time)
+                        return normalize(result['text']), result['intent'], result.get('category'), result.get('amount')
+                    else:
+                        # AI couldn't parse, fall through to legacy
+                        logger.warning(f"AI parsing failed, falling back to legacy for: {text[:50]}...")
+                        
+                except Exception as e:
+                    logger.error(f"AI routing failed: {e}, falling back to legacy")
+                
+                # Legacy fallback only if AI fails  
+                parsed_data = parse_amount_currency_category(text)
                 if parsed_data and parsed_data.get('amount'):
-                    # Route to unified LOG handler with idempotency protection
                     response, intent, category, amount = self._handle_unified_log(text, psid, user_hash, rid, parsed_data)
-                    self._emit_structured_telemetry(rid, user_hash, "LOG", "money_detected", {
+                    self._emit_structured_telemetry(rid, user_hash, "LOG", "legacy_fallback", {
                         'amount': float(parsed_data['amount']),
                         'currency': parsed_data['currency'],
-                        'category': parsed_data['category'],
-                        'smart_nlp_enabled': smart_nlp_enabled,
-                        'merchant': parsed_data.get('merchant') if smart_nlp_enabled else None
+                        'category': parsed_data['category']
                     })
                     self._record_processing_time(time.time() - start_time)
                     return response, intent, category, amount
             
-            # Step 2: Use intent router for command detection (only if no money detected)
+            # Step 3: Use intent router for command detection (only if no money detected)
             from utils.intent_router import detect_intent
             from utils.dispatcher import handle_message_dispatch
             
             intent = detect_intent(text)
             
-            # Step 3: Route non-AI intents immediately (bypass rate limits)
+            # Step 4: Route non-AI intents immediately (bypass rate limits)
             if intent in ["DIAGNOSTIC", "SUMMARY", "INSIGHT", "UNDO"]:
                 # Only allow SUMMARY if no money was detected
                 if intent == "SUMMARY" and contains_money(text):
@@ -248,7 +254,7 @@ class ProductionRouter:
                 self._log_routing_decision(rid, user_hash, intent.lower(), "deterministic_bypass")
                 return normalize(response_text), intent.lower(), None, None
             
-            # Step 4: Handle expense logging with new parser
+            # Step 5: Handle expense logging with new parser
             if intent == "LOG_EXPENSE":
                 from handlers.logger import handle_log
                 result = handle_log(user_hash, text)
@@ -258,7 +264,7 @@ class ProductionRouter:
                 self._record_processing_time(time.time() - start_time)
                 return normalize(response), "log", None, None
             
-            # Step 4: Evaluate rate limiter for AI paths only
+            # Step 6: Evaluate rate limiter for AI paths only
             rate_limit_result = advanced_ai_limiter.check_rate_limit(user_hash)
 
             if not rate_limit_result.ai_allowed:
