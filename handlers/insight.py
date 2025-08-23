@@ -28,41 +28,33 @@ def handle_insight(user_id: str) -> Dict[str, str]:
             Expense.created_at < end
         ).group_by(Expense.category).order_by(db.desc('total')).all()
         
+        # Generate AI insights reply
+        from templates.replies_ai import format_ai_insight_reply, log_reply_banner
+        log_reply_banner('INSIGHT', user_id)
+        
         if not expenses:
-            return {"text": "No spending data yet this month. Log a few expenses first to get insights."}
+            return {"text": format_ai_insight_reply([], 0)}
         
         total = sum(exp.total for exp in expenses)
         
-        # Build insights
-        lines = ["🧠 Quick insights:"]
-        for exp in expenses[:4]:  # Top 4 categories
-            pct = (exp.total / total) * 100
-            lines.append(f"• {exp.category}: {exp.total:.0f} BDT ({pct:.0f}%)")
-        
         # Generate recommendations based on spending patterns
-        alerts = []
+        insights = []
         for exp in expenses:
             pct = (exp.total / total) * 100
             category_lower = exp.category.lower()
             
             # Rule-based recommendations
             if category_lower in {"groceries", "food"} and pct > 30:
-                alerts.append(f"Food spending is {pct:.0f}% - consider meal planning to reduce by 10%")
+                insights.append(f"Food spending is {pct:.0f}% - consider meal planning to reduce by 10%")
             elif category_lower in {"ride", "transport", "uber", "taxi"} and pct > 20:
-                alerts.append(f"Transport is {pct:.0f}% - try batching trips or using off-peak times")
+                insights.append(f"Transport is {pct:.0f}% - try batching trips or using off-peak times")
             elif category_lower in {"shopping", "clothes"} and pct > 25:
-                alerts.append(f"Shopping is {pct:.0f}% - set a monthly budget limit")
+                insights.append(f"Shopping is {pct:.0f}% - set a monthly budget limit")
             elif category_lower in {"entertainment", "fun"} and pct > 15:
-                alerts.append(f"Entertainment is {pct:.0f}% - look for free activities")
+                insights.append(f"Entertainment is {pct:.0f}% - look for free activities")
         
-        msg = "\n".join(lines)
-        
-        if alerts:
-            msg += "\n\n⚠️ Optimization tips:\n" + "\n".join(f"• {a}" for a in alerts)
-        else:
-            msg += "\n\n✅ Great balance! Your spending is well distributed."
-        
-        msg += "\n\nTry 'summary' for your spending totals."
+        # Use AI template
+        msg = format_ai_insight_reply(insights, total)
         
         return {"text": msg}
         

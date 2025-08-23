@@ -101,7 +101,7 @@ def handle_multi_expense_logging(psid_hash_val: str, mid: str, text: str, now: d
         logger.info(f"LOG_MULTI: {len(logged_expenses)} expenses, total ৳{total_amount}, mids: {derived_mids}")
         
         # Generate coach-style summary reply
-        response = _format_multi_expense_reply(logged_expenses)
+        response = _format_multi_expense_reply(logged_expenses, psid_hash_val)
         
         return {
             'text': response,
@@ -179,8 +179,10 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: Dict[str,
     ).first()
     
     if existing:
+        from templates.replies_ai import format_ai_duplicate_reply, log_reply_banner
+        log_reply_banner('LOG_DUPLICATE', psid_hash_val)
         return {
-            'text': "I've already logged that expense.",
+            'text': format_ai_duplicate_reply(),
             'intent': 'log_duplicate',
             'category': existing.category,
             'amount': float(existing.amount)
@@ -200,12 +202,14 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: Dict[str,
     # Cache context for Q&A
     _cache_expense_context(psid_hash_val, [mid], [expense_data], now)
     
-    # Generate friendly reply
-    from utils.feature_flags import is_smart_tone_enabled
-    if is_smart_tone_enabled(psid_hash_val):
-        response = f"✅ Logged: ৳{expense_data['amount']} for {expense_data['category']}. Type 'summary' to see your week."
-    else:
-        response = f"Logged ৳{expense_data['amount']} for {expense_data['category']}."
+    # Generate AI reply
+    from templates.replies_ai import format_ai_single_expense_reply, log_reply_banner
+    log_reply_banner('LOG', psid_hash_val)
+    response = format_ai_single_expense_reply(
+        float(expense_data['amount']), 
+        expense_data['category'], 
+        expense_data.get('currency', 'BDT')
+    )
     
     return {
         'text': response,
@@ -214,7 +218,7 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: Dict[str,
         'amount': amount
     }
 
-def _create_expense_from_data(psid_hash_val: str, unique_id: str, expense_data: Dict[str, Any], original_text: str, now: datetime, mid: str = None) -> Expense:
+def _create_expense_from_data(psid_hash_val: str, unique_id: str, expense_data: Dict[str, Any], original_text: str, now: datetime, mid: Optional[str] = None) -> Expense:
     """
     Create Expense record from parsed expense data.
     """
@@ -228,20 +232,22 @@ def _create_expense_from_data(psid_hash_val: str, unique_id: str, expense_data: 
     expense.time = (expense_data.get('ts_client') or now).time()
     expense.month = now.strftime('%Y-%m')
     expense.unique_id = unique_id
-    expense.mid = mid or unique_id  # Use mid for idempotency, fallback to unique_id
+    expense.mid = mid or unique_id or 'unknown'  # Use mid for idempotency, fallback to unique_id
     expense.created_at = now
     expense.platform = 'messenger'
     expense.original_message = original_text[:500]
     
     return expense
 
-def _format_multi_expense_reply(expenses: list) -> str:
+def _format_multi_expense_reply(expenses: list, psid_hash_val: str) -> str:
     """
-    Format coach-style reply for multiple expense logging.
+    Format AI-style reply for multiple expense logging.
     """
-    if len(expenses) == 1:
-        exp = expenses[0]
-        return f"✅ Logged: ৳{exp['amount']} {exp['category']}. Type 'summary' to see your week."
+    from templates.replies_ai import format_ai_multi_expense_reply, log_reply_banner
+    log_reply_banner('LOG_MULTI', psid_hash_val)
+    
+    total_amount = sum(float(exp['amount']) for exp in expenses)
+    return format_ai_multi_expense_reply(expenses, total_amount)
     
     # Group by category for cleaner display
     summary_parts = []
@@ -476,7 +482,7 @@ def _find_best_correction_candidate(candidates: list, target_expense: Dict[str, 
         # Fall back to most recent if no semantic match
         return candidates[0]
 
-def _create_new_expense(psid_hash_val: str, mid: str, expense_data: Dict[str, Any], original_text: str, now: datetime, message_id: str = None) -> Expense:
+def _create_new_expense(psid_hash_val: str, mid: str, expense_data: Dict[str, Any], original_text: str, now: datetime, message_id: Optional[str] = None) -> Expense:
     """
     Create new expense record from parsed data.
     
@@ -500,7 +506,7 @@ def _create_new_expense(psid_hash_val: str, mid: str, expense_data: Dict[str, An
     expense.time = (expense_data.get('ts_client') or now).time()
     expense.month = now.strftime('%Y-%m')
     expense.unique_id = f"correction_{mid}_{int(now.timestamp() * 1000)}"
-    expense.mid = message_id or f"correction_{mid}_{int(now.timestamp() * 1000)}"  # Use message_id for idempotency
+    expense.mid = message_id or f"correction_{mid}_{int(now.timestamp() * 1000)}" or 'unknown'  # Use message_id for idempotency
     expense.created_at = now
     expense.platform = 'messenger'
     expense.original_message = original_text[:500]

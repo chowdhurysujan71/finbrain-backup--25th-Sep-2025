@@ -51,25 +51,22 @@ def handle_summary(user_id: str, timeframe: str = "week") -> Dict[str, str]:
             Expense.created_at < end
         ).group_by(Expense.category).all()
         
+        # Generate AI summary reply
+        from templates.replies_ai import format_ai_summary_reply, log_reply_banner
+        log_reply_banner('SUMMARY', user_id)
+        
         if not expenses:
-            return {"text": f"No expenses logged for {period}. Start tracking with 'spent 100 on lunch'."}
+            return {"text": format_ai_summary_reply(period, 0, 0, [])}
         
         # Calculate totals
         total_amount = sum(exp.total for exp in expenses)
         total_entries = sum(exp.count for exp in expenses)
         
-        # Build category breakdown
-        categories = []
-        for exp in expenses[:5]:  # Top 5 categories
-            pct = (exp.total / total_amount) * 100 if total_amount > 0 else 0
-            categories.append(f"{exp.category}: {exp.total:.0f} ({pct:.0f}%)")
+        # Build category list
+        categories = [exp.category for exp in expenses[:5]]  # Top 5 categories
         
-        # Format message
-        msg = f"📊 {period.capitalize()}: {total_amount:.0f} BDT across {total_entries} entries.\n"
-        if categories:
-            msg += "Categories:\n" + "\n".join(f"• {cat}" for cat in categories)
-        
-        msg += "\n\nTip: type 'insight' for spending optimization tips."
+        # Use AI template
+        msg = format_ai_summary_reply(period, total_amount, total_entries, categories)
         
         return {"text": msg}
         

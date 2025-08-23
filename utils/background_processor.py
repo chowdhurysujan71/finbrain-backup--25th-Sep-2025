@@ -114,9 +114,10 @@ class BackgroundProcessor:
                     
                     # Send response with clear error handling + debug echo for 24h
                     try:
-                        debug_mode = "AI" if "ai" in intent.lower() else "STD"
-                        response_with_debug = f"{response_text}\n\npong | psid_hash={psid_hash[:8]}... | mode={debug_mode}"
-                        response_sent = send_facebook_message(job.psid, response_with_debug)
+                        # Always use AI templates - no debug footers
+                        from templates.replies_ai import clean_ai_reply
+                        clean_response = clean_ai_reply(response_text)
+                        response_sent = send_facebook_message(job.psid, clean_response)
                         logger.info(f"Request {job.rid}: Response sent successfully to {job.psid[:10]}*** (hash: {psid_hash[:8]}...)")
                     except ValueError as psid_error:
                         # Invalid PSID - clear error, no fallback attempt
@@ -126,8 +127,8 @@ class BackgroundProcessor:
                         # Facebook API error - clear error, try simple fallback
                         logger.error(f"Request {job.rid}: Facebook API error - {str(api_error)}")
                         try:
-                            fallback_with_debug = f"Got it.\n\npong | psid_hash={psid_hash[:8]}... | mode=FBK"
-                            response_sent = send_facebook_message(job.psid, fallback_with_debug)
+                            # Clean AI fallback response
+                            response_sent = send_facebook_message(job.psid, "Got it! ✅")
                             logger.info(f"Request {job.rid}: Fallback message sent successfully (hash: {psid_hash[:8]}...)")
                         except Exception as fallback_error:
                             logger.error(f"Request {job.rid}: Fallback send failed - {str(fallback_error)}")
@@ -143,8 +144,10 @@ class BackgroundProcessor:
                     intent = "error"
                     # Always attempt response even on processing errors
                     try:
-                        error_with_debug = f"{response_text}\n\npong | psid_hash={psid_hash[:8]}... | mode=ERR"
-                        response_sent = send_facebook_message(job.psid, error_with_debug)
+                        # Clean AI error response
+                        from templates.replies_ai import format_ai_error_reply, clean_ai_reply
+                        clean_error = format_ai_error_reply("general")
+                        response_sent = send_facebook_message(job.psid, clean_error)
                         logger.info(f"Request {job.rid}: Error response sent successfully (hash: {psid_hash[:8]}...)")
                     except ValueError as psid_error:
                         logger.error(f"Request {job.rid}: Error response failed - invalid PSID: {str(psid_error)}")

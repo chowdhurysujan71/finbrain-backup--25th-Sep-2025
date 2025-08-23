@@ -12,25 +12,20 @@ DEBUG_MODE = os.getenv("FB_DEBUG_MODE", "1") == "1"
 
 def stamp_reply(text: str, job: dict, mode: str) -> str:
     """
-    Add 24-hour debug stamp to message
+    Clean reply with no debug footers (removed for production AI templates)
     
     Args:
         text: Original message text
-        job: Background job containing psid_hash
-        mode: Processing mode (AI, STD, FBK, ERR)
+        job: Background job containing psid_hash (ignored)
+        mode: Processing mode (always AI now)
         
     Returns:
-        Message with debug stamp if debug mode enabled
+        Clean message text without debug stamps
     """
-    if not DEBUG_MODE:
-        return text
-    
-    psid_hash = job.get("psid_hash", "unknown")[:8]
-    debug_info = f"pong | psid_hash={psid_hash}... | mode={mode}"
-    
-    return f"{text}\n\n{debug_info}"
+    # Debug stamps removed for production - all responses use AI templates
+    return text.strip()
 
-def send_reply(job: dict, text: str, mode: str = "STD"):
+def send_reply(job: dict, text: str, mode: str = "AI"):
     """
     Send stamped reply via Facebook API
     
