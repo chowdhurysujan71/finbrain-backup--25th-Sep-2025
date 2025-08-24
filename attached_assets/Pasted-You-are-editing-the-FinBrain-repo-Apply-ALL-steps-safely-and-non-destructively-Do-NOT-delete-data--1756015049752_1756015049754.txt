@@ -1,0 +1,157 @@
+You are editing the FinBrain repo. Apply ALL steps safely and non-destructively. Do NOT delete data. All changes must be additive, backward-compatible, and behind safe guards.
+
+GOAL
+- Quarantine all test/system users so they never affect live analytics.
+- Keep ONLY two psids “live” for now:
+    'a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff'  (Admin/Owner)
+    '1e837186f19ad92f36b9f484b87093fb84875e4399440409ee88a6d2e0821b2d'  (KC tester / Alex)
+- Align feature flags with current state: all smart features are **ON globally**, but preserve allowlist infra in case we need to tighten later.
+- Ensure DB idempotency (`mid` column + unique index).
+- Update analytics to surface only real users.
+
+───────────────────────────────────────────────────────────────
+
+1) DATABASE MIGRATIONS
+
+-- Real users allowlist
+CREATE TABLE IF NOT EXISTS real_users_allowlist (
+  psid_hash TEXT PRIMARY KEY,
+  note TEXT
+);
+
+-- Add quarantine marker
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS is_test BOOLEAN NULL;
+
+-- Add idempotency column if missing
+ALTER TABLE expenses
+  ADD COLUMN IF NOT EXISTS mid VARCHAR NULL;
+
+-- Unique index for idempotency
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes WHERE indexname = 'ux_expenses_user_mid'
+  ) THEN
+    EXECUTE 'CREATE UNIQUE INDEX ux_expenses_user_mid ON expenses(user_id, mid) WHERE mid IS NOT NULL';
+  END IF;
+END$$;
+
+-- Ensure allowlisted real users
+INSERT INTO real_users_allowlist(psid_hash, note) VALUES
+  ('a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff', 'Admin/Test Owner'),
+  ('1e837186f19ad92f36b9f484b87093fb84875e4399440409ee88a6d2e0821b2d', 'KC tester / Alex')
+ON CONFLICT DO NOTHING;
+
+-- Quarantine heuristic: mark test/system accounts but DO NOT delete
+UPDATE users u
+SET is_test = TRUE
+WHERE u.psid_hash NOT IN (SELECT psid_hash FROM real_users_allowlist)
+  AND (
+    COALESCE(u.name, '') ILIKE '%test%'
+    OR COALESCE(u.name, '') ILIKE '%uat%'
+    OR COALESCE(u.name, '') ILIKE '%simple%'
+    OR COALESCE(u.name, '') = 'there'
+    OR EXISTS (
+       SELECT 1 FROM users u2
+       WHERE u2.id = u.id
+         AND (SELECT COUNT(1) FROM expenses e WHERE e.user_id = u.id) = 0
+    )
+  );
+
+-- Never quarantine the two real psids
+UPDATE users SET is_test = FALSE
+WHERE psid_hash IN (
+  'a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff',
+  '1e837186f19ad92f36b9f484b87093fb84875e4399440409ee88a6d2e0821b2d'
+);
+
+-- Live views for dashboards
+CREATE OR REPLACE VIEW v_users_live AS
+SELECT * FROM users
+WHERE (is_test IS DISTINCT FROM TRUE)
+   OR psid_hash IN (SELECT psid_hash FROM real_users_allowlist);
+
+CREATE OR REPLACE VIEW v_expenses_live AS
+SELECT e.*
+FROM expenses e
+JOIN users u ON u.id = e.user_id
+LEFT JOIN real_users_allowlist r ON r.psid_hash = u.psid_hash
+WHERE (u.is_test IS DISTINCT FROM TRUE) OR r.psid_hash IS NOT NULL;
+
+───────────────────────────────────────────────────────────────
+
+2) FEATURE FLAG LOGIC (aligned with always-on global state)
+
+In `utils/feature_flags.py`:
+
+# Current system is always-on → preserve that as default,
+# but keep allowlist infra in case we later restrict.
+
+SMART_NLP_ROUTING_DEFAULT = True
+SMART_NLP_TONE_FOR_STD_DEFAULT = True
+SMART_CORRECTIONS_DEFAULT = True
+
+def feature_enabled(psid_hash: str, feature: str) -> bool:
+    # For now: always returns True (matches current system behavior)
+    # Future: can restrict to allowlist below
+    return True
+
+# If we want to test allowlist-only later, flip defaults to False
+# and check psid_hash in real_users_allowlist.
+
+───────────────────────────────────────────────────────────────
+
+3) ROUTER + DB IDEMPOTENCY
+
+- Router should always assign a `mid` to every expense:
+    - Single expense → fb_mid
+    - Multi-expense → fb_mid:1, fb_mid:2, etc
+- `upsert_expense_idempotent()` must always pass mid and respect unique index.
+- On conflict, do nothing (idempotent insert).
+
+───────────────────────────────────────────────────────────────
+
+4) ANALYTICS
+
+- All dashboards and summaries must query `v_users_live` and `v_expenses_live` instead of base tables.
+- This guarantees quarantined test accounts never pollute analytics.
+
+───────────────────────────────────────────────────────────────
+
+5) TELEMETRY CHECKPOINTS
+
+For each request log:
+
+- mode=AI (since defaults are ON globally)
+- smart_nlp_enabled=True
+- smart_tone_enabled=True
+- smart_corrections_enabled=True
+- If correction applied → log CORRECTION_APPLIED
+- If multi-expense → log LOG_MULTI with sub-mids
+
+───────────────────────────────────────────────────────────────
+
+6) VERIFICATION CHECKLIST
+
+Test 1 (multi-expense):  
+Send: "Uber 2500 and breakfast 700"  
+→ DB: 2 rows with mid suffixes  
+→ Log: LOG_MULTI, mode=AI, no legacy_money_detected  
+
+Test 2 (correction):  
+Send: "actually 500 for breakfast"  
+→ DB: old breakfast superseded, new row 500  
+→ Log: CORRECTION_APPLIED  
+
+Test 3 (summary):  
+→ Dashboard totals include only 2 psids (admin + Alex), no polluted data  
+
+Test 4 (insight):  
+→ Conversational tone reply (AI coach mode), telemetry shows mode=AI  
+
+───────────────────────────────────────────────────────────────
+
+ROLLBACK
+- To revert to stricter allowlist mode later: flip defaults in feature_flags.py to False, keep allowlist table active.
+- Quarantine is reversible: `UPDATE users SET is_test=NULL WHERE ...` if you want everything back in.
