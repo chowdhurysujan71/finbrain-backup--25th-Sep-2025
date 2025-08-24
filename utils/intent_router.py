@@ -34,6 +34,15 @@ def detect_intent(text: str) -> str:
     if any(pattern in text_lower for pattern in summary_patterns):
         return "SUMMARY"
     
+    # Privacy/security queries - Enhanced synonyms for data security questions
+    privacy_patterns = [
+        "store my data", "how do you store my data", "how do you store data",
+        "is my data safe", "data secure", "data security", "data protection",
+        "privacy", "privacy policy", "how is my data stored"
+    ]
+    if any(pattern in text_lower for pattern in privacy_patterns):
+        return "INFO_PRIVACY"
+
     # Insight commands - Enhanced keyword set for ASK_INSIGHT detection
     insight_patterns = [
         "insight", "insights", "advice", "advise", "tip", "tips", "analyze", "analysis", 

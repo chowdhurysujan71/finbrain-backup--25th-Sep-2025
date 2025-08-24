@@ -43,6 +43,9 @@ try:
 except ImportError:
     perf = None
 
+# FAQ/Smalltalk guardrail imports
+from utils.faq_map import match_faq_or_smalltalk, fallback_default
+
 # Flask imports for webhook blueprint
 from flask import Blueprint, request, jsonify
 
@@ -164,6 +167,13 @@ class ProductionRouter:
                 response = normalize("OK")
                 self._log_routing_decision(rid, user_hash, "panic", "immediate_ack")
                 return response, "panic", None, None
+            
+            # Step 0: FAQ/SMALLTALK GUARDRAIL - Deterministic responses with emojis (no AI)
+            faq_response = match_faq_or_smalltalk(text)
+            if faq_response:
+                self._log_routing_decision(rid, user_hash, "faq_smalltalk", "deterministic")
+                self._record_processing_time(time.time() - start_time)
+                return faq_response, "faq", None, None
             
             # Step 1: CORRECTION DETECTION - Always enabled, no flags
             if is_correction_message(text):
@@ -370,8 +380,8 @@ class ProductionRouter:
             
         except Exception as e:
             logger.error(f"Production routing error: {e}")
-            # Emergency fallback - NO tip on unknown text
-            response = normalize("I didn't understand that. Please try again.")
+            # Emergency fallback with friendly FAQ default
+            response = fallback_default()
             self._log_routing_decision(rid, user_hash, "error", f"emergency_fallback: {str(e)}")
             return response, "error", None, None
     
