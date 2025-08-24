@@ -249,7 +249,7 @@ class ProductionRouter:
             
             # Step 3.5: Handle contradiction guard for spending increase requests
             if intent == "CLARIFY_SPENDING_INTENT":
-                response = normalize("Just to clarify — do you want tips to reduce spending, or genuinely increase it?")
+                response = normalize("🤔 I want to make sure I help you the right way! Are you looking for tips to spend *less* and save more money, or do you actually want to increase your spending? Just want to point my advice in the right direction! 💡")
                 self._emit_structured_telemetry(rid, user_hash, "CLARIFY", "spending_contradiction", {})
                 self._log_routing_decision(rid, user_hash, "clarify", "spending_intent_contradiction")
                 self._record_processing_time(time.time() - start_time)

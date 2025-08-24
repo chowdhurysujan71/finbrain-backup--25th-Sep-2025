@@ -43,8 +43,8 @@ def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
             return handle_undo(user_id), intent
             
         elif intent == "CLARIFY_SPENDING_INTENT":
-            # Handle spending contradiction clarification
-            return "Just to clarify — do you want tips to reduce spending, or genuinely increase it?", intent
+            # Handle spending contradiction clarification with coach-tone
+            return "🤔 I want to make sure I help you the right way! Are you looking for tips to spend *less* and save more money, or do you actually want to increase your spending? Just want to point my advice in the right direction! 💡", intent
             
         else:
             # Unknown intent - provide help
