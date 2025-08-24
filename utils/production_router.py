@@ -125,6 +125,10 @@ class ProductionRouter:
         }
         
         logger.info("Production Router initialized with bulletproof RL-2 and flag-gated AI")
+        
+        # In-memory store for previous bot intents (for intent upgrade detection)
+        # In production, this could be Redis or database-backed
+        self._previous_intents = {}
     
     def _is_expense_message(self, text: str) -> bool:
         """Check if message looks like an expense (has numbers + keywords)"""
@@ -227,10 +231,29 @@ class ProductionRouter:
                     return response, intent, category, amount
             
             # Step 3: Use intent router for command detection (only if no money detected)
-            from utils.intent_router import detect_intent
+            from utils.intent_router import detect_intent, is_followup_after_summary_or_log
             from utils.dispatcher import handle_message_dispatch
             
             intent = detect_intent(text)
+            upgrade_reason = None
+            
+            # Step 3.1: Check for intent upgrade (SUMMARY/LOG → INSIGHT)
+            # This checks if user asks for insights after receiving summary/log response
+            previous_intent = self._get_previous_bot_intent(user_hash)  # We'll implement this
+            if intent == "INSIGHT" and is_followup_after_summary_or_log(text, previous_intent):
+                upgrade_reason = "followup_after_" + (previous_intent.lower() if previous_intent else "unknown")
+                logger.info(f"[ROUTER] INTENT_UPGRADE: {previous_intent}→INSIGHT reason={upgrade_reason}")
+            elif intent == "INSIGHT" and any(keyword in text.lower() for keyword in ["analysis", "analyze", "advise", "advice", "suggest", "tips", "optimize", "insight", "breakdown", "review", "how am i doing", "help me save"]):
+                upgrade_reason = "ask_keywords"
+                logger.info(f"[ROUTER] INTENT_UPGRADE: UNKNOWN→INSIGHT reason=ask_keywords")
+            
+            # Step 3.5: Handle contradiction guard for spending increase requests
+            if intent == "CLARIFY_SPENDING_INTENT":
+                response = normalize("Just to clarify — do you want tips to reduce spending, or genuinely increase it?")
+                self._emit_structured_telemetry(rid, user_hash, "CLARIFY", "spending_contradiction", {})
+                self._log_routing_decision(rid, user_hash, "clarify", "spending_intent_contradiction")
+                self._record_processing_time(time.time() - start_time)
+                return response, "clarify", None, None
             
             # Step 4: Route non-AI intents immediately (bypass rate limits)
             if intent in ["DIAGNOSTIC", "SUMMARY", "INSIGHT", "UNDO"]:
@@ -255,9 +278,15 @@ class ProductionRouter:
                 # This implements intent-first short-circuit per hardening requirements
                 normal_reply = normalize(response_text)
                 
-                # Record the successful normal reply
-                self._emit_structured_telemetry(rid, user_hash, intent, "deterministic_bypass", {})
+                # Record the successful normal reply with upgrade reason if applicable
+                telemetry_data = {}
+                if upgrade_reason:
+                    telemetry_data["upgrade_reason"] = upgrade_reason
+                self._emit_structured_telemetry(rid, user_hash, intent, "deterministic_bypass", telemetry_data)
                 self._log_routing_decision(rid, user_hash, intent.lower(), "deterministic_bypass")
+                
+                # Store current intent for future upgrade detection
+                self._store_previous_bot_intent(user_hash, intent)
                 
                 # For protected intents (SUMMARY), NEVER attempt coaching - return immediately
                 if intent in ["SUMMARY"]:
@@ -345,6 +374,26 @@ class ProductionRouter:
             response = normalize("I didn't understand that. Please try again.")
             self._log_routing_decision(rid, user_hash, "error", f"emergency_fallback: {str(e)}")
             return response, "error", None, None
+    
+    def _get_previous_bot_intent(self, user_hash: str) -> Optional[str]:
+        """
+        Get the previous bot intent for this user (for intent upgrade detection)
+        Returns the last bot intent or None if not found
+        """
+        return self._previous_intents.get(user_hash)
+    
+    def _store_previous_bot_intent(self, user_hash: str, intent: str) -> None:
+        """
+        Store the current bot intent for future upgrade detection
+        In production, this could be backed by Redis with TTL
+        """
+        self._previous_intents[user_hash] = intent.upper()
+        
+        # Keep only recent entries (simple cleanup)
+        if len(self._previous_intents) > 1000:
+            # Remove oldest entries, keep last 500
+            items = list(self._previous_intents.items())[-500:]
+            self._previous_intents = dict(items)
     
     def _handle_expense_log(self, parsed_expense, text: str, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Handle deterministic expense logging"""

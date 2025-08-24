@@ -18,6 +18,10 @@ def detect_intent(text: str) -> str:
     # Normalize text for analysis
     text_lower = text.strip().lower()
     
+    # Contradiction guard for INSIGHT - check for spending increase requests
+    if _has_spending_increase_intent(text_lower):
+        return "CLARIFY_SPENDING_INTENT"
+    
     # Diagnostic commands
     if text_lower in ["diag", "diagnostic", "status", "health"]:
         return "DIAGNOSTIC"
@@ -30,10 +34,12 @@ def detect_intent(text: str) -> str:
     if any(pattern in text_lower for pattern in summary_patterns):
         return "SUMMARY"
     
-    # Insight commands
+    # Insight commands - Enhanced keyword set for ASK_INSIGHT detection
     insight_patterns = [
-        "insight", "advice", "tip", "analyze", "analysis", "pattern",
-        "recommendations", "suggest", "improve", "save money"
+        "insight", "insights", "advice", "advise", "tip", "tips", "analyze", "analysis", 
+        "pattern", "recommendations", "suggest", "suggestion", "suggestions", "improve", 
+        "save money", "optimize", "optimization", "breakdown", "review", 
+        "how am i doing", "help me save", "reduce spend", "increase savings"
     ]
     if any(pattern in text_lower for pattern in insight_patterns):
         return "INSIGHT"
@@ -60,6 +66,43 @@ def detect_intent(text: str) -> str:
     
     # Default to unknown for non-matching text
     return "UNKNOWN"
+
+
+def _has_spending_increase_intent(text_lower: str) -> bool:
+    """
+    Check if text contains contradictory spending increase intent
+    Returns True if user wants to increase spending (contradiction to typical insights)
+    """
+    increase_patterns = [
+        "increase my spending", "spend more", "spending more", "increase spending",
+        "spend more money", "want to spend more", "increase my expenses",
+        "higher spending", "spend higher", "more money"
+    ]
+    return any(pattern in text_lower for pattern in increase_patterns)
+
+
+def is_followup_after_summary_or_log(text: str, previous_intent: Optional[str] = None) -> bool:
+    """
+    Check if current text is INSIGHT request following SUMMARY or LOG response
+    Args:
+        text: Current user message
+        previous_intent: Previous bot response intent (SUMMARY, LOG, etc.)
+    Returns:
+        True if this should be upgraded from normal intent to INSIGHT
+    """
+    if not previous_intent or previous_intent not in ["SUMMARY", "LOG"]:
+        return False
+        
+    # Check if current text contains insight keywords
+    text_lower = text.strip().lower()
+    insight_patterns = [
+        "insight", "insights", "advice", "advise", "tip", "tips", "analyze", "analysis",
+        "pattern", "recommendations", "suggest", "suggestion", "suggestions", "improve",
+        "save money", "optimize", "optimization", "breakdown", "review",
+        "how am i doing", "help me save", "reduce spend", "increase savings"
+    ]
+    
+    return any(pattern in text_lower for pattern in insight_patterns)
 
 
 # Preserve legacy import compatibility if needed

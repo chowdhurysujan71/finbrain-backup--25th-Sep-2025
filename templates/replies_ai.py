@@ -90,13 +90,15 @@ def format_ai_summary_reply(period: str, total_amount: float, total_entries: int
 
 # AI Insight Templates
 def format_ai_insight_reply(insights: List[str], total_amount: Optional[float] = None) -> str:
-    """AI-style insights with personalized coaching"""
+    """AI-style insights with personalized coaching and user acknowledgment"""
     
+    # User-acknowledgment line prepended
     if not insights:
-        return ("🎯 Your spending looks balanced! You're doing well with tracking expenses. "
+        return ("You asked for an analysis. Here's a quick read on your spending...\n\n"
+                "🎯 Your spending looks balanced! You're doing well with tracking expenses. "
                 "Keep it up and consider setting monthly goals for even better control.")
     
-    insight_text = "💡 Here's what I noticed:\n" + "\n".join(f"• {insight}" for insight in insights)
+    insight_text = "You asked for an analysis. Here's a quick read on your spending...\n\n💡 Here's what I noticed:\n" + "\n".join(f"• {insight}" for insight in insights)
     
     # Add encouraging coaching
     if total_amount and total_amount > 3000:

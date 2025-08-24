@@ -6,7 +6,7 @@ Comprehensive event tracking for AI corrections, routing, and system health
 import logging
 import json
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 logger = logging.getLogger("finbrain.structured")
 
@@ -69,6 +69,46 @@ def log_structured_event(event_name: str, data: Dict[str, Any]) -> None:
     }
     
     logger.info(f"{event_name} {json.dumps(event)}")
+
+def log_intent_upgrade(psid_hash: str, old_intent: str, new_intent: str, upgrade_reason: str) -> None:
+    """
+    Log intent upgrade event for enhanced insight detection
+    
+    Args:
+        psid_hash: User's PSID hash
+        old_intent: Previous intent
+        new_intent: Upgraded intent
+        upgrade_reason: Reason for upgrade (ask_keywords|followup_after_summary)
+    """
+    event = {
+        'timestamp': datetime.utcnow().isoformat(),
+        'event_type': 'intent_upgrade',
+        'psid_hash': psid_hash[:8] + '...',
+        'old_intent': old_intent,
+        'new_intent': new_intent,
+        'upgrade_reason': upgrade_reason
+    }
+    
+    logger.info(f"INTENT_UPGRADE {json.dumps(event)}")
+
+def log_insight_request(psid_hash: str, keywords_detected: List[str], upgrade_reason: Optional[str] = None) -> None:
+    """
+    Log insight request with detected keywords and upgrade context
+    
+    Args:
+        psid_hash: User's PSID hash  
+        keywords_detected: List of insight keywords detected in message
+        upgrade_reason: Reason for intent upgrade if applicable
+    """
+    event = {
+        'timestamp': datetime.utcnow().isoformat(),
+        'event_type': 'insight_request',
+        'psid_hash': psid_hash[:8] + '...',
+        'keywords_detected': keywords_detected,
+        'upgrade_reason': upgrade_reason
+    }
+    
+    logger.info(f"INSIGHT_REQUEST {json.dumps(event)}")
 
 def log_correction_duplicate(psid_hash: str, mid: str) -> None:
     """
