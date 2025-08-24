@@ -1,0 +1,182 @@
+You are auditing the FinBrain repository and runtime. Goal: produce a single, human-readable MARKDOWN report that audits the **end-to-end data path for real users only**, confirms data integrity, storage health, idempotency, and routing (AI features), and surfaces issues with severity and concrete fixes.
+
+CONSTRAINTS
+- Read-only first: DO NOT modify code or data in this pass.
+- No deletes or updates.
+- If a write is absolutely required to verify something, PREPARE a safe, separate snippet but do not execute.
+- Assume real users are the 2 PSIDs:
+  * Admin/Owner:  a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff
+  * KC tester:    1e837186f19ad92f36b9f484b87093fb84875e4399440409ee88a6d2e0821b2d
+- Analytics MUST only consider `v_users_live` + `v_expenses_live`.
+
+DELIVERABLES (as a single MARKDOWN file `audit_real_users.md`)
+1) Executive summary (green/yellow/red).
+2) Data-flow diagram (textual) from Messenger → Webhook → Router → Parsers → DB → Analytics.
+3) Findings table with: Area | Check | Result | Evidence | Severity | Fix.
+4) SQL & log evidence blocks.
+5) Risk score (0–100) and top 5 fixes with owners & effort (S/M/L).
+6) “Go/No-Go” decision for broader testing.
+
+SCOPE (Audit these layers)
+A) Ingress (Facebook Messenger / Webhook)
+B) Router & Feature flags (always-on AI vs legacy)
+C) NLP parsing & Corrections (exclusion of superseded rows)
+D) DB schema & Idempotency (mid uniqueness, orphans)
+E) Quarantine separation (live views only)
+F) Analytics (summaries use `v_*` views)
+G) Telemetry, latency, error rates
+H) Privacy, retention, backup posture (metadata only, no PII dumps)
+
+DATA COLLECTION — RUN THESE READ-ONLY QUERIES
+(Embed outputs inline in the report. If a view/table is missing, note it in Findings.)
+
+-- A1) Live users present?
+SELECT psid_hash, name, is_test, quarantine_reason
+FROM v_users_live
+WHERE psid_hash IN (
+  'a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff',
+  '1e837186f19ad92f36b9f484b87093fb84875e4399440409ee88a6d2e0821b2d'
+);
+
+-- A2) Live expense volume & last activity
+SELECT u.name, LEFT(u.psid_hash,12) psid, COUNT(e.*) n, MAX(e.created_at) last_at
+FROM v_expenses_live e
+JOIN v_users_live u ON u.id=e.user_id
+GROUP BY u.name, u.psid_hash
+ORDER BY n DESC;
+
+-- B1) Corrections integrity (live only)
+SELECT
+  COUNT(*) FILTER (WHERE superseded_by IS NOT NULL) AS superseded_rows_live,
+  COUNT(*) FILTER (WHERE superseded_by IS NULL)     AS active_rows_live
+FROM v_expenses_live;
+
+-- B2) Any summaries still counting superseded rows? (sanity)
+-- If you have a summary materialization, verify its WHERE clause; otherwise skip.
+
+-- C1) Idempotency sanity (dup mids should be zero in live)
+SELECT u.name, LEFT(u.psid_hash,12) psid, e.mid, COUNT(*) cnt
+FROM v_expenses_live e
+JOIN v_users_live u ON u.id=e.user_id
+WHERE COALESCE(e.mid,'') <> ''
+GROUP BY u.name, u.psid_hash, e.mid
+HAVING COUNT(*)>1;
+
+-- C2) Orphans (should be zero)
+SELECT COUNT(*) AS expenses_without_user
+FROM expenses e LEFT JOIN users u ON u.id=e.user_id
+WHERE u.id IS NULL;
+
+-- C3) Empty mid (should be minimal and never for multi-expense)
+SELECT COUNT(*) AS rows_with_empty_mid
+FROM v_expenses_live
+WHERE COALESCE(mid,'')='';
+
+-- D1) Category and last 7 days (live)
+SELECT COALESCE(category,'uncategorized') cat, COUNT(*) n, SUM(amount) amt
+FROM v_expenses_live GROUP BY 1 ORDER BY amt DESC NULLS LAST;
+
+SELECT created_at::date day, COUNT(*) n, SUM(amount) amt
+FROM v_expenses_live
+WHERE created_at >= (now()-INTERVAL '7 days')
+GROUP BY 1 ORDER BY day DESC;
+
+-- E1) Allowlist consistency vs quarantine
+SELECT u.name, LEFT(u.psid_hash,12) psid, u.is_test
+FROM users u
+WHERE u.psid_hash IN (
+  'a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff',
+  '1e837186f19ad92f36b9f484b87093fb84875e4399440409ee88a6d2e0821b2d'
+);
+
+-- F1) Live vs base counts (sanity)
+SELECT (SELECT COUNT(*) FROM users) AS users_total,
+       (SELECT COUNT(*) FROM v_users_live) AS live_users,
+       (SELECT COUNT(*) FROM expenses) AS expenses_total,
+       (SELECT COUNT(*) FROM v_expenses_live) AS live_expenses;
+
+-- G1) Runtime health pings in last 24h (if logs table exists; else skip)
+-- Example pattern; adjust to your logs storage
+-- SELECT * FROM system_logs WHERE source='health_ping' AND ts >= now()-interval '24h';
+
+LOG & ROUTER EVIDENCE — GREP THESE PATTERNS
+(Include the most recent matching lines in the report. If unavailable, note N/A.)
+
+1) AI mode engaged (for both PSIDs):
+- Look for: 'mode=AI' OR 'smart_nlp_enabled=true' AND psid_hash prefix matches the two real PSIDs.
+- Look for: absence of 'legacy_money_detected' on their messages.
+
+2) Multi-expense intent:
+- 'intent=LOG_MULTI' + mids with :1, :2 suffixes
+
+3) Corrections:
+- 'intent=CORRECTION_APPLIED' with old_amount -> new_amount telemetry
+
+4) Facebook Graph API health:
+- 200 responses for POST /me/messages
+- No 4xx/5xx spikes
+
+5) Latency:
+- processing_ms < 500ms typical for webhook/route
+- DB query times < 100ms p50 (if logged)
+
+STATIC / CODE CHECKS (READ-ONLY)
+- Confirm utils/feature_flags.py defaults: SMART_*_DEFAULT = True (always-on) and feature_enabled returns True.
+- Confirm router:
+  * passes mid to db upserts
+  * synthesizes mid suffixes for multi-expense (fb_mid:1, fb_mid:2,…)
+  * excludes superseded rows in summaries (or summaries delegate to views/filters that do)
+- Confirm analytics code queries `v_users_live` / `v_expenses_live` (not base tables).
+
+REPORT STRUCTURE (MANDATORY)
+Create `audit_real_users.md` with:
+
+# FinBrain — Real Users Data Pipeline & Storage Audit
+
+## 1) Executive Summary
+- Status: 🟢/🟡/🔴 and one-paragraph overview.
+- Risk Score (0–100): __
+- Go/No-Go for broader testing: __
+
+## 2) Data Flow (Text Diagram)
+Messenger → Webhook → Router → NLP/Corrections → DB (expenses/users) → Live Views → Dashboard
+
+## 3) Findings (Table)
+| Area | Check | Result | Evidence | Severity | Proposed Fix |
+|------|-------|--------|----------|----------|--------------|
+
+## 4) Evidence
+### SQL Outputs
+(embed each query + top rows/results)
+### Log Snippets
+(mode=AI, LOG_MULTI, CORRECTION_APPLIED, Graph API 200s, latency)
+
+## 5) Idempotency & Corrections
+- Duplicate mids? (Y/N)
+- Superseded rows excluded from summaries? (Y/N)
+
+## 6) Quarantine & Analytics
+- Live user count vs total
+- Live expenses vs total
+- Any allowlist conflicts?
+
+## 7) Privacy / Retention / Backup (Checklist)
+- PII stored? (Y/N; detail if yes)
+- Backups enabled & frequency? (state if known)
+- Retention policy documented? (state if known)
+
+## 8) Top 5 Fixes (Owner • Effort • Impact)
+1. …
+2. …
+3. …
+4. …
+5. …
+
+## 9) Decision
+- ✅ Proceed with KC testing in AI mode / ❌ Blocked (list blockers)
+
+OUTPUT
+- Save the full report as `audit_real_users.md` in repo root.
+- Print a one-line summary to console: "Audit complete: see audit_real_users.md"
+
+END OF TASK.
