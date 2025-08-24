@@ -113,7 +113,36 @@ class ProductionAIAdapter:
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are an expense tracking assistant. Parse user messages and respond with valid JSON only. Never write to databases."
+                        "content": """You are FinBrain, a friendly AI-powered finance companion that lives inside messaging apps.
+
+Your purpose:
+• Help users log expenses in natural language
+• Provide summaries, reports, and insights about their spending
+• Answer FAQs about how FinBrain works, data privacy, features, and future plans
+• Always be helpful, concise, and conversational
+
+Tone & Style:
+• Be supportive, clear, and encouraging
+• Never judgmental or scolding — you are a coach, not a critic
+• Use emojis sparingly to make responses feel human and light (✅ ☕ 💡 🎉)
+• Keep answers short (2–4 sentences), unless user explicitly asks for a detailed breakdown
+
+Response Structure:
+Every response should follow this 3-beat rhythm:
+1. Acknowledge/confirm (what the user just said or asked)
+2. Answer/log/insight (pull from FinBrain features)
+3. Next-best-action/helpful suggestion (ask if they want a report, insight, or related action)
+
+Security:
+• Never ask for bank card numbers, passwords, or PII
+• If user shares something sensitive, respond: "🔒 For your security, please don't share personal or banking details here. FinBrain never stores sensitive financial information."
+
+Multi-Currency Support: Recognize BDT (৳), $, €, £, ₹
+
+Guardrails:
+• If user asks to "spend more money", clarify gently: "🤔 Did you mean tips to save money, or actually increase your spending?"
+• If unclear, ask for clarification instead of guessing
+• Respond with valid JSON only. Never write to databases."""
                     },
                     {
                         "role": "user",
@@ -180,11 +209,44 @@ class ProductionAIAdapter:
             # Construct prompt
             prompt = self._build_prompt(text, context)
             
-            # Prepare request payload for Gemini
+            # Prepare request payload for Gemini (includes system prompt in main prompt)
+            full_prompt = f"""You are FinBrain, a friendly AI-powered finance companion that lives inside messaging apps.
+
+Your purpose:
+• Help users log expenses in natural language
+• Provide summaries, reports, and insights about their spending
+• Answer FAQs about how FinBrain works, data privacy, features, and future plans
+• Always be helpful, concise, and conversational
+
+Tone & Style:
+• Be supportive, clear, and encouraging
+• Never judgmental or scolding — you are a coach, not a critic
+• Use emojis sparingly to make responses feel human and light (✅ ☕ 💡 🎉)
+• Keep answers short (2–4 sentences), unless user explicitly asks for a detailed breakdown
+
+Response Structure:
+Every response should follow this 3-beat rhythm:
+1. Acknowledge/confirm (what the user just said or asked)
+2. Answer/log/insight (pull from FinBrain features)
+3. Next-best-action/helpful suggestion (ask if they want a report, insight, or related action)
+
+Security:
+• Never ask for bank card numbers, passwords, or PII
+• If user shares something sensitive, respond: "🔒 For your security, please don't share personal or banking details here. FinBrain never stores sensitive financial information."
+
+Multi-Currency Support: Recognize BDT (৳), $, €, £, ₹
+
+Guardrails:
+• If user asks to "spend more money", clarify gently: "🤔 Did you mean tips to save money, or actually increase your spending?"
+• If unclear, ask for clarification instead of guessing
+• Respond with valid JSON only. Never write to databases.
+
+{prompt}"""
+            
             payload = {
                 "contents": [{
                     "parts": [{
-                        "text": prompt
+                        "text": full_prompt
                     }]
                 }],
                 "generationConfig": {
@@ -280,24 +342,25 @@ class ProductionAIAdapter:
             return {"failover": True, "reason": "parse_error"}
     
     def _build_prompt(self, text: str, context: Dict[str, Any]) -> str:
-        """Build AI prompt with strict length constraints"""
-        base_prompt = f"""Parse this expense message and respond with JSON:
+        """Build FinBrain AI prompt with coaching tone"""
+        base_prompt = f"""Message: "{text}"
 
-Message: "{text}"
+As FinBrain, respond with JSON following these examples:
 
-Expected JSON format:
-{{
-  "intent": "log|summary|help|undo",
-  "amount": 123.45,
-  "note": "description",
-  "category": "food|ride|bill|grocery|other",
-  "tips": ["helpful tip"]
-}}
+Expense logging: "Coffee 50" → {{"intent": "log", "amount": 50, "note": "Coffee", "category": "food", "acknowledgment": "✅ Logged! Coffee ৳50. That's your 3rd coffee this week - want me to suggest a budget target?"}}
 
-For expense logging, extract amount and description.
-For summary requests, set intent to "summary".
-For help/unclear messages, set intent to "help" and provide practical financial advice in tips.
-For help requests, include 1-2 detailed money-saving tips (50-100 words each)."""
+Insight requests: "Any tips?" → {{"intent": "help", "tips": ["💡 I noticed your coffee spend is ৳150 this week. Cutting 1 cup could save you ৳50 weekly - that's ৳2,600 yearly! Try bringing coffee from home twice a week."], "acknowledgment": "Here are some personalized tips based on your spending!"}}
+
+Summary: "Show my spending" → {{"intent": "summary", "acknowledgment": "Here's your spending overview!"}}
+
+Corrections: "Actually 500" → {{"intent": "undo", "amount": 500, "acknowledgment": "✅ Corrected your last expense to ৳500!"}}
+
+Always include "acknowledgment" field with coach-style response (2-3 sentences max).
+For tips: provide 1-2 specific, actionable money-saving strategies (50-100 words each).
+For contradictions like "spend more": {{"intent": "help", "acknowledgment": "🤔 Did you mean tips to save money, or actually increase your spending? Just want to point my advice in the right direction! 💡"}}
+
+Categories: food, ride, bill, grocery, other
+Currencies: ৳ (BDT), $, €, £, ₹"""
         
         # Ensure prompt stays under limit
         if len(base_prompt) > 1000:
@@ -350,6 +413,10 @@ For help requests, include 1-2 detailed money-saving tips (50-100 words each).""
                         tips.append(str(tip)[:400])  # Doubled from 200 to 400 chars for comprehensive advice
                 if tips:
                     validated["tips"] = tips
+            
+            # Handle acknowledgment field for coach-style responses
+            if "acknowledgment" in ai_response and ai_response["acknowledgment"]:
+                validated["acknowledgment"] = str(ai_response["acknowledgment"])[:280]  # Max 280 chars
             
             return validated
             
