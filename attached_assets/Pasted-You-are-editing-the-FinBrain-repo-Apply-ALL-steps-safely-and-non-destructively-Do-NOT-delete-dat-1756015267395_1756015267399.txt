@@ -1,0 +1,147 @@
+You are editing the FinBrain repo. Apply ALL steps safely and non-destructively. 
+Do NOT delete data. All changes must be additive and backward compatible.
+
+GOALS
+- Quarantine test/system users (flag only; keep all rows).
+- Keep ONLY two psids “live” for analytics now:
+    'a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff'  -- Admin/Owner
+    '1e837186f19ad92f36b9f484b87093fb84875e4399440409ee88a6d2e0821b2d'  -- KC tester / Alex
+- Align with current system: smart features are ALWAYS ON globally.
+- Enforce idempotency using the EXISTING unique index (NO new index).
+- Route dashboards through “live views” that exclude quarantined users.
+
+────────────────────────────────────────────────────────────────
+1) DATABASE MIGRATIONS (ADD ONLY; NO DELETES)
+Create migration file: migrations/xxxx_quarantine_live_views.sql
+
+-- A) Allowlist table (real users)
+CREATE TABLE IF NOT EXISTS real_users_allowlist (
+  psid_hash TEXT PRIMARY KEY,
+  note TEXT
+);
+
+-- B) Quarantine marker on users (non-destructive)
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS is_test BOOLEAN NULL,
+  ADD COLUMN IF NOT EXISTS quarantine_reason TEXT NULL;
+
+-- C) Idempotency column (nullable)
+ALTER TABLE expenses
+  ADD COLUMN IF NOT EXISTS mid VARCHAR NULL;
+
+-- D) DO NOT create a new unique index. We rely on the EXISTING one:
+--    ux_expenses_psid_mid ON expenses(user_id, mid) WHERE mid IS NOT NULL AND mid <> ''
+--    (No new index creation to avoid conflicts.)
+
+-- E) Seed allowlist with the two real users (idempotent)
+INSERT INTO real_users_allowlist(psid_hash, note) VALUES
+  ('a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff', 'Admin/Test Owner'),
+  ('1e837186f19ad92f36b9f484b87093fb84875e4399440409ee88a6d2e0821b2d', 'KC tester / Alex')
+ON CONFLICT DO NOTHING;
+
+-- F) Heuristic quarantine pass (flag only; snapshot reason). No deletes.
+WITH suspects AS (
+  SELECT u.id
+  FROM users u
+  WHERE u.psid_hash NOT IN (SELECT psid_hash FROM real_users_allowlist)
+    AND (
+      COALESCE(u.name,'') ILIKE '%test%' OR
+      COALESCE(u.name,'') ILIKE '%uat%'  OR
+      COALESCE(u.name,'') ILIKE '%simple%' OR
+      COALESCE(u.name,'') = 'there' OR
+      (SELECT COUNT(*) FROM expenses e WHERE e.user_id = u.id) = 0
+    )
+)
+UPDATE users u
+SET is_test = TRUE,
+    quarantine_reason = COALESCE(u.quarantine_reason, 'auto-flag: pattern/zero-expense')
+WHERE u.id IN (SELECT id FROM suspects);
+
+-- G) Always un-quarantine the two real psids (safety)
+UPDATE users
+SET is_test = FALSE, quarantine_reason = NULL
+WHERE psid_hash IN (
+  'a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff',
+  '1e837186f19ad92f36b9f484b87093fb84875e4399440409ee88a6d2e0821b2d'
+);
+
+-- H) Live views for dashboards (real-only)
+CREATE OR REPLACE VIEW v_users_live AS
+SELECT *
+FROM users
+WHERE (is_test IS DISTINCT FROM TRUE)
+   OR psid_hash IN (SELECT psid_hash FROM real_users_allowlist);
+
+CREATE OR REPLACE VIEW v_expenses_live AS
+SELECT e.*
+FROM expenses e
+JOIN users u ON u.id = e.user_id
+LEFT JOIN real_users_allowlist r ON r.psid_hash = u.psid_hash
+WHERE (u.is_test IS DISTINCT FROM TRUE) OR r.psid_hash IS NOT NULL;
+
+-- NOTE: No deletion anywhere. All base rows remain intact.
+
+────────────────────────────────────────────────────────────────
+2) FEATURE FLAGS (ALIGN WITH ALWAYS-ON SYSTEM)
+Edit utils/feature_flags.py to reflect global ON defaults while keeping the function.
+
+SMART_NLP_ROUTING_DEFAULT = True
+SMART_NLP_TONE_FOR_STD_DEFAULT = True
+SMART_CORRECTIONS_DEFAULT = True
+
+def feature_enabled(psid_hash: str, feature: str) -> bool:
+    # Current production behavior is always-on. Keep it.
+    # (We preserve this function so we can later tighten to allowlist if needed.)
+    return True
+
+────────────────────────────────────────────────────────────────
+3) ROUTER & DB IDEMPOTENCY (NO BEHAVIOR CHANGE FOR USERS)
+- Router must pass a non-empty `mid` for every expense write.
+  Single expense → fb_mid
+  Multi-expense → fb_mid:1, fb_mid:2, ...
+- upsert_expense_idempotent(): use `mid` and rely on the EXISTING unique index
+  ux_expenses_psid_mid (on expenses(user_id, mid) WHERE mid IS NOT NULL AND mid <> '')
+- On conflict, DO NOTHING and return the existing row idempotently.
+
+────────────────────────────────────────────────────────────────
+4) ANALYTICS / DASHBOARD (SWITCH TO LIVE VIEWS)
+- Update all dashboard/reporting queries to read from:
+    v_users_live, v_expenses_live
+- Summaries that ignore corrected rows must continue to apply:
+    WHERE e.superseded_by IS NULL
+
+────────────────────────────────────────────────────────────────
+5) TELEMETRY (VERIFICATION)
+Log structured lines for each handled message:
+- { psid_hash, mode="AI", smart_nlp_enabled=true, smart_tone_enabled=true, smart_corrections_enabled=true }
+- Multi-expense: { intent="LOG_MULTI", count, mids:[...] }
+- Corrections:   { intent="CORRECTION_APPLIED", old_amount, new_amount, old_id, new_id }
+- Analytics scope: { analytics_scope="live_only", views:["v_users_live","v_expenses_live"] }
+
+────────────────────────────────────────────────────────────────
+6) QUICK SELF-TESTS (MUST PASS)
+From either real psid:
+
+Test 1 — Multi-expense:
+Input: "Uber 2500 and breakfast 700"
+Expect: intent=LOG_MULTI, 2 rows, mids = "<fb_mid>:1", "<fb_mid>:2"
+Logs: mode=AI, no legacy_money_detected
+
+Test 2 — Correction:
+Input: "actually 500 for breakfast"
+Expect: CORRECTION_APPLIED; old breakfast superseded; new row 500
+Logs: correction telemetry present
+
+Test 3 — Summary:
+Input: "summary"
+Expect: totals reflect only real users (you + KC), corrected values
+
+Test 4 — Insight / Tone:
+Input: "insight"
+Expect: AI coach style; telemetry shows mode=AI
+
+────────────────────────────────────────────────────────────────
+7) ROLLBACK / ADJUSTMENTS (REVERSIBLE)
+- To temporarily include everyone in analytics again: query base tables instead of views.
+- To un-quarantine a user: UPDATE users SET is_test = FALSE, quarantine_reason = NULL WHERE psid_hash = '<hash>';
+- Keep feature_enabled() as is (always-on). If you later want allowlist-only, flip defaults to False and check real_users_allowlist in the function.
