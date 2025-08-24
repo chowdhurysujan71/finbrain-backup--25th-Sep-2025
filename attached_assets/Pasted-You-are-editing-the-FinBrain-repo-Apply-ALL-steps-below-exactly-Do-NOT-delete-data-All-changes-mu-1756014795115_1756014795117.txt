@@ -1,0 +1,249 @@
+You are editing the FinBrain repo. Apply ALL steps below exactly. Do NOT delete data. All changes must be additive, backward-compatible, and behind safe guards.
+
+GOAL
+- Quarantine all test/system users so they never affect live analytics.
+- Keep ONLY two psids “live” for now: 
+    a20425ef...  (Admin)
+    d17538bf...  (KC tester)
+- Force ON Smart features (NLP routing, Tone, Corrections) for these two psids.
+- Ensure DB idempotency (mid column + unique index) so no duplicates.
+- Update analytics to surface only real users.
+- Provide verification logs and a rollback switch.
+
+────────────────────────────────────────────────────────────────
+
+1) DATABASE MIGRATIONS (safe, additive)
+
+Create migration file `migrations/xxxx_real_user_quarantine.sql`:
+
+-- Real users allowlist (quarantine gate)
+CREATE TABLE IF NOT EXISTS real_users_allowlist (
+  psid_hash TEXT PRIMARY KEY,
+  note TEXT
+);
+
+-- Tag field on users (quarantine marker)
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS is_test BOOLEAN NULL;
+
+-- Idempotency support (if not present)
+ALTER TABLE expenses
+  ADD COLUMN IF NOT EXISTS mid VARCHAR NULL;
+
+-- Unique idempotency index on (user_id, mid)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes WHERE indexname = 'ux_expenses_user_mid'
+  ) THEN
+    EXECUTE 'CREATE UNIQUE INDEX ux_expenses_user_mid ON expenses(user_id, mid) WHERE mid IS NOT NULL';
+  END IF;
+END$$;
+
+-- Helper partial index to speed “real user” lookups
+CREATE INDEX IF NOT EXISTS ix_users_real_only ON users(psid_hash) WHERE (is_test IS DISTINCT FROM TRUE);
+
+-- Insert/ensure allowlisted real users
+INSERT INTO real_users_allowlist(psid_hash, note) VALUES
+  ('a20425ef...', 'Admin/Test Owner'),
+  ('d17538bf...', 'KC tester')
+ON CONFLICT DO NOTHING;
+
+-- Heuristic quarantine pass (non-destructive):
+-- Mark as test any user NOT explicitly allowlisted AND with 0 expenses OR name like test patterns.
+UPDATE users u
+SET is_test = TRUE
+WHERE u.psid_hash NOT IN (SELECT psid_hash FROM real_users_allowlist)
+  AND (
+    COALESCE(u.name, '') ILIKE '%test%' 
+    OR COALESCE(u.name, '') ILIKE '%uat%'
+    OR COALESCE(u.name, '') ILIKE '%simple%'
+    OR COALESCE(u.name, '') = 'there'
+    OR EXISTS (
+       SELECT 1 FROM users u2 
+       WHERE u2.id = u.id
+         AND (SELECT COUNT(1) FROM expenses e WHERE e.user_id = u.id) = 0
+    )
+  );
+
+-- Ensure your two psids are NEVER quarantined
+UPDATE users SET is_test = FALSE WHERE psid_hash IN ('a20425ef...', 'd17538bf...');
+
+-- View to expose REAL users only (dashboards should consume this)
+CREATE OR REPLACE VIEW v_users_live AS
+SELECT * FROM users
+WHERE (is_test IS DISTINCT FROM TRUE)
+   OR psid_hash IN (SELECT psid_hash FROM real_users_allowlist);
+
+-- View for expenses of REAL users only
+CREATE OR REPLACE VIEW v_expenses_live AS
+SELECT e.*
+FROM expenses e
+JOIN users u ON u.id = e.user_id
+LEFT JOIN real_users_allowlist r ON r.psid_hash = u.psid_hash
+WHERE (u.is_test IS DISTINCT FROM TRUE) OR r.psid_hash IS NOT NULL;
+
+-- NOTE: Nothing deleted; everything quarantined is still in base tables.
+
+
+────────────────────────────────────────────────────────────────
+
+2) FEATURE GATES (force ON for allowlisted psids only)
+
+Create/extend `utils/feature_flags.py`:
+
+def _list_env(name):
+    import os
+    v = os.getenv(name, '')
+    return [x.strip() for x in v.split(',') if x.strip()]
+
+# Defaults remain False for safety
+SMART_NLP_ROUTING_DEFAULT = False
+SMART_NLP_TONE_FOR_STD_DEFAULT = False
+SMART_CORRECTIONS_DEFAULT = False
+
+# Allowlists: env + DB allowlist table
+ALLOW_SMART = set(_list_env('FEATURE_ALLOWLIST_SMART_ALL'))  # optional unified env list
+
+def feature_enabled(psid_hash: str, feature: str) -> bool:
+    # DB allowlist
+    from utils.db import fetchval
+    in_db = bool(fetchval("SELECT 1 FROM real_users_allowlist WHERE psid_hash=%s LIMIT 1", (psid_hash,)))
+    if not in_db and psid_hash in ALLOW_SMART:
+        in_db = True
+
+    if feature == 'SMART_NLP_ROUTING':
+        return in_db or SMART_NLP_ROUTING_DEFAULT
+    if feature == 'SMART_NLP_TONE_FOR_STD':
+        return in_db or SMART_NLP_TONE_FOR_STD_DEFAULT
+    if feature == 'SMART_CORRECTIONS':
+        return in_db or SMART_CORRECTIONS_DEFAULT
+    return False
+
+Set env once (optional convenience):
+FEATURE_ALLOWLIST_SMART_ALL="a20425ef...,d17538bf..."
+
+
+────────────────────────────────────────────────────────────────
+
+3) ROUTER HOOKS (no behavior change for others)
+
+In `finbrain/router.py`:
+- At request start, compute:
+  features = {
+    "SMART_NLP_ROUTING": feature_enabled(psid_hash, "SMART_NLP_ROUTING"),
+    "SMART_NLP_TONE_FOR_STD": feature_enabled(psid_hash, "SMART_NLP_TONE_FOR_STD"),
+    "SMART_CORRECTIONS": feature_enabled(psid_hash, "SMART_CORRECTIONS"),
+  }
+- If features["SMART_NLP_ROUTING"] is True → use the enhanced AI routing path.
+- Else → preserve legacy (STD) behavior.
+- ALWAYS log a structured line:
+  STRUCTURED_TELEMETRY: {"psid_hash": psid_hash, "mode": "AI" if features["SMART_NLP_ROUTING"] else "STD",
+                         "smart_nlp_enabled": features["SMART_NLP_ROUTING"],
+                         "smart_tone_enabled": features["SMART_NLP_TONE_FOR_STD"],
+                         "smart_corrections_enabled": features["SMART_CORRECTIONS"]}
+
+No changes to external routes/payloads/auth.
+
+
+────────────────────────────────────────────────────────────────
+
+4) IDEMPOTENCY WIRING (no duplicates, multi-expense safe)
+
+In `utils/db.py` (or expense repository):
+- Ensure `upsert_expense_idempotent(user_id, mid, ...)` always receives a `mid`.
+- When a single FB message creates multiple expense rows, synthesize mids:
+    f"{fb_mid}:1", f"{fb_mid}:2", ...
+- SQL pattern:
+
+INSERT INTO expenses (user_id, mid, amount, currency, category, merchant, ts_client, note)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+ON CONFLICT ON CONSTRAINT ux_expenses_user_mid DO NOTHING
+RETURNING id;
+
+- Return the existing row if conflict; never throw.
+
+
+────────────────────────────────────────────────────────────────
+
+5) ANALYTICS/DASHBOARD (use live views)
+
+- Replace any direct `users` / `expenses` references in dashboard queries with:
+    v_users_live  and  v_expenses_live
+- Summaries/insights must read from `v_expenses_live` so quarantined data never leaks.
+- If summaries exclude corrections, keep the existing `superseded_by IS NULL` filter.
+
+
+────────────────────────────────────────────────────────────────
+
+6) TELEMETRY (verification & audit)
+
+Emit (INFO) after every routed message:
+
+- For allowlisted psids:
+  { psid_hash, mode="AI", intents_chain, reason, smart_nlp_enabled=true,
+    smart_tone_enabled, smart_corrections_enabled }
+
+- For multi-expense:
+  { intent="LOG_MULTI", count, mids_used:[...] }
+
+- For correction success:
+  { intent="CORRECTION_APPLIED", old_id, new_id, old_amount, new_amount }
+
+- For analytics scope:
+  { analytics_scope="live_only", views:["v_users_live","v_expenses_live"] }
+
+
+────────────────────────────────────────────────────────────────
+
+7) MANUAL SEEDS / ONE-TIME MAINTENANCE
+
+Run once after migration (idempotent):
+
+-- Ensure allowlist contains you + KC
+INSERT INTO real_users_allowlist(psid_hash, note) VALUES
+('a20425ef...', 'Admin/Test Owner'),
+('d17538bf...', 'KC tester')
+ON CONFLICT DO NOTHING;
+
+-- Force your two accounts to live (in case prior heuristics marked them test)
+UPDATE users SET is_test = FALSE WHERE psid_hash IN ('a20425ef...', 'd17538bf...');
+
+
+────────────────────────────────────────────────────────────────
+
+8) VERIFICATION CHECKLIST (must pass)
+
+A) Allowlist / Mode
+- Send from a20425ef...: “Uber 2500 and breakfast 700”
+  EXPECT logs: mode=AI, intent=LOG_MULTI, no legacy_money_detected
+  EXPECT DB: two rows with mids "{fb_mid}:1" and "{fb_mid}:2"
+
+- Send from d17538bf...: “actually 500 for breakfast”
+  EXPECT logs: CORRECTION_APPLIED, smart_corrections_enabled=true
+  EXPECT DB: prior breakfast row superseded, new amount 500
+
+B) Analytics Scope
+- Dashboard totals match only a20425ef... + d17538bf...
+- No quarantined users/expenses show up.
+
+C) Idempotency
+- Re-send the same FB message id → no duplicate rows, log shows “idempotent_noop”.
+
+D) Fallback Safety
+- Temporarily force feature_enabled to return False for psid: expect legacy STD path; logging still succeeds.
+
+All green → success.
+
+
+────────────────────────────────────────────────────────────────
+
+9) ROLLBACK
+
+- To disable smart features for everyone instantly:
+    Unset FEATURE_ALLOWLIST_SMART_ALL (or set empty) 
+    AND set SMART_*_DEFAULT=false (already false).
+- Views are additive; to revert analytics, point dashboard back to base tables.
+- Quarantine is non-destructive; flip users.is_test to NULL/FALSE to “un-quarantine”.
+
+END
