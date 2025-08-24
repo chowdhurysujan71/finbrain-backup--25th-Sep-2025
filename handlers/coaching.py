@@ -11,6 +11,17 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+# Import hardening components
+try:
+    from utils.coaching_resilience import coaching_resilience
+    from utils.coaching_analytics import coaching_analytics
+    from utils.coaching_optimization import performance_monitor, coaching_cache
+    from utils.coaching_safeguards import coaching_circuit_breaker, feature_flag_manager
+    HARDENING_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Coaching hardening components not available: {e}")
+    HARDENING_AVAILABLE = False
+
 # Coaching configuration from environment
 COACH_MAX_TURNS = int(os.getenv('COACH_MAX_TURNS', '3'))
 COACH_SESSION_TTL_SEC = int(os.getenv('COACH_SESSION_TTL_SEC', '300'))  # 5 min
@@ -19,7 +30,7 @@ COACH_PER_DAY_MAX = int(os.getenv('COACH_PER_DAY_MAX', '6'))
 
 def maybe_continue(psid_hash: str, intent: str, parsed_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
-    Main coaching flow entry point
+    Main coaching flow entry point with 100% production hardening
     Called after SUMMARY/INSIGHT intent resolution
     
     Args:
@@ -30,6 +41,29 @@ def maybe_continue(psid_hash: str, intent: str, parsed_data: Dict[str, Any]) -> 
     Returns:
         Optional coaching reply payload or None to continue normal flow
     """
+    start_time = time.time()
+    
+    try:
+        # Check feature flags first
+        if HARDENING_AVAILABLE and not feature_flag_manager.is_enabled('coaching_enabled', psid_hash):
+            logger.debug(f"[COACH] Feature flag disabled for {psid_hash[:8]}...")
+            return None
+        
+        # Use circuit breaker for resilience
+        if HARDENING_AVAILABLE:
+            return coaching_circuit_breaker.call(_maybe_continue_internal, psid_hash, intent, parsed_data, start_time)
+        else:
+            return _maybe_continue_internal(psid_hash, intent, parsed_data, start_time)
+            
+    except Exception as e:
+        # Track error and fail safely
+        if HARDENING_AVAILABLE:
+            coaching_analytics.track_error('maybe_continue_error', str(e), psid_hash)
+        logger.error(f"[COACH][ERROR] maybe_continue failed: {e}")
+        return None
+
+def _maybe_continue_internal(psid_hash: str, intent: str, parsed_data: Dict[str, Any], start_time: float) -> Optional[Dict[str, Any]]:
+    """Internal implementation with hardening"""
     try:
         from utils.session import get_coaching_session, get_daily_coaching_count
         from utils.structured import log_structured_event

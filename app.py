@@ -945,6 +945,14 @@ def ops_users():
 from admin_ops import admin_ops
 app.register_blueprint(admin_ops)
 
+# Register coaching monitoring endpoints
+try:
+    from app_coaching_endpoints import coaching_bp
+    app.register_blueprint(coaching_bp)
+    logger.info("Coaching monitoring endpoints registered")
+except ImportError as e:
+    logger.warning(f"Coaching monitoring endpoints not available: {e}")
+
 @app.get("/ops/hash")
 def ops_hash():
     """Generate canonical PSID hash for identity debugging"""
