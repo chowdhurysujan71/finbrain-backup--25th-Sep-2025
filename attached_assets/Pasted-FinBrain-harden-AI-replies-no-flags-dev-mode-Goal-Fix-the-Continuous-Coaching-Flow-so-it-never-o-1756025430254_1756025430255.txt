@@ -1,0 +1,153 @@
+FinBrain harden AI replies (no flags, dev mode)
+
+Goal
+Fix the Continuous Coaching Flow so it never overrides normal replies. Coaching should only run when explicitly appropriate. Keep all routes, payloads, auth, DB schema, and idempotency unchanged. No feature flags; fallbacks must be safe.
+
+Hard constraints
+
+Do not change external endpoints or payload shapes.
+
+Do not alter DB schema, indexes, or existing idempotency.
+
+Preserve current AI/STD routing and templates.
+
+Changes must be additive to control flow; when unsure, fail closed (return normal reply, no coaching).
+
+What to implement (behavioral rules)
+
+Intent-first short-circuit (critical):
+
+For intents SUMMARY, LOG, CORRECTION → compose and send the normal reply, then return immediately.
+
+No coaching start/continue is allowed in these turns.
+
+When coaching is allowed:
+
+Start coaching only if (a) user typed insight (explicit opt-in), or (b) the previous outbound message had intent in {INSIGHT, SUMMARY} and the user reply is one of {transport, food, other, yes, ok} (case-insensitive, trims punctuation).
+
+Continuing an active coaching session is allowed only if state in {await_focus, await_commit} and the user’s message matches the expected step; otherwise gracefully end the session and send normal reply.
+
+State store safety:
+
+If Redis is unavailable, log COACH_DISABLED_NO_REDIS and disable coaching for the request (do not create in-memory sessions). Return normal replies.
+
+Keep existing TTLs if Redis is present (e.g., session TTL 5m, cooldown 15m, max 3 turns).
+
+Limiter safety:
+
+Respect per-user daily cap (e.g., ≤6 coaching sessions/day). If over, skip coaching and send normal reply.
+
+Ordering of operations:
+
+Parse message → detect intent → render normal reply.
+
+Only if rules in (2) pass, append a second message with the coaching question. If anything throws, do not suppress the normal reply.
+
+Telemetry (additive):
+
+On each request log one of:
+
+COACH_SKIPPED_INTENT (fields: intent, reason=summary|log|correction)
+
+COACH_DISABLED_NO_REDIS
+
+COACH_START (topic suggestions array)
+
+COACH_CONTINUE (state before→after)
+
+COACH_END (reason=turn_limit|cooldown|user_optout|mismatch)
+
+Keep existing structured logging format.
+
+Files to edit (typical paths; adapt to repo)
+
+finbrain/router.py
+
+Ensure post-routing dispatcher passes the resolved intent to the reply composer and then returns immediately for SUMMARY/LOG/CORRECTION.
+
+handlers/coaching.py
+
+Add guard helpers: can_start_coach(intent, last_outbound_intent, user_text, redis_ok, caps_ok) and can_continue(state, user_text).
+
+Enforce the safety rules above; remove any unconditional “auto-start” paths.
+
+If Redis connection error → set redis_ok=False, emit COACH_DISABLED_NO_REDIS, skip coaching.
+
+utils/session.py
+
+Add a light get_last_outbound_intent(psid_hash) accessor (if available in memory/Redis; else return None). Do not introduce new storage.
+
+templates/replies_ai.py (or shared templates)
+
+No copy changes needed, but expose a compose_insight_followup(suggestions=["transport","food","other"]) used only when coaching starts via rule (2).
+
+utils/dispatcher.py (or equivalent message orchestrator)
+
+Implement the ordering: send normal reply first; then optionally send coaching question as a separate message.
+
+Safety tests (add or update)
+Create/extend tests/test_coaching_flow.py with the following cases:
+
+A) Summary is never hijacked
+
+Input: “What’s my total spend today?” → intent SUMMARY
+
+Expect: Exactly one outbound summary; no coaching logs; telemetry COACH_SKIPPED_INTENT.
+
+B) Expense logging is never hijacked
+
+Input: “coffee 100” → intent LOG
+
+Expect: Log confirmation only; COACH_SKIPPED_INTENT.
+
+C) Corrections are never hijacked
+
+“coffee 50” then “sorry, meant 500” → correction flow as today; COACH_SKIPPED_INTENT on both turns.
+
+D) Explicit opt-in works
+
+Input: “insight” → insight reply then coaching Q1 with suggestions in a second message. Telemetry COACH_START.
+
+E) Valid follow-up continues
+
+Prior outbound was INSIGHT; user: “transport” → coach continues; telemetry COACH_CONTINUE.
+
+F) Mismatch ends gracefully
+
+Prior outbound INSIGHT; user: “summary” → do summary only; telemetry COACH_END reason=mismatch.
+
+G) Redis down → no coaching
+
+Simulate Redis import/connection error → normal replies only; telemetry COACH_DISABLED_NO_REDIS.
+
+H) Rate limit/cooldown
+
+Over cap or within cooldown → normal replies only; telemetry COACH_END reason=cooldown|turn_limit.
+
+Developer notes
+
+Do not change DB or migrations.
+
+Do not alter idempotent mid handling.
+
+Keep reply copy exactly as templates define.
+
+Any exception in coaching path must be caught; log COACH_END reason=error and continue without coaching.
+
+Acceptance checklist (print at end of CI run)
+
+ Unit tests A–H pass.
+
+ Manual dry-run shows: for SUMMARY/LOG/CORRECTION exactly one message is sent.
+
+ Telemetry proves skips/starts/continues as per scenarios.
+
+ With Redis unavailable, summary/log/correction still work and no coaching tries to start.
+
+ No changes to routes/payloads/auth/DB.
+
+Smoke script (optional, non-destructive)
+Add scripts/smoke_coach_guard.py that simulates the 4 main paths (SUMMARY, LOG, CORRECTION, INSIGHT) and prints: resolved intent, messages sent count, and last telemetry line.
+
+Rollback plan
+If anything looks off, revert this commit. Since we didn’t change schemas or flags, rollback is instant and risk-free.
