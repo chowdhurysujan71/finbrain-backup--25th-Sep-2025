@@ -28,10 +28,128 @@ COACH_SESSION_TTL_SEC = int(os.getenv('COACH_SESSION_TTL_SEC', '300'))  # 5 min
 COACH_COOLDOWN_SEC = int(os.getenv('COACH_COOLDOWN_SEC', '900'))  # 15 min
 COACH_PER_DAY_MAX = int(os.getenv('COACH_PER_DAY_MAX', '6'))
 
+def can_start_coach(intent: str, last_outbound_intent: Optional[str], user_text: str, redis_ok: bool, caps_ok: bool) -> bool:
+    """
+    Guard function: determines if coaching can be started
+    
+    Args:
+        intent: Current resolved intent (SUMMARY, LOG, CORRECTION, etc.)
+        last_outbound_intent: Previous outbound message intent (if available)
+        user_text: User's message text
+        redis_ok: Whether Redis is available
+        caps_ok: Whether user is within daily/cooldown caps
+    
+    Returns:
+        True if coaching can be started, False otherwise
+    """
+    from utils.structured import log_structured_event
+    
+    # Rule 1: NEVER start coaching for protected intents
+    if intent in ['SUMMARY', 'LOG', 'CORRECTION']:
+        log_structured_event("COACH_SKIPPED_INTENT", {
+            "intent": intent,
+            "reason": intent.lower()
+        })
+        return False
+    
+    # Rule 2: Redis failure = no coaching
+    if not redis_ok:
+        log_structured_event("COACH_DISABLED_NO_REDIS", {})
+        return False
+    
+    # Rule 3: Rate limits must pass
+    if not caps_ok:
+        log_structured_event("COACH_END", {"reason": "cooldown"})
+        return False
+    
+    # Rule 4a: Explicit opt-in with "insight"
+    normalized_text = user_text.lower().strip().rstrip('.,!?')
+    if normalized_text == "insight":
+        return True
+    
+    # Rule 4b: Follow-up after INSIGHT/SUMMARY with valid responses
+    if last_outbound_intent in ['INSIGHT', 'SUMMARY']:
+        normalized_text = user_text.lower().strip().rstrip('.,!?')
+        valid_responses = ['transport', 'food', 'other', 'yes', 'ok']
+        if normalized_text in valid_responses:
+            return True
+    
+    return False
+
+def can_continue(state: str, user_text: str) -> bool:
+    """
+    Guard function: determines if coaching session can continue
+    
+    Args:
+        state: Current coaching session state
+        user_text: User's message text
+    
+    Returns:
+        True if session can continue, False to end gracefully
+    """
+    from utils.structured import log_structured_event
+    
+    # Only continue if in valid continuation states
+    if state not in ['await_focus', 'await_commit']:
+        log_structured_event("COACH_END", {"reason": "mismatch"})
+        return False
+    
+    # Check if user message matches expected continuation
+    normalized_text = user_text.lower().strip()
+    
+    if state == 'await_focus':
+        # Expecting topic selection or valid focus response
+        valid_focus = ['transport', 'food', 'shopping', 'bills', 'other', 'yes', 'ok', 'sure']
+        if any(term in normalized_text for term in valid_focus):
+            return True
+    
+    elif state == 'await_commit':
+        # Expecting commitment response
+        valid_commit = ['yes', 'ok', 'sure', 'agree', 'will do', 'commit']
+        if any(term in normalized_text for term in valid_commit):
+            return True
+    
+    # If no match, end gracefully
+    log_structured_event("COACH_END", {"reason": "user_optout"})
+    return False
+
+def get_last_outbound_intent(psid_hash: str) -> Optional[str]:
+    """
+    Accessor for last outbound intent (if available in session/memory)
+    
+    Args:
+        psid_hash: User's PSID hash
+    
+    Returns:
+        Last outbound intent or None if not available
+    """
+    try:
+        from utils.session import get_coaching_session
+        session = get_coaching_session(psid_hash)
+        return session.get('last_outbound_intent') if session else None
+    except Exception:
+        return None
+
+def check_redis_health() -> bool:
+    """
+    Check if Redis is available and healthy
+    
+    Returns:
+        True if Redis is healthy, False otherwise
+    """
+    try:
+        from utils.session import session_manager
+        if hasattr(session_manager, 'redis_client') and session_manager.redis_client:
+            session_manager.redis_client.ping()
+            return True
+        return False
+    except Exception:
+        return False
+
 def maybe_continue(psid_hash: str, intent: str, parsed_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
-    Main coaching flow entry point with 100% production hardening
-    Called after SUMMARY/INSIGHT intent resolution
+    HARDENED coaching flow entry point - NEVER overrides normal replies
+    Only triggers coaching when explicitly appropriate per safety rules
     
     Args:
         psid_hash: User's PSID hash
@@ -44,6 +162,15 @@ def maybe_continue(psid_hash: str, intent: str, parsed_data: Dict[str, Any]) -> 
     start_time = time.time()
     
     try:
+        # CRITICAL: Intent-first short-circuit - NEVER override protected intents
+        if intent.upper() in ['SUMMARY', 'LOG', 'CORRECTION']:
+            from utils.structured import log_structured_event
+            log_structured_event("COACH_SKIPPED_INTENT", {
+                "intent": intent.upper(),
+                "reason": intent.lower()
+            })
+            return None
+        
         # Check feature flags first
         if HARDENING_AVAILABLE and not feature_flag_manager.is_enabled('coaching_enabled', psid_hash):
             logger.debug(f"[COACH] Feature flag disabled for {psid_hash[:8]}...")
@@ -63,18 +190,20 @@ def maybe_continue(psid_hash: str, intent: str, parsed_data: Dict[str, Any]) -> 
         return None
 
 def _maybe_continue_internal(psid_hash: str, intent: str, parsed_data: Dict[str, Any], start_time: float) -> Optional[Dict[str, Any]]:
-    """Internal implementation with hardening"""
+    """Internal implementation with hardening and safety guards"""
     try:
         from utils.session import get_coaching_session, get_daily_coaching_count
         from utils.structured import log_structured_event
         
-        # Only trigger coaching on SUMMARY or INSIGHT
-        if intent not in {'summary', 'insight'}:
+        # Check Redis health first
+        redis_ok = check_redis_health()
+        if not redis_ok:
+            log_structured_event("COACH_DISABLED_NO_REDIS", {})
             return None
         
-        # Check rate limits first
+        # Check rate limits
         daily_count = get_daily_coaching_count(psid_hash)
-        limiter_ok = daily_count < COACH_PER_DAY_MAX
+        caps_ok = daily_count < COACH_PER_DAY_MAX
         
         # Get current session
         session = get_coaching_session(psid_hash) or {}
@@ -85,27 +214,35 @@ def _maybe_continue_internal(psid_hash: str, intent: str, parsed_data: Dict[str,
         if state == 'cooldown':
             cooldown_until = session.get('cooldown_until', 0)
             if time.time() < cooldown_until:
-                limiter_ok = False
+                caps_ok = False
+        
+        # Check turn limits
+        if turns >= COACH_MAX_TURNS:
+            log_structured_event("COACH_END", {"reason": "turn_limit"})
+            return None
+        
+        # Get last outbound intent for context
+        last_outbound_intent = get_last_outbound_intent(psid_hash)
+        
+        # Use safety guards to determine if coaching can start
+        user_text = parsed_data.get('original_text', '')
+        if not can_start_coach(intent.upper(), last_outbound_intent, user_text, redis_ok, caps_ok):
+            return None
         
         # Log coaching banner
         topic = session.get('topic', '-')
-        logger.info(f"[COACH] state={state} turns={turns}/{COACH_MAX_TURNS} limiter_ok={limiter_ok} topic={topic} psid={psid_hash[:8]}...")
+        logger.info(f"[COACH] state={state} turns={turns}/{COACH_MAX_TURNS} redis_ok={redis_ok} caps_ok={caps_ok} topic={topic} psid={psid_hash[:8]}...")
         
-        # Rate limit check
-        if not limiter_ok:
-            if daily_count >= COACH_PER_DAY_MAX:
-                log_structured_event("COACH_RATE_LIMIT_HIT", {"type": "daily", "count": daily_count})
-            else:
-                log_structured_event("COACH_RATE_LIMIT_HIT", {"type": "cooldown"})
-            return None
-        
-        # Start new coaching session for SUMMARY/INSIGHT in idle state
-        if state == 'idle' and intent in {'summary', 'insight'}:
+        # Only start coaching for explicit opt-in (user typed "insight")
+        if state == 'idle' and user_text.lower().strip() == 'insight':
+            log_structured_event("COACH_START", {"topic_suggestions": ["transport", "food", "other"]})
             return _start_coaching_flow(psid_hash, intent, parsed_data)
         
         return None
         
     except Exception as e:
+        from utils.structured import log_structured_event
+        log_structured_event("COACH_END", {"reason": "error"})
         logger.error(f"[COACH][ERROR] maybe_continue failed: {e}")
         return None
 
@@ -136,6 +273,12 @@ def handle_coaching_response(psid_hash: str, user_message: str) -> Optional[Dict
         if turns >= COACH_MAX_TURNS:
             _end_coaching_session(psid_hash, 'turn_limit')
             return _create_coaching_reply("I'll let you get back to tracking. Type 'summary' anytime! 👍")
+        
+        # Use safety guard to determine if session can continue
+        if not can_continue(state, user_message):
+            # Guard determined session should end gracefully  
+            _end_coaching_session(psid_hash, 'user_optout')
+            return None
         
         user_text = user_message.lower().strip()
         

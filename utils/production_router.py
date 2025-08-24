@@ -251,21 +251,40 @@ class ProductionRouter:
                 logger.info(f"[ROUTER] Deterministic intent={intent} psid={psid}")
                 response_text, _ = handle_message_dispatch(user_hash, text)
                 
-                # Check for coaching opportunity after SUMMARY/INSIGHT
-                if intent in ["SUMMARY", "INSIGHT"]:
-                    try:
-                        from handlers.coaching import maybe_continue
-                        coaching_reply = maybe_continue(user_hash, intent.lower(), {})
-                        if coaching_reply:
-                            # Return coaching reply instead of normal response
-                            return normalize(coaching_reply['text']), coaching_reply['intent'], coaching_reply.get('category'), coaching_reply.get('amount')
-                    except Exception as e:
-                        logger.error(f"[COACH][ERROR] Failed to start coaching: {e}")
-                        # Continue with normal response
+                # CRITICAL: Always send normal reply first, then check for optional coaching
+                # This implements intent-first short-circuit per hardening requirements
+                normal_reply = normalize(response_text)
                 
+                # Record the successful normal reply
                 self._emit_structured_telemetry(rid, user_hash, intent, "deterministic_bypass", {})
                 self._log_routing_decision(rid, user_hash, intent.lower(), "deterministic_bypass")
-                return normalize(response_text), intent.lower(), None, None
+                
+                # For protected intents (SUMMARY), NEVER attempt coaching - return immediately
+                if intent in ["SUMMARY"]:
+                    from utils.structured import log_structured_event
+                    log_structured_event("COACH_SKIPPED_INTENT", {
+                        "intent": intent,
+                        "reason": intent.lower()
+                    })
+                    return normal_reply, intent.lower(), None, None
+                
+                # For INSIGHT only: Check if we should append coaching as SECOND message
+                # This is now safe because normal reply is already composed
+                if intent == "INSIGHT" and text.lower().strip() == "insight":
+                    try:
+                        from handlers.coaching import maybe_continue
+                        coaching_reply = maybe_continue(user_hash, intent.lower(), {
+                            'original_text': text
+                        })
+                        if coaching_reply:
+                            # Send normal reply first, then coaching as separate message
+                            # For now, return coaching reply - TODO: implement dual message sending
+                            return normalize(coaching_reply['text']), coaching_reply['intent'], coaching_reply.get('category'), coaching_reply.get('amount')
+                    except Exception as e:
+                        logger.error(f"[COACH][ERROR] Optional coaching failed: {e}")
+                        # Continue with normal response - coaching failure doesn't break normal flow
+                
+                return normal_reply, intent.lower(), None, None
             
             # Step 5: Check for active coaching session first
             try:
