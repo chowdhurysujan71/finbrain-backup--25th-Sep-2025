@@ -261,34 +261,66 @@ def public_landing():
 @app.route('/admin')
 @require_basic_auth
 def admin_dashboard():
-    """Dashboard for viewing expense statistics (HTTP Basic Auth required)"""
+    """Dashboard for viewing expense statistics (HTTP Basic Auth required) - LIVE DATA ONLY"""
     
     try:
-        from models import Expense, User, MonthlySummary
         from datetime import datetime
-        from sqlalchemy import func, extract
         
-        # Get recent expenses
-        recent_expenses = Expense.query.order_by(Expense.created_at.desc()).limit(10).all()
+        # Get recent expenses from LIVE VIEW only (excludes test data and superseded rows)
+        recent_expenses_raw = db.session.execute(db.text("""
+            SELECT e.id, e.description, e.amount, e.category, e.currency, e.created_at, e.platform
+            FROM v_expenses_live e
+            WHERE e.superseded_by IS NULL
+            ORDER BY e.created_at DESC
+            LIMIT 10
+        """)).fetchall()
         
-        # Get total active users (users with expenses)
-        total_users = db.session.query(func.count(func.distinct(Expense.user_id))).scalar()
+        # Convert to dict for template compatibility
+        recent_expenses = [
+            {
+                'id': row.id,
+                'description': row.description,
+                'amount': row.amount,
+                'category': row.category,
+                'currency': row.currency,
+                'created_at': row.created_at,
+                'platform': row.platform
+            }
+            for row in recent_expenses_raw
+        ]
         
-        # Get this month's expenses directly from expense table
+        # Get total active users from LIVE VIEW only (real users only)
+        total_users = db.session.execute(db.text("""
+            SELECT COUNT(DISTINCT u.user_id_hash) 
+            FROM v_users_live u
+            WHERE EXISTS (
+                SELECT 1 FROM v_expenses_live e 
+                WHERE e.user_id = u.user_id_hash 
+                AND e.superseded_by IS NULL
+            )
+        """)).scalar()
+        
+        # Get this month's expenses from LIVE VIEW only
         today = datetime.utcnow()
         current_month = today.month
         current_year = today.year
         
-        # Calculate this month's totals directly from expenses
-        total_expenses_this_month = db.session.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
-            extract('month', Expense.created_at) == current_month,
-            extract('year', Expense.created_at) == current_year
-        ).scalar()
+        # Calculate this month's totals from LIVE VIEW
+        total_expenses_this_month = db.session.execute(db.text("""
+            SELECT COALESCE(SUM(e.amount), 0)
+            FROM v_expenses_live e
+            WHERE EXTRACT(month FROM e.created_at) = :month
+            AND EXTRACT(year FROM e.created_at) = :year
+            AND e.superseded_by IS NULL
+        """), {'month': current_month, 'year': current_year}).scalar()
         
-        total_transactions_this_month = db.session.query(Expense).filter(
-            extract('month', Expense.created_at) == current_month,
-            extract('year', Expense.created_at) == current_year
-        ).count()
+        total_transactions_this_month = db.session.execute(db.text("""
+            SELECT COUNT(*)
+            FROM v_expenses_live e
+            WHERE EXTRACT(month FROM e.created_at) = :month
+            AND EXTRACT(year FROM e.created_at) = :year
+            AND e.superseded_by IS NULL
+        """), {'month': current_month, 'year': current_year}).scalar()
         
         return render_template('dashboard.html',
                              recent_expenses=recent_expenses,
