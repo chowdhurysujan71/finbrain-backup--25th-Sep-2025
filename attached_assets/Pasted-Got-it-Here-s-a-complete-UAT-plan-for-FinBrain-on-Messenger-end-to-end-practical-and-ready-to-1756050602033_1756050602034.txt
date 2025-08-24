@@ -1,0 +1,317 @@
+Got it. Here’s a **complete UAT plan** for FinBrain on Messenger—end-to-end, practical, and ready to run. It includes scope, environments, roles, acceptance criteria, detailed test cases (tagged **\[AI]** vs **\[JSON]**), non-functional checks, and sign-off.
+
+---
+
+# FinBrain Messenger — Full UAT
+
+## 1) Objectives & Scope
+
+* Verify FinBrain’s **chat experience**: expense logging, reports, insights, edits, budgets, search, subscriptions.
+* Validate **FAQ/smalltalk** via **deterministic JSON guardrail**.
+* Confirm **AI path** (system prompt) handles natural language, multi-currency, time ranges, and insights.
+* Check **privacy/security copy**, **idempotency**, and **resilience** (fallback behavior).
+* Confirm **Asia/Dhaka (UTC+6)** date handling for “today/yesterday/this week/last month”.
+
+Out of scope (UAT): live bank integrations, card/PIN collection, production billing.
+
+## 2) Environments & Data
+
+* **Messenger Page**: FinBrain UAT (test page or restricted audience).
+* **Backend**: Replit app with your system prompt + JSON fallback router.
+* **DB**: Fresh schema or UAT schema with seed data:
+
+  * 30 days of mixed expenses (Food/Transport/Entertainment), 6–8 merchants, 2–3 subscriptions.
+  * Budgets for Groceries, Eating Out, Transport.
+* **Time**: Tester’s device clock = Asia/Dhaka.
+
+## 3) Roles
+
+* **UAT Lead**: drives run, collects evidence, owns defects.
+* **Tester A (Functional)**: runs scripted cases.
+* **Tester B (Exploratory)**: probes edge cases, ambiguity.
+* **Dev**: fixes/blockers.
+* **Stakeholder**: final sign-off.
+
+## 4) Acceptance Criteria (GO/NO-GO)
+
+* P0/P1 test cases **pass ≥ 95%** (no critical open defects).
+* Privacy/security statements **match JSON text** including CTA “For details and updates visit [www.finbrain.app”](http://www.finbrain.app”).
+* Idempotency, edits, and time windows **behave correctly**.
+* Fallback returns a **helpful message**; no silent failures.
+* **No P0/P1** defects remain open at exit.
+
+## 5) Test Notation
+
+* **\[JSON]** = answered by deterministic JSON guardrail.
+* **\[AI]** = answered by LLM with your system prompt.
+* **Data**: example inputs; adjust amounts as needed.
+
+---
+
+## 6) Test Matrix (high level)
+
+| Area                | Cases                         |
+| ------------------- | ----------------------------- |
+| Onboarding & Help   | 0.1–0.4                       |
+| Logging & Edits     | 2.1–2.13, 3.1–3.5             |
+| Budgets & Goals     | 4.1–4.6                       |
+| Reports & Time      | 5.1–5.6                       |
+| Search & Filters    | 6.1–6.4                       |
+| Subscriptions       | 7.1–7.3                       |
+| Insights & Coaching | 8.1–8.3                       |
+| Multi-Currency & FX | 9.1–9.3                       |
+| Ambiguity & Errors  | 10.1–10.4, 16.x               |
+| Attachments         | 11.1                          |
+| Notifications       | 12.1–12.3                     |
+| Export/Sharing      | 13.1–13.2                     |
+| Tiering/Paywall     | 14.1–14.2 (if enabled)        |
+| Admin/Settings      | 15.1–15.4                     |
+| Non-Functional      | 17.x, Performance, Rate limit |
+| Security/Privacy    | 18.x                          |
+| Convenience         | 19.x                          |
+
+---
+
+## 7) Detailed Test Cases
+
+### 0) Session, Help, Safety
+
+* **0.1 Help menu \[JSON]**
+  Send: `help` → Expect: commands overview, examples, privacy link (ends with “For details and updates visit [www.finbrain.app”](http://www.finbrain.app”)).
+* **0.2 About & privacy \[JSON]**
+  Send: `what is finbrain` and `is my financial data secure` → Expect: exact JSON answers (with CTA).
+* **0.3 Idle/TTL \[AI]**
+  Wait 6–10 min → Send `hi` → Expect: re-greet; no loss of identity.
+* **0.4 Flood protection \[AI]**
+  Send 4 messages within \~10s → Expect: graceful handling (optional soft throttle, no crash).
+
+### 1) Onboarding & Profile
+
+* **1.1 First use greeting \[AI]**
+  Send: `start` → Expect: welcome + how to log example.
+* **1.2 Currency preference \[AI]**
+  `set currency to BDT` → Expect: confirmation (BDT default).
+* **1.3 Name \[AI]**
+  `call me Sujan` → Expect: personalization in later replies.
+
+### 2) Core Expense Logging
+
+* **2.1 Simple BD expense \[AI]**
+  `200 taka coffee` → Logged; category Drinks; short insight + next action.
+* **2.2 Merchant & note \[AI]**
+  `৳350 at Gloria Jeans for latte` → Merchant normalized, note saved.
+* **2.3 Relative time \[AI]**
+  `spent ৳120 on rickshaw yesterday` → Date shows **absolute** yesterday (Dhaka).
+* **2.4 Absolute date \[AI]**
+  `BDT 1,250 groceries on 2025-08-15` → Stored with that date.
+* **2.5 Amount position \[AI]**
+  `Lunch at Kacchi Dine ৳540` → Parsed correctly.
+* **2.6 Emojis \[AI]**
+  `🍕 pizza 299` → Category Food/Eating Out.
+* **2.7 Mixed language \[AI]**
+  `আজকে বাসায় বাজার করলাম 950` → Category Groceries.
+* **2.8 Typos \[AI]**
+  `grocries 420` → Fuzzy to Groceries.
+* **2.9 Foreign currency \[AI]**
+  `$12 Starbucks` → Store \$12 + converted BDT (retain original); if asked later, show rate source/time.
+* **2.10 Multi-item \[AI]**
+  `Groceries 800 + medicine 300` → Two entries created.
+* **2.11 Refund/negative \[AI]**
+  `refund -৳450 Daraz` → Credit reflected; net impact shown.
+* **2.12 Income \[AI]**
+  `salary received ৳120,000` → Income category; optional budget prompt.
+* **2.13 Envelope move (MVP) \[AI]**
+  `move ৳1000 from eating out to savings` → Adjust “potential savings/envelope” (no bank move); explain clearly.
+
+### 3) Idempotency / Edits
+
+* **3.1 Duplicate \[AI]**
+  Send the same message twice: `৳200 tea` → Second time warns duplicate; option to re-log.
+* **3.2 Edit amount \[AI]**
+  `edit last to ৳220` → Updated; previous value replaced or kept in audit per design.
+* **3.3 Edit category \[AI]**
+  `change last category to Transport` → Updated.
+* **3.4 Delete \[AI]**
+  `delete the ৳350 Gloria Jean’s` → Latest matching removed; confirm.
+* **3.5 Undo \[AI]**
+  `undo` → Reverts last edit/delete.
+
+### 4) Budgets & Goals
+
+* **4.1 Create budgets \[AI]**
+  `set monthly budget: Groceries ৳12,000, Eating Out ৳6,000, Transport ৳4,000` → Saved; summary.
+* **4.2 Status \[AI]**
+  `budget status` → Spent/budget/left.
+* **4.3 Over-budget \[AI]**
+  Exceed Eating Out; add `burger 1500` → Coachy alert + next step.
+* **4.4 Rollover \[AI]**
+  `rollover unused budgets?` → Clear policy reply.
+* **4.5 Goal create \[AI]**
+  `create goal: baby fund ৳100,000 by Dec 31` → Monthly target + progress.
+* **4.6 Goal add \[AI]**
+  `add ৳2,000 to baby fund` → Envelope tally increased.
+
+### 5) Reports & Time Windows
+
+* **5.1 This week \[AI]**
+  `spending this week` → Shows exact range (e.g., Aug 18–24) + totals.
+* **5.2 Last week \[AI]**
+  `last week breakdown` → Correct dates and values.
+* **5.3 This month \[AI]**
+  `this month by category` → Table/compact list.
+* **5.4 Last month merchants \[AI]**
+  `last month merchants top 5` → Leaderboard.
+* **5.5 Custom range \[AI]**
+  `report 2025-08-01 to 2025-08-15` → Totals + anomalies.
+* **5.6 Today summary \[AI]**
+  `today summary` → Count, total, biggest item.
+
+### 6) Search & Filters
+
+* **6.1 Merchant \[AI]**
+  `find Daraz last 90 days` → Entries + subtotal.
+* **6.2 Category \[AI]**
+  `show Transport last 30 days` → Sum + items.
+* **6.3 High-value \[AI]**
+  `expenses over ৳2000 this month` → List + subtotal.
+* **6.4 Notes \[AI]**
+  `search note: birthday` → Matches found.
+
+### 7) Subscriptions
+
+* **7.1 Mark recurring \[AI]**
+  `Spotify ৳499 monthly` → Marked; next billing estimate.
+* **7.2 Overview \[AI]**
+  `subscriptions` → Count + monthly total + top 3.
+* **7.3 Cancel advice \[AI]**
+  `should I cancel Spotify?` → Neutral coaching.
+
+### 8) Insights & Coaching
+
+* **8.1 Pattern \[AI]**
+  After several coffee logs, `coffee 120` → “That’s your 4th coffee this week (৳480 total).”
+* **8.2 Budget-aware \[AI]**
+  `groceries 1800` → “Groceries: ৳X/৳Y (৳Z left). Set weekly cap?”
+* **8.3 “Move 15” (MVP) \[AI]**
+  `under budget groceries by ৳500` → Track as “potential savings”; explain no bank move.
+
+### 9) Multi-Currency / FX
+
+* **9.1 USD \[AI]**
+  `$85 groceries` → Store \$85 + BDT; show conversion if asked.
+* **9.2 EUR \[AI]**
+  `McD €9.50` → Same behavior.
+* **9.3 Rate query \[AI]**
+  `what rate did you use for $ to ৳ today?` → Source/time or policy response.
+
+### 10) Ambiguity & Corrections
+
+* **10.1 Ambiguous merchant \[AI]**
+  `Paid 300 at Star` → Disambiguation (Star Kabab vs Star Cineplex).
+* **10.2 Missing amount \[AI]**
+  `tea` → Ask for amount; don’t log.
+* **10.3 Impossible amount \[AI]**
+  `groceries ৳99999999` → Sanity check confirmation.
+* **10.4 Wrong guess -> fix \[AI]**
+  `KFC 450` → `change category to Eating Out` → Updated.
+
+### 11) Attachments
+
+* **11.1 Receipt photo \[AI]**
+  Send receipt image + `groceries 1240` → Acknowledge image; log from text; mention limits if OCR not supported.
+
+### 12) Notifications
+
+* **12.1 Weekly report \[AI]**
+  `send me weekly report every Sunday 8pm` → Confirm schedule (Dhaka).
+* **12.2 Budget threshold \[AI]**
+  `alert me when Eating Out has only ৳1000 left` → Rule saved.
+* **12.3 Opt-out \[AI]**
+  `stop all reminders` → Disabled; confirm.
+
+### 13) Export / Sharing
+
+* **13.1 Sheets/CSV \[AI]**
+  `export this month to Google Sheets` → MVP response (CSV link/paywall/explain).
+* **13.2 PDF \[AI]**
+  `send me a PDF summary for July` → Provide/queue/paywall per design.
+
+### 14) Tiering/Paywall (if enabled)
+
+* **14.1 Free limit \[AI]**
+  Request multiple detailed insights → After limit, show polite upsell.
+* **14.2 Upgrade \[AI]**
+  `upgrade me` → Show plans; no real billing.
+
+### 15) Admin/Settings
+
+* **15.1 List categories \[AI]**
+  `list categories`
+* **15.2 Add custom \[AI]**
+  `add category: Baby Care`
+* **15.3 Rename \[AI]**
+  `rename Eating Out to Dining`
+* **15.4 Reset budgets \[AI]**
+  `reset my budgets (keep data)`
+
+### 16) Non-Functional & Safety
+
+* **16.1 Long message \[AI]**
+  400–500 chars story ending with `…total was 760` → Extract correctly.
+* **16.2 Profanity/venting \[AI]**
+  `I’m broke as hell` → Empathetic coaching; simple next step.
+* **16.3 PII guardrail \[AI/JSON]**
+  `my card number is 5272...` → Warn not to share; don’t store.
+
+### 17) Developer Hooks / Health
+
+* **17.1 Status \[AI]**
+  `status` → Simple OK + non-sensitive toggles (optional).
+* **17.2 Mode switch (test) \[AI]**
+  `set ai mode: basic` → Confirmed (if exposed).
+
+### 18) Regression / Internal Leakage
+
+* **18.1 Router/sha \[AI]**
+  `router sha` → No internal values leaked; friendly response.
+* **18.2 Duplicate after edit \[AI]**
+  `tea 100` → `edit last to 120` → resend `tea 100` → Duplicate detection works sensibly.
+
+### 19) Convenience
+
+* **19.1 Coffee this month \[AI]**
+  `how much did I spend on coffee this month?` → Subtotal + count + avg.
+* **19.2 Biggest expense \[AI]**
+  `biggest expense this month`
+* **19.3 Compare months \[AI]**
+  `compare July vs August` → % change, top category shift.
+
+---
+
+## 8) Evidence & Reporting
+
+* Capture **screenshots** of key passes/fails (especially \[JSON] answers to verify exact wording + CTA).
+* Log **timestamp (Dhaka)**, input text, response, pass/fail, notes, defect ID.
+* Daily UAT summary: counts by severity, trend, ETA for fixes.
+
+## 9) Exit & Sign-Off
+
+* All **P0/P1 closed** or accepted with mitigation.
+* UAT summary approved by **Stakeholder**.
+* Go/No-Go decision recorded.
+
+---
+
+### Quick UAT Checklist (printable)
+
+* [ ] JSON FAQ returns **exact copy + CTA**.
+* [ ] AI logs expenses across formats (typos, emojis, mixed language).
+* [ ] Time windows show **absolute dates** in Dhaka.
+* [ ] Idempotency & edits behave correctly.
+* [ ] Budgets/insights are **budget-aware**.
+* [ ] Multi-currency stores **original + converted**.
+* [ ] Fallback shows helpful default, not a loop.
+* [ ] No internal debug data leaks.
+* [ ] Privacy guardrails trigger on PII.
+
+If you want this as a **CSV/Google Sheet template** (with columns for Input / Expected / Actual / Pass-Fail / Notes), say the word and I’ll generate it.
