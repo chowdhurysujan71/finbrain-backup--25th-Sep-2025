@@ -337,7 +337,21 @@ def admin_dashboard():
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Health check endpoint with production security monitoring"""
+    """Health check endpoint with production security monitoring and emergency mode support"""
+    # Check for emergency mode first
+    from utils.panic_toggle import is_emergency_mode, get_emergency_status
+    if is_emergency_mode():
+        # In emergency mode, return minimal safe health response
+        emergency_health = {
+            "status": "emergency_mode",
+            "service": "finbrain-expense-tracker",
+            "timestamp": datetime.utcnow().isoformat(),
+            "emergency_details": get_emergency_status(),
+            "message": "Service in emergency mode - limited functionality"
+        }
+        logger.warning("EMERGENCY_MODE: Health check - serving emergency response")
+        return jsonify(emergency_health), 503
+    
     health_status = "healthy"
     issues = []
     
@@ -1052,86 +1066,10 @@ def ops_hash():
     from utils.identity import psid_hash
     return {"psid": psid, "psid_hash": psid_hash(psid)}, 200
 
-@app.route("/webhook", methods=["POST"])
-def webhook():
-    """Canonical webhook using identity-based PSID hashing"""
-    from utils.identity import psid_hash
-    
-    data = request.get_json(force=True, silent=True) or {}
-    try:
-        raw_psid = data["entry"][0]["messaging"][0]["sender"]["id"]
-    except Exception as e:
-        app.logger.warning(f"Webhook missing PSID: {e}")
-        return "EVENT_RECEIVED", 200
-    
-    g.user_hash = psid_hash(raw_psid)
-    return handle_message(data, g.user_hash)
+# REMOVED: Legacy /webhook endpoint - redundant with /webhook/messenger
+# Only canonical /webhook/messenger endpoint remains for production use
 
-def handle_message(data, user_hash):
-    """Handle message with canonical user identity"""
-    # For now, delegate to existing production router system
-    # TODO: Integrate canonical identity throughout system
-    try:
-        from utils.production_router import production_router
-        
-        # Extract message details
-        entry = data["entry"][0]
-        messaging = entry["messaging"][0]
-        message_text = messaging.get("message", {}).get("text", "")
-        
-        if message_text:
-            response, intent, tip, amount = production_router.route_message(
-                message_text, user_hash, f"webhook_{int(__import__('time').time() * 1000)}"
-            )
-            
-            # Send response via Facebook
-            from utils.facebook_handler import send_facebook_message
-            send_facebook_message(user_hash, response)
-        
-        return "EVENT_RECEIVED", 200
-        
-    except Exception as e:
-        app.logger.error(f"Message handling error: {e}")
-        return "EVENT_RECEIVED", 200
-
-@app.route('/webhook/test', methods=['POST'])
-def webhook_test():
-    """Test endpoint for UAT - bypasses signature verification"""
-    import time
-    start_time = time.time()
-    
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "invalid_json"}), 400
-            
-        # Simple test processing
-        if 'entry' in data and data['entry']:
-            entry = data['entry'][0]
-            if 'messaging' in entry and entry['messaging']:
-                message = entry['messaging'][0]
-                sender_id = message.get('sender', {}).get('id', 'unknown')
-                text = message.get('message', {}).get('text', '')
-                
-                elapsed_ms = (time.time() - start_time) * 1000
-                
-                return jsonify({
-                    "status": "test_ack",
-                    "sender_id": sender_id,
-                    "text": text,
-                    "processing_time_ms": round(elapsed_ms, 2),
-                    "test_mode": True
-                }), 200
-        
-        return jsonify({"error": "invalid_structure"}), 400
-        
-    except Exception as e:
-        elapsed_ms = (time.time() - start_time) * 1000
-        return jsonify({
-            "error": "test_error",
-            "message": str(e),
-            "processing_time_ms": round(elapsed_ms, 2)
-        }), 500
+# REMOVED: /webhook/test endpoint - test endpoints removed for production security
 
 
 
