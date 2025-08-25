@@ -46,6 +46,12 @@ except ImportError:
 # FAQ/Smalltalk guardrail imports
 from utils.faq_map import match_faq_or_smalltalk, fallback_default
 
+# Messaging guardrails imports
+from utils.ttl_store import get_store
+from utils.ux_copy import (
+    SLOW_DOWN, DAILY_LIMIT, REPEAT_HINT, PII_WARNING, BUSY, FALLBACK
+)
+
 # Flask imports for webhook blueprint
 from flask import Blueprint, request, jsonify
 
@@ -174,6 +180,17 @@ class ProductionRouter:
                 self._log_routing_decision(rid, user_hash, "faq_smalltalk", "deterministic")
                 self._record_processing_time(time.time() - start_time)
                 return faq_response, "faq", None, None
+            
+            # Step 0.5: MESSAGING GUARDRAILS - Post-FAQ safety checks (fail-open design)
+            try:
+                guardrail_response = self._check_messaging_guardrails(text, user_hash, rid)
+                if guardrail_response:
+                    self._log_routing_decision(rid, user_hash, "messaging_guardrail", "safety_triggered")
+                    self._record_processing_time(time.time() - start_time)
+                    return guardrail_response, "guardrail", None, None
+            except Exception as e:
+                # Fail-open: guardrail errors never break message flow
+                logger.warning(f"Messaging guardrail check failed (user={user_hash[:8]}): {e}")
             
             # Step 1: CORRECTION DETECTION - Always enabled, no flags
             if is_correction_message(text):
@@ -385,6 +402,76 @@ class ProductionRouter:
             self._log_routing_decision(rid, user_hash, "error", f"emergency_fallback: {str(e)}")
             return response, "error", None, None
     
+    def _check_messaging_guardrails(self, text: str, user_hash: str, rid: str) -> Optional[str]:
+        """
+        Post-FAQ messaging guardrails with fail-open design
+        Checks: rate limiting, daily caps, repeat detection, PII, spam
+        Returns guardrail message or None to continue normal processing
+        """
+        import hashlib
+        import os
+        
+        # Feature flag check - fail open if disabled
+        enabled = os.getenv("MESSAGING_GUARDRAILS_ENABLED", "false").lower() == "true"
+        if not enabled:
+            return None
+            
+        try:
+            store = get_store()
+            now_str = datetime.utcnow().strftime("%Y%m%d")
+            
+            # 1. BURST RATE LIMITING (5 messages per 10 seconds)
+            burst_key = f"burst:{user_hash}"
+            burst_count = store.incr(burst_key, ttl_seconds=10)
+            burst_limit = int(os.getenv("GUARDRAIL_BURST_LIMIT", "5"))
+            
+            if burst_count > burst_limit:
+                logger.info(f"[GUARDRAIL] Burst limit hit: user={user_hash[:8]} count={burst_count}")
+                return SLOW_DOWN
+            
+            # 2. DAILY MESSAGE CAP (30 messages per day)
+            daily_key = f"daily:{user_hash}:{now_str}"
+            daily_count = store.incr(daily_key, ttl_seconds=86400)  # 24 hours
+            daily_limit = int(os.getenv("GUARDRAIL_DAILY_LIMIT", "30"))
+            
+            if daily_count > daily_limit:
+                logger.info(f"[GUARDRAIL] Daily limit hit: user={user_hash[:8]} count={daily_count}")
+                return DAILY_LIMIT
+            
+            # 3. ANTI-REPEAT DETECTION (45 second window with MD5 hash)
+            text_clean = text.strip().lower()[:100]  # Normalize and cap
+            text_hash = hashlib.md5(text_clean.encode()).hexdigest()[:8]
+            repeat_key = f"repeat:{user_hash}:{text_hash}"
+            
+            if store.exists(repeat_key):
+                logger.info(f"[GUARDRAIL] Repeat detected: user={user_hash[:8]} hash={text_hash}")
+                return REPEAT_HINT
+            else:
+                # Set 45-second repeat window
+                repeat_window = int(os.getenv("GUARDRAIL_REPEAT_WINDOW", "45"))
+                store.setex(repeat_key, repeat_window, 1)
+            
+            # 4. PII DETECTION (basic patterns)
+            pii_patterns = [
+                r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b',  # Credit card
+                r'\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b',             # SSN
+                r'\b\d{10,15}\b'                                # Long numbers
+            ]
+            
+            import re
+            for pattern in pii_patterns:
+                if re.search(pattern, text):
+                    logger.warning(f"[GUARDRAIL] PII detected: user={user_hash[:8]} pattern={pattern[:20]}...")
+                    return PII_WARNING
+            
+            # All checks passed
+            return None
+            
+        except Exception as e:
+            # Fail-open: never break message flow due to guardrail errors
+            logger.warning(f"[GUARDRAIL] Check failed (user={user_hash[:8]}): {e}")
+            return None
+
     def _get_previous_bot_intent(self, user_hash: str) -> Optional[str]:
         """
         Get the previous bot intent for this user (for intent upgrade detection)
