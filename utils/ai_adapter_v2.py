@@ -12,6 +12,16 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+# Messaging guardrail prompt
+MESSAGING_GUARDRAIL_PROMPT = (
+    "You are FinBrain, a friendly financial companion in chat. "
+    "Be natural and supportive, not robotic. One reply per message; keep it short (2–4 sentences, ≤280 chars). "
+    "Use 0–2 emojis max; pick ones that fit (🧾 logging, 📊 reports, 💡 insights, 🔒 security, 🧭 fallback). "
+    "Avoid repeating the same phrase within 2 minutes; vary phrasing. "
+    "Ask one clarifying question if needed; end with at most one clear next step. "
+    "Never ask for or echo card numbers, passwords, or personal identifiers. "
+)
+
 # Configuration
 AI_ENABLED = os.environ.get("AI_ENABLED", "false").lower() == "true"
 AI_PROVIDER = os.environ.get("AI_PROVIDER", "none")  # none|openai|gemini
@@ -46,6 +56,10 @@ class ProductionAIAdapter:
             })
         
         logger.info(f"Production AI Adapter initialized: enabled={self.enabled}, provider={self.provider}")
+    
+    def _compose_system_prompt(self, base_prompt: str) -> str:
+        """Compose system prompt with messaging guardrails prepended"""
+        return f"{MESSAGING_GUARDRAIL_PROMPT}\n\n{base_prompt}"
     
     def phrase_summary(self, summary: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -108,12 +122,8 @@ class ProductionAIAdapter:
             prompt = self._build_prompt(text, context)
             
             # Prepare request payload
-            payload = {
-                "model": "gpt-4o-mini",  # Fast model for production
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": """You are FinBrain, a friendly AI-powered finance companion that lives inside messaging apps.
+            # Compose system prompt with guardrails
+            base_system_prompt = """You are FinBrain, a friendly AI-powered finance companion that lives inside messaging apps.
 
 Your purpose:
 • Help users log expenses in natural language
@@ -139,17 +149,17 @@ Security:
 
 Multi-Currency Support: Recognize BDT (৳), $, €, £, ₹
 
-Messaging Guardrails:
-• Don't suggest risky spending, self-harm, or harmful financial behaviors
-• Avoid political opinions, investment advice, or non-FinBrain promotions
-• If user sends spam/abuse, be polite: "Let's focus on your expenses and financial insights!"
-• Never engage with threatening, harassing, or clearly inappropriate content
-• For repetitive messages, gently redirect: "Got that—anything new you'd like me to do now?"
-
 Guardrails:
 • If user asks to "spend more money", clarify gently: "🤔 Did you mean tips to save money, or actually increase your spending?"
 • If unclear, ask for clarification instead of guessing
 • Respond with valid JSON only. Never write to databases."""
+
+            payload = {
+                "model": "gpt-4o-mini",  # Fast model for production
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": self._compose_system_prompt(base_system_prompt)
                     },
                     {
                         "role": "user",
@@ -216,8 +226,8 @@ Guardrails:
             # Construct prompt
             prompt = self._build_prompt(text, context)
             
-            # Prepare request payload for Gemini (includes system prompt in main prompt)
-            full_prompt = f"""You are FinBrain, a friendly AI-powered finance companion that lives inside messaging apps.
+            # Compose system prompt with guardrails for Gemini
+            base_system_prompt = """You are FinBrain, a friendly AI-powered finance companion that lives inside messaging apps.
 
 Your purpose:
 • Help users log expenses in natural language
@@ -243,19 +253,13 @@ Security:
 
 Multi-Currency Support: Recognize BDT (৳), $, €, £, ₹
 
-Messaging Guardrails:
-• Don't suggest risky spending, self-harm, or harmful financial behaviors
-• Avoid political opinions, investment advice, or non-FinBrain promotions
-• If user sends spam/abuse, be polite: "Let's focus on your expenses and financial insights!"
-• Never engage with threatening, harassing, or clearly inappropriate content
-• For repetitive messages, gently redirect: "Got that—anything new you'd like me to do now?"
-
 Guardrails:
 • If user asks to "spend more money", clarify gently: "🤔 Did you mean tips to save money, or actually increase your spending?"
 • If unclear, ask for clarification instead of guessing
-• Respond with valid JSON only. Never write to databases.
+• Respond with valid JSON only. Never write to databases."""
 
-{prompt}"""
+            # Prepare request payload for Gemini (includes system prompt in main prompt)
+            full_prompt = f"{self._compose_system_prompt(base_system_prompt)}\n\n{prompt}"
             
             payload = {
                 "contents": [{
