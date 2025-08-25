@@ -1,0 +1,139 @@
+Yep—if FAQ still fires after a restart, you almost certainly have one of these: stale config cached, multiple app versions live, or a lower-priority rule winning. Here’s a tight, do-now plan to isolate and fix.
+
+# 0) One-shot mitigation (so users stop seeing FAQ)
+
+Add a guard at the *top* of routing that forces summary for the common phrases until you finish root-cause:
+
+```python
+if re.search(r"\b(expense|spend(ing)?)\b", txt, re.I) and re.search(r"\b(today|yesterday|week|month)\b", txt, re.I):
+    return Route(intent="summary", reason="hotfix_time_window_kw")
+```
+
+Ship, verify in prod, then keep digging.
+
+---
+
+# 1) Triage checklist (10 mins)
+
+1. **Confirm build + config actually loaded**
+
+   * Log once at process start: `BOOT build_sha=..., router_sha=..., config_crc32=..., ruleset_version=...`
+   * On each request log: `rid=... decision=... ruleset_crc=... build_sha=...`
+   * If decisions show an old `ruleset_crc` or `build_sha`, you’re running an old container/worker.
+
+2. **Kill stale workers / rolling restarts**
+
+   * If you run >1 process, one may still hold old state. Do a rolling restart and confirm worker PIDs change.
+   * If using a queue, **drain + pause**; old workers can keep dequeuing with old code.
+
+3. **Cache flush (very common)**
+
+   * If router compiles patterns into Redis/memory, bump a **`ROUTER_RULES_EPOCH`** env var (e.g., `169`) and *check your code reads it into the cache key*. Then clear Redis keys matching `router:*`.
+   * If you memoize the “intent → handler” map at import time, ensure the restart actually re-imported the module (gunicorn preload workers can bite you).
+
+4. **Feature flags & env drift**
+
+   * Dump effective flags to logs on every request: `flags={smalltalk_enabled:1, nlp_v2:0, …}`.
+   * Compare staging vs prod values (many times the flag server returns an old variant).
+
+5. **Version skew across instances**
+
+   * Hit each instance directly (bypass LB) with the *same* payload; record router decision. If one differs, you’ve got skew.
+
+---
+
+# 2) Add high-signal debug on the router (keep for 48h)
+
+```python
+log.info("[ROUTER_DECISION] rid=%s sha=%s cfg=%s flags=%s intent=%s reason=%s matchers=%s text=%r",
+         rid, BUILD_SHA[:7], RULESET_CRC, FLAGS_FPRINT, intent, reason, matched_rules, user_text[:120])
+```
+
+Also log **top-3 rule candidates** with their scores/regex names so you can see *why* FAQ won.
+
+---
+
+# 3) Check rule order & shadow evaluation
+
+* Print the **ordered list** of rules on boot. Many frameworks re-sort by weight/priority; an unset weight can push FAQ above summary.
+* Implement “shadow routing”: evaluate both **current** and **new** rules; log if they disagree:
+
+```python
+old_intent = route_v1(txt)
+new_intent = route_v2(txt)
+if old_intent != new_intent:
+    log.warn("[ROUTER_DRIFT] rid=%s old=%s new=%s text=%r", rid, old_intent, new_intent, txt)
+```
+
+---
+
+# 4) Unit test + canary (must add now)
+
+Create golden tests so this never regresses:
+
+```python
+@pytest.mark.parametrize("q", [
+  "what are my expenses this week",
+  "weekly total?",
+  "show this month spending",
+])
+def test_summary_detection(q):
+    intent = route(q).intent
+    assert intent == "summary"
+```
+
+Run in CI; fail build if intent ≠ summary.
+
+Add a **canary endpoint** `/diagnose/router?q=...` that returns `{intent, rule_id, build_sha, ruleset_crc, flags}`. Hit it with:
+
+* `what are my expenses this week`
+* `weekly total`
+* `how much did I spend today`
+  Compare across instances.
+
+---
+
+# 5) Common root causes (quick checks)
+
+* **FAQ regex is too greedy** (e.g., `.*\?` at high priority). Lower its priority or add a negative lookahead for financial keywords.
+* **Rules compiled once** and **not recompiled** on restart because of a warm worker pool / preloading.
+* **Two code paths**: a “fast keyword router” and a “NLP router”; only one got the fix.
+* **Env var drift**: `ROUTER_MODE=faq_smalltalk_first` in prod but not locally.
+* **Fallback threshold**: Classifier confidence threshold too high → everything drops to FAQ.
+* **Language/tag normalization** stripping “expenses” during preprocessing.
+
+---
+
+# 6) Data signal to verify fix
+
+Create a temporary metric:
+
+* `router.intent=summary` **match rate** (target >92% for queries containing `(expense|spend)` + `(today|week|month)`).
+* `fallback_rate` for those same queries (target <3%).
+* Dashboard these for the next week.
+
+---
+
+# 7) If it’s cache/versioning, here’s a safe deploy recipe
+
+1. Bump version: `BUILD_SHA` and `RULESET_CRC`.
+2. **Blue/Green**: bring up Green, run canary `/diagnose/router` on Green only.
+3. Swap traffic to Green.
+4. Drain Blue; verify no dequeuing workers remain.
+5. Purge Redis keys `router:*` and any compiled-NLP caches.
+
+---
+
+# 8) Final safety net (post-fix)
+
+Keep a **post-router validator** for a month:
+
+```python
+if intent in ("faq","smalltalk") and re.search(r"\b(expense|spend)\b", txt, re.I):
+    metrics.inc("router_missed_finance")
+    # Optionally upgrade to summary or reply: "Did you mean a spending summary?"
+```
+
+---
+
+If you want, I can give you a drop-in `RouterDiagnostics` module (tiny Python file) that prints the build hash, ruleset checksum, active flags, and top rule matches + a Redis cache key inspector.

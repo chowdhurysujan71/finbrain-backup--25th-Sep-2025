@@ -164,15 +164,28 @@ class ProductionRouter:
         self.telemetry['total_messages'] += 1
         
         try:
-            # Always log router banner with current config
+            # Always log router banner with current config + build info
             from utils.config import FEATURE_FLAGS_VERSION
-            logger.info(f"[ROUTER] mode=AI features=[NLP_ROUTING,TONE,CORRECTIONS] config_version={FEATURE_FLAGS_VERSION} psid={psid[:8]}...")
+            import hashlib
+            build_sha = hashlib.md5(open(__file__, 'rb').read()).hexdigest()[:8]
+            logger.warning(f"[ROUTER_DECISION] rid={rid} build_sha={build_sha} config={FEATURE_FLAGS_VERSION} user={user_hash[:8]} text='{text}'")
             
             # Panic mode - immediate acknowledgment
             if PANIC_PLAIN_REPLY:
                 response = normalize("OK")
                 self._log_routing_decision(rid, user_hash, "panic", "immediate_ack")
                 return response, "panic", None, None
+            
+            # EMERGENCY HOTFIX: Force summary for expense queries until root cause found
+            import re
+            if (re.search(r"\b(expense|spend(ing)?|cost|paid|bought)\b", text, re.I) and 
+                re.search(r"\b(today|yesterday|week|month|this|last)\b", text, re.I)):
+                logger.warning(f"[HOTFIX] Forcing summary for expense query: user={user_hash[:8]} text='{text}'")
+                from handlers.summary import handle_summary_request
+                summary_response = handle_summary_request(user_hash, rid, text)
+                self._log_routing_decision(rid, user_hash, "summary_hotfix", "emergency_expense_override")
+                self._record_processing_time(time.time() - start_time)
+                return summary_response, "summary", None, None
             
             # Step 0: FAQ/SMALLTALK GUARDRAIL - Deterministic responses with emojis (no AI)
             faq_response = match_faq_or_smalltalk(text)
