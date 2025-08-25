@@ -33,7 +33,7 @@ def detect_intent(text: str) -> str:
     # Summary commands
     summary_patterns = [
         "summary", "total", "spent", "spending", "recap", "report", 
-        "how much", "show me", "expenses", "overview"
+        "how much", "show me", "expenses", "overview", "costs", "spend"
     ]
     if any(pattern in text_lower for pattern in summary_patterns):
         return "SUMMARY"
