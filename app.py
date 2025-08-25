@@ -493,8 +493,9 @@ def webhook_messenger() -> str | tuple[str, int]:
         return response_text, status_code
 
 @app.route('/diagnose/router', methods=['GET'])
+@require_basic_auth
 def diagnose_router():
-    """Diagnostic endpoint to test router directly with real PSID and query"""
+    """Diagnostic endpoint to test router directly with real PSID and query - ADMIN ACCESS REQUIRED"""
     import uuid
     import hashlib
     

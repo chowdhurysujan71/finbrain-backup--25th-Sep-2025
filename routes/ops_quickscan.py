@@ -10,7 +10,13 @@ bp = Blueprint("quickscan", __name__)
 
 @bp.route("/ops/quickscan")
 def quickscan():
-    """Diagnostic endpoint to check user data consistency"""
+    """Diagnostic endpoint to check user data consistency - ADMIN ACCESS REQUIRED"""
+    # Check authentication
+    from app import check_basic_auth
+    from flask import jsonify
+    
+    if not check_basic_auth():
+        return jsonify({"error": "Authentication required"}), 401
     psid = request.args.get("psid")
     psid_hash = request.args.get("psid_hash")
     
