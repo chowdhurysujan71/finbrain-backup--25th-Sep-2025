@@ -70,7 +70,7 @@ class HealthPinger:
             response = requests.get(
                 self.health_url,
                 timeout=10,
-                headers={'User-Agent': 'FinBrain-HealthPing/1.0'}
+                headers={'User-Agent': 'finbrain-HealthPing/1.0'}
             )
             
             response_time_ms = (time.time() - start_time) * 1000

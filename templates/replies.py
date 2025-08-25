@@ -1,5 +1,5 @@
 """
-Reply Templates for FinBrain Corrections
+Reply Templates for finbrain Corrections
 Coach-style, natural, and helpful response formatting
 """
 

@@ -5,12 +5,12 @@ from typing import Optional
 FAQ_JSON = {
     "faq": {
         "what is finbrain": (
-            "🤖 **FinBrain** is your personal finance AI assistant that lives in your favorite messaging apps. "
+            "🤖 **finbrain** is your personal finance AI assistant that lives in your favorite messaging apps. "
             "It helps you track expenses, manage budgets, and get financial insights through simple conversations. "
             "For details and updates visit www.finbrain.app"
         ),
         "how does expense tracking work": (
-            "🧾 Just send a message like 'I spent $23 on lunch' and FinBrain automatically categorizes and logs your expense. "
+            "🧾 Just send a message like 'I spent $23 on lunch' and finbrain automatically categorizes and logs your expense. "
             "No apps or forms needed. For details and updates visit www.finbrain.app"
         ),
         "is my financial data secure": (
@@ -26,7 +26,7 @@ FAQ_JSON = {
             "For details and updates visit www.finbrain.app"
         ),
         "can i connect my bank accounts": (
-            "🏦 Bank integration is planned for future releases. Right now, FinBrain focuses on **conversational expense tracking** for maximum privacy. "
+            "🏦 Bank integration is planned for future releases. Right now, finbrain focuses on **conversational expense tracking** for maximum privacy. "
             "For details and updates visit www.finbrain.app"
         ),
         "what kind of insights can i get": (
@@ -34,7 +34,7 @@ FAQ_JSON = {
             "For details and updates visit www.finbrain.app"
         ),
         "how do i get started": (
-            "🚀 Join early access with your email and be among the first to experience FinBrain. "
+            "🚀 Join early access with your email and be among the first to experience finbrain. "
             "For details and updates visit www.finbrain.app"
         )
     },
@@ -42,7 +42,7 @@ FAQ_JSON = {
         "hi": "👋 Hi there! Want to log an expense, see a summary, or get an insight?",
         "hello": "😊 Hello! I can help you track expenses or show your spending summary.",
         "who built you": (
-            "🏗️ I was built by the FinBrain team to make managing money as easy as sending a message. "
+            "🏗️ I was built by the finbrain team to make managing money as easy as sending a message. "
             "For details and updates visit www.finbrain.app"
         )
     },

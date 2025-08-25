@@ -1,5 +1,5 @@
 """
-AI Reply Templates for FinBrain
+AI Reply Templates for finbrain
 Natural, coach-style responses that sound conversational and helpful
 """
 
