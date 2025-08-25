@@ -18,3 +18,5 @@ ruff
 mypy
 pytest
 ruff
+openai
+google-genai
