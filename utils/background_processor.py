@@ -298,16 +298,10 @@ class BackgroundProcessor:
         time_since_last_check = (now - self._last_reminder_check).total_seconds()
         
         if time_since_last_check >= self._reminder_check_interval:
-            try:
-                from utils.smart_reminders import check_and_send_reminders
-                stats = check_and_send_reminders()
-                if stats['sent'] > 0:
-                    logger.info(f"Reminder check: {stats['sent']} sent, {stats['errors']} errors")
-                self._last_reminder_check = now
-            except Exception as e:
-                logger.error(f"Error in reminder check: {e}")
-                # Still update the timestamp to avoid repeated failures
-                self._last_reminder_check = now
+            # DISABLED: No outbound messaging for policy compliance
+            # Only respond to inbound messages - no proactive reminders
+            logger.debug("Reminder system disabled for policy compliance")
+            self._last_reminder_check = now
 
     def shutdown(self) -> None:
         """Gracefully shutdown the background processor"""
