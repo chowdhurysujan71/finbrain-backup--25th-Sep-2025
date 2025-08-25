@@ -468,6 +468,21 @@ Currencies: ৳ (BDT), $, €, £, ₹"""
         """Cleanup resources"""
         if self.session:
             self.session.close()
+    
+    def get_completion(self, prompt: str, **kwargs) -> Dict[str, Any]:
+        """EMERGENCY FIX: Basic completion method that production router expects"""
+        try:
+            # Use existing process_message infrastructure  
+            context = kwargs.get('context', {})
+            result = self.process_message(prompt, context)
+            
+            if result.get('failover'):
+                return {'error': result.get('reason', 'ai_failed')}
+            
+            return {'response': result.get('response', 'Unable to process request')}
+            
+        except Exception as e:
+            return {'error': f'completion_failed: {e}'}
 
 # Global instance
 production_ai_adapter = ProductionAIAdapter()

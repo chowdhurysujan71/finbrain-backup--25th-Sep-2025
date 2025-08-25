@@ -76,3 +76,15 @@ PRESERVE_AREAS = [
     'webhook_endpoints',
     'faq_responses'  # Users expect consistent AI identity
 ]
+
+# EMERGENCY FIX: Add missing normalize function that the system expects
+def normalize(text: str) -> str:
+    """
+    Basic text normalization function expected by the system
+    This is what the clarification system was trying to import
+    """
+    if not text or not isinstance(text, str):
+        return text
+    
+    # Basic text normalization without brand changes
+    return text.strip()

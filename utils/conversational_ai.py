@@ -128,6 +128,10 @@ class ConversationalAI:
         
         return patterns
     
+    def generate_conversational_response(self, psid_hash: str, user_message: str) -> Tuple[str, str]:
+        """EMERGENCY FIX: Generate conversational response that production router expects"""
+        return self.handle_conversational_query_with_hash(psid_hash, user_message)
+    
     def generate_summary_response_direct(self, psid_hash: str, user_message: str) -> Tuple[str, str]:
         """Generate intelligent summary response based on user data (direct hash access)"""
         from ai_adapter_gemini import generate_with_schema

@@ -229,7 +229,18 @@ class ProductionRouter:
                     # Fail-open: problem reporting errors never break message flow
                     logger.warning(f"Problem reporting failed (user={user_hash[:8]}): {e}")
             
-            # Step 1: CORRECTION DETECTION - Always enabled, no flags
+            # Step 1: LEARNING INTENT DETECTION FIRST (before correction)
+            if self._is_learning_intent(text):
+                logger.info(f"[ROUTER] Learning intent detected: '{text[:50]}...'")
+                try:
+                    response = self._handle_learning_intent(text, user_hash, rid)
+                    self._log_routing_decision(rid, user_hash, "learning", "category_learned")
+                    self._record_processing_time(time.time() - start_time)
+                    return response, "learning_applied", None, None
+                except Exception as e:
+                    logger.warning(f"Learning intent handling failed: {e}")
+            
+            # Step 2: CORRECTION DETECTION - After learning check
             if is_correction_message(text):
                 logger.info(f"[ROUTER] Correction detected: user={user_hash[:8]}...")
                 
@@ -436,16 +447,7 @@ class ProductionRouter:
                 logger.warning(f"AI FAQ detection failed: {faq_error}")
                 # Continue to fallback - no interruption to normal flow
             
-            # Step 9: Check for learning/correction intents FIRST
-            if self._is_learning_intent(text):
-                logger.info(f"[ROUTER] Learning intent detected: '{text[:50]}...'")
-                try:
-                    response = self._handle_learning_intent(text, user_hash, rid)
-                    self._log_routing_decision(rid, user_hash, "learning", "category_learned")
-                    self._record_processing_time(time.time() - start_time)
-                    return response, "learning_applied", None, None
-                except Exception as e:
-                    logger.warning(f"Learning intent handling failed: {e}")
+            # Step 9: Learning intent already checked at Step 1
             
             # Step 10: Check for clarification responses
             logger.info(f"[ROUTER] Checking for clarification response: '{text[:50]}...'")
@@ -508,16 +510,33 @@ class ProductionRouter:
             self._log_routing_decision(rid, user_hash, "error", f"emergency_fallback: {str(e)}")
             return response, "error", None, None
     
+    
     def _is_learning_intent(self, text: str) -> bool:
-        """Detect if user is trying to teach category preferences"""
+        """Detect if user is trying to teach category preferences - COMPREHENSIVE PATTERNS"""
         text_lower = text.lower().strip()
         
+        # EXPANDED learning patterns to catch ALL natural language
         learning_patterns = [
+            # Basic patterns (existing)
             r'(\w+)\s+is\s+(food|drink|transport|shopping|health|entertainment)',
             r'(\w+)\s+should\s+be\s+(food|drink|transport|shopping|health|entertainment)',
             r'log\s+(\w+)\s+under\s+(food|drink|transport|shopping|health|entertainment)',
             r'categorize\s+(\w+)\s+as\s+(food|drink|transport|shopping|health|entertainment)',
-            r'(\w+)\s+belongs\s+to\s+(food|drink|transport|shopping|health|entertainment)'
+            r'(\w+)\s+belongs\s+to\s+(food|drink|transport|shopping|health|entertainment)',
+            
+            # Natural language patterns (ADDED FOR STAKEHOLDERS)
+            r'(\w+)\s+should\s+be\s+categorized\s+under\s+(food|drink|transport|shopping|health|entertainment)',
+            r'(\w+)\s+needs?\s+to\s+go\s+under\s+(food|drink|transport|shopping|health|entertainment)',
+            r'put\s+(\w+)\s+(in|under)\s+the\s+(food|drink|transport|shopping|health|entertainment)\s+category',
+            r'(\w+)\s+expenses?\s+(should\s+)?go\s+(in|under)\s+(food|drink|transport|shopping|health|entertainment)',
+            r'can\s+you\s+(please\s+)?put\s+(\w+)\s+.*(food|drink|transport|shopping|health|entertainment)',
+            r'i\s+think\s+(\w+)\s+should\s+be\s+.*(food|drink|transport|shopping|health|entertainment)',
+            r'you\s+need\s+to\s+log\s+(\w+)\s+under\s+(food|drink|transport|shopping|health|entertainment)',
+            
+            # Correction-style learning
+            r'(\w+)\s+(needs|should)\s+to\s+be\s+(food|drink|transport|shopping|health|entertainment)',
+            r'that\s+(\w+)\s+should\s+have\s+been\s+(food|drink|transport|shopping|health|entertainment)',
+            r'(\w+)\s+belongs\s+in\s+(food|drink|transport|shopping|health|entertainment)',
         ]
         
         import re
