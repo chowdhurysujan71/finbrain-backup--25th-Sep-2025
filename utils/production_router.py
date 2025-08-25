@@ -176,7 +176,10 @@ class ProductionRouter:
             
             # Step 0: FAQ/SMALLTALK GUARDRAIL - Deterministic responses with emojis (no AI)
             faq_response = match_faq_or_smalltalk(text)
+            # TEMP DEBUG: Log FAQ check details for debugging
+            logger.warning(f"[FAQ_DEBUG] user={user_hash[:8]} text='{text}' faq_result={'YES' if faq_response else 'NO'}")
             if faq_response:
+                logger.warning(f"[FAQ_DEBUG] Returning FAQ response: {faq_response[:50]}...")
                 self._log_routing_decision(rid, user_hash, "faq_smalltalk", "deterministic")
                 self._record_processing_time(time.time() - start_time)
                 return faq_response, "faq", None, None
