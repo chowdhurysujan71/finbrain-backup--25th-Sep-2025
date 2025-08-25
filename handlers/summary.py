@@ -23,58 +23,52 @@ def week_bounds(now=None, tz=timezone.utc) -> Tuple[datetime, datetime]:
     start = now - timedelta(days=7)
     return start, now
 
-def get_previous_period_data(user_id: str, timeframe: str = "week") -> Tuple[float, str]:
-    """
-    Get spending data from previous period for comparison
-    Returns (total_amount, top_category)
-    """
-    try:
-        from models import Expense
-        from app import db
-        
-        now = datetime.now(timezone.utc)
-        
-        if timeframe == "month":
-            # Get last month's data
-            if now.month == 1:
-                prev_month = 12
-                prev_year = now.year - 1
-            else:
-                prev_month = now.month - 1
-                prev_year = now.year
-            
-            start = datetime(prev_year, prev_month, 1, tzinfo=timezone.utc)
-            if prev_month == 12:
-                end = datetime(prev_year + 1, 1, 1, tzinfo=timezone.utc)
-            else:
-                end = datetime(prev_year, prev_month + 1, 1, tzinfo=timezone.utc)
-        else:
-            # Get previous week's data (14-7 days ago)
-            end = now - timedelta(days=7)
-            start = end - timedelta(days=7)
-        
-        # Query using existing field name
-        expenses = db.session.query(
-            db.func.sum(Expense.amount).label('total'),
-            Expense.category
-        ).filter(
-            Expense.user_id == user_id,
-            Expense.created_at >= start,
-            Expense.created_at < end
-        ).group_by(Expense.category).all()
-        
-        if not expenses:
-            return 0.0, ""
-        
-        # Calculate total and find top category
-        total = sum(float(exp.total or 0) for exp in expenses)
-        top_category = max(expenses, key=lambda x: float(x.total or 0)).category if expenses else ""
-        
-        return total, top_category
-        
-    except Exception as e:
-        logger.error(f"Error getting previous period data: {e}")
-        return 0.0, ""
+def _range_last_7_and_prev(now: datetime):
+    """Get current and previous 7-day ranges"""
+    cur_start = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
+    cur_end = now
+    prev_end = cur_start  # exclusive
+    prev_start = (prev_end - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
+    return (cur_start, cur_end), (prev_start, prev_end)
+
+def _range_this_month_and_prev(now: datetime):
+    """Get current and previous month ranges"""
+    cur_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    cur_end = now
+    prev_end = cur_start  # exclusive
+    # find previous month start
+    if cur_start.month == 1:
+        prev_start = cur_start.replace(year=cur_start.year-1, month=12)
+    else:
+        prev_start = cur_start.replace(month=cur_start.month-1)
+    return (cur_start, cur_end), (prev_start, prev_end)
+
+def _totals_by_category(user_id: str, start: datetime, end: datetime):
+    """Get category totals for a date range"""
+    from models import Expense
+    from app import db
+    from sqlalchemy import func
+    
+    rows = (
+        db.session.query(
+            Expense.category.label("category"),
+            func.coalesce(func.sum(Expense.amount), 0).label("total"),
+        )
+        .filter(Expense.user_id == user_id)
+        .filter(Expense.created_at >= start)
+        .filter(Expense.created_at < end)   # exclusive end
+        .group_by(Expense.category)
+        .all()
+    )
+    category_map = {(r.category or "Uncategorized"): float(r.total or 0) for r in rows}
+    total = sum(category_map.values())
+    return category_map, total
+
+def _pct_change(cur: float, prev: float) -> float:
+    """Calculate percentage change with divide-by-zero protection"""
+    if prev == 0:
+        return 100.0 if cur > 0 else 0.0
+    return round(abs((cur - prev) / prev) * 100.0, 1)
 
 def handle_summary(user_id: str, timeframe: str = "week") -> Dict[str, str]:
     """
@@ -118,24 +112,54 @@ def handle_summary(user_id: str, timeframe: str = "week") -> Dict[str, str]:
         # Build category list
         categories = [exp.category for exp in expenses[:5]]  # Top 5 categories
         
-        # Get previous period comparison data
-        prev_total, prev_top_category = get_previous_period_data(user_id, timeframe)
+        # Generate base summary first
+        base_msg = format_ai_summary_reply(period, total_amount, total_entries, categories)
         
-        # Calculate comparison data
-        comparison_data = None
-        if prev_total > 0 and total_amount > 0:
-            # Ensure both values are floats for calculation
-            current_total_float = float(total_amount)
-            prev_total_float = float(prev_total)
-            change_pct = ((current_total_float - prev_total_float) / prev_total_float) * 100
-            comparison_data = {
-                'change_pct': change_pct,
-                'prev_total': prev_total_float,
-                'timeframe': timeframe
-            }
+        # Add budget comparison if possible
+        from utils.ux_copy import BUDGET_WEEK_COMPARISON, BUDGET_MONTH_COMPARISON, BUDGET_TOP_CHANGE, BUDGET_NO_DATA
         
-        # Use AI template with comparison data
-        msg = format_ai_summary_reply(period, total_amount, total_entries, categories, comparison_data)
+        now = datetime.now(timezone.utc)
+        mode = "week" if timeframe == "week" else "month"
+        
+        try:
+            # Get current and previous period ranges
+            if mode == "week":
+                (cur_start, cur_end), (prev_start, prev_end) = _range_last_7_and_prev(now)
+            else:
+                (cur_start, cur_end), (prev_start, prev_end) = _range_this_month_and_prev(now)
+            
+            # Get category totals for both periods
+            cur_map, cur_total = _totals_by_category(user_id, cur_start, cur_end)
+            prev_map, prev_total = _totals_by_category(user_id, prev_start, prev_end)
+            
+            if cur_total == 0 and prev_total == 0:
+                comparison_text = BUDGET_NO_DATA
+            else:
+                # Find biggest mover by absolute delta among current categories
+                all_cats = set(cur_map) | set(prev_map)
+                if all_cats:
+                    deltas = {c: cur_map.get(c, 0) - prev_map.get(c, 0) for c in all_cats}
+                    top_cat = max(all_cats, key=lambda c: abs(deltas[c]))
+                else:
+                    top_cat = "—"
+                
+                change_pct = _pct_change(cur_total, prev_total)
+                change_symbol = "⬆️" if (cur_total - prev_total) > 0 else "⬇️"
+                
+                if mode == "week":
+                    comparison_text = BUDGET_WEEK_COMPARISON.format(change_symbol=change_symbol, pct=int(change_pct))
+                else:
+                    comparison_text = BUDGET_MONTH_COMPARISON.format(change_symbol=change_symbol, pct=int(change_pct))
+                
+                comparison_text += BUDGET_TOP_CHANGE.format(category=top_cat)
+            
+            # Combine base summary with comparison, respecting 280 char limit
+            candidate = f"{base_msg} {comparison_text}"
+            msg = candidate if len(candidate) <= 280 else base_msg
+            
+        except Exception as e:
+            logger.error(f"Error adding budget comparison: {e}")
+            msg = base_msg  # Fail-quiet to base summary
         
         return {"text": msg}
         

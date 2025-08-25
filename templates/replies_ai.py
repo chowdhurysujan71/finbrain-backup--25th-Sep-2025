@@ -58,9 +58,8 @@ def format_ai_multi_expense_reply(expenses: List[Dict[str, Any]], total_amount: 
 
 # AI Summary Templates  
 def format_ai_summary_reply(period: str, total_amount: float, total_entries: int, 
-                           categories: Optional[List[str]] = None,
-                           comparison_data: Optional[Dict[str, Any]] = None) -> str:
-    """AI-style summary with coaching tone and optional period comparison"""
+                           categories: Optional[List[str]] = None) -> str:
+    """AI-style summary with coaching tone"""
     
     if total_amount == 0:
         return f"📊 No expenses tracked this {period.lower()} yet. Ready to start logging?"
@@ -79,13 +78,6 @@ def format_ai_summary_reply(period: str, total_amount: float, total_entries: int
         else:
             summary += f" Spending across {len(categories)} categories."
     
-    # Add period comparison if available
-    if comparison_data:
-        change_pct = comparison_data.get('change_pct', 0)
-        if abs(change_pct) >= 5:  # Only show comparison if change is significant (>=5%)
-            symbol = "⬆️" if change_pct > 0 else "⬇️"
-            timeframe_desc = "last week" if comparison_data.get('timeframe') == "week" else "last month"
-            summary += f" ({symbol}{abs(change_pct):.0f}% vs {timeframe_desc})"
     
     # Add coaching insights
     if total_amount > 5000:
