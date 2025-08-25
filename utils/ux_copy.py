@@ -11,3 +11,9 @@ PII_WARNING = "🔒 For your security, please don't share sensitive information 
 BUSY = "⏳ finbrain is a bit busy right now. Please try again in a few minutes."
 FALLBACK = ("🧭 I can help you log expenses, show summaries, or share insights. "
             "Try: 'coffee 120' or 'summary this week'. For details visit www.finbrain.app")
+
+# Budget comparison enhancements (additive only)
+BUDGET_WEEK_COMPARISON = " vs last week: {change_symbol}{pct}%"
+BUDGET_MONTH_COMPARISON = " vs last month: {change_symbol}{pct}%"
+BUDGET_TOP_CHANGE = " • Biggest change: {category}"
+BUDGET_NO_COMPARISON_DATA = ""  # Empty string to gracefully handle missing data

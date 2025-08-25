@@ -26,6 +26,10 @@ def detect_intent(text: str) -> str:
     if text_lower in ["diag", "diagnostic", "status", "health"]:
         return "DIAGNOSTIC"
     
+    # Budget status requests (maps to SUMMARY to leverage existing summary functionality)
+    if "budget" in text_lower or "spending status" in text_lower:
+        return "SUMMARY"
+    
     # Summary commands
     summary_patterns = [
         "summary", "total", "spent", "spending", "recap", "report", 
