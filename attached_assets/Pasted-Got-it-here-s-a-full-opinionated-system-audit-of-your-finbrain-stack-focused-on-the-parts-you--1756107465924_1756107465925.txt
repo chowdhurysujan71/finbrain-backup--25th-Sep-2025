@@ -1,0 +1,310 @@
+Got it—here’s a **full, opinionated system audit** of your finbrain stack, focused on the parts you called out: **architecture, message flow, data flow, data pipeline, router, LSP, and data warehouse.** I’ve marked **P0/P1** where fixes are urgent.
+
+---
+
+# Executive snapshot
+
+**What works**
+
+* Webhook ingestion, background queue, and outbound Graph API calls are healthy (200s; deterministic routing logs present).
+* 24-hour policy guard updates are recorded.
+* Quarantine & abuse controls exist conceptually.
+
+**P0 issues (user-visible)**
+
+1. **Router/NLP misclassification** routes real user requests (e.g., “what are my expenses this week”) to **fallback/smalltalk** instead of `summary`.
+2. **Policy-safe nudging**: daily nudges would violate FB’s 24-hour rules unless gated—your guard logs update, but **no hard block** is proven in code path.
+
+**P1 issues (operational/scale)**
+3\. **Idempotency & correlation** are inconsistent: mixed `rid=unknown` vs `rid=e1bd5417`; risk of double-processing and hard-to-trace incidents.
+4\. **Data model fragmentation**: operational store vs analytics/warehouse not cleanly separated → hard to build reliable summaries/insights.
+5\. **Dev health**: LSP/type-safety recovered recently; needs CI gates to stop regressions.
+
+---
+
+# 1) System architecture (current vs target)
+
+## Current (inferred from logs & your notes)
+
+* **Facebook → Webhook (HTTPS)** on your runtime (Replit today; n89 considered).
+* **Webhook Processor** → emits `webhook_processed` + enqueues requests.
+* **Background Processor** → pops job → **Router** (AI/NLP + rules) → **Handlers** (faq\_smalltalk, summary, logging, insights…).
+* **Policy Guard** → updates 24h timestamp, not evidently enforcing block.
+* **Graph API Sender** → POST `/me/messages` (success 200).
+* **Operational DB** (Replit/SQLite or a small Postgres) for users, expenses, messages.
+* **Admin dashboard** (read-only today; future per-user views).
+
+## Target (recommended)
+
+* **n89 (or any proper host) for webhook** + TLS + autoscaling.
+* **Queue**: Redis/RSMQ/SQS (explicit) with **visibility timeout** and DLQ.
+* **App**: Router + Handlers on a stateless service.
+* **OLTP DB**: Managed Postgres (Neon/RDS/Supabase).
+* **ETL**: Airbyte (or lightweight workers) → **Warehouse** (BigQuery/ClickHouse/Snowflake).
+* **dbt** for modeling; **Metabase/Looker Studio** for BI.
+* **Observability**: OpenTelemetry traces (rid), Prometheus metrics, Loki logs.
+
+---
+
+# 2) Message flow audit
+
+**Golden path (should be true):**
+
+1. **Verify** signed FB request (app secret). **P0 if missing**.
+2. **Derive `rid`** (uuid v4) at ingress; attach to *every* log line and DB row. (**P1**)
+3. **Persist raw event** (`events_raw`) before mutating. (**P1**)
+4. **Idempotency**: compute `event_hash` from `mid + psid + ts`; **skip** if already seen. (**P0**)
+5. **Enqueue** job with `rid`, `psid`, `mid`, `payload`.
+6. **Background worker**:
+
+   * **Policy check** (24h window & tag eligibility). **Hard-block if disallowed.** (**P0**)
+   * **Route** (NLP + rules).
+   * **Handler** executes, reads/writes OLTP.
+   * **Send** via Graph API; persist `outbound_messages`.
+   * **Emit metrics** (latency, intent, success).
+7. **ETL** ships normalized rows to warehouse.
+
+**What your logs show**
+
+* Steps 5–7 mostly OK.
+* Steps 2, 4, 6 have weaknesses (rid inconsistencies; idempotency not evidenced; policy guard only “updates timestamp”).
+
+**Fix pack**
+
+* **Idempotency middleware** (before enqueue).
+* **Mandatory `rid` at ingress**; fail closed if absent.
+* **Policy gate** before routing (see §5).
+
+---
+
+# 3) Data flow & pipeline (operational)
+
+**Required OLTP tables (lean, normalized):**
+
+* `users(psid_hash, psid_last4, locale, tz, created_at, last_seen_at, policy_24h_started_at, marketing_opt_in_at)`
+* `messages_in(mid, psid_hash, rid, text, raw, received_at)`
+* `messages_out(mid, psid_hash, rid, text, payload, sent_at, status)`
+* `events_raw(id, rid, source, payload, received_at)` (immutable)
+* `expenses(id, psid_hash, occurred_at, amount_minor, currency, category, merchant, source, rid, created_at)`
+* `budgets(id, psid_hash, period_start, period_end, category, limit_minor, currency, created_at)`
+* `insights(id, psid_hash, kind, period_start, period_end, payload_json, created_at)`
+
+**Guardrails**
+
+* **PII**: never store full PSID; use `psid_hash` (as you do).
+* **Currency minor units** (int); avoid floats.
+* **Time zones**: store UTC + `tz` on user.
+
+---
+
+# 4) Analytics pipeline → warehouse
+
+**Load (EL)**
+
+* Nightly/hourly copy from Postgres to Warehouse (Airbyte or custom).
+
+**Transform (T)** via **dbt**:
+
+* `stg_*` (staging views for each OLTP table)
+* `fact_expenses`, `fact_messages`, `dim_user`, `dim_date`, `dim_category`
+* **Marts**:
+
+  * `mart_weekly_spend (psid_hash, iso_week, total_minor, by_category_json)`
+  * `mart_retention (cohorts, D1/D7/D30)`
+  * `mart_funnel (new → first_log → first_insight → repeat)`
+
+**Why**: your AI replies (“You spent ৳X this week”) should query **OLTP**, but dashboards, LTV, and experiments use **warehouse**. Separate paths reduce contention.
+
+---
+
+# 5) Router audit (root cause of your screenshot)
+
+**Observed bug**
+
+* Query *“what are my expenses this week”* → routed to `faq_smalltalk` instead of `summary`.
+
+**Routing cascade (implement this precedence order)**
+
+1. **Hard commands (exact/regex)**: `summary|insight|log|add|spend|expenses|subscription(s)` → respective handlers.
+2. **Financial Q\&A patterns** (regex below) → `summary`/`insight`.
+3. **Policy/Help** → help/faq.
+4. **Else** → smalltalk.
+
+**Minimal regex pack (drop-in)**
+
+```python
+SUMMARY_PATTERNS = [
+  r"\b(what|show|see|give).*(expense|spend(ing)?|total).*(today|yesterday|this week|last week|this month|last month)\b",
+  r"\b(weekly|monthly).*(summary|total|spend(ing)?)\b",
+  r"\bsummary\b"
+]
+INSIGHT_PATTERNS = [
+  r"\b(insight|optimi[sz]e|tip|advice)\b",
+  r"\b(where|which).*(category|merchant).*(most|highest|biggest)\b"
+]
+LOG_PATTERNS = [
+  r"\b(spent|paid|bought|purchase(d)?)\b.*\b(\d+([.,]\d{1,2})?)\b"
+]
+TIME_WINDOWS = {
+  "today": ("today","today"),
+  "yesterday": ("yesterday","yesterday"),
+  "this week": ("monday_this_week","sunday_this_week"),
+  "last week": ("monday_last_week","sunday_last_week"),
+  "this month": ("first_of_month","end_of_month"),
+  "last month": ("first_of_last_month","end_of_last_month")
+}
+```
+
+**Handler contract**
+
+* Router passes `intent`, `time_window`, `entities` to handler.
+* If **no expenses** in window → friendly prompt to log (no fallback greeting).
+
+**Tests (golden cases)**
+
+* “what are my expenses this week” → `summary(this_week)`
+* “weekly total” → `summary(this_week)`
+* “how much did I spend on coffee this month” → `summary(this_month, category=coffee)`
+* “spent 320 on lunch” → `log`.
+
+**P0**: Ship this cascade + regex pack.
+
+---
+
+# 6) Policy guard (24-hour rule)
+
+**Required behavior**
+
+* On **every** outbound:
+
+  * If `now - user.last_interaction_at > 24h` → **block** unless:
+
+    * message has a **valid Message Tag** (non-promotional) or
+    * you’re sending **Sponsored Message** (paid) or
+    * this is **reply to a user message** (resets 24h).
+* Persist **reason** (`policy_blocked_reason`) when blocked.
+
+**What to add**
+
+* A **policy gate** in the background worker that returns a *policy error* response to user (e.g., “Ping me once to resume”).
+* A **feature flag** on all nudges; they must check `is_within_24h(psid_hash)`.
+
+**P0**: Enforce; don’t just “update timestamp”.
+
+---
+
+# 7) LSP / type-safety / CI
+
+**State**
+
+* You recently fixed Router SHA mismatch, mypy errors, and LSP diagnostics. Great—now lock it in.
+
+**CI gates (fail build if violated)**
+
+* `ruff` (lint), `mypy --strict` (types), `pytest -q` (unit), `bandit` (security).
+* 90%+ type-coverage on `router`, `handlers`, `policy_guard`.
+* **Pre-commit** hooks for all of the above.
+* **Contract tests** for the router (golden cases above).
+
+---
+
+# 8) Data warehouse design (practical)
+
+**If staying lightweight (fastest path)**
+
+* **Warehouse**: BigQuery (cost-effective with flat tables).
+* **EL**: Airbyte Cloud → BigQuery.
+* **dbt**: run in GitHub Actions nightly.
+* **BI**: Looker Studio.
+
+**Analytics star schema**
+
+* **Facts**: `fact_expenses (by day)`, `fact_messages`
+* **Dims**: `dim_user`, `dim_date`, `dim_category`, `dim_channel`
+* **Derived marts**:
+
+  * `mart_weekly_user_spend`
+  * `mart_user_health` (DAU/WAU/MAU, streaks)
+  * `mart_conversion` (log → summary → insight)
+  * `mart_policy_windows` (messages allowed/blocked; auditability)
+
+**Sample dbt logic (weekly spend)**
+
+```sql
+select
+  psid_hash,
+  format_date('%G-%V', occurred_at)::string as iso_week,
+  sum(amount_minor) as total_minor,
+  any_value(currency) as currency,
+  to_json_string(  -- small aggregation
+    (select as struct category, sum(amount_minor) as total
+     from unnest(array_agg(struct(category, amount_minor))) group by category)
+  ) as by_category_json
+from {{ ref('stg_expenses') }}
+where occurred_at >= date_sub(current_date(), interval 12 month)
+group by 1,2;
+```
+
+---
+
+# 9) Observability & SLOs
+
+**Traces/metrics you should see every day**
+
+* **Router match rate** by intent (target > 92%). **P0** to add.
+* **Policy blocks** count & reason (should be 0 unless you run opt-in flows).
+* **End-to-end latency (p50/p95)** per intent.
+* **Idempotency drops** (should be \~0).
+* **ETL freshness** lag (minutes).
+
+**SLOs**
+
+* 99% of inbound messages **processed < 2s**.
+* <0.5% **policy-blocked** on non-nudge replies.
+* <0.1% **duplicate-processed** events.
+
+---
+
+# 10) Security & privacy checklist
+
+* Verify FB signatures on **every** webhook (HMAC SHA-1). **P0**
+* Encrypt secrets via host KMS; no secrets in logs.
+* PSIDs → **hashed** at ingress (you’re already doing this).
+* **PII minimization**: merchants/categories okay; never store card/bank PII.
+* **Access**: admin dashboard behind OAuth; audit trail for admin reads.
+
+---
+
+# 11) Priority fix list (actionable)
+
+**P0 (ship this week)**
+
+* Router cascade + regex pack + golden tests (fix misclassification).
+* Hard **policy gate** before outbound; block nudges beyond 24h.
+* Idempotency key & mandatory `rid` propagation; fail closed if missing.
+* FB webhook signature verification if not already enforced.
+
+**P1 (next)**
+
+* Split **OLTP vs warehouse**; move to managed Postgres.
+* Establish **ETL + dbt**; create `mart_weekly_user_spend`.
+* CI gates: ruff/mypy/pytest/bandit + pre-commit.
+
+**P2 (stability & insights)**
+
+* OpenTelemetry traces; dashboards (router match rate, policy blocks).
+* Backfill historical expenses into warehouse.
+* Nudge system redesign: opt-in, user-triggered flows, or sponsored messages.
+
+---
+
+# 12) Quick sanity test script (manual UAT)
+
+1. Send: **“spent 120 on groceries”** → Expect: log ack.
+2. Send: **“what are my expenses this week”** → Expect: `summary(this_week)` with date range shown.
+3. Wait >24h; send **no message**, trigger a nudge → Expect: **blocked** by policy gate + logged reason.
+4. Repeat “weekly total” phrasing variants—ensure router hit rate >92%.
+
+---
+
+If you want, I can turn this into a **living runbook** (checklists + SQL + dbt model skeletons + pytest cases) you can drop into your repo.
