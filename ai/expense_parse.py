@@ -60,23 +60,35 @@ def _fallback_parse(text: str) -> dict:
     """Simple fallback parsing when AI is unavailable"""
     import re
     
-    # Extract numbers
-    amounts = re.findall(r'(\d+(?:\.\d+)?)', text)
+    # Extract numbers (more flexible patterns)
+    amounts = re.findall(r'(\d+(?:[.,]\d+)?)', text)
     if not amounts:
+        # Instead of raising error, return None to let router handle gracefully
         raise ValueError("No amount found")
     
-    amount = float(amounts[0])
+    # Take the first reasonable amount
+    amount_str = amounts[0].replace(',', '.')
+    try:
+        amount = float(amount_str)
+        if amount <= 0:
+            raise ValueError("Invalid amount")
+    except ValueError:
+        raise ValueError("Invalid amount format")
     
-    # Simple category detection
+    # Simple category detection with better patterns
     text_lower = text.lower()
-    if any(word in text_lower for word in ["coffee", "tea", "drink"]):
+    if any(word in text_lower for word in ["coffee", "tea", "drink", "beverage", "starbucks", "cafe"]):
         category = "Food"
-    elif any(word in text_lower for word in ["lunch", "dinner", "food", "meal"]):
+    elif any(word in text_lower for word in ["lunch", "dinner", "breakfast", "food", "meal", "restaurant", "eating"]):
         category = "Food"
-    elif any(word in text_lower for word in ["gas", "fuel", "petrol"]):
+    elif any(word in text_lower for word in ["gas", "fuel", "petrol", "diesel"]):
         category = "Transport"
-    elif any(word in text_lower for word in ["uber", "taxi", "bus", "parking"]):
+    elif any(word in text_lower for word in ["uber", "taxi", "bus", "parking", "transport", "travel"]):
         category = "Transport"
+    elif any(word in text_lower for word in ["shopping", "store", "market", "buy", "purchase"]):
+        category = "Shopping"
+    elif any(word in text_lower for word in ["medicine", "doctor", "hospital", "pharmacy", "health"]):
+        category = "Health"
     else:
         category = "Other"
     

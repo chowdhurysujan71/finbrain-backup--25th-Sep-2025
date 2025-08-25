@@ -436,17 +436,17 @@ class ProductionRouter:
                 logger.warning(f"AI FAQ detection failed: {faq_error}")
                 # Continue to fallback - no interruption to normal flow
             
-            # Step 9: Unknown intent - route to AI for personalized help
-            logger.info(f"[ROUTER] No FAQ match, routing to AI: '{text[:50]}...'")
+            # Step 9: Unknown intent - route to AI for natural conversation
+            logger.info(f"[ROUTER] No FAQ match, routing to AI conversation: '{text[:50]}...'")
             try:
-                # Try AI-powered response for unknown intents
-                response, intent, category, amount = self._route_ai(text, psid, user_hash, rid, rate_limit_result)
+                # Try AI-powered natural conversation (NOT expense parsing)
+                response, intent, category, amount = self._route_ai_conversation(text, psid, user_hash, rid, rate_limit_result)
                 self.telemetry['ai_messages'] += 1
-                self._log_routing_decision(rid, user_hash, "ai_fallback", "unknown_intent_ai")
+                self._log_routing_decision(rid, user_hash, "ai_conversation", "natural_chat")
                 self._record_processing_time(time.time() - start_time)
                 return response, intent, category, amount
             except Exception as e:
-                logger.warning(f"AI fallback failed for unknown intent: {e}")
+                logger.warning(f"AI conversation failed for unknown intent: {e}")
                 # Last resort fallback with engaging tone
                 response = "🤔 I'm not sure what you're looking for, but I can help with expenses! Try asking about your spending this week or logging a new expense."
                 self._log_routing_decision(rid, user_hash, "help_enhanced", "unknown_intent_final")
@@ -633,7 +633,68 @@ class ProductionRouter:
         response = normalize(reply + debug_stamp)
         
         self._log_routing_decision(rid, psid_hash, "ai_expense", f"logged_with_mode_{mode}")
-        return response, "ai_expense_logged", expense.get('category') if 'expense' in locals() else None, expense.get('amount') if 'expense' in locals() else None
+        
+        # Safe access to expense data
+        category = None
+        amount = None
+        if 'expense' in locals() and expense is not None:
+            category = expense.get('category')
+            amount = expense.get('amount')
+        
+        return response, "ai_expense_logged", category, amount
+    
+    def _route_ai_conversation(self, text: str, psid: str, psid_hash: str, rid: str, rate_limit_result) -> Tuple[str, str, Optional[str], Optional[float]]:
+        """Route to AI for natural conversation (NOT expense parsing)"""
+        self._log_routing_decision(rid, psid_hash, "ai_conversation", "natural_chat_attempt")
+        
+        try:
+            # Use AI adapter for natural conversation
+            from utils.ai_adapter_v2 import production_ai_adapter
+            ai = production_ai_adapter
+            
+            # Get user context for personalized conversation
+            try:
+                from utils.conversational_ai import ConversationalAI
+                conv_ai = ConversationalAI()
+                
+                # Generate context-aware response
+                response = conv_ai.generate_conversational_response(psid_hash, text)
+                mode = "CONVERSATION"
+                
+            except Exception as conv_error:
+                logger.warning(f"Conversational AI failed: {conv_error}")
+                
+                # Simple AI fallback without expense parsing
+                try:
+                    # Direct AI call for general conversation
+                    prompt = f"""You are FinBrain, a friendly AI financial assistant. A user said: "{text}"
+
+Respond naturally and helpfully. If they're asking about expenses, guide them to say something like "coffee 50" or "spent 200 on groceries". Keep it under 280 characters and friendly.
+
+Do NOT try to parse this as an expense. Just have a natural conversation."""
+                    
+                    response = ai.get_completion(prompt)
+                    mode = "AI_SIMPLE"
+                    
+                except Exception as ai_error:
+                    logger.warning(f"Simple AI conversation failed: {ai_error}")
+                    # Final fallback
+                    response = "I'm here to help with your expenses! You can log expenses like 'coffee 50' or ask 'summary' to see your spending."
+                    mode = "FALLBACK"
+            
+            # Clean and normalize response
+            response = normalize(response)
+            if len(response) > 280:
+                response = response[:277] + "..."
+            
+            self._log_routing_decision(rid, psid_hash, "ai_conversation", f"chat_success_{mode}")
+            return response, "conversation", None, None
+            
+        except Exception as e:
+            logger.error(f"AI conversation routing failed: {e}")
+            response = "I'm here to help! Try logging an expense like 'coffee 50' or ask for your 'summary'."
+            self._log_routing_decision(rid, psid_hash, "ai_conversation", f"chat_error: {str(e)}")
+            return normalize(response), "conversation_error", None, None
     
     def _route_rules(self, text: str, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Route to deterministic rules processing"""

@@ -1,0 +1,158 @@
+2025-08-25 18:36:45.58
+34928b1d
+User
+File "/home/runner/workspace/ai/expense_parse.py", line 66, in _fallback_parse
+2025-08-25 18:36:45.58
+34928b1d
+User
+raise ValueError("No amount found")
+2025-08-25 18:36:45.58
+34928b1d
+User
+ValueError: No amount found
+2025-08-25 18:36:45.58
+34928b1d
+User
+2025-08-25 18:36:45.58
+34928b1d
+User
+During handling of the above exception, another exception occurred:
+2025-08-25 18:36:45.58
+34928b1d
+User
+2025-08-25 18:36:45.58
+34928b1d
+User
+Traceback (most recent call last):
+2025-08-25 18:36:45.58
+34928b1d
+User
+File "/home/runner/workspace/utils/production_router.py", line 586, in _route_ai
+2025-08-25 18:36:45.58
+34928b1d
+User
+expense = parse_expense(text)
+2025-08-25 18:36:45.58
+34928b1d
+User
+^^^^^^^^^^^^^^^^^^^
+2025-08-25 18:36:45.58
+34928b1d
+User
+File "/home/runner/workspace/ai/expense_parse.py", line 23, in parse_expense
+2025-08-25 18:36:45.58
+34928b1d
+User
+result = _fallback_parse(text)
+2025-08-25 18:36:45.58
+34928b1d
+User
+^^^^^^^^^^^^^^^^^^^^^
+2025-08-25 18:36:45.58
+34928b1d
+User
+File "/home/runner/workspace/ai/expense_parse.py", line 66, in _fallback_parse
+2025-08-25 18:36:45.58
+34928b1d
+User
+raise ValueError("No amount found")
+2025-08-25 18:36:45.58
+34928b1d
+User
+ValueError: No amount found
+2025-08-25 18:36:45.58
+34928b1d
+User
+2025-08-25 12:36:45,583 - finbrain.router - INFO - Production routing: {"rid": "4030480e", "psid_hash": "d17538bf...", "route": "ai_expense", "details": "logged_with_mode_STD", "timestamp": "2025-08-25T12:36:45.583659+00:00"}
+2025-08-25 18:36:45.58
+34928b1d
+User
+2025-08-25 12:36:45,583 - finbrain.router - WARNING - AI fallback failed for unknown intent: 'NoneType' object has no attribute 'get'
+2025-08-25 18:36:45.58
+34928b1d
+User
+2025-08-25 12:36:45,584 - finbrain.router - INFO - Production routing: {"rid": "4030480e", "psid_hash": "d17538bf...", "route": "help_enhanced", "details": "unknown_intent_final", "timestamp": "2025-08-25T12:36:45.583985+00:00"}
+2025-08-25 18:36:45.58
+34928b1d
+User
+2025-08-25 12:36:45,586 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): graph.facebook.com:443
+2025-08-25 18:36:46.26
+34928b1d
+User
+2025-08-25 12:36:46,266 - urllib3.connectionpool - DEBUG - https://graph.facebook.com:443 "POST /v19.0/me/messages?access_token=EAAQIpDHnY54BPM81e5RC6RTqGszDgIWjKKElVhxr6iwqyY5ZBsjBDuuZCP7xf5FFkpwebwkDpKI8aywZBlrOw92q69OTviZB642QoQc3tAm4BKkzwcNHnCgG9ziLai4dii9ZArBFZBmN7DRT8O06RmGQVExRkJyf8jTK6wo3eviYBfcB3aCW72ZCZCrzPJnyP5z6SVS3cN9VxFDjre73VoBnkXcZD HTTP/1.1" 200 140
+2025-08-25 18:36:46.26
+34928b1d
+User
+{"timestamp": "2025-08-25T12:36:46.266966", "event_type": "graph_api_call", "rid": "unknown", "endpoint": "/v17.0/me/messages", "method": "POST", "status": 200, "duration_ms": 682.74}
+2025-08-25 18:36:46.26
+34928b1d
+User
+2025-08-25 12:36:46,267 - finbrain.structured - INFO - {"timestamp": "2025-08-25T12:36:46.266966", "event_type": "graph_api_call", "rid": "unknown", "endpoint": "/v17.0/me/messages", "method": "POST", "status": 200, "duration_ms": 682.74}
+2025-08-25 18:36:46.26
+34928b1d
+User
+2025-08-25 12:36:46,267 - utils.facebook_handler - INFO - Facebook message sent successfully: m_FiS_-dlYSQcHdZu822mAwGiSaHxQdGw85dH31Mcm2Q7ywY_SKg7jJpYQOSoxQvZh_M4E_kMs4_OdC4b3TTtA8Q
+2025-08-25 18:36:46.26
+34928b1d
+User
+2025-08-25 12:36:46,267 - utils.background_processor - INFO - Request 4030480e: Response sent successfully to 2428425484*** (hash: d17538bf...)
+2025-08-25 18:36:46.81
+34928b1d
+User
+2025-08-25 12:36:46,810 - utils.webhook_processor - DEBUG - Skipping non-message event (delivery/read/etc)
+2025-08-25 18:36:46.81
+34928b1d
+User
+{"timestamp": "2025-08-25T12:36:46.811085", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.17}
+2025-08-25 18:36:46.81
+34928b1d
+User
+2025-08-25 12:36:46,811 - finbrain.structured - INFO - {"timestamp": "2025-08-25T12:36:46.811085", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.17}
+
+Wrap
+
+Colors
+SESSION_SECRET
+••••••••
+DATABASE_URL
+••••••••
+PGDATABASE
+••••••••
+PGHOST
+••••••••
+PGPORT
+••••••••
+PGUSER
+••••••••
+PGPASSWORD
+••••••••
+FB_PAGE_ACCESS_TOKEN
+••••••••
+FACEBOOK_VERIFY_TOKEN
+••••••••
+GEMINI_API_KEY
+••••••••
+ADMIN_PASS
+••••••••
+ADMIN_USER
+••••••••
+AI_ENABLED
+••••••••
+AI_PROVIDER
+••••••••
+FACEBOOK_APP_ID
+••••••••
+FACEBOOK_APP_SECRET
+••••••••
+FACEBOOK_PAGE_ACCESS_TOKEN
+••••••••
+ID_SALT
+••••••••
+Databases
+Development Database
+29.48MB / 10GB
+Billing Period
+Renews monthly, Aug 27
+Hours of Compute Used
+36.54 hours
+Enable "Accessible Terminal" in Workspace Settings to use a screen reader with the shell.
