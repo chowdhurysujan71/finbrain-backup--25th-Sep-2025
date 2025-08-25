@@ -152,7 +152,7 @@ def require_basic_auth(f):
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>FinBrain Admin Login</title>
+                    <title>finbrain Admin Login</title>
                     <style>
                         body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
                         .auth-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
@@ -162,14 +162,14 @@ def require_basic_auth(f):
                 </head>
                 <body>
                     <div class="auth-box">
-                        <h1>FinBrain Admin Access</h1>
+                        <h1>finbrain Admin Access</h1>
                         <p>Please enter your admin credentials to access the dashboard.</p>
                         <p><small>Your browser should prompt for username and password.</small></p>
                     </div>
                 </body>
                 </html>
                 """, 401)
-            response.headers['WWW-Authenticate'] = 'Basic realm="FinBrain Admin"'
+            response.headers['WWW-Authenticate'] = 'Basic realm="finbrain Admin"'
             return response
         return f(*args, **kwargs)
     return decorated_function
@@ -196,7 +196,7 @@ def public_landing():
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>FinBrain - AI-Powered Expense Tracking</title>
+            <title>finbrain - AI-Powered Expense Tracking</title>
             <style>
                 body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }}
                 .container {{ max-width: 800px; margin: 0 auto; padding: 50px 20px; text-align: center; }}
@@ -211,7 +211,7 @@ def public_landing():
         </head>
         <body>
             <div class="container">
-                <div class="logo">🧠 FinBrain</div>
+                <div class="logo">🧠 finbrain</div>
                 <div class="tagline">AI-Powered Expense Tracking via Messenger</div>
                 
                 <div class="stats">
@@ -223,7 +223,7 @@ def public_landing():
                 
                 <div class="feature">
                     <h3>💬 Natural Language Processing</h3>
-                    <p>Just message "spent 500 on groceries" and FinBrain handles the rest</p>
+                    <p>Just message "spent 500 on groceries" and finbrain handles the rest</p>
                 </div>
                 
                 <div class="feature">
