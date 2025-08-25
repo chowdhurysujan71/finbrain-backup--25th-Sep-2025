@@ -8,9 +8,10 @@ from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
-def parse_expense(text: str) -> dict:
+def parse_expense(text: str, user_hash: str = None, check_ambiguity: bool = True) -> dict:
     """
-    Returns {'amount': float, 'category': str, 'note': str|None}
+    Enhanced expense parsing with conversational clarification support
+    Returns {'amount': float, 'category': str, 'note': str|None, 'needs_clarification': bool, 'clarification_info': dict}
     Raises ValueError on bad parse.
     """
     try:
@@ -50,11 +51,40 @@ def parse_expense(text: str) -> dict:
         except ValueError:
             raise ValueError("amount not convertible to number")
     
-    return {
+    parsed_result = {
         "amount": float(amt), 
         "category": cat.strip(), 
         "note": (note or "").strip() or None
     }
+    
+    # Add conversational clarification if enabled and user_hash provided
+    if check_ambiguity and user_hash:
+        try:
+            from utils.expense_clarification import expense_clarification_handler
+            
+            # Extract main item from text for ambiguity checking
+            item = _extract_main_item(text)
+            
+            if item:
+                clarification_result = expense_clarification_handler.handle_expense_with_clarification(
+                    user_hash, text, parsed_result["amount"], item, "temp_mid"
+                )
+                
+                if clarification_result.get('needs_clarification'):
+                    parsed_result['needs_clarification'] = True
+                    parsed_result['clarification_info'] = clarification_result
+                    parsed_result['temporary_category'] = parsed_result['category']  # Store original guess
+                    parsed_result['category'] = 'pending_clarification'
+                elif clarification_result.get('category'):
+                    # Use learned or auto-detected category
+                    parsed_result['category'] = clarification_result['category']
+                    parsed_result['confidence_note'] = clarification_result.get('note', '')
+                    
+        except Exception as e:
+            logger.warning(f"Clarification system error: {e}")
+            # Continue with normal parsing if clarification fails
+    
+    return parsed_result
 
 def _fallback_parse(text: str) -> dict:
     """Simple fallback parsing when AI is unavailable"""
@@ -93,6 +123,24 @@ def _fallback_parse(text: str) -> dict:
         category = "Other"
     
     return {"amount": amount, "category": category, "note": None}
+
+def _extract_main_item(text: str) -> Optional[str]:
+    """Extract the main expense item from text for ambiguity checking"""
+    import re
+    
+    # Remove common expense words and numbers
+    text_clean = re.sub(r'\d+(?:\.\d+)?', '', text)  # Remove numbers
+    words = text_clean.lower().split()
+    
+    # Remove common expense words
+    skip_words = {'spent', 'paid', 'bought', 'for', 'on', 'the', 'a', 'an', 'at', 'in', 'with', 'by'}
+    meaningful_words = [w for w in words if w not in skip_words and len(w) > 2]
+    
+    # Return the first meaningful word (usually the item)
+    if meaningful_words:
+        return meaningful_words[0]
+    
+    return None
 
 def regex_parse(text: str) -> dict:
     """Very strict regex parser for fallback - matches 'spent 200 on groceries' format"""

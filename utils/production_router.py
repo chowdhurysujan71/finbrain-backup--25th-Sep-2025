@@ -436,8 +436,45 @@ class ProductionRouter:
                 logger.warning(f"AI FAQ detection failed: {faq_error}")
                 # Continue to fallback - no interruption to normal flow
             
-            # Step 9: Unknown intent - route to AI for natural conversation
-            logger.info(f"[ROUTER] No FAQ match, routing to AI conversation: '{text[:50]}...'")
+            # Step 9: Check for clarification responses
+            logger.info(f"[ROUTER] Checking for clarification response: '{text[:50]}...'")
+            try:
+                from utils.expense_clarification import expense_clarification_handler
+                clarification_result = expense_clarification_handler.handle_clarification_response(user_hash, text)
+                
+                if clarification_result:
+                    if clarification_result['success']:
+                        # User provided clarification - complete the expense logging
+                        original_expense = clarification_result['original_expense']
+                        final_category = clarification_result['category']
+                        
+                        # Save the expense with the clarified category
+                        from utils.db import save_expense
+                        save_expense(
+                            user_identifier=user_hash,
+                            description=f"{final_category} expense",
+                            amount=original_expense["amount"],
+                            category=final_category,
+                            platform="facebook",
+                            original_message=original_expense["original_text"],
+                            unique_id=rid
+                        )
+                        
+                        response = normalize(clarification_result['message'])
+                        self._log_routing_decision(rid, user_hash, "clarification_completed", f"learned_{final_category}")
+                        self._record_processing_time(time.time() - start_time)
+                        return response, "expense_clarified", final_category, original_expense["amount"]
+                    else:
+                        # Clarification failed - ask again
+                        response = normalize(clarification_result['message'])
+                        self._log_routing_decision(rid, user_hash, "clarification_retry", "unclear_response")
+                        self._record_processing_time(time.time() - start_time)
+                        return response, "clarification_retry", None, None
+            except Exception as e:
+                logger.warning(f"Clarification response handling failed: {e}")
+            
+            # Step 10: Unknown intent - route to AI for natural conversation
+            logger.info(f"[ROUTER] No FAQ/clarification match, routing to AI conversation: '{text[:50]}...'")
             try:
                 # Try AI-powered natural conversation (NOT expense parsing)
                 response, intent, category, amount = self._route_ai_conversation(text, psid, user_hash, rid, rate_limit_result)
@@ -581,9 +618,20 @@ class ProductionRouter:
         self._log_routing_decision(rid, psid_hash, "ai", "attempting_ai_parse")
         
         try:
-            # Try AI parsing with defensive normalization  
+            # Try AI parsing with conversational clarification
             from ai.expense_parse import parse_expense
-            expense = parse_expense(text)
+            expense = parse_expense(text, user_hash=psid_hash, check_ambiguity=True)
+            
+            # Handle clarification if needed
+            if expense.get('needs_clarification'):
+                clarification_info = expense.get('clarification_info', {})
+                clarification_message = clarification_info.get('message', 'I need clarification about this expense.')
+                
+                # Store the pending expense for later completion
+                self._log_routing_decision(rid, psid_hash, "ai_clarification", "pending_user_response")
+                
+                response = normalize(clarification_message)
+                return response, "clarification_needed", None, None
             
             # Save expense to database
             from utils.db import save_expense
