@@ -1,0 +1,129 @@
+1) Fix minor query/details
+
+Your query defines sum(Expense.amount) twice; keep one aggregate and compute “top change” in Python by comparing current vs previous category totals.
+
+Use exclusive end bounds (< end) consistently for both current/previous windows to avoid double-counting.
+
+Guard against divide-by-zero for % change.
+
+2) Keep week math consistent
+
+If your current SUMMARY uses “last 7 days”, do the same here (not ISO weeks).
+
+Current: current = [now-6d 00:00 … now], previous = [now-13d 00:00 … now-7d 23:59:59].
+
+3) Message guardrails
+
+Cap the appended comparison so the whole reply stays ≤ 280 chars and ≤ 2 emojis.
+
+If no history, append BUDGET_NO_DATA (or omit the line entirely) without changing the base summary.
+
+4) Lightweight indexing (optional but helpful)
+
+Ensure (user_id, created_at) is indexed to keep the two grouped queries fast.
+
+Micro-adjusted snippets (drop-in)
+helpers in handlers/summary.py
+from sqlalchemy import func
+from datetime import datetime, timedelta, timezone
+
+def _range_last_7_and_prev(now: datetime):
+    cur_start = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
+    cur_end   = now
+    prev_end  = cur_start  # exclusive
+    prev_start= (prev_end - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
+    return (cur_start, cur_end), (prev_start, prev_end)
+
+def _range_this_month_and_prev(now: datetime):
+    cur_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    cur_end   = now
+    prev_end  = cur_start  # exclusive
+    # find previous month start
+    if cur_start.month == 1:
+        prev_start = cur_start.replace(year=cur_start.year-1, month=12)
+    else:
+        prev_start = cur_start.replace(month=cur_start.month-1)
+    return (cur_start, cur_end), (prev_start, prev_end)
+
+def _totals_by_category(user_id, start, end):
+    rows = (
+        db.session.query(
+            Expense.category.label("category"),
+            func.coalesce(func.sum(Expense.amount), 0).label("total"),
+        )
+        .filter(Expense.user_id == user_id)
+        .filter(Expense.created_at >= start)
+        .filter(Expense.created_at <  end)   # exclusive end
+        .group_by(Expense.category)
+        .all()
+    )
+    d = { (r.category or "Uncategorized"): float(r.total or 0) for r in rows }
+    return d, sum(d.values())
+
+def _pct(cur, prev):
+    if prev == 0:
+        return 100.0 if cur > 0 else 0.0
+    return round(abs((cur - prev) / prev) * 100.0, 1)
+
+compute + append (inside existing handle_summary after base summary is built)
+from utils.ux_copy import (
+    BUDGET_WEEK_COMPARISON, BUDGET_MONTH_COMPARISON,
+    BUDGET_TOP_CHANGE, BUDGET_NO_DATA
+)
+
+now = datetime.now(timezone.utc)
+mode = "week" if timeframe == "week" else "month"
+(cur_s, cur_e), (prev_s, prev_e) = (
+    _range_last_7_and_prev(now) if mode == "week" else _range_this_month_and_prev(now)
+)
+
+try:
+    cur_map, cur_total   = _totals_by_category(user_id, cur_s, cur_e)
+    prev_map, prev_total = _totals_by_category(user_id, prev_s, prev_e)
+except Exception:
+    return base_summary  # fail-quiet
+
+if cur_total == 0 and prev_total == 0:
+    comp = BUDGET_NO_DATA
+else:
+    # biggest mover by absolute delta among current categories
+    all_cats = set(cur_map) | set(prev_map)
+    deltas = {c: cur_map.get(c,0) - prev_map.get(c,0) for c in all_cats}
+    top_cat = max(all_cats, key=lambda c: abs(deltas[c])) if all_cats else "—"
+
+    change_pct = _pct(cur_total, prev_total)
+    change_symbol = "⬆️" if (cur_total - prev_total) > 0 else "⬇️"
+    if mode == "week":
+        comp = BUDGET_WEEK_COMPARISON.format(change_symbol=change_symbol, pct=int(change_pct))
+    else:
+        comp = BUDGET_MONTH_COMPARISON.format(change_symbol=change_symbol, pct=int(change_pct))
+
+    comp = f"{comp}{BUDGET_TOP_CHANGE.format(category=top_cat)}"
+
+# join without breaking guardrails
+candidate = f"{base_summary} {comp}"
+reply = candidate if len(candidate) <= 280 else base_summary
+return reply
+
+utils/intent_router.py (place before general summary rules; do not touch “status”)
+text_lower = (text or "").lower()
+if "budget" in text_lower or "spending status" in text_lower:
+    return Intent.SUMMARY
+
+utils/ux_copy.py additions
+BUDGET_WEEK_COMPARISON  = "📊 vs last week: {change_symbol}{pct}%"
+BUDGET_MONTH_COMPARISON = "📈 vs last month: {change_symbol}{pct}%"
+BUDGET_TOP_CHANGE       = " • Biggest change: {category}"
+BUDGET_NO_DATA          = "📭 Need more history for comparison—keep logging!"
+
+UAT (quick)
+
+“summary this week” → base summary + 📊 vs last week: ⬆️39% • Biggest change: Food (single bubble, ≤280 chars, ≤2 emojis).
+
+“summary this month” → base + 📈 vs last month: ⬇️12% • Biggest change: Transport.
+
+“budget” → routes to SUMMARY; same behavior.
+
+“status” → still DIAGNOSTIC (unchanged).
+
+New user (few/no expenses) → base summary + 📭 Need more history… or base only if length would exceed 280.
