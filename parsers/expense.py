@@ -133,7 +133,7 @@ def normalize_text_for_parsing(text: str) -> str:
 
 # Correction message patterns
 CORRECTION_PATTERNS = re.compile(
-    r'\b(?:sorry|i meant|meant|actually|replace last|correct that|correction|should be|update to|make it|not\s+\d+|typo)\b',
+    r'\b(?:sorry|i meant|meant|actually|replace last|correct that|correction|should be|update to|make it|not\s+\d+|typo|correct|please correct|fix|change|wrong|incorrect|mistake|edit|can you correct)\b',
     re.IGNORECASE
 )
 
