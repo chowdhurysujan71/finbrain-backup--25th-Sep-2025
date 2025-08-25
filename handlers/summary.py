@@ -46,8 +46,9 @@ def _range_this_month_and_prev(now: datetime):
 def _totals_by_category(user_id: str, start: datetime, end: datetime):
     """Get category totals for a date range"""
     from models import Expense
-    from app import db
+    from app import app, db
     from sqlalchemy import func
+    
     
     rows = (
         db.session.query(
@@ -77,91 +78,93 @@ def handle_summary(user_id: str, timeframe: str = "week") -> Dict[str, str]:
     """
     try:
         from models import Expense
-        from app import db
+        from app import app, db
         
-        # Get appropriate time bounds
-        if timeframe == "month":
-            start, end = month_bounds()
-            period = "this month"
-        else:
-            start, end = week_bounds()
-            period = "last 7 days"
-        
-        # Query expenses
-        expenses = db.session.query(
-            Expense.category,
-            db.func.sum(Expense.amount).label('total'),
-            db.func.count(Expense.id).label('count')
-        ).filter(
-            Expense.user_id == user_id,
-            Expense.created_at >= start,
-            Expense.created_at < end
-        ).group_by(Expense.category).all()
-        
-        # Generate AI summary reply
-        from templates.replies_ai import format_ai_summary_reply, log_reply_banner
-        log_reply_banner('SUMMARY', user_id)
-        
-        if not expenses:
-            return {"text": format_ai_summary_reply(period, 0, 0, [])}
-        
-        # Calculate totals
-        total_amount = sum(exp.total for exp in expenses)
-        total_entries = sum(exp.count for exp in expenses)
-        
-        # Build category list
-        categories = [exp.category for exp in expenses[:5]]  # Top 5 categories
-        
-        # Generate base summary first
-        base_msg = format_ai_summary_reply(period, total_amount, total_entries, categories)
-        
-        # Add budget comparison if possible
-        from utils.ux_copy import BUDGET_WEEK_COMPARISON, BUDGET_MONTH_COMPARISON, BUDGET_TOP_CHANGE, BUDGET_NO_DATA
-        
-        now = datetime.now(timezone.utc)
-        mode = "week" if timeframe == "week" else "month"
-        
-        try:
-            # Get current and previous period ranges
-            if mode == "week":
-                (cur_start, cur_end), (prev_start, prev_end) = _range_last_7_and_prev(now)
+        # Ensure we're running within Flask application context
+        with app.app_context():
+            # Get appropriate time bounds
+            if timeframe == "month":
+                start, end = month_bounds()
+                period = "this month"
             else:
-                (cur_start, cur_end), (prev_start, prev_end) = _range_this_month_and_prev(now)
+                start, end = week_bounds()
+                period = "last 7 days"
             
-            # Get category totals for both periods
-            cur_map, cur_total = _totals_by_category(user_id, cur_start, cur_end)
-            prev_map, prev_total = _totals_by_category(user_id, prev_start, prev_end)
+            # Query expenses
+            expenses = db.session.query(
+                Expense.category,
+                db.func.sum(Expense.amount).label('total'),
+                db.func.count(Expense.id).label('count')
+            ).filter(
+                Expense.user_id == user_id,
+                Expense.created_at >= start,
+                Expense.created_at < end
+            ).group_by(Expense.category).all()
             
-            if cur_total == 0 and prev_total == 0:
-                comparison_text = BUDGET_NO_DATA
-            else:
-                # Find biggest mover by absolute delta among current categories
-                all_cats = set(cur_map) | set(prev_map)
-                if all_cats:
-                    deltas = {c: cur_map.get(c, 0) - prev_map.get(c, 0) for c in all_cats}
-                    top_cat = max(all_cats, key=lambda c: abs(deltas[c]))
-                else:
-                    top_cat = "—"
-                
-                change_pct = _pct_change(cur_total, prev_total)
-                change_symbol = "⬆️" if (cur_total - prev_total) > 0 else "⬇️"
-                
+            # Generate AI summary reply
+            from templates.replies_ai import format_ai_summary_reply, log_reply_banner
+            log_reply_banner('SUMMARY', user_id)
+            
+            if not expenses:
+                return {"text": format_ai_summary_reply(period, 0, 0, [])}
+            
+            # Calculate totals
+            total_amount = sum(exp.total for exp in expenses)
+            total_entries = sum(exp.count for exp in expenses)
+            
+            # Build category list
+            categories = [exp.category for exp in expenses[:5]]  # Top 5 categories
+            
+            # Generate base summary first
+            base_msg = format_ai_summary_reply(period, total_amount, total_entries, categories)
+            
+            # Add budget comparison if possible
+            from utils.ux_copy import BUDGET_WEEK_COMPARISON, BUDGET_MONTH_COMPARISON, BUDGET_TOP_CHANGE, BUDGET_NO_DATA
+            
+            now = datetime.now(timezone.utc)
+            mode = "week" if timeframe == "week" else "month"
+            
+            try:
+                # Get current and previous period ranges
                 if mode == "week":
-                    comparison_text = BUDGET_WEEK_COMPARISON.format(change_symbol=change_symbol, pct=int(change_pct))
+                    (cur_start, cur_end), (prev_start, prev_end) = _range_last_7_and_prev(now)
                 else:
-                    comparison_text = BUDGET_MONTH_COMPARISON.format(change_symbol=change_symbol, pct=int(change_pct))
+                    (cur_start, cur_end), (prev_start, prev_end) = _range_this_month_and_prev(now)
                 
-                comparison_text += BUDGET_TOP_CHANGE.format(category=top_cat)
+                # Get category totals for both periods
+                cur_map, cur_total = _totals_by_category(user_id, cur_start, cur_end)
+                prev_map, prev_total = _totals_by_category(user_id, prev_start, prev_end)
+                
+                if cur_total == 0 and prev_total == 0:
+                    comparison_text = BUDGET_NO_DATA
+                else:
+                    # Find biggest mover by absolute delta among current categories
+                    all_cats = set(cur_map) | set(prev_map)
+                    if all_cats:
+                        deltas = {c: cur_map.get(c, 0) - prev_map.get(c, 0) for c in all_cats}
+                        top_cat = max(all_cats, key=lambda c: abs(deltas[c]))
+                    else:
+                        top_cat = "—"
+                    
+                    change_pct = _pct_change(cur_total, prev_total)
+                    change_symbol = "⬆️" if (cur_total - prev_total) > 0 else "⬇️"
+                    
+                    if mode == "week":
+                        comparison_text = BUDGET_WEEK_COMPARISON.format(change_symbol=change_symbol, pct=int(change_pct))
+                    else:
+                        comparison_text = BUDGET_MONTH_COMPARISON.format(change_symbol=change_symbol, pct=int(change_pct))
+                    
+                    comparison_text += BUDGET_TOP_CHANGE.format(category=top_cat)
+                
+                # Combine base summary with comparison, respecting 280 char limit
+                candidate = f"{base_msg} {comparison_text}"
+                msg = candidate if len(candidate) <= 280 else base_msg
+                
+            except Exception as e:
+                logger.error(f"Error adding budget comparison: {e}")
+                msg = base_msg  # Fail-quiet to base summary
             
-            # Combine base summary with comparison, respecting 280 char limit
-            candidate = f"{base_msg} {comparison_text}"
-            msg = candidate if len(candidate) <= 280 else base_msg
-            
-        except Exception as e:
-            logger.error(f"Error adding budget comparison: {e}")
-            msg = base_msg  # Fail-quiet to base summary
-        
-        return {"text": msg}
+            return {"text": msg}
         
     except Exception as e:
         logger.error(f"Summary handler error: {e}")
