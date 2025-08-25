@@ -31,7 +31,8 @@ FAQ_JSON = {
         ),
         "what kind of insights can i get": (
             "💡 You'll see spending analysis, budget alerts, category breakdowns, trends, and **personalized recommendations** to improve decisions. "
-            "For details and updates visit www.finbrain.app"
+            "For details and updates visit www.finbrain.app\n\n"
+            "📋 Educational insights only - not professional financial advice."
         ),
         "how do i get started": (
             "🚀 Join early access with your email and be among the first to experience finbrain. "
@@ -41,7 +42,9 @@ FAQ_JSON = {
             "📋 View our legal documents:\n"
             "• Privacy Policy: https://www.finbrain.app/privacy-policy\n"
             "• Terms of Service: https://www.finbrain.app/terms-of-service\n"
-            "Your privacy and data protection are our top priority."
+            "Your privacy and data protection are our top priority.\n\n"
+            "⚖️ Important: finbrain provides educational insights only, not professional financial advice. "
+            "Always consult qualified financial advisors for investment or major financial decisions."
         )
     },
     "smalltalk": {
@@ -56,7 +59,8 @@ FAQ_JSON = {
         "default": (
             "🧭 I can help you track expenses, show summaries, or give insights.\n"
             "Try: *\"spent 100 on lunch\"* or *\"summary this week\"*. "
-            "For details and updates visit www.finbrain.app"
+            "For details and updates visit www.finbrain.app\n\n"
+            "📋 Educational only - not financial advice."
         )
     }
 }

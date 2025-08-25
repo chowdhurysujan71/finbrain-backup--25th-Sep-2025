@@ -116,6 +116,14 @@ def save_expense(user_identifier, description, amount, category, platform, origi
         
         db_session.session.commit()
         
+        # ANALYTICS: Track successful expense logging (100% additive, fail-safe)
+        try:
+            from utils.lightweight_analytics import track_expense_success
+            track_expense_success(user_hash, float(amount), category)
+        except Exception as e:
+            # Fail-safe: analytics errors never break expense logging
+            logger.debug(f"Expense analytics tracking failed: {e}")
+        
         return {
             'success': True,
             'monthly_total': float(monthly_summary.total_amount),

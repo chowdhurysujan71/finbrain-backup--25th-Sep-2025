@@ -163,6 +163,17 @@ class ProductionRouter:
         
         self.telemetry['total_messages'] += 1
         
+        # ANALYTICS: Track user activity (100% additive, fail-safe)
+        try:
+            from utils.lightweight_analytics import track_user_activity
+            from models import User
+            user = db.session.query(User).filter_by(user_id_hash=user_hash).first()
+            is_new_user = user is None or user.is_new if user else False
+            track_user_activity(user_hash, is_new_user)
+        except Exception as e:
+            # Fail-safe: analytics errors never break message processing
+            logger.debug(f"Analytics tracking failed: {e}")
+        
         try:
             # Always log router banner with current config
             from utils.config import FEATURE_FLAGS_VERSION
