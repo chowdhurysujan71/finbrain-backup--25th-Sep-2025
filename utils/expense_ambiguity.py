@@ -12,6 +12,10 @@ logger = logging.getLogger(__name__)
 
 # Ambiguous items with their possible categories and confidence scores
 AMBIGUOUS_ITEMS = {
+    'khichuri': {
+        'food': {'keywords': ['rice', 'dal', 'lentil', 'meal', 'lunch', 'dinner', 'restaurant', 'home'], 'base_confidence': 95},
+        'other': {'keywords': ['non-food', 'item', 'product'], 'base_confidence': 5}
+    },
     'mouse': {
         'electronics': {'keywords': ['wireless', 'gaming', 'optical', 'bluetooth', 'computer', 'usb'], 'base_confidence': 75},
         'food': {'keywords': ['chocolate', 'dessert', 'sweet', 'cafe', 'restaurant'], 'base_confidence': 15},

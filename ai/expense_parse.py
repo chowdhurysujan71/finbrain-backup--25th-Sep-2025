@@ -105,11 +105,13 @@ def _fallback_parse(text: str) -> dict:
     except ValueError:
         raise ValueError("Invalid amount format")
     
-    # Simple category detection with better patterns
+    # Simple category detection with better patterns - ENHANCED FOR BENGALI FOOD
     text_lower = text.lower()
     if any(word in text_lower for word in ["coffee", "tea", "drink", "beverage", "starbucks", "cafe"]):
         category = "Food"
     elif any(word in text_lower for word in ["lunch", "dinner", "breakfast", "food", "meal", "restaurant", "eating"]):
+        category = "Food"
+    elif any(word in text_lower for word in ["khichuri", "rice", "dal", "curry", "biriyani", "roti", "naan", "chicken", "beef", "fish", "vegetable", "egg"]):
         category = "Food"
     elif any(word in text_lower for word in ["gas", "fuel", "petrol", "diesel"]):
         category = "Transport"
@@ -132,13 +134,17 @@ def _extract_main_item(text: str) -> Optional[str]:
     text_clean = re.sub(r'\d+(?:\.\d+)?', '', text)  # Remove numbers
     words = text_clean.lower().split()
     
-    # Remove common expense words
-    skip_words = {'spent', 'paid', 'bought', 'for', 'on', 'the', 'a', 'an', 'at', 'in', 'with', 'by'}
+    # Remove common expense words - EXPANDED LIST
+    skip_words = {'spent', 'paid', 'bought', 'for', 'on', 'the', 'a', 'an', 'at', 'in', 'with', 'by', 
+                  'having', 'had', 'got', 'get', 'am', 'is', 'was', 'were', 'worth', 'taka', 'tk',
+                  'cost', 'costs', 'costed', 'price', 'priced'}
     meaningful_words = [w for w in words if w not in skip_words and len(w) > 2]
     
-    # Return the first meaningful word (usually the item)
-    if meaningful_words:
-        return meaningful_words[0]
+    # Look for food items, product names, or nouns (usually later in sentence)
+    for word in meaningful_words:
+        # Skip common verbs and articles
+        if word not in {'and', 'or', 'but', 'then', 'now', 'today', 'yesterday', 'this', 'that'}:
+            return word
     
     return None
 

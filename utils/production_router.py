@@ -436,7 +436,18 @@ class ProductionRouter:
                 logger.warning(f"AI FAQ detection failed: {faq_error}")
                 # Continue to fallback - no interruption to normal flow
             
-            # Step 9: Check for clarification responses
+            # Step 9: Check for learning/correction intents FIRST
+            if self._is_learning_intent(text):
+                logger.info(f"[ROUTER] Learning intent detected: '{text[:50]}...'")
+                try:
+                    response = self._handle_learning_intent(text, user_hash, rid)
+                    self._log_routing_decision(rid, user_hash, "learning", "category_learned")
+                    self._record_processing_time(time.time() - start_time)
+                    return response, "learning_applied", None, None
+                except Exception as e:
+                    logger.warning(f"Learning intent handling failed: {e}")
+            
+            # Step 10: Check for clarification responses
             logger.info(f"[ROUTER] Checking for clarification response: '{text[:50]}...'")
             try:
                 from utils.expense_clarification import expense_clarification_handler
@@ -496,6 +507,87 @@ class ProductionRouter:
             response = fallback_default()
             self._log_routing_decision(rid, user_hash, "error", f"emergency_fallback: {str(e)}")
             return response, "error", None, None
+    
+    def _is_learning_intent(self, text: str) -> bool:
+        """Detect if user is trying to teach category preferences"""
+        text_lower = text.lower().strip()
+        
+        learning_patterns = [
+            r'(\w+)\s+is\s+(food|drink|transport|shopping|health|entertainment)',
+            r'(\w+)\s+should\s+be\s+(food|drink|transport|shopping|health|entertainment)',
+            r'log\s+(\w+)\s+under\s+(food|drink|transport|shopping|health|entertainment)',
+            r'categorize\s+(\w+)\s+as\s+(food|drink|transport|shopping|health|entertainment)',
+            r'(\w+)\s+belongs\s+to\s+(food|drink|transport|shopping|health|entertainment)'
+        ]
+        
+        import re
+        for pattern in learning_patterns:
+            if re.search(pattern, text_lower):
+                return True
+        
+        return False
+    
+    def _handle_learning_intent(self, text: str, user_hash: str, rid: str) -> str:
+        """Handle user teaching category preferences"""
+        import re
+        
+        text_lower = text.lower().strip()
+        
+        # Extract item and category
+        patterns = [
+            r'(\w+)\s+is\s+(food|drink|transport|shopping|health|entertainment)',
+            r'(\w+)\s+should\s+be\s+(food|drink|transport|shopping|health|entertainment)',
+            r'log\s+(\w+)\s+under\s+(food|drink|transport|shopping|health|entertainment)',
+            r'categorize\s+(\w+)\s+as\s+(food|drink|transport|shopping|health|entertainment)',
+            r'(\w+)\s+belongs\s+to\s+(food|drink|transport|shopping|health|entertainment)'
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, text_lower)
+            if match:
+                item = match.group(1)
+                category = match.group(2)
+                
+                # Learn the preference
+                from utils.expense_learning import user_learning_system
+                learned = user_learning_system.learn_user_preference(
+                    user_hash, item, category, {'context': text, 'manual_teaching': True}
+                )
+                
+                if learned:
+                    # Find and update recent expense if exists
+                    self._update_recent_expense_category(user_hash, item, category)
+                    
+                    return normalize(f"Perfect! ✅ I've learned that {item} = {category.title()} for you. I'll remember this for future expenses!")
+                else:
+                    return normalize(f"Thanks for teaching me! I'll try to remember that {item} goes under {category.title()}.")
+        
+        return normalize("Got it! I'm here to help categorize your expenses better.")
+    
+    def _update_recent_expense_category(self, user_hash: str, item: str, category: str):
+        """Update recent expense category if item matches"""
+        try:
+            from models import Expense
+            from app import db
+            from datetime import datetime, timedelta
+            
+            # Look for recent expenses (last 10 minutes) that might match
+            recent_time = datetime.utcnow() - timedelta(minutes=10)
+            recent_expenses = db.session.query(Expense).filter(
+                Expense.user_id == user_hash,
+                Expense.created_at >= recent_time,
+                Expense.original_message.ilike(f'%{item}%')
+            ).order_by(Expense.created_at.desc()).limit(3).all()
+            
+            for expense in recent_expenses:
+                if expense.category.lower() in ['general', 'other'] and item.lower() in expense.original_message.lower():
+                    expense.category = category.title()
+                    expense.description = f"{category.title()} expense: {item}"
+                    db.session.commit()
+                    break
+                    
+        except Exception as e:
+            logger.warning(f"Failed to update recent expense: {e}")
     
     def _check_messaging_guardrails(self, text: str, user_hash: str, rid: str) -> Optional[str]:
         """
