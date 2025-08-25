@@ -1,7 +1,7 @@
-# FinBrain
+# finbrain
 
 ## Overview
-FinBrain is an AI-first expense tracking application delivered via Facebook Messenger and a web interface. Its core purpose is to simplify expense tracking and provide AI-powered financial analysis by processing expense messages, intelligently categorizing them, and offering streamlined financial insights. The system prioritizes security, featuring mandatory HTTPS and signature verification, aiming to provide sophisticated AI-driven financial advice and learning capabilities.
+finbrain is an AI-first expense tracking application delivered via Facebook Messenger and a web interface. Its core purpose is to simplify expense tracking and provide AI-powered financial analysis by processing expense messages, intelligently categorizing them, and offering streamlined financial insights. The system prioritizes security, featuring mandatory HTTPS and signature verification, aiming to provide sophisticated AI-driven financial advice and learning capabilities.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -34,7 +34,7 @@ Preferred communication style: Simple, everyday language.
   - Result: Enterprise-grade coaching system with advanced monitoring, optimization, and safeguards
   - Status: **PRODUCTION READY** - All hardening components operational, comprehensive testing passed
 
-- **FINBRAIN STABILIZATION COMPLETED (Aug 23):** All AI features now always-on for production stability
+- **finbrain STABILIZATION COMPLETED (Aug 23):** All AI features now always-on for production stability
   - ✅ Removed all feature flags and allowlist systems - simplified to always-on configuration
   - ✅ AI-first routing implemented - no legacy short-circuit, AI has priority over regex parsing
   - ✅ Multi-expense logging with derived MIDs ({mid}:1, {mid}:2) for bulletproof idempotency

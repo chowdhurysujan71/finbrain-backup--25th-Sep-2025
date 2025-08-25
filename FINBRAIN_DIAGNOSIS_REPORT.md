@@ -1,4 +1,4 @@
-# FinBrain — Diagnosis Report
+# finbrain — Diagnosis Report
 
 ## Summary (5 bullets max)
 - **Critical**: `utils.user_manager` exports `resolve_user_id` but NOT `user_manager` — causing ImportError in production_router.py (4 occurrences)

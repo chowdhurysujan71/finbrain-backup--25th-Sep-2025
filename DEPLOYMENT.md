@@ -1,4 +1,4 @@
-# FinBrain Deployment Guide
+# finbrain Deployment Guide
 
 ## Quick Deployment to Replit Reserved VM
 

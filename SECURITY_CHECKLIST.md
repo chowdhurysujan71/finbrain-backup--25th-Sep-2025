@@ -1,4 +1,4 @@
-# FINBRAIN SECURITY CHECKLIST
+# finbrain SECURITY CHECKLIST
 
 **Assessment Date**: 2025-08-21 06:36:00 UTC  
 **System Version**: Production Router SHA cc72dd77e8d8  

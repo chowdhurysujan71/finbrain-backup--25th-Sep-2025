@@ -1,4 +1,4 @@
-# FinBrain - Facebook Messenger Expense Tracker
+# finbrain - Facebook Messenger Expense Tracker
 
 A secure, AI-powered expense tracking application that processes expense messages through Facebook Messenger. Users can send expense messages in natural language, and the system automatically categorizes expenses, extracts amounts, and provides real-time confirmations with monthly totals.
 

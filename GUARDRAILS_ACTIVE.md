@@ -1,4 +1,4 @@
-# FinBrain Guardrails v2 - ACTIVATION STATUS
+# finbrain Guardrails v2 - ACTIVATION STATUS
 
 ## 🚀 PRODUCTION LAUNCH COMPLETE
 
@@ -49,4 +49,4 @@ GUARDRAIL_REPEAT_WINDOW=45
 
 ---
 
-**🎉 FinBrain is now production-ready with enterprise-grade messaging guardrails!**
+**🎉 finbrain is now production-ready with enterprise-grade messaging guardrails!**

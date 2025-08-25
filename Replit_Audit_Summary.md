@@ -1,4 +1,4 @@
-# FinBrain Expense Tracker - Technical Audit Summary
+# finbrain Expense Tracker - Technical Audit Summary
 
 **Audit Date:** August 12, 2025 06:59:53 UTC  
 **Git Commit:** e0d5a18 (HEAD -> main) Saved your changes before starting work  
