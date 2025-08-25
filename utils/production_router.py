@@ -164,11 +164,9 @@ class ProductionRouter:
         self.telemetry['total_messages'] += 1
         
         try:
-            # Always log router banner with current config + build info
+            # Always log router banner with current config
             from utils.config import FEATURE_FLAGS_VERSION
-            import hashlib
-            build_sha = hashlib.md5(open(__file__, 'rb').read()).hexdigest()[:8]
-            logger.warning(f"[ROUTER_DECISION] rid={rid} build_sha={build_sha} config={FEATURE_FLAGS_VERSION} user={user_hash[:8]} text='{text}'")
+            logger.info(f"[ROUTER] mode=AI features=[NLP_ROUTING,TONE,CORRECTIONS] config_version={FEATURE_FLAGS_VERSION} psid={psid[:8]}...")
             
             # Panic mode - immediate acknowledgment
             if PANIC_PLAIN_REPLY:
@@ -189,10 +187,7 @@ class ProductionRouter:
             
             # Step 0: FAQ/SMALLTALK GUARDRAIL - Deterministic responses with emojis (no AI)
             faq_response = match_faq_or_smalltalk(text)
-            # TEMP DEBUG: Log FAQ check details for debugging
-            logger.warning(f"[FAQ_DEBUG] user={user_hash[:8]} text='{text}' faq_result={'YES' if faq_response else 'NO'}")
             if faq_response:
-                logger.warning(f"[FAQ_DEBUG] Returning FAQ response: {faq_response[:50]}...")
                 self._log_routing_decision(rid, user_hash, "faq_smalltalk", "deterministic")
                 self._record_processing_time(time.time() - start_time)
                 return faq_response, "faq", None, None

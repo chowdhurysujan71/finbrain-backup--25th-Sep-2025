@@ -436,10 +436,6 @@ def webhook_messenger() -> str | tuple[str, int]:
             return "Verification token mismatch", 403
         
     elif request.method == "POST":
-        # CRITICAL DEBUG: Log ALL webhook POST requests
-        payload_preview = request.get_data()[:200]
-        logger.warning(f"[WEBHOOK_ENTRY] POST from {request.remote_addr}, size={len(payload_preview)}, preview={payload_preview}")
-        
         # PRODUCTION SECURITY: Enforce HTTPS (temporarily disabled for local testing)
         # TODO: Re-enable for production deployment
         # if not request.is_secure and not request.headers.get('X-Forwarded-Proto') == 'https':

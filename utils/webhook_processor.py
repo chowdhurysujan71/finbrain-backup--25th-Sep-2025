@@ -166,9 +166,6 @@ def process_webhook_fast(payload_bytes: bytes, signature: str, app_secret: str) 
     request_id = str(uuid.uuid4())[:8]
     start_time = time.time()
     
-    # TEMP DEBUG: Log webhook entry
-    logger.warning(f"[WEBHOOK_DEBUG] Processing webhook request {request_id}, payload_size={len(payload_bytes)}")
-    
     try:
         # Step 1: Verify signature (skip if no app_secret for MVP)
         if app_secret and not verify_webhook_signature(payload_bytes, signature, app_secret):
@@ -186,10 +183,6 @@ def process_webhook_fast(payload_bytes: bytes, signature: str, app_secret: str) 
         
         # Step 3: Extract events
         events = extract_webhook_events(data)
-        logger.warning(f"[WEBHOOK_DEBUG] Extracted {len(events)} events from request {request_id}")
-        for i, event in enumerate(events):
-            logger.warning(f"[WEBHOOK_DEBUG] Event {i}: text='{event.get('text', '')}' psid={event.get('psid', '')[:8]}...")
-        
         if not events:
             duration_ms = (time.time() - start_time) * 1000
             log_event(request_id, "unknown", "unknown", "extract_events", duration_ms, "no_events")
