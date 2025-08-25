@@ -68,7 +68,11 @@ INTENT_KEYWORDS = {
     "is my financial data secure": [
         "store my data", "how do you store my data", "how do you store data",
         "is my data safe", "data secure", "data security", "data protection",
-        "privacy", "privacy policy", "how is my data stored"
+        "privacy", "privacy policy", "how is my data stored",
+        # Enhanced variations for natural questions
+        "do you store my personal data", "do you store personal data", "personal data",
+        "financial data", "my personal information", "personal information",
+        "data privacy", "safe data", "secure data", "protect my data"
     ],
     "what messaging platforms do you support": [
         "which platforms", "what platforms", "messaging platforms",
@@ -78,7 +82,13 @@ INTENT_KEYWORDS = {
         "how much does it cost", "pricing", "price", "cost", "is it free", "how much is finbrain"
     ],
     "can i connect my bank accounts": [
-        "connect my bank", "bank connection", "bank integration", "link bank", "sync bank"
+        "connect my bank", "bank connection", "bank integration", "link bank", "sync bank",
+        # Enhanced variations for natural questions
+        "connected with any bank", "connected with bank", "any bank", "which banks",
+        "bank accounts", "banking", "financial institutions", "integrate bank",
+        "are you connected", "do you connect", "bank support",
+        # More specific patterns for "are you connected with any bank"
+        "you connected with", "connected", "bank", "banks"
     ],
     "what kind of insights can i get": [
         "what insights", "what tips", "spending insights", "recommendations", "coach", "advice", "what kind of insights"
