@@ -103,6 +103,9 @@ def handle_multi_expense_logging(psid_hash_val: str, mid: str, text: str, now: d
         # Generate coach-style summary reply
         response = _format_multi_expense_reply(logged_expenses, psid_hash_val)
         
+        # Add reminder consent prompt if appropriate
+        response = _maybe_add_reminder_prompt(psid_hash_val, response)
+        
         return {
             'text': response,
             'intent': 'log_multi',
@@ -210,6 +213,9 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: Dict[str,
         expense_data['category'], 
         expense_data.get('currency', 'BDT')
     )
+    
+    # Add reminder consent prompt if appropriate
+    response = _maybe_add_reminder_prompt(psid_hash_val, response)
     
     return {
         'text': response,
@@ -512,6 +518,50 @@ def _create_new_expense(psid_hash_val: str, mid: str, expense_data: Dict[str, An
     expense.original_message = original_text[:500]
     
     return expense
+
+def _maybe_add_reminder_prompt(psid_hash_val: str, response: str) -> str:
+    """
+    Conditionally add reminder consent prompt after expense logging.
+    Only prompts if user doesn't have reminders enabled and hasn't been asked recently.
+    
+    Args:
+        psid_hash_val: User's PSID hash
+        response: Current response text
+        
+    Returns:
+        Response with optional reminder prompt
+    """
+    try:
+        user = db.session.query(User).filter_by(user_id_hash=psid_hash_val).first()
+        
+        if not user:
+            return response
+        
+        # Don't prompt if already has reminders enabled
+        if user.reminder_preference != 'none':
+            return response
+        
+        # Don't prompt if we already asked recently (avoid spam)
+        if user.last_reminder_sent:
+            hours_since_last = (datetime.utcnow() - user.last_reminder_sent).total_seconds() / 3600
+            if hours_since_last < 72:  # Don't ask again for 3 days
+                return response
+        
+        # Don't prompt very new users (let them get comfortable first)
+        if user.expense_count < 3:
+            return response
+        
+        # Add prompt occasionally (not every time)
+        import random
+        if random.random() < 0.3:  # 30% chance to show prompt
+            if len(response) + 50 <= 280:  # Ensure we stay under character limit
+                return f"{response}\n\nWant me to check in with you tomorrow evening?"
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error adding reminder prompt: {e}")
+        return response
 
 def _update_user_totals(psid_hash_val: str, amount_change: float) -> None:
     """

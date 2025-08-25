@@ -192,6 +192,18 @@ class ProductionRouter:
                 # Fail-open: guardrail errors never break message flow
                 logger.warning(f"Messaging guardrail check failed (user={user_hash[:8]}): {e}")
             
+            # Step 0.7: REMINDER INTENT DETECTION - Check for reminder-related messages
+            try:
+                from handlers.reminders import detect_reminder_intent
+                reminder_response = detect_reminder_intent(user_hash, text)
+                if reminder_response:
+                    self._log_routing_decision(rid, user_hash, "reminder", reminder_response['intent'])
+                    self._record_processing_time(time.time() - start_time)
+                    return normalize(reminder_response['text']), reminder_response['intent'], reminder_response.get('category'), reminder_response.get('amount')
+            except Exception as e:
+                # Fail-open: reminder errors never break message flow
+                logger.warning(f"Reminder detection failed (user={user_hash[:8]}): {e}")
+            
             # Step 1: CORRECTION DETECTION - Always enabled, no flags
             if is_correction_message(text):
                 logger.info(f"[ROUTER] Correction detected: user={user_hash[:8]}...")

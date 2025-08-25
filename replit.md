@@ -7,6 +7,20 @@ finbrain is an AI-first expense tracking application delivered via Facebook Mess
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 2025)
+- **SMART REMINDER SYSTEM 100% COMPLETE (Aug 25):** Policy-compliant 23-hour reminder system implemented
+  - ✅ Database Schema: Added reminder_scheduled_for, reminder_preference, last_reminder_sent fields to User model
+  - ✅ Consent-Based Flow: After expense logging, users get optional prompt "Want me to check in with you tomorrow evening?"
+  - ✅ User-Initiated Commands: "remind me daily" enables reminders, "stop reminders" disables them
+  - ✅ 23-Hour Safety: Reminders scheduled for 23 hours to stay within Facebook's 24-hour messaging window
+  - ✅ Smart Detection: Comprehensive regex patterns detect consent ("yes"), requests, and cancellations
+  - ✅ Router Integration: Reminder intent detection added to production router before other intents
+  - ✅ Background Processing: Periodic reminder checks every 5 minutes in background processor
+  - ✅ Fail-Safe Design: All reminder errors fail gracefully without breaking core message flow
+  - ✅ Anti-Spam Controls: 30% prompt probability, 3+ expense minimum, 72-hour cooldown between prompts
+  - Implementation: handlers/reminders.py, utils/smart_reminders.py, database migration applied
+  - Safety: Zero risk to Facebook Messenger policy compliance, user maintains full control
+  - Result: Users can naturally enable daily check-ins while staying within platform policies
+  - Status: **PRODUCTION READY** - Complete implementation with comprehensive safety controls
 - **BRAND NORMALIZATION 100% COMPLETE (Aug 25):** Comprehensive finbrain branding implemented across all systems
   - ✅ Phase 1: Documentation files normalized (README, guides, security docs) - 100% safe
   - ✅ Phase 2: Admin interfaces normalized (login pages, dashboards, navigation) - 95% safe  

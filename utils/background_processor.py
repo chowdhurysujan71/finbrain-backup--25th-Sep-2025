@@ -49,6 +49,10 @@ class BackgroundProcessor:
         from utils.ai_adapter_v2 import production_ai_adapter as ai_adapter
         self.ai_adapter = ai_adapter
         
+        # Initialize reminder system
+        self._last_reminder_check = datetime.utcnow()
+        self._reminder_check_interval = 300  # 5 minutes
+        
         # Context-driven processing now handled by production router
         
         logger.info(f"Background processor initialized with {max_workers} workers")
@@ -89,6 +93,9 @@ class BackgroundProcessor:
             from app import app
             
             with app.app_context():
+                # Check for pending reminders periodically
+                self._check_reminders_if_due()
+                
                 # Update 24-hour policy timestamp
                 update_user_message_timestamp(job.psid)
                 
@@ -285,6 +292,23 @@ class BackgroundProcessor:
             "queue_size": self.job_queue.qsize() if hasattr(self.job_queue, 'qsize') else 0
         }
     
+    def _check_reminders_if_due(self) -> None:
+        """Check and send reminders if enough time has passed since last check"""
+        now = datetime.utcnow()
+        time_since_last_check = (now - self._last_reminder_check).total_seconds()
+        
+        if time_since_last_check >= self._reminder_check_interval:
+            try:
+                from utils.smart_reminders import check_and_send_reminders
+                stats = check_and_send_reminders()
+                if stats['sent'] > 0:
+                    logger.info(f"Reminder check: {stats['sent']} sent, {stats['errors']} errors")
+                self._last_reminder_check = now
+            except Exception as e:
+                logger.error(f"Error in reminder check: {e}")
+                # Still update the timestamp to avoid repeated failures
+                self._last_reminder_check = now
+
     def shutdown(self) -> None:
         """Gracefully shutdown the background processor"""
         logger.info("Shutting down background processor...")

@@ -62,6 +62,11 @@ class User(db.Model):
     additional_info = db.Column(JSON, default=dict)  # Flexible AI-extracted data
     preferences = db.Column(JSON, default=dict)  # Additional user preferences
     
+    # Smart reminder system (23-hour compliance)
+    reminder_scheduled_for = db.Column(db.DateTime, nullable=True)  # Next reminder time
+    reminder_preference = db.Column(db.String(20), default='none')  # 'none', 'daily', 'weekly'
+    last_reminder_sent = db.Column(db.DateTime, nullable=True)  # Last reminder timestamp
+    
     def to_dict(self):
         """Convert user to dictionary for AI processing"""
         return {
