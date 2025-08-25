@@ -121,6 +121,7 @@ COMMON_QUICK_REPLIES = {
     "expense_logged": [
         {"title": "Yes, snapshot", "payload": "SHOW_SNAPSHOT"},
         {"title": "Set a cap", "payload": "SET_GOAL"},
+        {"title": "Report a problem", "payload": "REPORT_PROBLEM"},
         {"title": "Done", "payload": "DONE"}
     ],
     
@@ -128,6 +129,12 @@ COMMON_QUICK_REPLIES = {
         {"title": "Log Expense", "payload": "LOG_EXPENSE"},
         {"title": "Weekly Review", "payload": "WEEKLY_REVIEW"},
         {"title": "Set Goal", "payload": "SET_GOAL"}
+    ],
+    
+    "support_menu": [
+        {"title": "Report a problem", "payload": "REPORT_PROBLEM"},
+        {"title": "Get help", "payload": "HELP"},
+        {"title": "FAQ", "payload": "FAQ"}
     ],
     
     "daily_checkin": [
@@ -157,6 +164,7 @@ COMMON_QUICK_REPLIES = {
     "ai_response": [
         {"title": "Show breakdown", "payload": "SHOW_BREAKDOWN"},
         {"title": "Set a cap", "payload": "SET_GOAL"},
+        {"title": "Report a problem", "payload": "REPORT_PROBLEM"},
         {"title": "Not now", "payload": "IGNORE"}
     ]
 }

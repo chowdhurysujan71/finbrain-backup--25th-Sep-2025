@@ -205,6 +205,19 @@ class ProductionRouter:
                 # Fail-open: reminder errors never break message flow
                 logger.warning(f"Reminder detection failed (user={user_hash[:8]}): {e}")
             
+            # Step 0.8: PROBLEM REPORTING - Catch issues before they become negative reviews
+            # Canary control: can be disabled via ENABLE_PROBLEM_REPORTING=false
+            if os.getenv('ENABLE_PROBLEM_REPORTING', 'true').lower() == 'true':
+                try:
+                    if self._detect_problem_report(text):
+                        problem_response = self._handle_problem_report(user_hash, text)
+                        self._log_routing_decision(rid, user_hash, "problem_report", "ticket_logged")
+                        self._record_processing_time(time.time() - start_time)
+                        return normalize(problem_response), "problem_report", None, None
+                except Exception as e:
+                    # Fail-open: problem reporting errors never break message flow
+                    logger.warning(f"Problem reporting failed (user={user_hash[:8]}): {e}")
+            
             # Step 1: CORRECTION DETECTION - Always enabled, no flags
             if is_correction_message(text):
                 logger.info(f"[ROUTER] Correction detected: user={user_hash[:8]}...")
@@ -1055,6 +1068,58 @@ class ProductionRouter:
         ]
         text_lower = user_text.lower().strip()
         return any(pattern in text_lower for pattern in consent_patterns)
+    
+    def _detect_problem_report(self, text: str) -> bool:
+        """Detect if user is reporting a problem"""
+        text_lower = text.lower().strip()
+        
+        # Check for explicit problem report payload
+        if text == "REPORT_PROBLEM":
+            return True
+        
+        # Check for natural language problem reporting
+        problem_phrases = [
+            "report a problem", "there's a problem", "something's wrong", "not working",
+            "broken", "error", "bug", "issue", "problem with", "having trouble",
+            "can't log", "won't work", "doesn't work", "app is", "finbrain is"
+        ]
+        
+        return any(phrase in text_lower for phrase in problem_phrases)
+    
+    def _handle_problem_report(self, user_hash: str, text: str) -> str:
+        """Handle user problem report and create ticket"""
+        try:
+            from utils.problem_reporter import report_problem, get_problem_report_response
+            
+            # Determine what the user was trying to do (context)
+            last_action = "unknown"
+            if "log" in text.lower() or "expense" in text.lower():
+                last_action = "logging_expense"
+            elif "summary" in text.lower() or "balance" in text.lower():
+                last_action = "viewing_summary"
+            elif "slow" in text.lower() or "loading" in text.lower():
+                last_action = "waiting_for_response"
+            
+            # Create ticket
+            ticket_id = report_problem(user_hash, text, last_action)
+            
+            # Get user-friendly response
+            response = get_problem_report_response(ticket_id)
+            
+            # Add quick replies for follow-up support
+            from utils.quick_reply_system import send_custom_quick_replies
+            support_replies = [
+                {"title": "Get help", "payload": "HELP"},
+                {"title": "Try again", "payload": "TRY_AGAIN"},
+                {"title": "FAQ", "payload": "FAQ"}
+            ]
+            
+            # Note: We'll return the response and the quick replies will be handled by the caller
+            return response
+            
+        except Exception as e:
+            logger.error(f"Problem report handling failed: {e}")
+            return "Thanks for letting us know about the issue. We'll look into it and work on improvements."
 
     def _format_response(self, text: str) -> str:
         """Format response with 280 character limit and graceful clipping"""
