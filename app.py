@@ -478,6 +478,66 @@ def webhook_messenger() -> str | tuple[str, int]:
             response_text, status_code = process_webhook_fast(payload_bytes, signature, app_secret)
         return response_text, status_code
 
+@app.route('/diagnose/router', methods=['GET'])
+def diagnose_router():
+    """Diagnostic endpoint to test router directly with real PSID and query"""
+    import uuid
+    import hashlib
+    
+    query = request.args.get('q', '')
+    psid = request.args.get('psid', '')
+    
+    if not query or not psid:
+        return jsonify({
+            "error": "Missing required parameters",
+            "usage": "/diagnose/router?q=What are my expenses this week&psid=3052211490"
+        }), 400
+    
+    try:
+        from utils.production_router import production_router
+        
+        # Generate request ID
+        rid = str(uuid.uuid4())[:8]
+        
+        # Get build info
+        build_sha = hashlib.md5(open(__file__, 'rb').read()).hexdigest()[:8]
+        router_sha = hashlib.md5(open('utils/production_router.py', 'rb').read()).hexdigest()[:8]
+        
+        # Test the router directly
+        response_text, intent, category, amount = production_router.route_message(query, psid, rid)
+        
+        # Also test FAQ matcher directly
+        from utils.faq_map import match_faq_or_smalltalk
+        faq_result = match_faq_or_smalltalk(query)
+        
+        return jsonify({
+            "rid": rid,
+            "query": query,
+            "psid": psid,
+            "psid_hash": hashlib.sha256(psid.encode()).hexdigest()[:8],
+            "router_result": {
+                "response": response_text,
+                "intent": intent,
+                "category": category,
+                "amount": amount
+            },
+            "faq_check": {
+                "result": faq_result,
+                "matched": faq_result is not None
+            },
+            "build_info": {
+                "app_sha": build_sha,
+                "router_sha": router_sha
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "traceback": str(e.__class__.__name__)
+        }), 500
+
 @app.route('/ops', methods=['GET'])
 @require_basic_auth
 def ops_status():
