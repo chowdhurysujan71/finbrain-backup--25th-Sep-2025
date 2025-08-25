@@ -174,16 +174,6 @@ class ProductionRouter:
                 self._log_routing_decision(rid, user_hash, "panic", "immediate_ack")
                 return response, "panic", None, None
             
-            # EMERGENCY HOTFIX: Force summary for expense queries until root cause found
-            import re
-            if (re.search(r"\b(expense|spend(ing)?|cost|paid|bought)\b", text, re.I) and 
-                re.search(r"\b(today|yesterday|week|month|this|last)\b", text, re.I)):
-                logger.warning(f"[HOTFIX] Forcing summary for expense query: user={user_hash[:8]} text='{text}'")
-                from handlers.summary import handle_summary_request
-                summary_response = handle_summary_request(user_hash, rid, text)
-                self._log_routing_decision(rid, user_hash, "summary_hotfix", "emergency_expense_override")
-                self._record_processing_time(time.time() - start_time)
-                return summary_response, "summary", None, None
             
             # Step 0: FAQ/SMALLTALK GUARDRAIL - Deterministic responses with emojis (no AI)
             faq_response = match_faq_or_smalltalk(text)
