@@ -56,6 +56,13 @@ Just tell me in your own words - I'll understand!"""
         Returns: (response_text, updated_user_data)
         """
         
+        # Check if user is on consent step (step 0) - handle privacy consent first
+        current_step = current_user_data.get('onboarding_step', 0)
+        if current_step == 0:
+            # Check if user has already given consent
+            if not current_user_data.get('privacy_consent_given', False):
+                return self._handle_consent_step(user_text, current_user_data)
+        
         # Build context about user's current state
         context = self._build_user_context(current_user_data)
         
@@ -160,12 +167,13 @@ Analyze this message and determine:
             updated_data['onboarding_step'] = 0
             response_text = "🎉 Perfect! You're all set up. I can now give you personalized finance insights. What expense would you like to log or analyze today?"
         else:
-            # Map AI state to internal step
+            # Map AI state to internal step (consent = 0, then shifted +1)
             state_to_step = {
                 "new": 0,
-                "collecting_income": 0,
-                "collecting_categories": 1,
-                "collecting_focus": 2
+                "collecting_consent": 0,
+                "collecting_income": 1,
+                "collecting_categories": 2,
+                "collecting_focus": 3
             }
             updated_data['onboarding_step'] = state_to_step.get(user_state, 0)
             updated_data['has_completed_onboarding'] = False
@@ -177,11 +185,56 @@ Analyze this message and determine:
         
         return response_text, updated_data
     
+    def _detect_consent(self, user_text: str) -> bool:
+        """Detect if user has given consent"""
+        consent_patterns = [
+            "i agree", "i accept", "yes", "okay", "ok", "sure", 
+            "agreed", "accept", "consent", "i consent", "yes i agree"
+        ]
+        text_lower = user_text.lower().strip()
+        return any(pattern in text_lower for pattern in consent_patterns)
+    
+    def _handle_consent_step(self, user_text: str, current_user_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+        """Handle privacy consent step specifically"""
+        from datetime import datetime
+        
+        if self._detect_consent(user_text):
+            # User has given consent
+            updated_data = current_user_data.copy()
+            updated_data['privacy_consent_given'] = True
+            updated_data['privacy_consent_at'] = datetime.utcnow()
+            updated_data['terms_accepted'] = True
+            updated_data['terms_accepted_at'] = datetime.utcnow()
+            updated_data['onboarding_step'] = 1  # Move to income step
+            
+            response = "✅ Thank you! Now let's set up your financial profile.\n\nWhat's your monthly income range? (e.g., 1000-2500)"
+            return response, updated_data
+        else:
+            # User hasn't given consent, stay on consent step
+            response = (
+                "⚠️ To continue, you need to accept our Privacy Policy and Terms of Service.\n\n"
+                "📋 Privacy Policy: https://www.finbrain.app/privacy-policy\n"
+                "📜 Terms of Service: https://www.finbrain.app/terms-of-service\n\n"
+                "Please reply \"I agree\" to continue."
+            )
+            return response, current_user_data
+
     def _get_fallback_question(self, user_state: str) -> str:
         """Get fallback question based on state"""
         questions = {
-            "new": "What's your monthly income range? (e.g., 1000-2500)",
-            "collecting_income": "What's your monthly income range?",
+            "new": (
+                "🔒 Welcome to finbrain! Before we start, please review:\n\n"
+                "📋 Privacy Policy: https://www.finbrain.app/privacy-policy\n"
+                "📜 Terms of Service: https://www.finbrain.app/terms-of-service\n\n"
+                "Reply \"I agree\" to continue with your financial tracking setup."
+            ),
+            "collecting_consent": (
+                "🔒 To continue, please accept our terms:\n\n"
+                "📋 Privacy Policy: https://www.finbrain.app/privacy-policy\n"
+                "📜 Terms of Service: https://www.finbrain.app/terms-of-service\n\n"
+                "Reply \"I agree\" to continue."
+            ),
+            "collecting_income": "What's your monthly income range? (e.g., 1000-2500)",
             "collecting_categories": "What are your biggest spending categories? (e.g., food, rent, shopping)",
             "collecting_focus": "What would you like to focus on? (saving, budgeting, or investment tips)"
         }
@@ -192,10 +245,16 @@ Analyze this message and determine:
         step = current_user_data.get('onboarding_step', 0)
         updated_data = current_user_data.copy()
         
-        # Simple progression
-        if step < 2:
+        # Simple progression with consent step (0=consent, 1=income, 2=categories, 3=focus)
+        if step < 3:
             updated_data['onboarding_step'] = step + 1
-            response = self._get_fallback_question("collecting_categories" if step == 0 else "collecting_focus")
+            # Map step to appropriate question
+            if step == 0:  # After consent, ask for income
+                response = self._get_fallback_question("collecting_income")
+            elif step == 1:  # After income, ask for categories  
+                response = self._get_fallback_question("collecting_categories")
+            else:  # After categories, ask for focus
+                response = self._get_fallback_question("collecting_focus")
         else:
             updated_data['has_completed_onboarding'] = True
             updated_data['is_new'] = False

@@ -15,7 +15,7 @@ FAQ_JSON = {
         ),
         "is my financial data secure": (
             "🔒 Your data is encrypted **in transit and at rest**. We don't store sensitive banking details and follow "
-            "industry-standard security practices. For details and updates visit www.finbrain.app"
+            "industry-standard security practices. View our Privacy Policy: https://www.finbrain.app/privacy-policy"
         ),
         "what messaging platforms do you support": (
             "💬 We're starting with popular platforms and expanding based on user demand. Join early access to help shape priorities. "
@@ -36,6 +36,12 @@ FAQ_JSON = {
         "how do i get started": (
             "🚀 Join early access with your email and be among the first to experience finbrain. "
             "For details and updates visit www.finbrain.app"
+        ),
+        "privacy policy and terms": (
+            "📋 View our legal documents:\n"
+            "• Privacy Policy: https://www.finbrain.app/privacy-policy\n"
+            "• Terms of Service: https://www.finbrain.app/terms-of-service\n"
+            "Your privacy and data protection are our top priority."
         )
     },
     "smalltalk": {
@@ -95,6 +101,11 @@ INTENT_KEYWORDS = {
     ],
     "how do i get started": [
         "how do i get started", "get started", "join early access", "sign up", "how to start"
+    ],
+    "privacy policy and terms": [
+        "privacy policy", "terms of service", "terms", "legal documents", "tos", "privacy",
+        "privacy and terms", "view privacy", "show privacy", "terms and conditions",
+        "legal", "policy", "show terms", "privacy policy link", "terms link"
     ],
     "hi": ["hi", "hey"],
     "hello": ["hello", "helo", "heloo"],

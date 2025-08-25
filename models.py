@@ -67,6 +67,12 @@ class User(db.Model):
     reminder_preference = db.Column(db.String(20), default='none')  # 'none', 'daily', 'weekly'
     last_reminder_sent = db.Column(db.DateTime, nullable=True)  # Last reminder timestamp
     
+    # Privacy and legal compliance
+    privacy_consent_given = db.Column(db.Boolean, default=False)  # Privacy policy consent
+    privacy_consent_at = db.Column(db.DateTime, nullable=True)  # When privacy consent was given
+    terms_accepted = db.Column(db.Boolean, default=False)  # Terms of service acceptance
+    terms_accepted_at = db.Column(db.DateTime, nullable=True)  # When ToS was accepted
+    
     def to_dict(self):
         """Convert user to dictionary for AI processing"""
         return {

@@ -777,6 +777,30 @@ class ProductionRouter:
                 result = handle_insight(user_hash)
                 return result.get('text', 'Unable to generate insights'), 'insight', None, None
             
+            # CONSENT VALIDATION: Check if user has given privacy consent before allowing data collection
+            user = db.session.query(User).filter_by(user_id_hash=user_hash).first()
+            if user and not user.privacy_consent_given:
+                # Check if user is giving consent now
+                if self._detect_user_consent(text):
+                    # User is giving consent - update database
+                    from datetime import datetime
+                    user.privacy_consent_given = True
+                    user.privacy_consent_at = datetime.utcnow()
+                    user.terms_accepted = True
+                    user.terms_accepted_at = datetime.utcnow()
+                    db.session.commit()
+                    
+                    return "✅ Thank you! Your privacy preferences have been saved. You can now continue using finbrain to track your expenses.", "consent_accepted", None, None
+                else:
+                    # User hasn't given consent - redirect to privacy consent
+                    consent_message = (
+                        "🔒 To continue using finbrain, please review and accept:\n\n"
+                        "📋 Privacy Policy: https://www.finbrain.app/privacy-policy\n"
+                        "📜 Terms of Service: https://www.finbrain.app/terms-of-service\n\n"
+                        "Reply \"I agree\" to continue tracking your expenses."
+                    )
+                    return consent_message, "consent_required", None, None
+            
             # Check if this is an expense logging message first
             from utils.parser import extract_expenses
             expense_list = extract_expenses(text)
@@ -1023,6 +1047,15 @@ class ProductionRouter:
             # UAT completed, fall back to normal routing
             return self._format_response("UAT completed. Normal bot operation resumed."), "uat_completed", None, None
     
+    def _detect_user_consent(self, user_text: str) -> bool:
+        """Detect if user has given consent (same logic as onboarding)"""
+        consent_patterns = [
+            "i agree", "i accept", "yes", "okay", "ok", "sure", 
+            "agreed", "accept", "consent", "i consent", "yes i agree"
+        ]
+        text_lower = user_text.lower().strip()
+        return any(pattern in text_lower for pattern in consent_patterns)
+
     def _format_response(self, text: str) -> str:
         """Format response with 280 character limit and graceful clipping"""
         if len(text) <= 280:
