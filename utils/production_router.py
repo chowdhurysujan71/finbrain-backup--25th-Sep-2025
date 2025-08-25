@@ -397,16 +397,22 @@ class ProductionRouter:
                 self._record_processing_time(time.time() - start_time)
                 return response, intent, category, amount
             
-            # Step 8: Unknown intent - provide help
-            response = (
-                "I can help you track expenses! Try:\n"
-                "• 'spent 100 on lunch' - to log an expense\n"
-                "• 'summary' - to see your spending\n"
-                "• 'insight' - for optimization tips"
-            )
-            self._log_routing_decision(rid, user_hash, "help", "unknown_intent")
-            self._record_processing_time(time.time() - start_time)
-            return normalize(response), "help", None, None
+            # Step 8: Unknown intent - route to AI for personalized help
+            logger.info(f"[ROUTER] Unknown intent detected, routing to AI: '{text[:50]}...'")
+            try:
+                # Try AI-powered response for unknown intents
+                response, intent, category, amount = self._route_ai(text, psid, user_hash, rid, rate_limit_result)
+                self.telemetry['ai_messages'] += 1
+                self._log_routing_decision(rid, user_hash, "ai_fallback", "unknown_intent_ai")
+                self._record_processing_time(time.time() - start_time)
+                return response, intent, category, amount
+            except Exception as e:
+                logger.warning(f"AI fallback failed for unknown intent: {e}")
+                # Last resort fallback with engaging tone
+                response = "🤔 I'm not sure what you're looking for, but I can help with expenses! Try asking about your spending this week or logging a new expense."
+                self._log_routing_decision(rid, user_hash, "help_enhanced", "unknown_intent_final")
+                self._record_processing_time(time.time() - start_time)
+                return normalize(response), "help", None, None
             
         except Exception as e:
             logger.error(f"Production routing error: {e}")

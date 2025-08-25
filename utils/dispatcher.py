@@ -47,12 +47,10 @@ def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
             return "🤔 I want to make sure I help you the right way! Are you looking for tips to spend *less* and save more money, or do you actually want to increase your spending? Just want to point my advice in the right direction! 💡", intent
             
         else:
-            # Unknown intent - provide help
+            # Unknown intent - provide engaging help
             return (
-                "I can help you track expenses! Try:\n"
-                "• 'spent 100 on lunch' - to log an expense\n"
-                "• 'summary' - to see your spending\n"
-                "• 'insight' - for optimization tips"
+                "🤔 I'm not sure what you're looking for, but I can help with expenses! "
+                "Try asking about your spending this week or logging a new expense."
             ), "HELP"
             
     except Exception as e:

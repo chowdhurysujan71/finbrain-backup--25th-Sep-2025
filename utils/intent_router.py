@@ -30,10 +30,14 @@ def detect_intent(text: str) -> str:
     if "budget" in text_lower or "spending status" in text_lower:
         return "SUMMARY"
     
-    # Summary commands
+    # Summary commands - Enhanced to catch natural questions
     summary_patterns = [
         "summary", "total", "spent", "spending", "recap", "report", 
-        "how much", "show me", "expenses", "overview", "costs", "spend"
+        "how much", "show me", "expenses", "overview", "costs", "spend",
+        # Natural questions that should be summaries
+        "what did i spend", "what have i spent", "how much did i spend",
+        "my expenses", "expenses this", "expenses last", "expenses for",
+        "yesterday", "today", "this week", "last week", "this month"
     ]
     if any(pattern in text_lower for pattern in summary_patterns):
         return "SUMMARY"
