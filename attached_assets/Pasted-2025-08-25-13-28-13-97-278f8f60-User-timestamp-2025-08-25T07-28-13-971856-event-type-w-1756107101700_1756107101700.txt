@@ -1,0 +1,144 @@
+2025-08-25 13:28:13.97
+278f8f60
+User
+{"timestamp": "2025-08-25T07:28:13.971856", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.16}
+2025-08-25 13:28:13.97
+278f8f60
+User
+2025-08-25 07:28:13,971 - finbrain.structured - INFO - {"timestamp": "2025-08-25T07:28:13.971856", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.16}
+2025-08-25 13:28:37.96
+278f8f60
+User
+{"timestamp": "2025-08-25T07:28:37.968740", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff", "mid": "m_RI8dG4CWeOr3uOHH3BIsZ1q3yeIemJTv7lBPtVv3PtSubAXqvAgYq8xa_yYTlEouz3TykFzjayAl24tsSsDUCA", "intent": "queued"}
+2025-08-25 13:28:37.96
+278f8f60
+User
+2025-08-25 07:28:37,968 - finbrain.structured - INFO - {"timestamp": "2025-08-25T07:28:37.968740", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff", "mid": "m_RI8dG4CWeOr3uOHH3BIsZ1q3yeIemJTv7lBPtVv3PtSubAXqvAgYq8xa_yYTlEouz3TykFzjayAl24tsSsDUCA", "intent": "queued"}
+2025-08-25 13:28:37.96
+278f8f60
+User
+2025-08-25 07:28:37,968 - utils.background_processor - INFO - Request e1bd5417: Message queued for background processing
+2025-08-25 13:28:37.97
+278f8f60
+User
+{"timestamp": "2025-08-25T07:28:37.970213", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff", "mid": "m_RI8dG4CWeOr3uOHH3BIsZ1q3yeIemJTv7lBPtVv3PtSubAXqvAgYq8xa_yYTlEouz3TykFzjayAl24tsSsDUCA", "intent": "queued"}
+2025-08-25 13:28:37.97
+278f8f60
+User
+2025-08-25 07:28:37,970 - finbrain.structured - INFO - {"timestamp": "2025-08-25T07:28:37.970213", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "a20425ef9abcb34401cd0f33773b7f5071bc2713885cf7f15b026e6fe26916ff", "mid": "m_RI8dG4CWeOr3uOHH3BIsZ1q3yeIemJTv7lBPtVv3PtSubAXqvAgYq8xa_yYTlEouz3TykFzjayAl24tsSsDUCA", "intent": "queued"}
+2025-08-25 13:28:37.97
+278f8f60
+User
+{"timestamp": "2025-08-25T07:28:37.970453", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "ee6598ac73f7928e58c86d4321609641a2cda216347e4dc3df5cce0440bc5605", "mid": "1_events", "intent": "success", "processing_ms": 1.86}
+2025-08-25 13:28:37.97
+278f8f60
+User
+2025-08-25 07:28:37,970 - finbrain.structured - INFO - {"timestamp": "2025-08-25T07:28:37.970453", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "ee6598ac73f7928e58c86d4321609641a2cda216347e4dc3df5cce0440bc5605", "mid": "1_events", "intent": "success", "processing_ms": 1.86}
+2025-08-25 13:28:37.97
+278f8f60
+User
+2025-08-25 07:28:37,970 - utils.webhook_processor - INFO - Request e1bd5417: Webhook processed in 1.86ms, 1 events queued
+2025-08-25 13:28:38.14
+278f8f60
+User
+2025-08-25 07:28:38,149 - utils.policy_guard - DEBUG - Updated 24h timestamp for PSID 30522114***
+2025-08-25 13:28:38.25
+278f8f60
+User
+2025-08-25 07:28:38,255 - finbrain.router - INFO - [ROUTER] mode=AI features=[NLP_ROUTING,TONE,CORRECTIONS] config_version=always_on_v1 psid=30522114...
+2025-08-25 13:28:38.25
+278f8f60
+User
+2025-08-25 07:28:38,255 - finbrain.router - INFO - Production routing: {"rid": "e1bd5417", "psid_hash": "a20425ef...", "route": "faq_smalltalk", "details": "deterministic", "timestamp": "2025-08-25T07:28:38.255931+00:00"}
+2025-08-25 13:28:38.25
+278f8f60
+User
+2025-08-25 07:28:38,259 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): graph.facebook.com:443
+2025-08-25 13:28:39.38
+278f8f60
+User
+2025-08-25 07:28:39,381 - urllib3.connectionpool - DEBUG - https://graph.facebook.com:443 "POST /v19.0/me/messages?access_token=EAAQIpDHnY54BPM81e5RC6RTqGszDgIWjKKElVhxr6iwqyY5ZBsjBDuuZCP7xf5FFkpwebwkDpKI8aywZBlrOw92q69OTviZB642QoQc3tAm4BKkzwcNHnCgG9ziLai4dii9ZArBFZBmN7DRT8O06RmGQVExRkJyf8jTK6wo3eviYBfcB3aCW72ZCZCrzPJnyP5z6SVS3cN9VxFDjre73VoBnkXcZD HTTP/1.1" 200 140
+2025-08-25 13:28:39.38
+278f8f60
+User
+{"timestamp": "2025-08-25T07:28:39.382432", "event_type": "graph_api_call", "rid": "unknown", "endpoint": "/v17.0/me/messages", "method": "POST", "status": 200, "duration_ms": 1126.34}
+2025-08-25 13:28:39.38
+278f8f60
+User
+2025-08-25 07:28:39,382 - finbrain.structured - INFO - {"timestamp": "2025-08-25T07:28:39.382432", "event_type": "graph_api_call", "rid": "unknown", "endpoint": "/v17.0/me/messages", "method": "POST", "status": 200, "duration_ms": 1126.34}
+2025-08-25 13:28:39.38
+278f8f60
+User
+2025-08-25 07:28:39,382 - utils.facebook_handler - INFO - Facebook message sent successfully: m_cJvi5YgXf8aricgAuNSScFq3yeIemJTv7lBPtVv3PtRh03JMJz9_6t7-tJ_yeoEgvBmORbELknfFShOODB1iyw
+2025-08-25 13:28:39.38
+278f8f60
+User
+2025-08-25 07:28:39,382 - utils.background_processor - INFO - Request e1bd5417: Response sent successfully to 3052211490*** (hash: a20425ef...)
+2025-08-25 13:28:40.35
+278f8f60
+User
+2025-08-25 07:28:40,353 - utils.webhook_processor - DEBUG - Skipping non-message event (delivery/read/etc)
+2025-08-25 13:28:40.35
+278f8f60
+User
+{"timestamp": "2025-08-25T07:28:40.353824", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.17}
+2025-08-25 13:28:40.35
+278f8f60
+User
+2025-08-25 07:28:40,353 - finbrain.structured - INFO - {"timestamp": "2025-08-25T07:28:40.353824", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.17}
+2025-08-25 13:28:41.03
+278f8f60
+User
+2025-08-25 07:28:41,039 - utils.webhook_processor - DEBUG - Skipping non-message event (delivery/read/etc)
+2025-08-25 13:28:41.04
+278f8f60
+User
+{"timestamp": "2025-08-25T07:28:41.039933", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.17}
+2025-08-25 13:28:41.04
+278f8f60
+User
+2025-08-25 07:28:41,039 - finbrain.structured - INFO - {"timestamp": "2025-08-25T07:28:41.039933", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.17}
+2025-08-25 13:28:41.75
+278f8f60
+User
+2025-08-25 07:28:41,758 - utils.webhook_processor - DEBUG - Skipping non-message event (delivery/read/etc)
+2025-08-25 13:28:41.75
+278f8f60
+User
+{"timestamp": "2025-08-25T07:28:41.758847", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.2}
+2025-08-25 13:28:41.75
+278f8f60
+User
+2025-08-25 07:28:41,758 - finbrain.structured - INFO - {"timestamp": "2025-08-25T07:28:41.758847", "event_type": "webhook_processed", "rid": "unknown", "psid_hash": "4236a9a6163b269fe4201e7422b9c66951694d94ccbb1ba7b92b7b5094475df8", "mid": "unknown", "intent": "no_events", "processing_ms": 0.2}
+2025-08-25 13:29:33.47
+278f8f60
+User
+2025-08-25 07:29:33,470 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:5000
+2025-08-25 13:29:33.78
+278f8f60
+User
+2025-08-25 07:29:33,788 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): graph.facebook.com:443
+2025-08-25 13:29:34.11
+278f8f60
+User
+2025-08-25 07:29:34,115 - urllib3.connectionpool - DEBUG - https://graph.facebook.com:443 "GET /v17.0/me?fields=id%2Cname&access_token=EAAQIpDHnY54BPM81e5RC6RTqGszDgIWjKKElVhxr6iwqyY5ZBsjBDuuZCP7xf5FFkpwebwkDpKI8aywZBlrOw92q69OTviZB642QoQc3tAm4BKkzwcNHnCgG9ziLai4dii9ZArBFZBmN7DRT8O06RmGQVExRkJyf8jTK6wo3eviYBfcB3aCW72ZCZCrzPJnyP5z6SVS3cN9VxFDjre73VoBnkXcZD HTTP/1.1" 200 42
+2025-08-25 13:29:34.11
+278f8f60
+User
+2025-08-25 07:29:34,117 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): graph.facebook.com:443
+2025-08-25 13:29:34.49
+278f8f60
+User
+2025-08-25 07:29:34,499 - urllib3.connectionpool - DEBUG - https://graph.facebook.com:443 "GET /v17.0/debug_token?input_token=EAAQIpDHnY54BPM81e5RC6RTqGszDgIWjKKElVhxr6iwqyY5ZBsjBDuuZCP7xf5FFkpwebwkDpKI8aywZBlrOw92q69OTviZB642QoQc3tAm4BKkzwcNHnCgG9ziLai4dii9ZArBFZBmN7DRT8O06RmGQVExRkJyf8jTK6wo3eviYBfcB3aCW72ZCZCrzPJnyP5z6SVS3cN9VxFDjre73VoBnkXcZD&access_token=1135401211749278%7C2a2fb85a0e1aea27c64575b9e2fcf7eb HTTP/1.1" 200 310
+2025-08-25 13:29:34.53
+278f8f60
+User
+2025-08-25 07:29:34,536 - urllib3.connectionpool - DEBUG - http://localhost:5000 "GET /health HTTP/1.1" 200 530
+2025-08-25 13:29:34.53
+278f8f60
+User
+2025-08-25 07:29:34,537 - utils.health_ping - DEBUG - Health ping successful: 200 in 1072.40ms
+
+Wrap
+
+Colors

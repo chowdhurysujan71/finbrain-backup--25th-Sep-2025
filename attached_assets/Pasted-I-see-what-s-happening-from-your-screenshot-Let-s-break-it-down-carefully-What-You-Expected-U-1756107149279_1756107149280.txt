@@ -1,0 +1,78 @@
+I see what’s happening from your screenshot. Let’s break it down carefully:
+
+🔍 What You Expected
+
+User asks: “What are my expenses this week?”
+
+Expected bot behavior:
+→ Check DB → Pull expense logs → Return weekly summary (dates + totals + categories).
+
+❌ What Actually Happened
+
+Instead of summarizing, the bot fell back to the default “Hi there! Want to log an expense, see a summary, or get an insight?” prompt.
+
+This is the generic welcome/fallback response → meaning your NLP/intent classification didn’t catch "what are my expenses this week" and routed incorrectly.
+
+🛠 Where It’s Breaking (Front-End Messenger View)
+
+NLP / Router mismatch
+
+The phrase "what are my expenses this week" should map to intent=summary (or weekly_summary).
+
+Instead, it mapped to intent=fallback (smalltalk/generic).
+
+No binding between “expenses this week” → summary function
+
+The bot only seems to trigger summary if the exact keyword "summary" is present.
+
+Natural phrasing like "what are my expenses this week" → not recognized.
+
+Fallback takeover in Messenger
+
+Messenger itself is fine (messages sent & received correctly, Graph API 200 OK).
+
+The break is in your routing layer, not the Messenger front-end.
+
+What you see in chat (“Hi there! …”) is just the default fallback text block.
+
+✅ Fix Direction
+
+To make the front-end behave correctly in Messenger:
+
+Expand NLP Patterns
+
+Map phrases like:
+
+“what are my expenses this week”
+
+“show me this week’s spending”
+
+“weekly total”
+
+→ all route to the summary handler.
+
+Add Synonym & Time Filters
+
+Implement basic regex / NLP to detect:
+
+"this week" → date range [Mon–Sun or last 7 days]
+
+"last week", "today", "yesterday", "this month".
+
+Improve Router Logic
+
+Right now, faq_smalltalk is intercepting because it sees a question.
+
+Add a priority override: if sentence contains “expense(s)” + time term (“week”, “month”), route to summary, not smalltalk.
+
+Optional UX Fix
+
+If data is empty (no logs), respond with:
+
+“Looks like you haven’t logged any expenses this week. Want to add one now?”
+
+Instead of dumping fallback greeting.
+
+⚡ Bottom line:
+Messenger is not broken.
+The break is in finbrain’s router/NLP, which is failing to classify "what are my expenses this week" as a summary intent and is defaulting to the generic fallback.
