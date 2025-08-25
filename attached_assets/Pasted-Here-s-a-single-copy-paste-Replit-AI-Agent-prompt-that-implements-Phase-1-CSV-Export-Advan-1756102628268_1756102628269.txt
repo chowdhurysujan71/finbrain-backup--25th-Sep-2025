@@ -1,0 +1,383 @@
+Here’s a single, copy-paste **Replit AI Agent prompt** that implements **Phase 1: CSV Export + Advanced Comparisons** in FinBrain — fully additive, flag-gated, safe with current guardrails/FAQ flow, and including UAT + a short run report.
+
+---
+
+# Replit Agent Task — FinBrain Phase 1 (CSV Export + Advanced Comparisons)
+
+You are editing the FinBrain repo. Make **additive, flag-gated** changes only. Do **not** rename/move files or change public interfaces. Preserve the core flow and the post-FAQ guardrails.
+
+## Files in scope
+
+* `utils/production_router.py` (read/wire only)
+* `utils/intent_router.py` (add 2 intents)
+* `utils/dispatcher.py` (route new intents)
+* `handlers/summary.py` (add 2 handlers)
+* `utils/ux_copy.py` (append UX strings)
+* `utils/ai_adapter_v2.py` (no changes needed beyond existing guardrail prompt)
+* `tests/test_phase1_quickwins.py` (new)
+
+## Hard constraints
+
+* **Additive only.** No DB/schema changes. No handler signature changes that break existing calls.
+* **Feature-flagged**; defaults OFF.
+* **Keep**: FAQ fast-path → (post-FAQ) guardrails v2 → Limiter → RL-2 (if limited) → AI (if enabled) → Dispatcher/Handlers.
+* Reuse existing expense read utilities (whatever your summary/logger stack already uses).
+
+## Environment (defaults)
+
+```
+FEATURE_CSV_EXPORT=false
+FEATURE_ADV_COMPARISONS=false
+EXPORT_DIR=./exports
+EXPORT_BASE_URL=/exports
+EXPORT_URL_TTL_SECONDS=86400
+CSV_MAX_ROWS=5000
+```
+
+---
+
+## PART 1 — Add UX copy (append to `utils/ux_copy.py`)
+
+Append these constants (do not alter existing ones):
+
+```python
+EXPORT_READY       = "📤 Your CSV is ready: {url}"
+EXPORT_START       = "📄 Generating your CSV… I’ll share a link here."
+EXPORT_TOO_LARGE   = "⚠️ That’s a lot of data. Please narrow the date range and try again."
+EXPORT_UNAVAILABLE = "⏳ CSV export isn’t available right now. Please try again later."
+
+COMPARE_MOM        = "📈 {this_label} vs {prev_label}: total {this_total} ({delta_sign}{delta_pct} vs {prev_total}). Biggest change: {biggest_cat}."
+COMPARE_WOW        = "📊 This week vs last week: {this_total} ({delta_sign}{delta_pct} vs {prev_total}). Top mover: {biggest_cat}."
+COMPARE_GENERIC    = "📊 {a_label} vs {b_label}: {a_total} vs {b_total} ({delta_sign}{delta_pct})."
+COMPARE_BAD_RANGE  = "🧭 I can compare month-to-month or week-to-week. Try: ‘compare this month vs last month’."
+```
+
+---
+
+## PART 2 — Intent detection (edit `utils/intent_router.py`)
+
+Add **two new intents** without disrupting existing ones:
+
+* `EXPORT_CSV` → triggers when text has both “export” and “csv”.
+* `COMPARE_SPEND` → triggers when text has “compare” and either:
+
+  * “this week vs last week”, “this month vs last month”, or
+  * “compare <month> vs <month>” (recognize English month names).
+
+Prefer existing `SUMMARY` when “compare” is *not* present.
+
+Skeleton to add inside your routing logic:
+
+```python
+text = (text or "").lower()
+
+if "export" in text and "csv" in text:
+    return Intent.EXPORT_CSV
+
+if "compare" in text:
+    month_words = {"january","february","march","april","may","june","july","august","september","october","november","december"}
+    if "this week" in text and "last week" in text:
+        return Intent.COMPARE_SPEND
+    if "this month" in text and "last month" in text:
+        return Intent.COMPARE_SPEND
+    toks = [w for w in text.replace(",", " ").split() if w in month_words]
+    if len(toks) >= 2:
+        return Intent.COMPARE_SPEND
+```
+
+Add the corresponding enum/constant if your project uses one.
+
+---
+
+## PART 3 — Dispatcher wiring (edit `utils/dispatcher.py`)
+
+Add **non-breaking** routes:
+
+```python
+if intent == Intent.EXPORT_CSV:
+    if os.getenv("FEATURE_CSV_EXPORT","false").lower() == "true":
+        return handlers.summary.export_csv(ctx)
+    else:
+        from utils.ux_copy import EXPORT_UNAVAILABLE
+        return EXPORT_UNAVAILABLE
+
+if intent == Intent.COMPARE_SPEND:
+    if os.getenv("FEATURE_ADV_COMPARISONS","false").lower() == "true":
+        return handlers.summary.compare_spend(ctx)
+    else:
+        from utils.ux_copy import COMPARE_BAD_RANGE
+        return COMPARE_BAD_RANGE
+```
+
+Leave other paths unchanged.
+
+---
+
+## PART 4 — Handlers (extend `handlers/summary.py`)
+
+Add imports at top:
+
+```python
+import os, csv, io, datetime, calendar
+from utils.ux_copy import (
+    EXPORT_READY, EXPORT_START, EXPORT_TOO_LARGE, EXPORT_UNAVAILABLE,
+    COMPARE_MOM, COMPARE_WOW, COMPARE_GENERIC, COMPARE_BAD_RANGE
+)
+```
+
+### A) CSV Export
+
+Add the following helpers and handler (reuse your repo accessor):
+
+```python
+def _parse_export_range(text: str, now_utc: datetime.datetime):
+    t = (text or "").lower()
+    if "last month" in t:
+        first_this = datetime.datetime(now_utc.year, now_utc.month, 1)
+        last_month_end = first_this - datetime.timedelta(days=1)
+        start = datetime.datetime(last_month_end.year, last_month_end.month, 1)
+        end   = datetime.datetime(last_month_end.year, last_month_end.month, last_month_end.day, 23, 59, 59)
+        label = "last month"
+    elif "this month" in t or "month" in t:
+        start = datetime.datetime(now_utc.year, now_utc.month, 1)
+        end   = now_utc
+        label = "this month"
+    elif "last week" in t:
+        dow = now_utc.weekday()
+        this_monday = now_utc - datetime.timedelta(days=dow)
+        last_monday = this_monday - datetime.timedelta(days=7)
+        start = datetime.datetime(last_monday.year, last_monday.month, last_monday.day)
+        end   = start + datetime.timedelta(days=6, hours=23, minutes=59, seconds=59)
+        label = "last week"
+    elif "this week" in t or "week" in t:
+        dow = now_utc.weekday()
+        start = datetime.datetime(now_utc.year, now_utc.month, now_utc.day) - datetime.timedelta(days=dow)
+        end   = now_utc
+        label = "this week"
+    elif "today" in t:
+        start = datetime.datetime(now_utc.year, now_utc.month, now_utc.day)
+        end   = now_utc
+        label = "today"
+    else:
+        start = datetime.datetime(now_utc.year, now_utc.month, 1)
+        end   = now_utc
+        label = "this month"
+    return start, end, label
+
+def export_csv(ctx):
+    if os.getenv("FEATURE_CSV_EXPORT","false").lower() != "true":
+        return EXPORT_UNAVAILABLE
+
+    user_id = ctx.user_id
+    text = (ctx.text or "")
+    now  = datetime.datetime.utcnow()
+    start, end, label = _parse_export_range(text, now)
+
+    # Expect shape: [{timestamp, amount, currency, category, merchant, note}]
+    rows = ctx.repo.get_expenses(user_id=user_id, start=start, end=end, limit=int(os.getenv("CSV_MAX_ROWS","5000"))+1)
+
+    cap = int(os.getenv("CSV_MAX_ROWS","5000"))
+    if len(rows) > cap:
+        return EXPORT_TOO_LARGE
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["timestamp","amount","currency","category","merchant","note"])
+    for r in rows:
+        writer.writerow([
+            r.get("timestamp",""),
+            r.get("amount",""),
+            r.get("currency",""),
+            r.get("category",""),
+            r.get("merchant",""),
+            r.get("note",""),
+        ])
+
+    out_dir = os.getenv("EXPORT_DIR","./exports")
+    os.makedirs(out_dir, exist_ok=True)
+    fname = f"finbrain_{user_id}_{start.strftime('%Y%m%d')}_{end.strftime('%Y%m%d')}.csv"
+    fpath = os.path.join(out_dir, fname)
+    with open(fpath, "w", encoding="utf-8") as f:
+        f.write(buf.getvalue())
+
+    base = os.getenv("EXPORT_BASE_URL","/exports").rstrip("/")
+    url  = f"{base}/{fname}"
+    return EXPORT_READY.format(url=url)
+```
+
+### B) Advanced Comparisons
+
+Add helpers and handler:
+
+```python
+def _month_bounds(y, m):
+    last_day = calendar.monthrange(y, m)[1]
+    start = datetime.datetime(y, m, 1)
+    end   = datetime.datetime(y, m, last_day, 23, 59, 59)
+    return start, end
+
+def _label_total(repo, user_id, start, end, label):
+    rows = repo.get_expenses(user_id=user_id, start=start, end=end, limit=100000)
+    total = sum([r.get("amount",0) for r in rows])
+    cats = {}
+    for r in rows:
+        c = r.get("category","Uncategorized")
+        cats[c] = cats.get(c, 0) + r.get("amount",0)
+    biggest = max(cats.items(), key=lambda x: x[1])[0] if cats else "—"
+    return {"label": label, "total": total, "biggest": biggest}
+
+def _pct(cur, prev):
+    if prev == 0:
+        return 100.0 if cur > 0 else 0.0
+    return round(abs((cur - prev) / prev) * 100.0, 1)
+
+def compare_spend(ctx):
+    if os.getenv("FEATURE_ADV_COMPARISONS","false").lower() != "true":
+        return COMPARE_BAD_RANGE
+
+    t = (ctx.text or "").lower()
+    user_id = ctx.user_id
+    now = datetime.datetime.utcnow()
+
+    # this week vs last week
+    if "this week" in t and "last week" in t:
+        dow = now.weekday()
+        this_start = datetime.datetime(now.year, now.month, now.day) - datetime.timedelta(days=dow)
+        this_end   = now
+        last_start = this_start - datetime.timedelta(days=7)
+        last_end   = this_start - datetime.timedelta(seconds=1)
+
+        cur = _label_total(ctx.repo, user_id, this_start, this_end, "this week")
+        prev = _label_total(ctx.repo, user_id, last_start, last_end, "last week")
+        delta_sign = "+" if (cur["total"] - prev["total"]) > 0 else "–"
+        pct = _pct(cur["total"], prev["total"])
+        return COMPARE_WOW.format(this_total=f"{cur['total']:.0f}", prev_total=f"{prev['total']:.0f}",
+                                  delta_sign=delta_sign, delta_pct=f"{pct}%", biggest_cat=cur["biggest"])
+
+    # this month vs last month
+    if "this month" in t and "last month" in t:
+        this_s, _ = _month_bounds(now.year, now.month)
+        last_month = (now.replace(day=1) - datetime.timedelta(days=1))
+        last_s, last_e = _month_bounds(last_month.year, last_month.month)
+
+        cur = _label_total(ctx.repo, user_id, this_s, now, "This month")
+        prev = _label_total(ctx.repo, user_id, last_s, last_e, "last month")
+        delta_sign = "+" if (cur["total"] - prev["total"]) > 0 else "–"
+        pct = _pct(cur["total"], prev["total"])
+        return COMPARE_MOM.format(this_label="This month", prev_label="last month",
+                                  this_total=f"{cur['total']:.0f}", prev_total=f"{prev['total']:.0f}",
+                                  delta_sign=delta_sign, delta_pct=f"{pct}%", biggest_cat=cur["biggest"])
+
+    # “compare july vs august”
+    months = [m.lower() for m in calendar.month_name if m]
+    if "compare" in t:
+        toks = [w for w in t.replace(",", " ").split() if w in months]
+        if len(toks) >= 2:
+            y = now.year
+            mA = months.index(toks[0]) + 1
+            mB = months.index(toks[1]) + 1
+            A_s, A_e = _month_bounds(y, mA)
+            B_s, B_e = _month_bounds(y, mB)
+            A = _label_total(ctx.repo, user_id, A_s, A_e, toks[0].title())
+            B = _label_total(ctx.repo, user_id, B_s, B_e, toks[1].title())
+            delta_sign = "+" if (B["total"] - A["total"]) > 0 else "–"
+            pct = _pct(B["total"], A["total"])
+            return COMPARE_GENERIC.format(
+                a_label=A["label"], b_label=B["label"],
+                a_total=f"{A['total']:.0f}", b_total=f"{B['total']:.0f}",
+                delta_sign=delta_sign, delta_pct=f"{pct}%"
+            )
+
+    return COMPARE_BAD_RANGE
+```
+
+---
+
+## PART 5 — Tests (new `tests/test_phase1_quickwins.py`)
+
+```python
+from utils.ux_copy import (
+    EXPORT_READY, EXPORT_TOO_LARGE,
+    COMPARE_BAD_RANGE, COMPARE_GENERIC
+)
+
+def test_export_copy_placeholders():
+    assert "{url}" in EXPORT_READY
+
+def test_compare_copy_tokens():
+    s = COMPARE_GENERIC.format(a_label="July", b_label="August",
+                               a_total="1000", b_total="900",
+                               delta_sign="–", delta_pct="10%")
+    assert "July" in s and "August" in s
+
+def test_too_large_copy_present():
+    assert "narrow" in EXPORT_TOO_LARGE.lower() or "please" in EXPORT_TOO_LARGE.lower()
+
+def test_compare_bad_range_hint():
+    assert "compare" in COMPARE_BAD_RANGE.lower()
+```
+
+---
+
+## PART 6 — UAT (manual)
+
+Set flags:
+
+```
+FEATURE_CSV_EXPORT=true
+FEATURE_ADV_COMPARISONS=true
+EXPORT_DIR=./exports
+EXPORT_BASE_URL=/exports
+CSV_MAX_ROWS=5000
+```
+
+**CSV Export**
+
+1. “export this month to csv” → reply with link (`/exports/finbrain_<id>_YYYYMMDD_YYYYMMDD.csv`). Open file: header row + data.
+2. “export last week to csv” → filename date range matches last week boundaries.
+3. Simulate >5000 rows (or set `CSV_MAX_ROWS=1`) → get **EXPORT\_TOO\_LARGE**.
+
+**Advanced Comparisons**
+4\) “compare this week vs last week” → gets WoW totals, % delta, biggest category.
+5\) “compare this month vs last month” → gets MoM totals, % delta, biggest category.
+6\) “compare july vs august” → gets month vs month totals, % delta.
+7\) Unsupported: “compare coffee vs transport” → **COMPARE\_BAD\_RANGE**.
+
+**No regressions**
+8\) Logging, summaries, insights still work; replies follow guardrail style (one bubble, ≤280 chars, ≤2 emojis, one CTA). FAQ fast-path remains instant.
+
+---
+
+## End-of-Run Report (fill after UAT)
+
+**Build:** `<commit>`
+**Env:** Reserved VM
+**Date (UTC+6):** `<YYYY-MM-DD>`
+**Tester:** `<name>`
+
+### Summary
+
+* ✅ CSV export working (links + files correct, capped by CSV\_MAX\_ROWS).
+* ✅ Advanced comparisons (WoW, MoM, month vs month) working.
+* ✅ No schema changes; fully flag-gated; guardrails & FAQ intact.
+* ✅ No regressions in logging/summary/insight.
+
+### Evidence
+
+* CSV link + sample rows
+* Comparison outputs (screens/logs)
+
+### Issues
+
+* `<none / list>`
+
+### Go/No-Go
+
+* **GO / NO-GO** — Sign-off: `<name>`
+
+---
+
+**Notes**
+
+* This task is intentionally **low-risk**: no DB changes, minimal parsing, reuses existing repo accessors.
+* If you serve static files, ensure `/exports` is mapped to `EXPORT_DIR`. If not, you can still return the filename in **EXPORT\_READY** for manual retrieval.
