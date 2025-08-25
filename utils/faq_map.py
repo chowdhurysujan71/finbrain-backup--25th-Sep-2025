@@ -98,13 +98,25 @@ def normalize(text: str) -> str:
 
 def match_faq_or_smalltalk(user_text: str) -> Optional[str]:
     norm = normalize(user_text)
+    # Use word boundary matching to avoid false positives like "hi" in "this"
+    words = norm.split()
+    
     for intent, keywords in INTENT_KEYWORDS.items():
         for k in keywords:
-            if k in norm:
-                if intent in FAQ_JSON["faq"]:
-                    return FAQ_JSON["faq"][intent]
-                if intent in FAQ_JSON["smalltalk"]:
-                    return FAQ_JSON["smalltalk"][intent]
+            # For single word keywords, check exact word match
+            if " " not in k:
+                if k in words:
+                    if intent in FAQ_JSON["faq"]:
+                        return FAQ_JSON["faq"][intent]
+                    if intent in FAQ_JSON["smalltalk"]:
+                        return FAQ_JSON["smalltalk"][intent]
+            # For multi-word keywords, use substring matching
+            else:
+                if k in norm:
+                    if intent in FAQ_JSON["faq"]:
+                        return FAQ_JSON["faq"][intent]
+                    if intent in FAQ_JSON["smalltalk"]:
+                        return FAQ_JSON["smalltalk"][intent]
     return None
 
 def fallback_default() -> str:
