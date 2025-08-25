@@ -397,8 +397,23 @@ class ProductionRouter:
                 self._record_processing_time(time.time() - start_time)
                 return response, intent, category, amount
             
-            # Step 8: Unknown intent - route to AI for personalized help
-            logger.info(f"[ROUTER] Unknown intent detected, routing to AI: '{text[:50]}...'")
+            # Step 8: AI-Enhanced FAQ Detection (NEW)
+            logger.info(f"[ROUTER] Unknown intent detected, checking AI FAQ: '{text[:50]}...'")
+            try:
+                from utils.ai_faq_classifier import ai_enhanced_faq_detection
+                faq_response = ai_enhanced_faq_detection(text)
+                if faq_response:
+                    # Found FAQ match - return FAQ response
+                    logger.info(f"[ROUTER] AI FAQ detection successful")
+                    self._log_routing_decision(rid, user_hash, "ai_faq", "faq_detected")
+                    self._record_processing_time(time.time() - start_time)
+                    return normalize(faq_response), "faq", None, None
+            except Exception as faq_error:
+                logger.warning(f"AI FAQ detection failed: {faq_error}")
+                # Continue to fallback - no interruption to normal flow
+            
+            # Step 9: Unknown intent - route to AI for personalized help
+            logger.info(f"[ROUTER] No FAQ match, routing to AI: '{text[:50]}...'")
             try:
                 # Try AI-powered response for unknown intents
                 response, intent, category, amount = self._route_ai(text, psid, user_hash, rid, rate_limit_result)
