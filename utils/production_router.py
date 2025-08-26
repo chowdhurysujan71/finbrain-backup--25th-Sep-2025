@@ -74,6 +74,15 @@ ai_logger = logging.getLogger("finbrain.router")
 # Configuration
 AI_ENABLED = os.environ.get("AI_ENABLED", "false").lower() == "true"
 
+# Audit transparency feature flag check
+def _is_audit_ui_enabled() -> bool:
+    """Check if audit UI is enabled"""
+    try:
+        from utils.pca_feature_flags import pca_feature_flags
+        return pca_feature_flags.should_show_audit_ui()
+    except:
+        return False
+
 # Summary detection patterns
 SUMMARY_RE = re.compile(
     r"\b(summary|recap|overview|report|what did i spend|how much did i spend|show (me )?my (spend|spending|expenses))\b",
@@ -706,8 +715,14 @@ class ProductionRouter:
         # Store expense deterministically
         self._store_expense_deterministic(psid, amount, description, category, text)
         
-        # Generate response
+        # Generate response with audit transparency
         response = format_logged_response(amount, description, category)
+        
+        # Add audit transparency if enabled
+        tx_id = f"{psid_hash[:8]}-{int(time.time())}"
+        audit_info = self._get_audit_transparency_info(tx_id, psid, amount, category, description)
+        if audit_info:
+            response += f"\n{audit_info}"
         
         self._log_routing_decision(rid, psid_hash, "log", f"logged: {amount} {category}")
         return response, "log", category, amount
@@ -902,8 +917,9 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
         # Store expense deterministically
         self._store_expense_deterministic(psid, amount, note, category, text)
         
-        # Generate AI-powered response with intelligent tips
-        response = self._generate_ai_logged_response(amount, note, category, ai_result.get('tips', []))
+        # Generate AI-powered response with intelligent tips and audit transparency
+        tx_id = f"{psid_hash[:8]}-{int(time.time())}"  # Generate transaction ID
+        response = self._generate_ai_logged_response(amount, note, category, ai_result.get('tips', []), tx_id, psid)
         
         self._log_routing_decision(rid, psid_hash, "ai_log", f"logged: {amount} {category}")
         return normalize(response), "log", category, amount
@@ -1479,8 +1495,8 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             logger.error(f"Summary data error: {e}")
             return {'total': 0.0, 'food': 0.0, 'ride': 0.0, 'bill': 0.0, 'grocery': 0.0, 'other': 0.0}
     
-    def _generate_ai_logged_response(self, amount: float, note: str, category: str, tips: List[str]) -> str:
-        """Generate AI-powered response for logged expenses"""
+    def _generate_ai_logged_response(self, amount: float, note: str, category: str, tips: List[str], tx_id: str = None, psid: str = None) -> str:
+        """Generate AI-powered response for logged expenses with audit transparency"""
         
         # Base confirmation with amount and note
         response = f"Logged: ৳{amount:.2f}"
@@ -1493,20 +1509,63 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
         if category != 'other':
             response += f" ({category})"
         
-        # Add AI tip if available (keep it concise for Messenger)
-        if tips and tips[0]:
-            tip = tips[0][:60]  # Truncate to 60 chars for Messenger
-            if not tip.endswith('.'):
-                tip += '.'
-            response += f". {tip}"
+        # Check if audit transparency should be shown
+        audit_info = self._get_audit_transparency_info(tx_id, psid, amount, category, note)
+        if audit_info:
+            response += f"\n{audit_info}"
         else:
-            # Default encouragement
-            response += ". Nice."
-        
-        # Add summary prompt
-        response += " Type summary anytime."
+            # Add AI tip if available (keep it concise for Messenger)
+            if tips and tips[0]:
+                tip = tips[0][:60]  # Truncate to 60 chars for Messenger
+                if not tip.endswith('.'):
+                    tip += '.'
+                response += f". {tip}"
+            else:
+                # Default encouragement
+                response += ". Nice."
+            
+            # Add summary prompt
+            response += " Type summary anytime."
         
         return response
+    
+    def _get_audit_transparency_info(self, tx_id: str, psid: str, amount: float, category: str, note: str) -> Optional[str]:
+        """Get audit transparency information for a transaction if enabled"""
+        
+        # Check if audit UI is enabled
+        if not _is_audit_ui_enabled():
+            return None
+        
+        try:
+            # Import audit API functions
+            import requests
+            from utils.identity import psid_hash
+            
+            # Get user hash
+            user_hash = psid_hash(psid) if psid else 'anonymous'
+            
+            # Call audit API for compact format
+            response = requests.get(
+                f"http://localhost:5000/api/audit/transactions/{tx_id}/compare?user_id={user_hash}",
+                timeout=2  # Quick timeout for real-time responses
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                chat_format = data.get('chat_format', '')
+                
+                # Ensure it fits in messenger format
+                if len(chat_format) <= 200:  # Leave room for rest of message
+                    return chat_format
+                else:
+                    # Fallback: show basic audit info
+                    return f"View details: /user/{user_hash[:8]}/insights"
+            
+        except Exception as e:
+            # Silent failure - don't break the main flow
+            logger.debug(f"Audit transparency failed: {e}")
+            
+        return None
     
     def _undo_last_expense(self, psid: str) -> Optional[Tuple[float, str]]:
         """Undo last expense for user"""
@@ -1570,9 +1629,14 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
                 response = f"Looks like a repeat—already logged at {timestamp}. Reply 'yes' to log again."
                 return normalize(response), "log_duplicate", category, float(amount)
             
-            # Generate success response
+            # Generate success response with audit transparency
             currency_symbol = '৳' if currency == 'BDT' else '$' if currency == 'USD' else '€' if currency == 'EUR' else '£' if currency == 'GBP' else '₹'
             response = f"✅ Logged: {currency_symbol}{amount:.0f} for {category}"
+            
+            # Add audit transparency if enabled
+            audit_info = self._get_audit_transparency_info(rid, psid, float(amount), category, note)
+            if audit_info:
+                response += f"\n{audit_info}"
             
             self._log_routing_decision(rid, psid_hash, "log", f"unified_logged: {amount} {currency} {category}")
             return normalize(response), "log", category, float(amount)
