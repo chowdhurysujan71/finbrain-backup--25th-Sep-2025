@@ -376,10 +376,16 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
         # Step 5: Perform supersede operation
         correction_reason = parse_correction_reason(text)
         
-        # Create corrected expense data with inheritance from original
+        # Create corrected expense data with smart categorization logic
+        # Prioritize re-analyzed category from correction text over inherited category
+        new_category = target_expense.get('category')
+        if not new_category or new_category in ['Other', 'general']:
+            # If correction didn't detect category or detected generic, inherit from original
+            new_category = best_candidate.category
+        
         corrected_expense_data = {
             'amount': target_expense['amount'],
-            'category': target_expense.get('category') or best_candidate.category,
+            'category': new_category,
             'currency': target_expense.get('currency') or best_candidate.currency,
             'merchant': target_expense.get('merchant') or getattr(best_candidate, 'merchant', None),
             'note': target_expense.get('note') or text

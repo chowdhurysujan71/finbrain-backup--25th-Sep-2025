@@ -50,6 +50,20 @@ CATEGORY_ALIASES = {
     'dinner': ('food', 9),
     'breakfast': ('food', 9),
     'coffee': ('food', 8),
+    'tea': ('food', 8),
+    'juice': ('food', 9),
+    'fruit': ('food', 9),
+    'water': ('food', 8),
+    'milk': ('food', 8),
+    'drink': ('food', 8),
+    'beverage': ('food', 8),
+    'soda': ('food', 8),
+    'smoothie': ('food', 9),
+    'shake': ('food', 9),
+    'lassi': ('food', 9),
+    'borhani': ('food', 9),
+    'drank': ('food', 8),
+    'drinking': ('food', 8),
     'restaurant': ('food', 9),
     'meal': ('food', 9),
     # Bengali Food Items - ADDED FOR KHICHURI ISSUE
@@ -403,9 +417,10 @@ def _infer_category_from_context(context_text: str) -> str:
     category_keywords = {
         # Transport (strong indicators)
         'transport': ['uber', 'taxi', 'cng', 'bus', 'ride', 'lyft', 'grab', 'pathao', 'fuel', 'petrol', 'gas'],
-        # Food (strong indicators) - ADDED BENGALI FOODS FOR KHICHURI ISSUE
-        'food': ['breakfast', 'lunch', 'dinner', 'coffee', 'restaurant', 'meal', 'pizza', 'burger', 'food', 
-                 'khichuri', 'rice', 'dal', 'curry', 'biriyani', 'chicken', 'beef', 'fish', 'vegetable', 'egg'],
+        # Food (strong indicators) - ADDED BENGALI FOODS + DRINKS FOR JUICE ISSUE
+        'food': ['breakfast', 'lunch', 'dinner', 'coffee', 'tea', 'restaurant', 'meal', 'pizza', 'burger', 'food', 
+                 'juice', 'fruit', 'water', 'milk', 'drink', 'beverage', 'soda', 'smoothie', 'shake', 'lassi', 'borhani', 
+                 'drank', 'drinking', 'khichuri', 'rice', 'dal', 'curry', 'biriyani', 'chicken', 'beef', 'fish', 'vegetable', 'egg'],
         # Shopping
         'shopping': ['shopping', 'clothes', 'grocery', 'groceries', 'market', 'store', 'buy', 'bought'],
         # Health

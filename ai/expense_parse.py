@@ -107,9 +107,9 @@ def _fallback_parse(text: str) -> dict:
     
     # Simple category detection with better patterns - ENHANCED FOR BENGALI FOOD
     text_lower = text.lower()
-    if any(word in text_lower for word in ["coffee", "tea", "drink", "beverage", "starbucks", "cafe"]):
+    if any(word in text_lower for word in ["coffee", "tea", "drink", "beverage", "starbucks", "cafe", "juice", "fruit", "water", "milk", "soda", "smoothie", "shake", "lassi", "borhani"]):
         category = "Food"
-    elif any(word in text_lower for word in ["lunch", "dinner", "breakfast", "food", "meal", "restaurant", "eating"]):
+    elif any(word in text_lower for word in ["lunch", "dinner", "breakfast", "food", "meal", "restaurant", "eating", "drank", "drinking"]):
         category = "Food"
     elif any(word in text_lower for word in ["khichuri", "rice", "dal", "curry", "biriyani", "roti", "naan", "chicken", "beef", "fish", "vegetable", "egg"]):
         category = "Food"
