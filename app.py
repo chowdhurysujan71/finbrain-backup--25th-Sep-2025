@@ -430,7 +430,7 @@ def health_check():
     return jsonify(response)
 
 @app.route("/webhook/messenger", methods=["GET", "POST"])
-def webhook_messenger() -> str | tuple[str, int]:
+def webhook_messenger():
     """Facebook Messenger webhook with structured request logging"""
     from utils.logger import request_logger
     
@@ -711,15 +711,18 @@ def user_insights(psid_hash):
                 context = f"User has spent {total_amount} over {len(expenses)} transactions. Main category: {largest_category} ({largest_category_pct}%). Categories: {', '.join(category_totals.keys())}"
                 
                 # Use production AI adapter for insights
+                ai_result = None
                 try:
-                    ai_result = production_ai_adapter.generate_insights_for_user(context)
-                    if ai_result and "data" in ai_result:
+                    from utils.ai_adapter_v2 import production_ai_adapter
+                    # Use generic generate method instead of non-existent generate_insights_for_user
+                    ai_result = production_ai_adapter.generate_structured_response(
+                        f"Generate spending insights for: {context}",
+                        {"context": context}
+                    )
+                    if ai_result and ai_result.get("ok") and "data" in ai_result:
                         ai_insights = ai_result["data"]
                 except Exception as ai_error:
                     logger.warning(f"AI insights generation failed: {ai_error}")
-                
-                if ai_result.get("ok") and "data" in ai_result:
-                    ai_insights = ai_result["data"]
             except Exception as e:
                 logger.warning(f"AI insights generation failed: {e}")
         
