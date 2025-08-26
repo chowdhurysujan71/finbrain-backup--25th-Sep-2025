@@ -98,6 +98,17 @@ with app.app_context():
     except Exception as e:
         logger.warning(f"PCA blueprint registration failed: {e}")
     
+    # Register Audit API (Phase 1 - safe read-only endpoints)
+    try:
+        from routes.audit_api import audit_api
+        if 'audit_api' not in app.blueprints:
+            app.register_blueprint(audit_api)
+            logger.info("✓ Audit API routes registered")
+    except ImportError as e:
+        logger.info(f"Audit API not loaded: {e}")
+    except Exception as e:
+        logger.warning(f"Audit API registration failed: {e}")
+    
     # Initialize scheduler for automated reports (optional for production)
     if os.getenv("ENABLE_REPORTS", "false").lower() == "true":
         from utils.scheduler import init_scheduler
