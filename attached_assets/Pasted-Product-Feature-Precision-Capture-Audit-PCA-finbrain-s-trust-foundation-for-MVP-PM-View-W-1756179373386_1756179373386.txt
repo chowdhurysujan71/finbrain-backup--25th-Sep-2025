@@ -1,0 +1,113 @@
+Product Feature: Precision Capture & Audit (PCA)
+
+finbrain’s trust foundation for MVP
+
+🎯 PM View: Why This Matters
+
+Users will forgive missing features, but they will not forgive incorrect money tracking. Our MVP promise must be:
+
+“Every expense you log is captured. You can always see what really happened. And if the AI makes a mistake, you can fix it instantly.”
+
+This is not about bells and whistles — it’s about trust. If we lose trust once, we don’t get a second chance.
+
+What the feature delivers to the user:
+
+Immutable Ledger: Their raw input is always saved. Nothing disappears.
+
+Personal Corrections: Fixes apply only to their view, not anyone else’s.
+
+Audit Transparency: They can see the original vs corrected record.
+
+Confidence & Clarifiers: If the system is unsure, it asks them, instead of guessing wrong.
+
+Consistency: Every response comes from the database, not from a guess — what they see is what’s stored.
+
+Safety: If anything fails, the system quietly falls back to today’s working path.
+
+🛠 CTO View: How We Deliver Without Risk
+
+Priority: do not break the current system. Everything we add is overlay, flag-gated, and reversible.
+
+Architecture Principles
+
+Raw never touched: Current transactions_raw continues as-is (append-only).
+
+Overlay tables: New user-facing truth (transactions_effective, user_corrections, user_rules) live separately.
+
+Canonical Command (CC): Every input → CC object (intent, slots, confidence, decision) → snapshot stored before any DB write.
+
+Feature Flags: SHADOW (log only), DRYRUN (safe preview), ON (real overlay writes). Kill switch toggles instantly back to legacy.
+
+Fallback Path: If PCA fails, legacy pipeline handles input. Users never notice a failure.
+
+Build Order (minimize blast radius)
+
+Overlay Schema (Day 1–2)
+
+Add user_corrections, transactions_effective, user_rules.
+
+No reads/writes yet — invisible to system.
+
+Risk = none.
+
+Canonical Command & Snapshot (Day 3)
+
+All messages → CC object → snapshot.
+
+Still route writes via old system.
+
+Risk = none (shadow only).
+
+Feature Flags (Day 4)
+
+Wrap PCA in SHADOW, DRYRUN, ON, FALLBACK.
+
+Allows controlled testing.
+
+Risk = none (flags default OFF).
+
+Confidence Thresholds + Clarifier (Day 5)
+
+Introduce simple τ_high / τ_low.
+
+If unsure, ask chip; otherwise auto log.
+
+Safe because raw always logged.
+
+Audit UI Surfacing (Day 6)
+
+Show “Original vs Corrected (your view)”.
+
+Read-only UI change.
+
+Canary Rollout (Day 7)
+
+Turn PCA ON for ≤100 users.
+
+Monitor correction rate, fallback triggers, latency.
+
+Kill switch always available.
+
+✅ Net Result for MVP
+
+User experience:
+
+They always see what got logged.
+
+They can fix errors instantly.
+
+They gain confidence that finbrain is reliable with their money.
+
+System safety:
+
+Current raw logging remains untouched.
+
+New features live in overlays + flags, so they can be switched off at any moment.
+
+Failures fall back to current working flow.
+
+PM win: Trust & engagement loops now have a solid foundation.
+
+CTO win: Zero core-risk, progressive rollout, auditable changes.
+
+💡 In Google PM terms: This feature is the “SafeSearch” of finbrain’s MVP — it doesn’t add glamour, but it guarantees reliability. In CTO terms: It’s an overlay layer with feature flags — meaning it’s impossible to break the ledger.
