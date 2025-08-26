@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}PCA Dashboard - FinBrain{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3>
+                    <i class="fas fa-dashboard"></i> PCA Overlay System Dashboard
+                </h3>
+                <div class="btn-group">
+                    <a href="{{ url_for('pca_ui.rule_manager') }}" class="btn btn-primary">
+                        <i class="fas fa-magic"></i> Manage Rules
+                    </a>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-home"></i> Main Dashboard
+                    </a>
+                </div>
+            </div>
+            
+            <!-- System Status -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-server"></i> System Status
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="text-center">
+                                        <h6>Master Flag</h6>
+                                        <span class="badge bg-{% if system_status.master_flag %}success{% else %}secondary{% endif %} fs-6">
+                                            {{ 'ENABLED' if system_status.master_flag else 'DISABLED' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center">
+                                        <h6>Mode</h6>
+                                        <span class="badge bg-{% if system_status.mode == 'ON' %}success{% elif system_status.mode == 'SHADOW' %}warning{% elif system_status.mode == 'DRYRUN' %}info{% else %}secondary{% endif %} fs-6">
+                                            {{ system_status.mode }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center">
+                                        <h6>Overlay Active</h6>
+                                        <span class="badge bg-{% if system_status.overlay_active %}success{% else %}secondary{% endif %} fs-6">
+                                            {{ 'YES' if system_status.overlay_active else 'NO' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center">
+                                        <h6>Features</h6>
+                                        <div class="d-flex gap-1 justify-content-center">
+                                            <span class="badge bg-{% if system_status.features.audit_ui %}success{% else %}secondary{% endif %}">UI</span>
+                                            <span class="badge bg-{% if system_status.features.rules %}success{% else %}secondary{% endif %}">Rules</span>
+                                            <span class="badge bg-{% if system_status.features.precedence %}success{% else %}secondary{% endif %}">Precedence</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statistics -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-magic fa-2x text-primary mb-2"></i>
+                            <h4 class="card-title">{{ total_rules }}</h4>
+                            <p class="card-text">Total Rules</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                            <h4 class="card-title">{{ active_rules }}</h4>
+                            <p class="card-text">Active Rules</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-edit fa-2x text-warning mb-2"></i>
+                            <h4 class="card-title">{{ total_corrections }}</h4>
+                            <p class="card-text">Total Corrections</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                            <h4 class="card-title">{{ (active_rules / total_rules * 100)|round(1) if total_rules > 0 else 0 }}%</h4>
+                            <p class="card-text">Rule Efficiency</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-clock"></i> Recent Rules
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if recent_rules %}
+                                <div class="list-group">
+                                    {% for rule in recent_rules %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ rule.rule_name }}</h6>
+                                            <small class="text-muted">
+                                                Created {{ rule.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                            </small>
+                                        </div>
+                                        <span class="badge bg-{% if rule.active %}success{% else %}secondary{% endif %}">
+                                            {{ 'Active' if rule.active else 'Disabled' }}
+                                        </span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted">No rules created yet.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-edit"></i> Recent Corrections
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if recent_corrections %}
+                                <div class="list-group">
+                                    {% for correction in recent_corrections %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ correction.reason or 'Manual correction' }}</h6>
+                                            <small class="text-muted">
+                                                Transaction {{ correction.tx_id[:8] }}... 
+                                                on {{ correction.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                            </small>
+                                        </div>
+                                        <span class="badge bg-primary">
+                                            {{ correction.correction_type|title }}
+                                        </span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted">No corrections made yet.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-tools"></i> Quick Actions
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <a href="{{ url_for('pca_ui.rule_manager') }}" class="btn btn-outline-primary w-100 mb-2">
+                                        <i class="fas fa-magic"></i> Create New Rule
+                                    </a>
+                                </div>
+                                <div class="col-md-4">
+                                    <button class="btn btn-outline-info w-100 mb-2" onclick="showSystemInfo()">
+                                        <i class="fas fa-info-circle"></i> System Information
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button class="btn btn-outline-warning w-100 mb-2" onclick="refreshFlags()">
+                                        <i class="fas fa-sync"></i> Refresh Status
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Info Modal -->
+<div class="modal fade" id="systemInfoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">PCA System Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>Feature Flags Configuration</h6>
+                <pre id="systemInfoContent">{{ system_status | tojson(indent=2) }}</pre>
+                
+                <h6 class="mt-4">Environment Variables</h6>
+                <ul class="list-unstyled">
+                    <li><strong>PCA_OVERLAY_ENABLED:</strong> <code>{{ system_status.master_flag }}</code></li>
+                    <li><strong>PCA_MODE:</strong> <code>{{ system_status.mode }}</code></li>
+                    <li><strong>SHOW_AUDIT_UI:</strong> <code>{{ system_status.features.audit_ui }}</code></li>
+                    <li><strong>ENABLE_RULES:</strong> <code>{{ system_status.features.rules }}</code></li>
+                    <li><strong>USE_PRECEDENCE:</strong> <code>{{ system_status.features.precedence }}</code></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showSystemInfo() {
+    new bootstrap.Modal(document.getElementById('systemInfoModal')).show();
+}
+
+async function refreshFlags() {
+    try {
+        const response = await fetch('/api/system/status');
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Failed to refresh status');
+        }
+    } catch (error) {
+        console.error('Error refreshing status:', error);
+        alert('An error occurred while refreshing');
+    }
+}
+</script>
+{% endblock %}

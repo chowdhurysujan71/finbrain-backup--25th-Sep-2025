@@ -75,7 +75,24 @@ db.init_app(app)
 with app.app_context():
     # Import models to ensure tables are created
     import models  # noqa: F401
+    import models_pca  # noqa: F401
     db.create_all()
+    
+    # Register PCA blueprints for overlay features
+    try:
+        from utils.pca_feature_flags import pca_feature_flags
+        from routes.pca_api import pca_api
+        from routes.pca_ui import pca_ui
+        
+        # Register API and UI blueprints (conditional loading not needed for dormant deployment)
+        if 'pca_api' not in app.blueprints:
+            app.register_blueprint(pca_api)
+            logger.info("✓ PCA API routes registered")
+        if 'pca_ui' not in app.blueprints:
+            app.register_blueprint(pca_ui)
+            logger.info("✓ PCA UI routes registered")
+    except Exception as e:
+        logger.warning(f"PCA blueprint registration failed (dormant mode): {e}")
     
     # Initialize scheduler for automated reports (optional for production)
     if os.getenv("ENABLE_REPORTS", "false").lower() == "true":
