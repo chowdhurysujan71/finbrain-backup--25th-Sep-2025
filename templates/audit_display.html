@@ -1,0 +1,169 @@
+<!-- Audit Display Component for Original vs Effective View -->
+{% macro render_audit_row(original, effective, source) %}
+<div class="audit-row card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">
+            <i class="fas fa-history"></i> Transaction Audit
+        </h6>
+        <span class="badge bg-info">{{ source|upper }}</span>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <!-- Original View -->
+            <div class="col-md-6">
+                <div class="audit-original p-3 bg-light rounded">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-file-alt"></i> Original (Raw Ledger)
+                    </h6>
+                    <div class="audit-details">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Amount:</span>
+                            <strong>৳{{ original.amount|default(0) }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Category:</span>
+                            <span class="badge bg-secondary">{{ original.category|default('unknown') }}</span>
+                        </div>
+                        {% if original.merchant_text %}
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Merchant:</span>
+                            <span>{{ original.merchant_text }}</span>
+                        </div>
+                        {% endif %}
+                        {% if original.timestamp %}
+                        <div class="d-flex justify-content-between">
+                            <span>Time:</span>
+                            <small>{{ original.timestamp|datetime }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Effective View -->
+            <div class="col-md-6">
+                <div class="audit-effective p-3 bg-primary bg-opacity-10 rounded">
+                    <h6 class="text-primary mb-2">
+                        <i class="fas fa-edit"></i> Effective (Your View)
+                    </h6>
+                    <div class="audit-details">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Amount:</span>
+                            <strong>৳{{ effective.amount|default(0) }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Category:</span>
+                            <span class="badge bg-primary">{{ effective.category|default('unknown') }}</span>
+                            {% if effective.category != original.category %}
+                            <i class="fas fa-arrow-right text-success ms-1"></i>
+                            {% endif %}
+                        </div>
+                        {% if effective.merchant_text %}
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Merchant:</span>
+                            <span>{{ effective.merchant_text }}</span>
+                            {% if effective.merchant_text != original.merchant_text %}
+                            <i class="fas fa-arrow-right text-success ms-1"></i>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% if effective.applied_rule_id %}
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-magic"></i> Applied Rule #{{ effective.applied_rule_id }}
+                            </small>
+                        </div>
+                        {% endif %}
+                        {% if effective.correction_id %}
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-user-edit"></i> Manual Correction
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Apply as Rule Option -->
+        {% if source == 'correction' and enable_rules %}
+        <div class="mt-3 text-center">
+            <button class="btn btn-sm btn-outline-primary apply-rule-btn" 
+                    data-tx-id="{{ original.tx_id }}"
+                    data-category="{{ effective.category }}"
+                    data-merchant="{{ effective.merchant_text }}">
+                <i class="fas fa-magic"></i> Apply as Rule for Similar Transactions
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.audit-row {
+    transition: all 0.3s ease;
+}
+
+.audit-row:hover {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.audit-original, .audit-effective {
+    transition: transform 0.2s ease;
+}
+
+.audit-original:hover, .audit-effective:hover {
+    transform: translateY(-2px);
+}
+
+.apply-rule-btn {
+    transition: all 0.3s ease;
+}
+
+.apply-rule-btn:hover {
+    transform: scale(1.05);
+}
+</style>
+
+<script>
+// Handle Apply as Rule button clicks
+document.querySelectorAll('.apply-rule-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+        const txId = e.target.dataset.txId;
+        const category = e.target.dataset.category;
+        const merchant = e.target.dataset.merchant;
+        
+        // Show confirmation
+        if (confirm(`Create a rule to automatically categorize similar transactions as "${category}"?`)) {
+            try {
+                const response = await fetch('/api/rules/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tx_id: txId,
+                        category: category,
+                        merchant_pattern: merchant,
+                        scope: 'future_only'
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(`Rule created! It will apply to ${result.preview_count || 0} similar future transactions.`);
+                    e.target.disabled = true;
+                    e.target.textContent = 'Rule Created';
+                } else {
+                    alert('Failed to create rule. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error creating rule:', error);
+                alert('An error occurred. Please try again.');
+            }
+        }
+    });
+});
+</script>
+{% endmacro %}

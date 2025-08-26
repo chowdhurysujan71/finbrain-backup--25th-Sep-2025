@@ -79,9 +79,9 @@ class CCClarifier:
 @dataclass
 class CanonicalCommand:
     """Complete Canonical Command structure"""
-    schema_version: str = "pca-v1"
+    schema_version: str = "pca-v1.1"  # Updated for overlay system
     cc_id: str = ""
-    schema_hash: str = ""
+    schema_hash: str = "pca-v1.1-cc-keys"  # Static integrity marker
     user_id: str = ""
     intent: str = ""
     slots: Optional[CCSlots] = None

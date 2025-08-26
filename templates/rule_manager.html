@@ -1,0 +1,298 @@
+<!-- Rule Management Interface -->
+{% extends "base.html" %}
+
+{% block title %}Manage Rules - FinBrain{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3>
+                    <i class="fas fa-magic"></i> Automatic Categorization Rules
+                </h3>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRuleModal">
+                    <i class="fas fa-plus"></i> Create New Rule
+                </button>
+            </div>
+            
+            <!-- Rules List -->
+            <div class="rules-container">
+                {% if rules %}
+                    {% for rule in rules %}
+                    <div class="rule-card card mb-3" data-rule-id="{{ rule.id }}">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h5 class="mb-1">
+                                        {{ rule.rule_name|default('Rule #' ~ rule.id) }}
+                                        {% if rule.active %}
+                                        <span class="badge bg-success ms-2">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary ms-2">Disabled</span>
+                                        {% endif %}
+                                    </h5>
+                                    <div class="rule-pattern mb-2">
+                                        <strong>When:</strong>
+                                        {% if rule.pattern.merchant_id %}
+                                            Merchant ID = {{ rule.pattern.merchant_id }}
+                                        {% elif rule.pattern.store_name_contains %}
+                                            Merchant contains "{{ rule.pattern.store_name_contains }}"
+                                        {% elif rule.pattern.text_contains %}
+                                            Text contains "{{ rule.pattern.text_contains }}"
+                                        {% elif rule.pattern.category_was %}
+                                            Category was "{{ rule.pattern.category_was }}"
+                                        {% endif %}
+                                    </div>
+                                    <div class="rule-action">
+                                        <strong>Then:</strong>
+                                        Set category to <span class="badge bg-primary">{{ rule.rule_set.category }}</span>
+                                        {% if rule.rule_set.subcategory %}
+                                            / {{ rule.rule_set.subcategory }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="rule-stats">
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-calendar"></i> Created: {{ rule.created_at|date }}
+                                        </small>
+                                        {% if rule.last_applied %}
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-clock"></i> Last used: {{ rule.last_applied|timeago }}
+                                        </small>
+                                        {% endif %}
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-chart-bar"></i> Applied {{ rule.application_count }} times
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    <div class="btn-group" role="group">
+                                        {% if rule.active %}
+                                        <button class="btn btn-sm btn-outline-warning toggle-rule" 
+                                                data-rule-id="{{ rule.id }}"
+                                                data-action="disable">
+                                            <i class="fas fa-pause"></i> Disable
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-outline-success toggle-rule" 
+                                                data-rule-id="{{ rule.id }}"
+                                                data-action="enable">
+                                            <i class="fas fa-play"></i> Enable
+                                        </button>
+                                        {% endif %}
+                                        <button class="btn btn-sm btn-outline-info preview-rule" 
+                                                data-rule-id="{{ rule.id }}">
+                                            <i class="fas fa-eye"></i> Preview
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-rule" 
+                                                data-rule-id="{{ rule.id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No rules created yet. 
+                        Create your first rule to automatically categorize expenses!
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Rule Modal -->
+<div class="modal fade" id="createRuleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Categorization Rule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createRuleForm">
+                    <div class="mb-3">
+                        <label class="form-label">Rule Name</label>
+                        <input type="text" class="form-control" name="rule_name" 
+                               placeholder="e.g., Coffee Shops Rule">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">When merchant contains</label>
+                        <input type="text" class="form-control" name="merchant_pattern" 
+                               placeholder="e.g., Starbucks">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Set category to</label>
+                        <select class="form-select" name="category" required>
+                            <option value="">Choose category...</option>
+                            <option value="food">Food</option>
+                            <option value="transport">Transport</option>
+                            <option value="groceries">Groceries</option>
+                            <option value="utilities">Utilities</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="coffee">Coffee</option>
+                            <option value="shopping">Shopping</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Apply to</label>
+                        <select class="form-select" name="scope">
+                            <option value="future_only">Future transactions only</option>
+                            <option value="past_and_future">Past and future transactions</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveRule">Create Rule</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Rule Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="previewContent">
+                <!-- Preview content will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.rule-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+.rule-card:hover {
+    transform: translateX(5px);
+    border-left-color: var(--bs-primary);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.rule-pattern, .rule-action {
+    font-size: 0.95rem;
+}
+
+.rule-stats {
+    font-size: 0.85rem;
+}
+</style>
+
+<script>
+// Toggle rule status
+document.querySelectorAll('.toggle-rule').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+        const ruleId = e.target.dataset.ruleId;
+        const action = e.target.dataset.action;
+        
+        try {
+            const response = await fetch(`/api/rules/${ruleId}/toggle`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({active: action === 'enable'})
+            });
+            
+            if (response.ok) {
+                location.reload();
+            }
+        } catch (error) {
+            console.error('Error toggling rule:', error);
+        }
+    });
+});
+
+// Preview rule
+document.querySelectorAll('.preview-rule').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+        const ruleId = e.target.dataset.ruleId;
+        
+        try {
+            const response = await fetch(`/api/rules/${ruleId}/preview`);
+            const data = await response.json();
+            
+            document.getElementById('previewContent').innerHTML = `
+                <p>This rule would affect <strong>${data.count}</strong> transactions:</p>
+                <ul class="list-group">
+                    ${data.transactions.map(tx => `
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>${tx.merchant_text}</span>
+                            <span>
+                                <span class="badge bg-secondary">${tx.old_category}</span>
+                                <i class="fas fa-arrow-right mx-2"></i>
+                                <span class="badge bg-primary">${tx.new_category}</span>
+                            </span>
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+            
+            new bootstrap.Modal(document.getElementById('previewModal')).show();
+        } catch (error) {
+            console.error('Error previewing rule:', error);
+        }
+    });
+});
+
+// Delete rule
+document.querySelectorAll('.delete-rule').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+        if (confirm('Are you sure you want to delete this rule?')) {
+            const ruleId = e.target.dataset.ruleId;
+            
+            try {
+                const response = await fetch(`/api/rules/${ruleId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    location.reload();
+                }
+            } catch (error) {
+                console.error('Error deleting rule:', error);
+            }
+        }
+    });
+});
+
+// Save new rule
+document.getElementById('saveRule').addEventListener('click', async () => {
+    const form = document.getElementById('createRuleForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    
+    try {
+        const response = await fetch('/api/rules/create', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Failed to create rule');
+        }
+    } catch (error) {
+        console.error('Error creating rule:', error);
+    }
+});
+</script>
+{% endblock %}
