@@ -4,6 +4,7 @@ Natural, coach-style responses that sound conversational and helpful
 """
 
 import logging
+import random
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
 

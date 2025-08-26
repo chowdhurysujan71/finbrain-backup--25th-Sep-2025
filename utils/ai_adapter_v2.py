@@ -167,7 +167,18 @@ Make insights:
             # Try to parse JSON response
             try:
                 import json
-                insights_json = json.loads(ai_text)
+                
+                # Clean the response - sometimes it comes wrapped in markdown
+                clean_text = ai_text.strip()
+                if clean_text.startswith("```json"):
+                    clean_text = clean_text[7:]
+                if clean_text.startswith("```"):
+                    clean_text = clean_text[3:]
+                if clean_text.endswith("```"):
+                    clean_text = clean_text[:-3]
+                clean_text = clean_text.strip()
+                
+                insights_json = json.loads(clean_text)
                 return {
                     "success": True,
                     "insights": insights_json.get("insights", []),
