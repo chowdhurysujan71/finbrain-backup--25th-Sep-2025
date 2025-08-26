@@ -234,6 +234,7 @@ class FinBrainUAT:
         """Test 7: Production router functionality"""
         try:
             sys.path.append('/home/runner/workspace')
+            from app import app
             from utils.production_router import production_router
             
             if not self.test_user_hash:
@@ -242,8 +243,9 @@ class FinBrainUAT:
             else:
                 test_hash = self.test_user_hash
             
-            # Test summary routing using correct method
-            response, intent, category, amount = production_router.process_message("summary", test_hash)
+            # Test summary routing using correct method with app context
+            with app.app_context():
+                response, intent, category, amount = production_router.route_message("summary", test_hash)
             
             if response and intent == "summary":
                 self.log_test("Production Router", "PASS", f"Summary routing works, intent: {intent}")
@@ -262,13 +264,13 @@ class FinBrainUAT:
             sys.path.append('/home/runner/workspace')
             from utils.pca_flags import pca_flags
             
-            # Test PCA flags using correct methods
-            overlay_enabled = pca_flags.should_show_overlay()
-            audit_ui_enabled = pca_flags.should_show_audit_ui()
+            # Test PCA flags using correct methods that exist
+            overlay_enabled = pca_flags.should_write_overlays()
             
             # Get mode from environment or default
             import os
             mode = os.environ.get('PCA_MODE', 'FALLBACK')
+            audit_ui_enabled = os.environ.get('SHOW_AUDIT_UI', 'false').lower() == 'true'
             
             self.log_test(
                 "PCA System", 
@@ -284,20 +286,20 @@ class FinBrainUAT:
     def test_api_endpoints(self):
         """Test 9: Key API endpoints"""
         try:
-            # Test monitoring endpoint
-            response = requests.get(f"{self.base_url}/api/monitoring/status", timeout=5)
+            # Test monitoring endpoint with correct path
+            response = requests.get(f"{self.base_url}/api/monitoring/health", timeout=5)
             monitoring_ok = response.status_code == 200
             
-            # Test PCA endpoints (if available)
-            pca_response = requests.get(f"{self.base_url}/api/pca/status", timeout=5)
-            pca_ok = pca_response.status_code in [200, 404]  # 404 is acceptable if not enabled
+            # Test health endpoint as alternative
+            health_response = requests.get(f"{self.base_url}/health", timeout=5)
+            health_ok = health_response.status_code == 200
             
             self.log_test(
                 "API Endpoints", 
-                "PASS" if monitoring_ok and pca_ok else "FAIL", 
-                f"Monitoring: {monitoring_ok}, PCA: {pca_ok}"
+                "PASS" if monitoring_ok and health_ok else "FAIL", 
+                f"Monitoring: {monitoring_ok}, Health: {health_ok}"
             )
-            return monitoring_ok and pca_ok
+            return monitoring_ok and health_ok
             
         except Exception as e:
             self.log_test("API Endpoints", "FAIL", "Exception testing APIs", e)

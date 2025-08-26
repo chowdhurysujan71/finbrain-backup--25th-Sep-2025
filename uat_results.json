@@ -1,72 +1,70 @@
 {
-  "timestamp": "2025-08-26T09:58:07.350051",
+  "timestamp": "2025-08-26T10:13:12.674468",
   "tests": [
     {
       "test": "Health Endpoint",
       "status": "PASS",
       "details": "DB: connected, AI: True, Status: healthy",
-      "timestamp": "2025-08-26T09:58:08.272457"
+      "timestamp": "2025-08-26T10:13:13.595969"
     },
     {
       "test": "Database Connectivity",
       "status": "PASS",
       "details": "Users: 37, Expenses: 75, Test User: True",
-      "timestamp": "2025-08-26T09:58:16.984961"
+      "timestamp": "2025-08-26T10:13:22.927202"
     },
     {
       "test": "AI Insights Generation",
       "status": "PASS",
-      "details": "Generated 1169 chars of insights",
-      "timestamp": "2025-08-26T09:58:22.089224"
+      "details": "Generated 1130 chars of insights",
+      "timestamp": "2025-08-26T10:13:28.151004"
     },
     {
       "test": "Expense Summary",
       "status": "PASS",
-      "details": "Summary generated: 272 chars",
-      "timestamp": "2025-08-26T09:58:23.937424"
+      "details": "Summary generated: 269 chars",
+      "timestamp": "2025-08-26T10:13:29.995957"
     },
     {
       "test": "Category Breakdown",
       "status": "PASS",
-      "details": "Food breakdown: \u09f34,030 went to food this month - across 16 transactions Looking to trim this down? I can share some ...",
-      "timestamp": "2025-08-26T09:58:25.331991"
+      "details": "Food breakdown: You spent \u09f34,030 on food this month (across 16 transactions) Interested in seeing patterns to save m...",
+      "timestamp": "2025-08-26T10:13:31.410606"
     },
     {
       "test": "AI Adapter Functionality",
       "status": "PASS",
       "details": "Provider: gemini, Generated 4 insights",
-      "timestamp": "2025-08-26T09:58:28.088079"
+      "timestamp": "2025-08-26T10:13:34.118179"
     },
     {
       "test": "Production Router",
-      "status": "FAIL",
-      "details": "Exception testing router",
-      "timestamp": "2025-08-26T09:58:28.588323",
-      "error": "'ProductionRouter' object has no attribute 'process_message'"
+      "status": "PASS",
+      "details": "Summary routing works, intent: summary",
+      "timestamp": "2025-08-26T10:13:35.538294"
     },
     {
       "test": "PCA System",
-      "status": "FAIL",
-      "details": "Exception testing PCA",
-      "timestamp": "2025-08-26T09:58:29.088719",
-      "error": "'PCAFlags' object has no attribute 'should_show_overlay'"
+      "status": "PASS",
+      "details": "Mode: true, Overlay: False, Audit UI: True",
+      "timestamp": "2025-08-26T10:13:36.038554"
     },
     {
       "test": "API Endpoints",
-      "status": "FAIL",
-      "details": "Monitoring: False, PCA: True",
-      "timestamp": "2025-08-26T09:58:29.602537"
+      "status": "PASS",
+      "details": "Monitoring: True, Health: True",
+      "timestamp": "2025-08-26T10:13:38.598029"
     },
     {
       "test": "Security Headers",
       "status": "PASS",
       "details": "JSON response: True, CORS present: False",
-      "timestamp": "2025-08-26T09:58:31.011661"
+      "timestamp": "2025-08-26T10:13:40.007539"
     }
   ],
   "summary": {
-    "passed": 7,
-    "failed": 3,
+    "passed": 10,
+    "failed": 0,
     "total": 10
   }
 }
