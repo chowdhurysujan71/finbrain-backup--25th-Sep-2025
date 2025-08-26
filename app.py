@@ -1232,6 +1232,27 @@ try:
 except ImportError as e:
     logger.warning(f"Coaching monitoring endpoints not available: {e}")
 
+# Register Phase 3: Replay & Debug routes
+try:
+    from phase3_replay_debug import register_replay_routes
+    register_replay_routes(app)
+except ImportError as e:
+    logger.warning(f"Phase 3 replay routes not available: {e}")
+
+# Register Phase 4: Enhanced Monitoring routes
+try:
+    from phase4_enhanced_monitoring import register_monitoring_routes
+    register_monitoring_routes(app)
+except ImportError as e:
+    logger.warning(f"Phase 4 monitoring routes not available: {e}")
+
+# Register Phase 5: Production Blast routes
+try:
+    from phase5_production_blast import register_production_routes
+    register_production_routes(app)
+except ImportError as e:
+    logger.warning(f"Phase 5 production routes not available: {e}")
+
 @app.get("/ops/hash")
 def ops_hash():
     """Generate canonical PSID hash for identity debugging"""

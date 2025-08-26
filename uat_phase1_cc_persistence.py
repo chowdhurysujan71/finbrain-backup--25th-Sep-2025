@@ -225,8 +225,12 @@ class Phase1UAT:
                 
                 mode_data = {row[0]: row[1] for row in modes}
                 
-                # Check current mode setting
-                current_mode = pca_flags._get_pca_mode()
+                # Check current mode setting (use proper method)
+                import sys
+                sys.path.append('/home/runner/workspace')
+                from utils.pca_flags import PCAFlags
+                current_flags = PCAFlags()
+                current_mode = current_flags.mode
                 
                 # Verify modes are being tracked
                 has_mode_data = len(mode_data) > 0
