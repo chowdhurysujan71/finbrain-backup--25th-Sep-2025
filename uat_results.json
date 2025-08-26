@@ -1,111 +1,72 @@
 {
-  "timestamp": "2025-08-18T05:15:46.597187",
-  "summary": {
-    "total": 10,
-    "passed": 3,
-    "failed": 7,
-    "success_rate": 30.0
-  },
-  "results": [
+  "timestamp": "2025-08-26T09:58:07.350051",
+  "tests": [
     {
-      "test": "Test 1: Should return spending summary",
-      "message": "summary",
-      "expected_intent": "SUMMARY",
-      "actual_intent": "summary",
-      "response_preview": "\ud83d\udcca Last 7 days: 100 BDT across 1 entries.\nCategories:\n\u2022 food: 100 (100%)\n\nTip: type 'insight' for spe...",
-      "success": true,
-      "has_fallback": false,
-      "is_error": false
+      "test": "Health Endpoint",
+      "status": "PASS",
+      "details": "DB: connected, AI: True, Status: healthy",
+      "timestamp": "2025-08-26T09:58:08.272457"
     },
     {
-      "test": "Test 2: Case-insensitive summary",
-      "message": "Summary",
-      "expected_intent": "SUMMARY",
-      "actual_intent": "summary",
-      "response_preview": "\ud83d\udcca Last 7 days: 100 BDT across 1 entries.\nCategories:\n\u2022 food: 100 (100%)\n\nTip: type 'insight' for spe...",
-      "success": true,
-      "has_fallback": false,
-      "is_error": false
+      "test": "Database Connectivity",
+      "status": "PASS",
+      "details": "Users: 37, Expenses: 75, Test User: True",
+      "timestamp": "2025-08-26T09:58:16.984961"
     },
     {
-      "test": "Test 3: Should provide insights",
-      "message": "give me insights",
-      "expected_intent": "INSIGHT",
-      "actual_intent": "insight",
-      "response_preview": "\ud83e\udde0 Quick insights:\n\u2022 food: 100 BDT (100%)\n\n\u26a0\ufe0f Optimization tips:\n\u2022 Food spending is 100% - consider m...",
-      "success": true,
-      "has_fallback": false,
-      "is_error": false
+      "test": "AI Insights Generation",
+      "status": "PASS",
+      "details": "Generated 1169 chars of insights",
+      "timestamp": "2025-08-26T09:58:22.089224"
     },
     {
-      "test": "Test 4: Should log single expense",
-      "message": "coffee 100",
-      "expected_intent": "LOG_EXPENSE",
-      "actual_intent": "expense_fallback",
-      "response_preview": "Got it! I'll track that spending for you.",
-      "success": false,
-      "has_fallback": false,
-      "is_error": true
+      "test": "Expense Summary",
+      "status": "PASS",
+      "details": "Summary generated: 272 chars",
+      "timestamp": "2025-08-26T09:58:23.937424"
     },
     {
-      "test": "Test 5: Should log multiple expenses",
-      "message": "100 on uber and 500 on shoes",
-      "expected_intent": "LOG_EXPENSE",
-      "actual_intent": "rate_limited",
-      "response_preview": "\u23f3 I can give 4 smart insights per minute. Let's continue in a moment! Meanwhile, want a quick money ...",
-      "success": false,
-      "has_fallback": false,
-      "is_error": false
+      "test": "Category Breakdown",
+      "status": "PASS",
+      "details": "Food breakdown: \u09f34,030 went to food this month - across 16 transactions Looking to trim this down? I can share some ...",
+      "timestamp": "2025-08-26T09:58:25.331991"
     },
     {
-      "test": "Test 6: Should undo last expense",
-      "message": "undo last",
-      "expected_intent": "UNDO",
-      "actual_intent": "rate_limited",
-      "response_preview": "\u23f3 I can give 4 smart insights per minute. Let's continue in a moment! Meanwhile, want a quick money ...",
-      "success": false,
-      "has_fallback": false,
-      "is_error": false
+      "test": "AI Adapter Functionality",
+      "status": "PASS",
+      "details": "Provider: gemini, Generated 4 insights",
+      "timestamp": "2025-08-26T09:58:28.088079"
     },
     {
-      "test": "Test 7: All caps summary",
-      "message": "SUMMARY",
-      "expected_intent": "SUMMARY",
-      "actual_intent": "rate_limited",
-      "response_preview": "\u23f3 I can give 4 smart insights per minute. Let's continue in a moment! Meanwhile, want a quick money ...",
-      "success": false,
-      "has_fallback": false,
-      "is_error": false
+      "test": "Production Router",
+      "status": "FAIL",
+      "details": "Exception testing router",
+      "timestamp": "2025-08-26T09:58:28.588323",
+      "error": "'ProductionRouter' object has no attribute 'process_message'"
     },
     {
-      "test": "Test 8: Natural language summary",
-      "message": "can you show my summary?",
-      "expected_intent": "SUMMARY",
-      "actual_intent": "rate_limited",
-      "response_preview": "\u23f3 I can give 4 smart insights per minute. Let's continue in a moment! Meanwhile, want a quick money ...",
-      "success": false,
-      "has_fallback": false,
-      "is_error": false
+      "test": "PCA System",
+      "status": "FAIL",
+      "details": "Exception testing PCA",
+      "timestamp": "2025-08-26T09:58:29.088719",
+      "error": "'PCAFlags' object has no attribute 'should_show_overlay'"
     },
     {
-      "test": "Test 9: Natural expense logging",
-      "message": "spent 50 on lunch",
-      "expected_intent": "LOG_EXPENSE",
-      "actual_intent": "rate_limited",
-      "response_preview": "\u23f3 I can give 4 smart insights per minute. Let's continue in a moment! Meanwhile, want a quick money ...",
-      "success": false,
-      "has_fallback": false,
-      "is_error": false
+      "test": "API Endpoints",
+      "status": "FAIL",
+      "details": "Monitoring: False, PCA: True",
+      "timestamp": "2025-08-26T09:58:29.602537"
     },
     {
-      "test": "Test 10: Natural insights request",
-      "message": "I need some insights",
-      "expected_intent": "INSIGHT",
-      "actual_intent": "rate_limited",
-      "response_preview": "\u23f3 I can give 4 smart insights per minute. Let's continue in a moment! Meanwhile, want a quick money ...",
-      "success": false,
-      "has_fallback": false,
-      "is_error": false
+      "test": "Security Headers",
+      "status": "PASS",
+      "details": "JSON response: True, CORS present: False",
+      "timestamp": "2025-08-26T09:58:31.011661"
     }
-  ]
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 3,
+    "total": 10
+  }
 }
