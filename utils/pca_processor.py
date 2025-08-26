@@ -26,7 +26,7 @@ def log_cc_snapshot(cc_dict: Dict[str, Any], processing_time_ms: Optional[int] =
         True if logged successfully, False otherwise
     """
     try:
-        from app import db
+        from app import db, app
         from models_pca import InferenceSnapshot
         from utils.pca_flags import pca_flags
         
@@ -59,9 +59,10 @@ def log_cc_snapshot(cc_dict: Dict[str, Any], processing_time_ms: Optional[int] =
         snapshot.applied = applied
         snapshot.error_message = error_message
         
-        # Insert into database
-        db.session.add(snapshot)
-        db.session.commit()
+        # Insert into database with app context
+        with app.app_context():
+            db.session.add(snapshot)
+            db.session.commit()
         
         logger.debug(f"CC snapshot logged: {cc_id} intent={intent} conf={confidence:.2f} applied={applied}")
         return True
@@ -187,13 +188,8 @@ def process_message_with_pca(user_id: str, message_text: str, message_id: str, t
             return process_dryrun_mode(user_id, message_text, message_id, cc_id, timestamp, pca_flags)
         
         elif pca_flags.mode == PCAMode.ON:
-            # ON mode - not implemented yet
-            return {
-                'pca_processed': False,
-                'reason': 'on_mode_not_implemented',
-                'mode': 'ON',
-                'fallback_to_legacy': True
-            }
+            # PHASE 4: Limited Production - Actual transaction creation  
+            return process_production_mode(user_id, message_text, message_id, cc_id, timestamp, pca_flags)
         
         else:
             # Unknown mode - fallback
@@ -296,8 +292,8 @@ def process_dryrun_mode(user_id: str, message_text: str, message_id: str, cc_id:
                 cc = CanonicalCommand(
                     cc_id=cc_id,
                     user_id=user_id,
-                    intent=CCIntent.GREETING.value,
-                    slots=CCSlots(),
+                    intent=CCIntent.HELP.value,
+                    slots=CCSlots(note="Greeting detected"),
                     confidence=0.9,
                     decision=CCDecision.RAW_ONLY.value,
                     source_text=message_text,
@@ -309,7 +305,7 @@ def process_dryrun_mode(user_id: str, message_text: str, message_id: str, cc_id:
                 
             else:
                 # Fallback for unrecognized messages
-                cc = create_fallback_cc(user_id, cc_id, message_text, "Unrecognized message type")
+                cc = create_help_cc(user_id, cc_id, message_text, "Unrecognized message type")
                 intent_result = "UNKNOWN"
                 confidence_result = 0.3
         
@@ -357,6 +353,7 @@ def process_dryrun_mode(user_id: str, message_text: str, message_id: str, cc_id:
         
         # Log error CC for debugging
         try:
+            from utils.canonical_command import create_help_cc
             error_cc = create_help_cc(user_id, cc_id, message_text, f"DRYRUN processing error: {str(e)}")
             log_cc_snapshot(error_cc.to_dict(), processing_time_ms=processing_time_ms, error_message=str(e))
         except:
@@ -370,6 +367,152 @@ def process_dryrun_mode(user_id: str, message_text: str, message_id: str, cc_id:
             'mode': 'DRYRUN',
             'fallback_to_legacy': True
         }
+
+def process_production_mode(user_id: str, message_text: str, message_id: str, cc_id: str, 
+                          timestamp: datetime, pca_flags) -> Dict[str, Any]:
+    """
+    PHASE 4: Production mode with actual transaction creation
+    """
+    import re
+    import time as time_module
+    
+    processing_start = time_module.time()
+    
+    try:
+        from utils.canonical_command import CanonicalCommand, create_help_cc, CCSlots, CCIntent, CCDecision
+        
+        # Enhanced expense detection with confidence scoring
+        expense_patterns = [
+            (r'৳\s*(\d+(?:,\d{3})*(?:\.\d{2})?)', 0.9),  # ৳500 - very high confidence
+            (r'(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(?:taka|৳|tk|BDT)', 0.85),  # 500 taka - high confidence  
+            (r'(?:spent|cost|paid|bought|expense|khoroch|খরচ)\s*৳?\s*(\d+)', 0.8),  # spent ৳500
+            (r'(?:kinlam|kিনলাম|dilam|দিলাম)\s*৳?\s*(\d+)', 0.75),  # Bengali verbs
+            (r'(\d+)\s*(?:টাকা|taka)', 0.7),  # 500 টাকা
+        ]
+        
+        # Check for expense patterns with confidence
+        expense_detected = False
+        amount_value = None
+        expense_confidence = 0.0
+        
+        for pattern, confidence in expense_patterns:
+            match = re.search(pattern, message_text, re.IGNORECASE)
+            if match:
+                expense_detected = True
+                expense_confidence = confidence
+                try:
+                    amount_text = match.group(1)
+                    amount_value = float(amount_text.replace(',', '').replace('৳', '').strip())
+                except (ValueError, AttributeError):
+                    amount_value = None
+                    expense_confidence *= 0.5
+                break
+        
+        # Get confidence thresholds
+        tau_high, tau_low = pca_flags.get_decision_thresholds()
+        
+        # Generate CC based on detection
+        if expense_detected and amount_value and amount_value > 0:
+            cc = CanonicalCommand(
+                cc_id=cc_id,
+                user_id=user_id,
+                intent=CCIntent.LOG_EXPENSE.value,
+                slots=CCSlots(
+                    amount=amount_value,
+                    currency='BDT',
+                    category='general',
+                    merchant_text=message_text[:100],
+                    note=f"Auto-expense: ৳{amount_value}"
+                ),
+                confidence=expense_confidence,
+                decision=CCDecision.AUTO_APPLY.value if expense_confidence >= tau_high else 
+                        CCDecision.ASK_ONCE.value if expense_confidence >= tau_low else
+                        CCDecision.RAW_ONLY.value,
+                source_text=message_text,
+                ui_note=f"Phase 4 - Conf: {expense_confidence:.2f}",
+                model_version="phase4-production-v1"
+            )
+            
+            # Apply high-confidence transactions
+            applied_successfully = False
+            if expense_confidence >= tau_high:
+                applied_successfully = apply_cc_transaction(cc, user_id)
+        else:
+            # Non-expense CC
+            cc = create_help_cc(user_id, cc_id, message_text, "Phase 4 non-expense")
+            cc.confidence = 0.1
+            applied_successfully = False
+        
+        processing_time_ms = int((time_module.time() - processing_start) * 1000)
+        
+        # Log CC snapshot for audit trail
+        log_cc_snapshot(cc.to_dict(), processing_time_ms, applied_successfully)
+        
+        return {
+            'pca_processed': True,
+            'mode': 'ON',
+            'intent': cc.intent,
+            'confidence': cc.confidence,
+            'decision': cc.decision,
+            'cc_applied': applied_successfully,
+            'cc_logged': True,
+            'processing_time_ms': processing_time_ms,
+            'amount': getattr(cc.slots, 'amount', None),
+            'fallback_to_legacy': not applied_successfully,
+            'phase4_active': True
+        }
+        
+    except Exception as e:
+        processing_time_ms = int((time_module.time() - processing_start) * 1000)
+        logger.error(f"Phase 4 processing failed: {e}")
+        
+        from utils.canonical_command import create_help_cc
+        error_cc = create_help_cc(user_id, cc_id, message_text, f"Phase 4 error")
+        log_cc_snapshot(error_cc.to_dict(), processing_time_ms, applied=False, error_message=str(e))
+        
+        return {
+            'pca_processed': True,
+            'mode': 'ON',
+            'error': str(e),
+            'fallback_to_legacy': True,
+            'processing_time_ms': processing_time_ms
+        }
+
+def apply_cc_transaction(cc: 'CanonicalCommand', user_id: str) -> bool:
+    """Apply high-confidence CC by creating actual expense transaction"""
+    try:
+        from app import db, app
+        from models import Expense, User
+        from datetime import datetime
+        
+        # Use app context for database operations
+        with app.app_context():
+            # Find user
+            user = User.query.filter_by(user_id_hash=user_id).first()
+            if not user:
+                logger.warning(f"User not found for transaction: {user_id[:8]}...")
+                return False
+            
+            # Create expense from CC
+            expense = Expense(
+                user_id=user.id,
+                amount=cc.slots.amount,
+                category=cc.slots.category or 'general',
+                description=cc.slots.note or cc.source_text[:100],
+                date=datetime.utcnow().date(),
+                created_at=datetime.utcnow(),
+                source='pca_phase4'
+            )
+            
+            db.session.add(expense)
+            db.session.commit()
+        
+        logger.info(f"Phase 4 transaction: ৳{cc.slots.amount} conf={cc.confidence:.2f}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Transaction creation failed: {e}")
+        return False
 
 def get_pca_health_status() -> Dict[str, Any]:
     """Get health status of PCA overlay tables and processing"""
