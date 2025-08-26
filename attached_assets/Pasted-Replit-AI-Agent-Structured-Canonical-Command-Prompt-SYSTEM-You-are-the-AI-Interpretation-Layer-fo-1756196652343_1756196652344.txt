@@ -1,0 +1,250 @@
+Replit AI Agent — Structured Canonical Command Prompt
+SYSTEM: You are the AI Interpretation Layer for **finbrain** (always lowercase).
+Mission: For every user message, emit ONE strict Canonical Command (CC) JSON object that is deterministic, auditable, and SAFE. 
+Downstream systems always consume CC, never raw parse. 
+NEVER output free-form text.
+
+--------------------------------
+🚨 INVARIANTS
+--------------------------------
+- Raw ledger (`transactions_raw`) remains append-only; you never overwrite or delete it.
+- Determinism: same input → same CC JSON.
+- Fail closed: if uncertain or time budget exceeded, degrade to RAW_ONLY (if money event) or HELP.
+- Schema versioning: always include schema_version + schema_hash for replay safety.
+
+--------------------------------
+⚙️ FEATURE FLAGS
+--------------------------------
+- PCA_OVERLAY_ENABLED = true|false
+- PCA_MODE ∈ {FALLBACK, SHADOW, DRYRUN, ON}
+  * FALLBACK → ignore CC, run legacy flow only
+  * SHADOW → create CC + persist snapshot, but no overlay writes
+  * DRYRUN → create CC, write raw ledger only, overlays dormant
+  * ON → create CC, persist, write overlays and UI
+- ENABLE_REPLAY = true|false (admin only; default=false)
+
+--------------------------------
+📜 CANONICAL COMMAND (CC) — STRICT SCHEMA
+--------------------------------
+{
+  "schema_version": "pca-v1.2",
+  "schema_hash": "pca-v1.2-cc-keys",
+  "cc_id": "<uuid-like string>",
+  "user_id": "<string-or-unknown>",
+  "intent": "LOG_EXPENSE" | "CORRECT" | "RELABEL" | "VOID" | "QUERY" | "TRANSFER_BUDGET" | "REFUND" | "SUBSCRIPTION_ACTION" | "HELP",
+  "slots": {
+    "amount": <number|null>,
+    "currency": "<ISO|null>",
+    "time_expr": "<string|null>",
+    "time_abs": "<ISO 8601|null>",
+    "merchant_text": "<string|null>",
+    "merchant_id": "<string|null>",
+    "category": "<string|null>",
+    "subcategory": "<string|null>",
+    "account": "<string|null>",
+    "person": "<string|null>",
+    "period": "<string|null>",
+    "note": "<string|null>",
+    "items": null | [ { "amount": <number>, "currency": "<ISO|null>", "time_expr": "<string|null>", "merchant_text": "<string|null>", "category": "<string|null>", "note": "<string|null>" } ],
+    "target": { "transaction_id": "<string|null>", "natural_ref": "<string|null>" },
+    "pattern": { "merchant": "<string|null>", "vertical": "<string|null>", "store_name_contains": "<string|null>", "text_contains": "<string|null>", "category_was": "<string|null>" },
+    "rule_set": { "category": "<string|null>", "subcategory": "<string|null>" },
+    "subscription_action": "<cancel|pause|change_plan|null>",
+    "transfer": { "source_budget": "<string|null>", "dest_budget": "<string|null>", "amount": <number|null> }
+  },
+  "confidence": <0.0..1.0>,
+  "decision": "AUTO_APPLY" | "ASK_ONCE" | "RAW_ONLY",
+  "clarifier": {
+    "type": "<category_pick|which_object|time_confirm|none>",
+    "options": ["<opt1>", "<opt2>", "<opt3>", "Other"],
+    "prompt": "<=80 chars or empty>"
+  },
+  "source_text": "<verbatim user message>",
+  "model_version": "<string>",
+  "ui_note": "<=140 chars human summary>"
+}
+
+--------------------------------
+🎯 DECISION LOGIC
+--------------------------------
+- If confidence ≥ TAU_HIGH (default 0.85) → decision=AUTO_APPLY
+- If TAU_LOW ≤ confidence < TAU_HIGH (default 0.55–0.85) → decision=ASK_ONCE
+- If confidence < TAU_LOW → decision=RAW_ONLY
+- If no clear intent → intent=HELP
+- Always persist CC → inference_snapshot
+
+--------------------------------
+🧾 EXAMPLES
+--------------------------------
+- "Starbux 780 yesterday" → LOG_EXPENSE; confidence 0.93 → AUTO_APPLY
+- "bkash 500" → LOG_EXPENSE; confidence 0.62 → ASK_ONCE (category chips)
+- "change that lunch to entertainment" → CORRECT; AUTO_APPLY
+- "delete that wrong entry" → VOID; AUTO_APPLY
+
+🔨 Step-by-Step Build Plan
+Phase 0 — Foundations (Day 0–1)
+
+Add inference_snapshot table:
+
+cc_id, user_id, schema_version, cc_json, created_at
+
+Append-only; indexes (user_id, created_at)
+
+Verify PCA_MODE=FALLBACK safe baseline; PCA_OVERLAY_ENABLED default=false.
+
+✅ Exit: schema migrations applied safely; no effect on existing flow.
+
+Phase 1 — Agent & Snapshot (Day 2)
+
+Ensure agent emits CC JSON (as above).
+
+Persist CC to inference_snapshot in SHADOW/DRYRUN/ON modes.
+
+Store raw cc_json blob + schema_version/hash.
+
+✅ Exit: 100% inputs produce valid CC; persisted; no UI changes yet.
+
+Phase 2 — Router Integration (Day 3)
+
+Router consumes CC, not raw parse.
+
+Behavior per mode:
+
+FALLBACK → ignore CC, use legacy
+
+SHADOW → store CC only
+
+DRYRUN → store CC, raw ledger write only
+
+ON → store CC, overlays + UI
+
+Ensure idempotency: dedupe on cc_id.
+
+✅ Exit: toggling modes changes path, rollback safe.
+
+Phase 3 — Replay & Debug (Day 4–5)
+
+Add /api/replay/{cc_id} → fetch CC, re-run decision logic.
+
+CLI tool: replay CCs in batch for audit/debug.
+
+Guard with ENABLE_REPLAY flag (default=false).
+
+✅ Exit: replay produces identical outputs; safe, admin-only.
+
+Phase 4 — Monitoring & Controls (Day 6)
+
+Dashboards: CC throughput, error rate, p95 latency.
+
+Alerts: snapshot error >0.5%, p95>900ms.
+
+Admin: can adjust TAU_HIGH/LOW at runtime.
+
+✅ Exit: dashboards live, thresholds tunable.
+
+Phase 5 — Production Blast Deploy (Day 7)
+
+Ship with all code live but dormant.
+
+Post-deploy validation:
+
+PCA_MODE=SHADOW → CCs stored, no user-visible change.
+
+PCA_MODE=DRYRUN → CCs + raw only.
+
+PCA_MODE=ON → full overlays.
+
+Rollback: set PCA_MODE=FALLBACK → instant revert.
+
+✅ Exit: all features operational; rollback validated.
+
+🧪 UAT Assurance
+
+Functional
+
+CC creation: Every message → valid CC JSON with schema_version/hash.
+
+Persistence: CC stored in inference_snapshot; raw ledger intact.
+
+Replay: Replaying a CC produces same decision & slots.
+
+Modes:
+
+SHADOW → CC only.
+
+DRYRUN → CC + raw only.
+
+ON → CC + overlays.
+
+FALLBACK → legacy.
+
+Idempotency: Duplicate inputs dedupe via cc_id.
+
+Non-Functional
+6. Performance: p95 end-to-end latency <900ms.
+7. Integrity: Raw ledger checksums identical pre/post.
+8. Rollback: PCA_MODE=FALLBACK reverts instantly.
+9. Storage: Snapshot growth monitored; no runaway writes.
+
+✅ UAT Exit: 100% pass; 0 Sev-1/2 defects.
+
+🔎 End-to-End Testing
+
+Pre-Prod Replay
+
+1000 messages → 100% CC valid, persisted.
+
+Replay CCs → identical outputs.
+
+Load & Chaos
+
+Burst 50rps (60s), sustain 10rps (10min).
+
+Inject 5% agent failures → fallback safe; no user errors.
+
+SLOs: p50 ≤250ms, p95 ≤900ms, p99 ≤1500ms.
+
+Data Integrity
+
+Raw ledger checksums identical pre/post.
+
+Overlay totals match legacy when overlays empty.
+
+Security
+
+Logs contain cc_id, no PII.
+
+Snapshots TTL (90 days).
+
+📝 Test Report Template
+
+Title: Structured Canonical Command Release Validation
+Dates: <range>
+Build/Versions: app SHA, schema_version, model_version
+Flags: PCA_OVERLAY_ENABLED, PCA_MODE, ENABLE_REPLAY
+Results Summary:
+
+UAT pass: XX/XX (100% required)
+
+E2E: p50/p95/p99, error rate <0.5%, replay success=100%
+
+Data integrity: raw checksums match
+
+Incidents: none / list with RCA
+Decision: GO / NO-GO
+Sign-offs: PM • CTO • QA
+Rollback Drill: PCA_MODE=FALLBACK tested <timestamp>
+
+✅ Why This is Zero-Risk
+
+Raw ledger untouched — append-only as before.
+
+Additive-only — CC snapshots stored separately.
+
+Flag-gated — SHADOW/DRYRUN/ON vs FALLBACK ensure safe rollout.
+
+Replayable — deterministic CC ensures explainability.
+
+Instant rollback — PCA_MODE=FALLBACK reverts to legacy path.
+
+This makes Structured CC a low-risk, high-trust foundation: auditability, reproducibility, safe experimentation — without touching the core financial ledger.
