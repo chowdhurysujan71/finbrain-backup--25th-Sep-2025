@@ -1,0 +1,81 @@
+Confidence Scoring & Clarifier Flow
+🎯 PM View — Why Users Need It
+
+Problem: If finbrain auto-logs an expense into the wrong category without asking, trust collapses. Users feel the system is “messing with their money.”
+
+Solution: Instead of silently guessing, finbrain should act like a cautious assistant: “I think this is X, but let me check.”
+
+User Promise: “finbrain will never mislabel your expense behind your back. It will either log confidently, ask you, or fall back to safe raw logging.”
+
+Example:
+
+User: “bkash 500”
+finbrain: “Not sure. Was this Utilities, Fees, or Other?”
+
+This keeps the user in control while still giving them value even when the AI isn’t 100% sure.
+
+🛠 CTO View — How We Implement Safely
+
+No changes to raw ledger: All expenses are always logged in transactions_raw — append-only, immutable.
+
+Additive decision logic only:
+
+If confidence ≥ τ_high (0.85) → AUTO_APPLY (system applies the category directly).
+
+If τ_low (0.55 ≤ confidence < 0.85) → ASK_ONCE (present clarifier chips: 3 likely categories + “Other”).
+
+If confidence < τ_low → RAW_ONLY (log raw, leave category blank, ask later).
+
+Structured Canonical Command (CC):
+
+Decision and clarifier metadata are written into inference_snapshot.
+
+UI reads the CC → either auto-confirms, shows chips, or shows a “saved raw” message.
+
+Flags ensure safety:
+
+Default PCA_MODE=FALLBACK means none of this logic runs until explicitly enabled.
+
+Clarifier UI only appears if ENABLE_CLARIFIERS=true.
+
+🧩 Data Flow (Safe by Design)
+
+User logs: “Starbux 780.”
+
+Agent computes intent=LOG_EXPENSE, category=coffee, confidence=0.91.
+
+≥0.85 → AUTO_APPLY → logs category Coffee.
+
+User logs: “bkash 500.”
+
+Confidence=0.62 → ASK_ONCE.
+
+System logs raw expense (500) and surfaces clarifier chips.
+
+User picks “Utilities.” Effective overlay updated, raw stays intact.
+
+User logs: “Mart payment 1200.”
+
+Confidence=0.32 → RAW_ONLY.
+
+Logs raw entry with no category.
+
+Shows: “Saved ৳1200; category to confirm later.”
+
+⚠️ Risk Controls
+
+Core ledger untouched: Every expense still logs into transactions_raw.
+
+Overlay-only updates: Corrections and clarifier selections update user_corrections / transactions_effective.
+
+Safe defaults: If thresholds misbehave, fallback is RAW_ONLY → never wrong category silently.
+
+Instant rollback: One flag flip → PCA_MODE=FALLBACK → legacy logging resumes, clarifiers disappear.
+
+🚀 Why This is MVP-Critical
+
+Protects against the #1 user trust risk: silent miscategorisation.
+
+Gives users a voice in ambiguous cases while keeping the system helpful.
+
+Provides a clear audit trail: “Here’s what we thought, here’s what you chose.”
