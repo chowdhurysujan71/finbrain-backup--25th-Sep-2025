@@ -81,18 +81,22 @@ with app.app_context():
     # Register PCA blueprints for overlay features
     try:
         from utils.pca_feature_flags import pca_feature_flags
-        from routes.pca_api import pca_api
-        from routes.pca_ui import pca_ui
         
-        # Register API and UI blueprints (conditional loading not needed for dormant deployment)
-        if 'pca_api' not in app.blueprints:
-            app.register_blueprint(pca_api)
-            logger.info("✓ PCA API routes registered")
-        if 'pca_ui' not in app.blueprints:
-            app.register_blueprint(pca_ui)
-            logger.info("✓ PCA UI routes registered")
+        # Only register blueprints if PCA is enabled
+        if pca_feature_flags.is_overlay_active():
+            from routes.pca_api import pca_api
+            from routes.pca_ui import pca_ui
+            
+            if 'pca_api' not in app.blueprints:
+                app.register_blueprint(pca_api)
+                logger.info("✓ PCA API routes registered")
+            if 'pca_ui' not in app.blueprints:
+                app.register_blueprint(pca_ui)
+                logger.info("✓ PCA UI routes registered")
+    except ImportError as e:
+        logger.info(f"PCA blueprints not loaded: {e}")
     except Exception as e:
-        logger.warning(f"PCA blueprint registration failed (dormant mode): {e}")
+        logger.warning(f"PCA blueprint registration failed: {e}")
     
     # Initialize scheduler for automated reports (optional for production)
     if os.getenv("ENABLE_REPORTS", "false").lower() == "true":
