@@ -811,6 +811,89 @@ def user_insights(psid_hash):
         logger.error(f"User insights error: {e}")
         return jsonify({"error": "Failed to generate insights"}), 500
 
+@app.route('/user/<psid_hash>/category/<category_name>')
+@require_basic_auth  
+def user_category_breakdown(psid_hash, category_name):
+    """Get spending breakdown for a specific category"""
+    try:
+        from handlers.category_breakdown import handle_category_breakdown
+        from models import User
+        
+        # Find user by PSID hash
+        user = User.query.filter_by(user_id_hash=psid_hash).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        # Create a query for the handler
+        query = f"How much did I spend on {category_name} this month?"
+        
+        # Use the category breakdown handler with correct parameter order
+        result = handle_category_breakdown(psid_hash, query)
+        
+        if result and "text" in result:
+            return jsonify({
+                "category": category_name,
+                "breakdown": result["text"],
+                "user_hash": psid_hash,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+        else:
+            return jsonify({
+                "error": "Could not generate category breakdown",
+                "category": category_name
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Category breakdown error: {str(e)}")
+        return jsonify({"error": "Failed to generate category breakdown"}), 500
+
+@app.route('/user/<psid_hash>/categories')  
+@require_basic_auth
+def user_categories_list(psid_hash):
+    """List all categories with spending totals for a user"""
+    try:
+        from models import User, Expense
+        from datetime import datetime, timedelta
+        
+        # Find user by PSID hash
+        user = User.query.filter_by(user_id_hash=psid_hash).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        # Get current month expenses
+        now = datetime.utcnow()
+        start_of_month = datetime(now.year, now.month, 1)
+        
+        expenses = Expense.query.filter(
+            Expense.user_id == psid_hash,
+            Expense.created_at >= start_of_month
+        ).all()
+        
+        # Calculate category totals
+        category_totals = {}
+        for expense in expenses:
+            cat = expense.category.lower()
+            if cat not in category_totals:
+                category_totals[cat] = {
+                    "total": 0,
+                    "count": 0,
+                    "category": cat
+                }
+            category_totals[cat]["total"] += float(expense.amount)
+            category_totals[cat]["count"] += 1
+            
+        return jsonify({
+            "user_hash": psid_hash,
+            "month": f"{now.year}-{now.month:02d}",  
+            "categories": list(category_totals.values()),
+            "total_categories": len(category_totals),
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Categories list error: {str(e)}")
+        return jsonify({"error": "Failed to get categories list"}), 500
+
 @app.route("/ops/pca/status")
 @require_basic_auth
 def pca_status():

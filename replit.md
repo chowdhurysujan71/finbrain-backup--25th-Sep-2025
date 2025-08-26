@@ -41,6 +41,19 @@ The system acknowledges inbound messages immediately and queues them for backgro
 ### UI/UX
 The web dashboard uses Bootstrap 5 for its CSS framework and Font Awesome 6 for icons, providing a clean and intuitive interface for financial analysis. The AI maintains a coach-style tone for consistent user experience.
 
+## Recent Changes
+*Keep this section updated with recent significant changes and their dates*
+
+### 2025-08-26: CRITICAL FIX - Category Breakdown Functionality Restored
+- **Issue**: Users not receiving category-level breakdowns due to missing Flask routes and parameter order bug
+- **Root Cause**: Handler function received parameters in wrong order: `(query, user_hash)` instead of `(user_hash, query)`  
+- **Fix Applied**: 
+  - Corrected parameter order in Flask route handler calls
+  - Added missing Flask routes: `/user/<psid_hash>/category/<category_name>` and `/user/<psid_hash>/categories`
+  - Verified category detection works for food, transport, shopping, etc.
+- **Validation**: Test user category breakdown now returns: "৳4,030 went to food this month - across 16 transactions"
+- **Impact**: Users can now access detailed category breakdowns through both AI chat and web endpoints
+
 ## External Dependencies
 
 ### Messaging Platform
