@@ -841,10 +841,77 @@ def pca_overlay_health():
             'error': f'Overlay health check failed: {str(e)}',
             'timestamp': datetime.utcnow().isoformat()
         }), 500
+
+@app.route("/ops/pca/telemetry")
+@require_basic_auth
+def pca_telemetry():
+    """PCA processing telemetry and analytics"""
+    try:
+        from utils.pca_integration import get_pca_telemetry_summary
+        
+        telemetry = get_pca_telemetry_summary()
+        
+        return jsonify({
+            'phase': 'Phase 2 - Shadow Mode Testing',
+            'telemetry': telemetry,
+            'timestamp': datetime.utcnow().isoformat()
+        })
         
     except Exception as e:
-        logger.error(f"User insights error: {e}")
-        return jsonify({"error": "Failed to generate insights"}), 500
+        return jsonify({
+            'error': f'Telemetry collection failed: {str(e)}',
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
+
+@app.route("/ops/pca/canary", methods=["GET", "POST"])
+@require_basic_auth
+def pca_canary_management():
+    """Manage PCA canary users for SHADOW mode testing"""
+    if request.method == "GET":
+        # Get current canary user status
+        try:
+            from utils.pca_integration import setup_canary_users
+            from utils.pca_flags import pca_flags
+            
+            canary_config = setup_canary_users()
+            
+            return jsonify({
+                'phase': 'Phase 2 - Shadow Mode Testing',
+                'pca_mode': pca_flags.mode.value,
+                'canary_config': canary_config,
+                'ready_for_shadow': pca_flags.mode.value in ['SHADOW', 'DRYRUN', 'ON'],
+                'timestamp': datetime.utcnow().isoformat()
+            })
+            
+        except Exception as e:
+            return jsonify({
+                'error': f'Canary status check failed: {str(e)}',
+                'timestamp': datetime.utcnow().isoformat()
+            }), 500
+    
+    elif request.method == "POST":
+        # Enable SHADOW mode for a user
+        try:
+            data = request.get_json()
+            user_hash = data.get('user_hash', '')
+            
+            if not user_hash:
+                return jsonify({
+                    'error': 'user_hash is required',
+                    'usage': 'POST {"user_hash": "a1b2c3d4..."}'
+                }), 400
+            
+            from utils.pca_integration import enable_shadow_mode_for_user
+            result = enable_shadow_mode_for_user(user_hash)
+            
+            status_code = 200 if result.get('success', False) else 500
+            return jsonify(result), status_code
+            
+        except Exception as e:
+            return jsonify({
+                'error': f'Enable SHADOW mode failed: {str(e)}',
+                'timestamp': datetime.utcnow().isoformat()
+            }), 500
 
 @app.route('/psid/<psid_hash>', methods=['GET'])
 @require_basic_auth 

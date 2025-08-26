@@ -1,226 +1,181 @@
 """
-Structured Logging and Telemetry for FinBrain
-Comprehensive event tracking for AI corrections, routing, and system health
+Structured Event Logging for PCA System
+Phase 2: Enhanced telemetry and audit trails
 """
 
-import logging
 import json
+import logging
 from datetime import datetime
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 
 logger = logging.getLogger("finbrain.structured")
 
-def log_correction_detected(psid_hash: str, mid: str, event_type: str, status: str, feature_flag: str, version: str) -> None:
+def log_structured_event(event_type: str, event_data: Dict[str, Any], 
+                        user_id: Optional[str] = None) -> bool:
     """
-    Log correction detection event.
+    Log structured events for PCA telemetry and analysis
     
     Args:
-        psid_hash: User's PSID hash
-        mid: Message ID
-        event_type: Type of correction event
-        status: Current status
-        feature_flag: Feature flag name
-        version: Correction system version
+        event_type: Type of event (PCA_MESSAGE_PROCESSED, PCA_CC_LOGGED, etc.)
+        event_data: Event-specific data dictionary
+        user_id: Optional user identifier (will be truncated for privacy)
+        
+    Returns:
+        True if logged successfully, False otherwise
     """
-    event = {
-        'timestamp': datetime.utcnow().isoformat(),
-        'event_type': 'correction_detected',
-        'psid_hash': psid_hash[:8] + '...',
-        'message_id': mid,
-        'correction_type': event_type,
-        'status': status,
-        'feature_flag': feature_flag,
-        'version': version
-    }
-    
-    logger.info(f"CORRECTION_DETECTED {json.dumps(event)}")
+    try:
+        # Create structured log entry
+        log_entry = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'event_type': event_type,
+            'event_data': event_data
+        }
+        
+        # Add user context if provided (privacy-safe)
+        if user_id:
+            log_entry['user_context'] = user_id[:12] + '...' if len(user_id) > 12 else user_id
+        
+        # Add system context
+        from utils.pca_flags import pca_flags
+        log_entry['system_context'] = {
+            'pca_mode': pca_flags.mode.value,
+            'kill_switch': pca_flags.global_kill_switch
+        }
+        
+        # Log as structured JSON
+        logger.info(f"STRUCTURED_EVENT: {json.dumps(log_entry, separators=(',', ':'))}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to log structured event {event_type}: {e}")
+        return False
 
-def log_correction_no_candidate(psid_hash: str, mid: str, action: str) -> None:
+def log_cc_generation_event(cc_dict: Dict[str, Any], processing_time_ms: int, 
+                           applied: bool = False) -> bool:
     """
-    Log when no correction candidate is found.
+    Log Canonical Command generation events for analysis
     
     Args:
-        psid_hash: User's PSID hash
-        mid: Message ID
-        action: Action taken (e.g., 'logged_as_new')
-    """
-    event = {
-        'timestamp': datetime.utcnow().isoformat(),
-        'event_type': 'correction_no_candidate',
-        'psid_hash': psid_hash[:8] + '...',
-        'message_id': mid,
-        'action': action
-    }
-    
-    logger.info(f"CORRECTION_NO_CANDIDATE {json.dumps(event)}")
-
-def log_structured_event(event_name: str, data: Dict[str, Any]) -> None:
-    """
-    Log structured event for coaching flow telemetry
-    
-    Args:
-        event_name: Name of the event (e.g., COACH_START)
-        data: Event data dictionary
-    """
-    event = {
-        'timestamp': datetime.utcnow().isoformat(),
-        'event_type': event_name,
-        **data
-    }
-    
-    logger.info(f"{event_name} {json.dumps(event)}")
-
-def log_intent_upgrade(psid_hash: str, old_intent: str, new_intent: str, upgrade_reason: str) -> None:
-    """
-    Log intent upgrade event for enhanced insight detection
-    
-    Args:
-        psid_hash: User's PSID hash
-        old_intent: Previous intent
-        new_intent: Upgraded intent
-        upgrade_reason: Reason for upgrade (ask_keywords|followup_after_summary)
-    """
-    event = {
-        'timestamp': datetime.utcnow().isoformat(),
-        'event_type': 'intent_upgrade',
-        'psid_hash': psid_hash[:8] + '...',
-        'old_intent': old_intent,
-        'new_intent': new_intent,
-        'upgrade_reason': upgrade_reason
-    }
-    
-    logger.info(f"INTENT_UPGRADE {json.dumps(event)}")
-
-def log_insight_request(psid_hash: str, keywords_detected: List[str], upgrade_reason: Optional[str] = None) -> None:
-    """
-    Log insight request with detected keywords and upgrade context
-    
-    Args:
-        psid_hash: User's PSID hash  
-        keywords_detected: List of insight keywords detected in message
-        upgrade_reason: Reason for intent upgrade if applicable
-    """
-    event = {
-        'timestamp': datetime.utcnow().isoformat(),
-        'event_type': 'insight_request',
-        'psid_hash': psid_hash[:8] + '...',
-        'keywords_detected': keywords_detected,
-        'upgrade_reason': upgrade_reason
-    }
-    
-    logger.info(f"INSIGHT_REQUEST {json.dumps(event)}")
-
-def log_correction_duplicate(psid_hash: str, mid: str) -> None:
-    """
-    Log duplicate correction attempt.
-    
-    Args:
-        psid_hash: User's PSID hash
-        mid: Message ID
-    """
-    event = {
-        'timestamp': datetime.utcnow().isoformat(),
-        'event_type': 'correction_duplicate',
-        'psid_hash': psid_hash[:8] + '...',
-        'message_id': mid
-    }
-    
-    logger.warning(f"CORRECTION_DUPLICATE {json.dumps(event)}")
-
-def log_correction_applied(psid_hash: str, mid: str, old_expense_id: int, new_expense_id: int, 
-                          old_amount: float, new_amount: float, version: str) -> None:
-    """
-    Log successful correction application.
-    
-    Args:
-        psid_hash: User's PSID hash
-        mid: Message ID
-        old_expense_id: ID of superseded expense
-        new_expense_id: ID of new corrected expense
-        old_amount: Original amount
-        new_amount: Corrected amount
-        version: Correction system version
-    """
-    event = {
-        'timestamp': datetime.utcnow().isoformat(),
-        'event_type': 'correction_applied',
-        'psid_hash': psid_hash[:8] + '...',
-        'message_id': mid,
-        'old_expense_id': old_expense_id,
-        'new_expense_id': new_expense_id,
-        'old_amount': old_amount,
-        'new_amount': new_amount,
-        'amount_change': new_amount - old_amount,
-        'version': version
-    }
-    
-    logger.info(f"CORRECTION_APPLIED {json.dumps(event)}")
-
-def log_routing_decision(psid_hash: str, text: str, intent: str, features_enabled: Dict[str, bool], 
-                        processing_time_ms: float) -> None:
-    """
-    Log routing decision with feature flag context.
-    
-    Args:
-        psid_hash: User's PSID hash
-        text: Message text (truncated)
-        intent: Detected intent
-        features_enabled: Dict of feature flags and their states
+        cc_dict: Complete CC dictionary
         processing_time_ms: Processing time in milliseconds
+        applied: Whether CC was applied to create transactions
+        
+    Returns:
+        True if logged successfully
     """
-    event = {
-        'timestamp': datetime.utcnow().isoformat(),
-        'event_type': 'routing_decision',
-        'psid_hash': psid_hash[:8] + '...',
-        'text_preview': text[:50] + '...' if len(text) > 50 else text,
-        'intent': intent,
-        'features': features_enabled,
-        'processing_time_ms': processing_time_ms
-    }
-    
-    logger.info(f"ROUTING_DECISION {json.dumps(event)}")
+    try:
+        event_data = {
+            'cc_id': cc_dict.get('cc_id', ''),
+            'intent': cc_dict.get('intent', ''),
+            'confidence': cc_dict.get('confidence', 0.0),
+            'decision': cc_dict.get('decision', ''),
+            'processing_time_ms': processing_time_ms,
+            'applied': applied,
+            'model_version': cc_dict.get('model_version', 'unknown'),
+            'has_clarifier': bool(cc_dict.get('clarifier', {}).get('type') != 'none')
+        }
+        
+        # Extract slot summary (privacy-safe)
+        slots = cc_dict.get('slots', {})
+        if slots:
+            slot_summary = {}
+            if slots.get('amount'):
+                slot_summary['has_amount'] = True
+                slot_summary['amount_valid'] = isinstance(slots.get('amount'), (int, float))
+            if slots.get('category'):
+                slot_summary['has_category'] = True
+            if slots.get('merchant_text'):
+                slot_summary['has_merchant'] = True
+            
+            event_data['slot_summary'] = slot_summary
+        
+        return log_structured_event('PCA_CC_GENERATED', event_data)
+        
+    except Exception as e:
+        logger.error(f"Failed to log CC generation event: {e}")
+        return False
 
-def log_feature_flag_check(psid_hash: str, feature_name: str, enabled: bool, reason: str) -> None:
+def log_shadow_mode_event(user_id: str, message_text: str, cc_result: Dict[str, Any]) -> bool:
     """
-    Log feature flag checks for debugging.
+    Log SHADOW mode processing events for analysis
     
     Args:
-        psid_hash: User's PSID hash
-        feature_name: Name of the feature flag
-        enabled: Whether the feature is enabled
-        reason: Reason for the decision
+        user_id: User identifier (will be truncated)
+        message_text: Original message (truncated for privacy)
+        cc_result: CC processing result
+        
+    Returns:
+        True if logged successfully
     """
-    event = {
-        'timestamp': datetime.utcnow().isoformat(),
-        'event_type': 'feature_flag_check',
-        'psid_hash': psid_hash[:8] + '...',
-        'feature_name': feature_name,
-        'enabled': enabled,
-        'reason': reason
-    }
-    
-    logger.debug(f"FEATURE_FLAG_CHECK {json.dumps(event)}")
+    try:
+        event_data = {
+            'message_length': len(message_text),
+            'message_preview': message_text[:50] + '...' if len(message_text) > 50 else message_text,
+            'cc_logged': cc_result.get('cc_logged', False),
+            'intent_detected': cc_result.get('intent', 'none'),
+            'confidence': cc_result.get('confidence', 0.0),
+            'processing_time_ms': cc_result.get('processing_time_ms', 0),
+            'error': bool(cc_result.get('error'))
+        }
+        
+        return log_structured_event('PCA_SHADOW_MODE', event_data, user_id)
+        
+    except Exception as e:
+        logger.error(f"Failed to log shadow mode event: {e}")
+        return False
 
-def log_money_detection_fallback(psid_hash: str, text: str, standard_result: bool, 
-                                fallback_result: bool, fallback_reason: str) -> None:
+def log_routing_decision(user_id: str, message_text: str, intent: str, 
+                        routing_path: str, processing_time_ms: float) -> bool:
     """
-    Log money detection fallback usage.
+    Log routing decisions for analysis (compatibility with production router)
     
     Args:
-        psid_hash: User's PSID hash
-        text: Message text (truncated)
-        standard_result: Result from standard money detection
-        fallback_result: Result from fallback detection
-        fallback_reason: Reason for fallback activation
+        user_id: User identifier
+        message_text: Original message 
+        intent: Detected intent
+        routing_path: Which routing path was taken
+        processing_time_ms: Processing time
+        
+    Returns:
+        True if logged successfully
     """
-    event = {
-        'timestamp': datetime.utcnow().isoformat(),
-        'event_type': 'money_detection_fallback',
-        'psid_hash': psid_hash[:8] + '...',
-        'text_preview': text[:50] + '...' if len(text) > 50 else text,
-        'standard_result': standard_result,
-        'fallback_result': fallback_result,
-        'fallback_reason': fallback_reason
-    }
+    try:
+        event_data = {
+            'intent': intent,
+            'routing_path': routing_path,
+            'processing_time_ms': processing_time_ms,
+            'message_length': len(message_text),
+            'message_preview': message_text[:30] + '...' if len(message_text) > 30 else message_text
+        }
+        
+        return log_structured_event('ROUTING_DECISION', event_data, user_id)
+        
+    except Exception as e:
+        logger.error(f"Failed to log routing decision: {e}")
+        return False
+
+def log_money_detection_fallback(user_id: str, message_text: str, 
+                                fallback_reason: str) -> bool:
+    """
+    Log money detection fallback events (compatibility with production router)
     
-    logger.info(f"MONEY_DETECTION_FALLBACK {json.dumps(event)}")
+    Args:
+        user_id: User identifier
+        message_text: Original message
+        fallback_reason: Why money detection fell back
+        
+    Returns:
+        True if logged successfully
+    """
+    try:
+        event_data = {
+            'fallback_reason': fallback_reason,
+            'message_length': len(message_text),
+            'message_preview': message_text[:30] + '...' if len(message_text) > 30 else message_text
+        }
+        
+        return log_structured_event('MONEY_DETECTION_FALLBACK', event_data, user_id)
+        
+    except Exception as e:
+        logger.error(f"Failed to log money detection fallback: {e}")
+        return False

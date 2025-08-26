@@ -106,7 +106,29 @@ class BackgroundProcessor:
                     return
                 
                 try:
-                    # Use production router for all message processing
+                    # PHASE 2: PCA Integration - Process message through PCA system first
+                    pca_result = None
+                    try:
+                        from utils.pca_integration import integrate_pca_with_webhook
+                        from datetime import datetime
+                        
+                        should_continue, pca_result = integrate_pca_with_webhook(
+                            user_id=psid_hash,
+                            message_text=job.text,
+                            message_id=job.mid,
+                            timestamp=datetime.utcnow()
+                        )
+                        
+                        # Log PCA integration result
+                        if pca_result.get('pca_processed'):
+                            logger.info(f"Request {job.rid}: PCA processed - mode={pca_result.get('mode')} "
+                                      f"cc_logged={pca_result.get('cc_logged')} time={pca_result.get('processing_time_ms')}ms")
+                        
+                    except Exception as pca_error:
+                        logger.error(f"Request {job.rid}: PCA integration failed - {str(pca_error)}")
+                        pca_result = {'pca_processed': False, 'error': str(pca_error)}
+                    
+                    # Use production router for all message processing (legacy flow continues)
                     response_text, intent, category, amount = production_router.route_message(
                         job.text, job.psid, job.rid
                     )
