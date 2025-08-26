@@ -123,36 +123,58 @@ class ProductionAIAdapter:
             
             # Prepare request payload
             # Compose system prompt with guardrails
-            base_system_prompt = """You are FinBrain, a friendly AI-powered finance companion that lives inside messaging apps.
+            base_system_prompt = """SYSTEM: You are the AI Interpretation Layer for finbrain (always lowercase).
+Mission: Convert each user message into ONE strict Canonical Command (CC) JSON that is deterministic, auditable, and SAFE.
+Your output drives (a) raw money capture, (b) overlay updates, and (c) clarifier UI.
+Never emit free text—ONLY one JSON object.
 
-Your purpose:
-• Help users log expenses in natural language
-• Provide summaries, reports, and insights about their spending
-• Answer FAQs about how FinBrain works, data privacy, features, and future plans
-• Always be helpful, concise, and conversational
+INVARIANTS:
+- Raw ledger is append-only; you never overwrite/delete it
+- Fail closed: if uncertain or time budget breached, choose RAW_ONLY or HELP
+- Determinism: same input → same output; no randomness
+- ui_note must be ≤ 140 chars (router ensures total message ≤ platform limit)
 
-Tone & Style:
-• Be supportive, clear, and encouraging
-• Never judgmental or scolding — you are a coach, not a critic
-• Use emojis sparingly to make responses feel human and light (✅ ☕ 💡 🎉)
-• Keep answers short (2–4 sentences), unless user explicitly asks for a detailed breakdown
+CANONICAL COMMAND (CC) SCHEMA (pca-v1.2):
+{
+  "schema_version": "pca-v1.2",
+  "cc_id": "auto-generated",
+  "schema_hash": "pca-v1.2-cc-keys", 
+  "user_id": "auto-populated",
+  "intent": "LOG_EXPENSE" | "CORRECT" | "RELABEL" | "VOID" | "QUERY" | "HELP",
+  "slots": {
+    "amount": <number|null>,
+    "currency": "BDT"|"USD"|"EUR"|null,
+    "merchant_text": "<string|null>",
+    "category": "<string|null>",
+    "note": "<string|null>"
+  },
+  "confidence": <0.0 to 1.0>,
+  "decision": "AUTO_APPLY" | "ASK_ONCE" | "RAW_ONLY",
+  "clarifier": {
+    "type": "category_pick" | "none",
+    "options": ["<opt1>", "<opt2>", "<opt3>", "Other"],
+    "prompt": "<=80 chars or empty"
+  },
+  "source_text": "<verbatim user message>",
+  "model_version": "gpt-4o-mini-clarifiers",
+  "ui_note": "<=140 chars human-friendly summary"
+}
 
-Response Structure:
-Every response should follow this 3-beat rhythm:
-1. Acknowledge/confirm (what the user just said or asked)
-2. Answer/log/insight (pull from FinBrain features)
-3. Next-best-action/helpful suggestion (ask if they want a report, insight, or related action)
+DECISION POLICY:
+- If confidence ≥ 0.85 → decision="AUTO_APPLY" (no clarifier)
+- If 0.55 ≤ confidence < 0.85 → decision="ASK_ONCE" with clarifier (3 options + "Other")
+- If confidence < 0.55 and amount exists → decision="RAW_ONLY" (log raw, ask later)
+- If no clear intent → intent="HELP" with brief ui_note
 
-Security:
-• Never ask for bank card numbers, passwords, or PII
-• If user shares something sensitive, respond: "🔒 For your security, please don't share personal or banking details here. FinBrain never stores sensitive financial information."
+UI NOTES (examples):
+- AUTO_APPLY: "Logged ৳500 food at 'Cheez' (yesterday)."
+- ASK_ONCE: "Saved ৳500. Pick a category to confirm."
+- RAW_ONLY: "Saved ৳500; category to confirm."
+- HELP: "I log & correct expenses; say 'fix last entry'."
 
-Multi-Currency Support: Recognize BDT (৳), $, €, £, ₹
+Categories: food, ride, bill, grocery, entertainment, utilities, fees, other
 
-Guardrails:
-• If user asks to "spend more money", clarify gently: "🤔 Did you mean tips to save money, or actually increase your spending?"
-• If unclear, ask for clarification instead of guessing
-• Respond with valid JSON only. Never write to databases."""
+Multi-Currency: Recognize BDT (৳), $, €, £, ₹"""
 
             payload = {
                 "model": "gpt-4o-mini",  # Fast model for production
@@ -360,30 +382,76 @@ Guardrails:
             return {"failover": True, "reason": "parse_error"}
     
     def _build_prompt(self, text: str, context: Dict[str, Any]) -> str:
-        """Build FinBrain AI prompt with coaching tone"""
-        base_prompt = f"""Message: "{text}"
+        """Build CC prompt for confidence scoring & clarifier decisions"""
+        # Import thresholds for decision logic
+        from utils.pca_flags import pca_flags
+        tau_high, tau_low = pca_flags.get_clarifier_thresholds()
+        
+        base_prompt = f"""User Message: "{text}"
 
-As FinBrain, respond with JSON following these examples:
+Output STRICT Canonical Command JSON (no extra text):
 
-Expense logging: "Coffee 50" → {{"intent": "log", "amount": 50, "note": "Coffee", "category": "food", "acknowledgment": "✅ Logged! Coffee ৳50. That's your 3rd coffee this week - want me to suggest a budget target?"}}
+EXAMPLES:
 
-Insight requests: "Any tips?" → {{"intent": "help", "tips": ["💡 I noticed your coffee spend is ৳150 this week. Cutting 1 cup could save you ৳50 weekly - that's ৳2,600 yearly! Try bringing coffee from home twice a week."], "acknowledgment": "Here are some personalized tips based on your spending!"}}
+High confidence (≥{tau_high}): "Starbux 780 yesterday"
+{{
+  "schema_version": "pca-v1.2",
+  "intent": "LOG_EXPENSE",
+  "slots": {{"amount": 780, "currency": "BDT", "merchant_text": "Starbux", "category": "food", "note": "coffee"}},
+  "confidence": 0.93,
+  "decision": "AUTO_APPLY",
+  "clarifier": {{"type": "none", "options": [], "prompt": ""}},
+  "source_text": "{text}",
+  "model_version": "gpt-4o-mini-clarifiers",
+  "ui_note": "Logged ৳780 food at 'Starbux' (yesterday)."
+}}
 
-Summary: "Show my spending" → {{"intent": "summary", "acknowledgment": "Here's your spending overview!"}}
+Mid confidence ({tau_low}-{tau_high}): "bkash 500"
+{{
+  "schema_version": "pca-v1.2",
+  "intent": "LOG_EXPENSE",
+  "slots": {{"amount": 500, "currency": "BDT", "merchant_text": "bkash", "category": null, "note": "payment"}},
+  "confidence": 0.62,
+  "decision": "ASK_ONCE",
+  "clarifier": {{"type": "category_pick", "options": ["utilities", "fees", "other", "Other"], "prompt": "What type of payment?"}},
+  "source_text": "{text}",
+  "model_version": "gpt-4o-mini-clarifiers",
+  "ui_note": "Saved ৳500. Pick a category to confirm."
+}}
 
-Corrections: "Actually 500" → {{"intent": "undo", "amount": 500, "acknowledgment": "✅ Corrected your last expense to ৳500!"}}
+Low confidence (<{tau_low}): "mart payment 1200"
+{{
+  "schema_version": "pca-v1.2",
+  "intent": "LOG_EXPENSE",
+  "slots": {{"amount": 1200, "currency": "BDT", "merchant_text": "mart", "category": null, "note": "payment"}},
+  "confidence": 0.32,
+  "decision": "RAW_ONLY",
+  "clarifier": {{"type": "none", "options": [], "prompt": ""}},
+  "source_text": "{text}",
+  "model_version": "gpt-4o-mini-clarifiers",
+  "ui_note": "Saved ৳1200; category to confirm."
+}}
 
-Always include "acknowledgment" field with coach-style response (2-3 sentences max).
-For tips: provide 1-2 specific, actionable money-saving strategies (50-100 words each).
-For contradictions like "spend more": {{"intent": "help", "acknowledgment": "🤔 Did you mean tips to save money, or actually increase your spending? Just want to point my advice in the right direction! 💡"}}
+Help/unclear: "what can you do"
+{{
+  "schema_version": "pca-v1.2",
+  "intent": "HELP",
+  "slots": {{}},
+  "confidence": 1.0,
+  "decision": "AUTO_APPLY",
+  "clarifier": {{"type": "none", "options": [], "prompt": ""}},
+  "source_text": "{text}",
+  "model_version": "gpt-4o-mini-clarifiers",
+  "ui_note": "I log & correct expenses; say 'fix last entry'."
+}}
 
-Categories: food, ride, bill, grocery, other
-Currencies: ৳ (BDT), $, €, £, ₹"""
+Categories: food, ride, bill, grocery, entertainment, utilities, fees, other
+ALWAYS: ui_note ≤140 chars, source_text verbatim, confidence 0.0-1.0"""
         
         # Ensure prompt stays under limit
-        if len(base_prompt) > 1000:
+        if len(base_prompt) > 1400:
             # Truncate message if needed
-            max_msg_len = 1000 - (len(base_prompt) - len(text))
+            max_msg_len = 1400 - (len(base_prompt) - len(text))
             if max_msg_len > 0:
                 truncated_text = text[:max_msg_len]
                 base_prompt = base_prompt.replace(f'"{text}"', f'"{truncated_text}"')
@@ -391,56 +459,115 @@ Currencies: ৳ (BDT), $, €, £, ₹"""
         return base_prompt
     
     def _validate_ai_response(self, ai_response: Dict[str, Any], duration_ms: float) -> Dict[str, Any]:
-        """Validate and clean AI response"""
+        """Validate and clean Canonical Command response"""
         try:
-            # Ensure required fields
+            from utils.pca_flags import pca_flags
+            
+            # Check if this is legacy format vs CC format
+            if "schema_version" not in ai_response:
+                # Legacy format - convert to minimal CC for backward compatibility
+                return self._convert_legacy_response(ai_response, duration_ms)
+            
+            # Validate CC schema
             validated = {
-                "intent": ai_response.get("intent", "help"),
+                "schema_version": ai_response.get("schema_version", "pca-v1.2"),
+                "intent": ai_response.get("intent", "HELP"),
+                "confidence": float(ai_response.get("confidence", 0.5)),
+                "decision": ai_response.get("decision", "RAW_ONLY"),
+                "source_text": str(ai_response.get("source_text", ""))[:500],
+                "model_version": ai_response.get("model_version", "gpt-4o-mini-clarifiers"),
+                "ui_note": str(ai_response.get("ui_note", ""))[:140],  # Enforce 140 char limit
                 "failover": False,
                 "duration_ms": duration_ms * 1000
             }
             
             # Validate intent
-            valid_intents = ["log", "summary", "help", "undo"]
+            valid_intents = ["LOG_EXPENSE", "CORRECT", "RELABEL", "VOID", "QUERY", "HELP"]
             if validated["intent"] not in valid_intents:
-                validated["intent"] = "help"
+                validated["intent"] = "HELP"
             
-            # Clean optional fields
-            if "amount" in ai_response:
-                try:
-                    validated["amount"] = float(ai_response["amount"])
-                except (ValueError, TypeError):
-                    pass
+            # Validate decision
+            valid_decisions = ["AUTO_APPLY", "ASK_ONCE", "RAW_ONLY"]
+            if validated["decision"] not in valid_decisions:
+                validated["decision"] = "RAW_ONLY"
             
-            if "note" in ai_response and ai_response["note"]:
-                validated["note"] = str(ai_response["note"])[:100]  # Cap length
+            # Validate confidence range
+            if not (0.0 <= validated["confidence"] <= 1.0):
+                validated["confidence"] = 0.5
             
-            if "category" in ai_response and ai_response["category"]:
-                category = str(ai_response["category"]).lower()
-                valid_categories = ["food", "ride", "bill", "grocery", "other"]
-                if category in valid_categories:
-                    validated["category"] = category
+            # Validate slots
+            slots = ai_response.get("slots", {})
+            if isinstance(slots, dict):
+                validated_slots = {}
+                if "amount" in slots:
+                    try:
+                        validated_slots["amount"] = float(slots["amount"])
+                    except (ValueError, TypeError):
+                        pass
+                
+                if "currency" in slots and slots["currency"]:
+                    currency = str(slots["currency"]).upper()
+                    valid_currencies = ["BDT", "USD", "EUR", "GBP", "INR"]
+                    if currency in valid_currencies:
+                        validated_slots["currency"] = currency
+                
+                if "category" in slots and slots["category"]:
+                    category = str(slots["category"]).lower()
+                    valid_categories = ["food", "ride", "bill", "grocery", "entertainment", "utilities", "fees", "other"]
+                    if category in valid_categories:
+                        validated_slots["category"] = category
+                
+                if "merchant_text" in slots and slots["merchant_text"]:
+                    validated_slots["merchant_text"] = str(slots["merchant_text"])[:100]
+                
+                if "note" in slots and slots["note"]:
+                    validated_slots["note"] = str(slots["note"])[:200]
+                
+                validated["slots"] = validated_slots
+            
+            # Validate clarifier
+            clarifier = ai_response.get("clarifier", {})
+            if isinstance(clarifier, dict):
+                validated_clarifier = {
+                    "type": str(clarifier.get("type", "none")),
+                    "options": clarifier.get("options", []),
+                    "prompt": str(clarifier.get("prompt", ""))[:80]
+                }
+                
+                # Validate clarifier type
+                valid_clarifier_types = ["category_pick", "none"]
+                if validated_clarifier["type"] not in valid_clarifier_types:
+                    validated_clarifier["type"] = "none"
+                
+                # Validate options
+                if not isinstance(validated_clarifier["options"], list):
+                    validated_clarifier["options"] = []
                 else:
-                    validated["category"] = "other"
-            
-            if "tips" in ai_response and isinstance(ai_response["tips"], list):
-                # Keep only first 2 tips, max 50 chars each
-                tips = []
-                for tip in ai_response["tips"][:2]:
-                    if isinstance(tip, str) and tip.strip():
-                        tips.append(str(tip)[:400])  # Doubled from 200 to 400 chars for comprehensive advice
-                if tips:
-                    validated["tips"] = tips
-            
-            # Handle acknowledgment field for coach-style responses
-            if "acknowledgment" in ai_response and ai_response["acknowledgment"]:
-                validated["acknowledgment"] = str(ai_response["acknowledgment"])[:280]  # Max 280 chars
+                    # Limit to 4 options max, 20 chars each
+                    validated_clarifier["options"] = [
+                        str(opt)[:20] for opt in validated_clarifier["options"][:4]
+                    ]
+                
+                validated["clarifier"] = validated_clarifier
             
             return validated
             
         except Exception as e:
-            logger.error(f"AI response validation error: {e}")
-            return {"failover": True, "reason": "validation_error"}
+            logger.error(f"CC validation error: {e}")
+            return {"failover": True, "reason": "cc_validation_error"}
+    
+    def _convert_legacy_response(self, legacy_response: Dict[str, Any], duration_ms: float) -> Dict[str, Any]:
+        """Convert legacy response format to CC format for backward compatibility"""
+        return {
+            "schema_version": "legacy-compat",
+            "intent": "HELP",
+            "confidence": 0.5,
+            "decision": "AUTO_APPLY",
+            "ui_note": legacy_response.get("acknowledgment", "I help with expenses")[:140],
+            "failover": False,
+            "duration_ms": duration_ms * 1000,
+            "legacy_data": legacy_response
+        }
     
     def ai_mode(self, text: str) -> bool:
         """

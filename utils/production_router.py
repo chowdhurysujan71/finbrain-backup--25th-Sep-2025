@@ -277,18 +277,36 @@ class ProductionRouter:
                     logger.error(f"Correction handling failed: {e}")
                     # Fall through to regular expense logging as fallback
                     
-            # Step 2: AI ROUTING FIRST - No legacy short-circuit, AI has priority
+            # Step 2: AI ROUTING FIRST - Enhanced with CC Decision Tree (Phase 2)
             # Check if this looks like an expense for AI routing
             money_detected = contains_money_with_correction_fallback(text, user_hash)
             
             if money_detected:
-                # Try AI parsing first (always enabled)
+                # Try CC-based AI routing first (always enabled)
+                try:
+                    cc_result = self._route_cc_decision(text, psid, user_hash, rid)
+                    if cc_result:
+                        response, intent, category, amount = cc_result
+                        self._emit_structured_telemetry(rid, user_hash, "LOG", "cc_routing_success", {
+                            'amount': amount,
+                            'category': category,
+                            'cc_enabled': True
+                        })
+                        self._record_processing_time(time.time() - start_time)
+                        return normalize(response), intent, category, amount
+                    else:
+                        logger.debug("CC routing returned no result, falling back to legacy AI")
+                        
+                except Exception as e:
+                    logger.error(f"CC routing failed: {e}, falling back to legacy AI")
+                
+                # Legacy AI fallback if CC routing fails
                 try:
                     from handlers.expense import handle_multi_expense_logging
                     result = handle_multi_expense_logging(user_hash, rid, text, datetime.utcnow())
                     
                     if result.get('intent') in ['log_single', 'log_multi']:
-                        self._emit_structured_telemetry(rid, user_hash, "LOG", "ai_routing_success", {
+                        self._emit_structured_telemetry(rid, user_hash, "LOG", "legacy_ai_fallback", {
                             'amount': result.get('amount'),
                             'category': result.get('category'),
                             'multi_expense': result.get('intent') == 'log_multi'
@@ -296,11 +314,11 @@ class ProductionRouter:
                         self._record_processing_time(time.time() - start_time)
                         return normalize(result['text']), result['intent'], result.get('category'), result.get('amount')
                     else:
-                        # AI couldn't parse, fall through to legacy
-                        logger.warning(f"AI parsing failed, falling back to legacy for: {text[:50]}...")
+                        # AI couldn't parse, fall through to regex
+                        logger.warning(f"Legacy AI parsing failed, falling back to regex for: {text[:50]}...")
                         
                 except Exception as e:
-                    logger.error(f"AI routing failed: {e}, falling back to legacy")
+                    logger.error(f"Legacy AI routing failed: {e}, falling back to regex")
                 
                 # Legacy fallback only if AI fails  
                 parsed_data = parse_amount_currency_category(text)
@@ -816,6 +834,122 @@ class ProductionRouter:
             amount = expense.get('amount')
         
         return response, "ai_expense_logged", category, amount
+    
+    def _route_cc_decision(self, text: str, psid: str, psid_hash: str, rid: str) -> Optional[Tuple[str, str, Optional[str], Optional[float]]]:
+        """Route based on Canonical Command decision logic (Phase 2)"""
+        try:
+            from utils.ai_adapter_v2 import production_ai_adapter
+            from utils.pca_flags import pca_flags
+            
+            # Get CC from AI adapter
+            ai_result = production_ai_adapter.ai_parse(text, {'user_id': psid_hash})
+            
+            # Check if we got a valid CC response
+            if ai_result.get('failover') or 'decision' not in ai_result:
+                logger.debug(f"No valid CC from AI: failover={ai_result.get('failover')}")
+                return None
+            
+            decision = ai_result.get('decision')
+            confidence = ai_result.get('confidence', 0.0)
+            ui_note = ai_result.get('ui_note', '')
+            
+            self._log_routing_decision(rid, psid_hash, "cc_decision", f"decision={decision}, conf={confidence:.2f}")
+            
+            # Extract slot data for expense logging
+            slots = ai_result.get('slots', {})
+            amount = slots.get('amount')
+            category = slots.get('category')
+            note = slots.get('note', '')
+            merchant_text = slots.get('merchant_text', '')
+            
+            # Handle decision tree (Phase 2: clarifiers disabled, so ASK_ONCE → AUTO_APPLY)
+            if decision == "AUTO_APPLY":
+                # High confidence - direct save
+                if amount and amount > 0:
+                    success = self._save_cc_expense(psid_hash, amount, category, note, merchant_text, text, rid)
+                    if success:
+                        return ui_note or f"✅ Logged ৳{amount:.0f} for {category or 'expense'}", "log_single", category, amount
+                    else:
+                        return "Failed to log expense, please try again.", "error", None, None
+                else:
+                    return ui_note or "I need an amount to log this expense.", "help", None, None
+                    
+            elif decision == "ASK_ONCE":
+                # Mid confidence - in Phase 2, treat as AUTO_APPLY since clarifiers disabled
+                if not pca_flags.should_enable_clarifiers():
+                    # Clarifiers disabled - auto-apply anyway
+                    if amount and amount > 0:
+                        success = self._save_cc_expense(psid_hash, amount, category, note, merchant_text, text, rid)
+                        if success:
+                            # Use the CC ui_note for response
+                            return ui_note or f"✅ Logged ৳{amount:.0f} for {category or 'expense'}", "log_single", category, amount
+                        else:
+                            return "Failed to log expense, please try again.", "error", None, None
+                    else:
+                        return ui_note or "I need an amount to log this expense.", "help", None, None
+                else:
+                    # Phase 3+: Render clarifier UI
+                    return self._render_clarifier_response(ai_result, psid_hash, rid)
+                    
+            elif decision == "RAW_ONLY":
+                # Low confidence - save raw, ask for clarification later
+                if amount and amount > 0:
+                    # Save as raw transaction with minimal categorization
+                    success = self._save_cc_expense(psid_hash, amount, "other", note or "Raw expense", merchant_text, text, rid)
+                    if success:
+                        return ui_note or f"✅ Saved ৳{amount:.0f} (will categorize later)", "log_single", "other", amount
+                    else:
+                        return "Failed to save expense, please try again.", "error", None, None
+                else:
+                    return ui_note or "I see an expense but need a clear amount.", "help", None, None
+            
+            else:
+                # Unknown decision or HELP intent
+                return ui_note or "I'm here to help! Try something like 'coffee 50' to log expenses.", "help", None, None
+                
+        except Exception as e:
+            logger.error(f"CC decision routing failed: {e}")
+            return None
+    
+    def _save_cc_expense(self, user_hash: str, amount: float, category: str, note: str, merchant_text: str, original_text: str, rid: str) -> bool:
+        """Save expense from CC data"""
+        try:
+            from utils.db import save_expense
+            
+            # Create description from available data
+            description_parts = []
+            if merchant_text:
+                description_parts.append(merchant_text)
+            if note and note != merchant_text:
+                description_parts.append(note)
+            if not description_parts:
+                description_parts.append(f"{category or 'expense'}")
+            
+            description = " - ".join(description_parts)
+            
+            save_expense(
+                user_identifier=user_hash,
+                description=description,
+                amount=amount,
+                category=category or "other",
+                platform="facebook",
+                original_message=original_text,
+                unique_id=rid
+            )
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to save CC expense: {e}")
+            return False
+    
+    def _render_clarifier_response(self, cc_data: Dict[str, Any], user_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+        """Render clarifier UI (Phase 3+) - placeholder for now"""
+        # Phase 2: clarifiers disabled, should not reach here
+        # Phase 3+: will implement clarifier chip rendering
+        ui_note = cc_data.get('ui_note', 'Saved expense, please confirm category.')
+        slots = cc_data.get('slots', {})
+        return ui_note, "clarification_needed", slots.get('category'), slots.get('amount')
     
     def _route_ai_conversation(self, text: str, psid: str, psid_hash: str, rid: str, rate_limit_result) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Route to AI for natural conversation (NOT expense parsing)"""

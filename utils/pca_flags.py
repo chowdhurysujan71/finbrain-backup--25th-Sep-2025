@@ -31,12 +31,21 @@ class PCAFlags:
         self.slo_budget_ms = int(os.environ.get('PCA_SLO_BUDGET_MS', '600'))
         self.canary_users = self._get_canary_users()
         self.global_kill_switch = os.environ.get('PCA_KILL_SWITCH', 'false').lower() == 'true'
+        self.enable_clarifiers = os.environ.get('ENABLE_CLARIFIERS', 'false').lower() == 'true'
+        
+        # Validate thresholds
+        if self.tau_high <= self.tau_low:
+            logger.warning(f"Invalid thresholds: tau_high({self.tau_high}) <= tau_low({self.tau_low}), "
+                         f"adjusting to safe defaults")
+            self.tau_high = 0.85
+            self.tau_low = 0.55
         
         # Log configuration at startup
         logger.info(f"PCA Flags initialized: mode={self.mode.value}, "
                    f"tau_high={self.tau_high}, tau_low={self.tau_low}, "
                    f"slo_budget_ms={self.slo_budget_ms}, "
-                   f"global_kill={self.global_kill_switch}")
+                   f"global_kill={self.global_kill_switch}, "
+                   f"clarifiers={self.enable_clarifiers}")
     
     def _get_pca_mode(self) -> PCAMode:
         """Get PCA mode from environment with validation"""
@@ -102,6 +111,16 @@ class PCAFlags:
         """Check if CC snapshots should be logged"""
         return self.mode in [PCAMode.SHADOW, PCAMode.DRYRUN, PCAMode.ON] and not self.global_kill_switch
     
+    def should_enable_clarifiers(self) -> bool:
+        """Check if clarifier UI should be active"""
+        return (self.enable_clarifiers and 
+                self.mode in [PCAMode.DRYRUN, PCAMode.ON] and 
+                not self.global_kill_switch)
+    
+    def get_clarifier_thresholds(self) -> tuple:
+        """Get clarifier decision thresholds for confidence scoring"""
+        return self.tau_high, self.tau_low
+    
     def get_status(self) -> Dict[str, Any]:
         """Get current PCA status for monitoring"""
         return {
@@ -113,7 +132,9 @@ class PCAFlags:
             'canary_user_count': len(self.canary_users),
             'overlays_enabled': self.should_write_overlays(),
             'snapshots_enabled': self.should_log_snapshots(),
-            'version': 'pca-v1'
+            'clarifiers_enabled': self.should_enable_clarifiers(),
+            'enable_clarifiers_flag': self.enable_clarifiers,
+            'version': 'pca-v1.1-clarifiers'
         }
 
 # Global instance
