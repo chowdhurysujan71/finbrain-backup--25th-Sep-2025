@@ -24,6 +24,7 @@ def extract_category_from_query(text: str) -> Optional[str]:
         
         # Transport categories  
         "transport": "transport", "transportation": "transport", "travel": "transport",
+        "rides": "transport", "ride": "transport", "riding": "transport",
         "uber": "transport", "taxi": "transport", "bus": "transport", "train": "transport",
         "gas": "transport", "fuel": "transport", "parking": "transport",
         
@@ -139,13 +140,24 @@ def handle_category_breakdown(user_id: str, text: str) -> Dict[str, str]:
         }.get(timeframe, "this month")
         
         with app.app_context():
+            # For transport category, search for both "transport" and "ride" categories
+            if category == "transport":
+                category_filter = (
+                    Expense.category.ilike('%transport%') |
+                    Expense.category.ilike('%ride%') |
+                    Expense.category.ilike('%taxi%') |
+                    Expense.category.ilike('%uber%')
+                )
+            else:
+                category_filter = Expense.category.ilike(f"%{category}%")
+            
             # Query expenses for the specific category and timeframe
             result = db.session.query(
                 func.coalesce(func.sum(Expense.amount), 0).label('total'),
                 func.count(Expense.id).label('count')
             ).filter(
                 Expense.user_id == user_id,
-                Expense.category.ilike(f"%{category}%"),  # Case-insensitive partial match
+                category_filter,
                 Expense.created_at >= start,
                 Expense.created_at < end
             ).first()
