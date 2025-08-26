@@ -337,6 +337,20 @@ class ProductionRouter:
             from utils.dispatcher import handle_message_dispatch
             
             intent = detect_intent(text)
+            
+            # Step 3.1: Handle category-specific breakdown queries
+            if intent == "CATEGORY_BREAKDOWN":
+                try:
+                    from handlers.category_breakdown import handle_category_breakdown
+                    result = handle_category_breakdown(user_hash, text)
+                    response = result.get('text', 'Unable to get category breakdown')
+                    self._emit_structured_telemetry(rid, user_hash, "CATEGORY", "breakdown_success", {})
+                    self._log_routing_decision(rid, user_hash, "category", "breakdown_provided")
+                    self._record_processing_time(time.time() - start_time)
+                    return normalize(response), "category_breakdown", None, None
+                except Exception as e:
+                    logger.error(f"Category breakdown failed: {e}")
+                    # Fall through to regular summary as fallback
             upgrade_reason = None
             
             # Step 3.1: Check for intent upgrade (SUMMARY/LOG → INSIGHT)

@@ -25,49 +25,104 @@ def log_reply_banner(intent: str, psid_hash: str):
 
 # AI Expense Logging Templates
 def format_ai_single_expense_reply(amount: float, category: str, currency: str = "BDT") -> str:
-    """AI-style reply for single expense logging"""
+    """AI-style reply for single expense logging with natural language variation"""
+    import random
+    
     currency_symbol = {
         'BDT': '৳', 'USD': '$', 'EUR': '€', 'GBP': '£', 'INR': '₹'
     }.get(currency, currency)
     
-    variations = [
-        f"✅ Got it! Logged {currency_symbol}{amount:.0f} for {category}.",
-        f"Perfect! Added {currency_symbol}{amount:.0f} to your {category} expenses.",
-        f"Done! {currency_symbol}{amount:.0f} for {category} is saved.",
-        f"✅ Noted: {currency_symbol}{amount:.0f} spent on {category}."
+    # Main confirmation variations
+    base_variations = [
+        f"✅ Got it! Logged {currency_symbol}{amount:.0f} for {category}",
+        f"Perfect! Added {currency_symbol}{amount:.0f} to your {category} expenses",
+        f"Done! {currency_symbol}{amount:.0f} for {category} is saved",
+        f"✅ Noted: {currency_symbol}{amount:.0f} spent on {category}",
+        f"All set! {currency_symbol}{amount:.0f} {category} recorded",
+        f"Tracked! {currency_symbol}{amount:.0f} {category} expense saved"
     ]
     
-    # Use amount as seed for consistent variation selection
-    return variations[int(amount) % len(variations)]
+    # Friendly closings that vary naturally
+    closings = [
+        ". Keep tracking! 💪",
+        ". Thanks for staying on top of your expenses!",
+        ". Great job keeping records! 📊",
+        ". Your financial awareness is awesome! 🌟", 
+        ". Keep up the excellent tracking!",
+        ". Nice work staying organized! ✨",
+        ". Thanks for the update!",
+        ". Way to stay mindful of spending!",
+        ". Your budget thanks you! 💚"
+    ]
+    
+    base_response = random.choice(base_variations)
+    closing = random.choice(closings)
+    
+    return f"{base_response}{closing}"
 
 def format_ai_multi_expense_reply(expenses: List[Dict[str, Any]], total_amount: float) -> str:
-    """AI-style reply for multiple expense logging"""
+    """AI-style reply for multiple expense logging with natural variation"""
+    import random
+    
     if len(expenses) <= 1:
         return format_ai_single_expense_reply(expenses[0]['amount'], expenses[0]['category'])
     
     expense_list = "; ".join([f"৳{exp['amount']:.0f} {exp['category']}" for exp in expenses])
     
-    variations = [
+    base_variations = [
         f"✅ Logged: {expense_list}. Total: ৳{total_amount:.0f}",
         f"Got all of them! {expense_list} (৳{total_amount:.0f} total)",
         f"Perfect! Saved {len(expenses)} expenses: {expense_list}",
-        f"✅ Done: {expense_list}. Running total: ৳{total_amount:.0f}"
+        f"✅ Done: {expense_list}. Running total: ৳{total_amount:.0f}",
+        f"All tracked! {expense_list} - ৳{total_amount:.0f} total",
+        f"Excellent! {len(expenses)} expenses saved: {expense_list}"
     ]
     
-    return variations[len(expenses) % len(variations)]
+    # Friendly closings for multi-expense
+    closings = [
+        " Great expense discipline! 🎯",
+        " Thanks for the detailed tracking!",
+        " Your organization skills are impressive! ⭐",
+        " Keep up this excellent habit!",
+        " Amazing expense awareness! 💪"
+    ]
+    
+    base_response = random.choice(base_variations)
+    closing = random.choice(closings)
+    
+    return f"{base_response}{closing}"
 
 # AI Summary Templates  
 def format_ai_summary_reply(period: str, total_amount: float, total_entries: int, 
                            categories: Optional[List[str]] = None) -> str:
-    """AI-style summary with coaching tone"""
+    """AI-style summary with coaching tone and natural variation"""
+    import random
     
     if total_amount == 0:
-        return f"📊 No expenses tracked this {period.lower()} yet. Ready to start logging?"
+        no_data_responses = [
+            f"📊 No expenses tracked this {period.lower()} yet. Ready to start logging?",
+            f"📊 Clean slate this {period.lower()}! Time to track some expenses?",
+            f"📊 Nothing logged this {period.lower()} - let's get started!",
+            f"📊 Fresh start this {period.lower()}! Ready to track your spending?"
+        ]
+        return random.choice(no_data_responses)
     
-    # Main summary
-    summary = f"📊 This {period.lower()}: ৳{total_amount:.0f} across {total_entries} expense"
+    # Main summary with variations
+    summary_templates = [
+        f"📊 This {period.lower()}: ৳{total_amount:.0f} across {total_entries} expense",
+        f"📊 {period.title()} summary: ৳{total_amount:.0f} in {total_entries} transaction",
+        f"📊 Your {period.lower()}: ৳{total_amount:.0f} over {total_entries} expense",
+        f"📊 Quick {period.lower()} recap: ৳{total_amount:.0f} across {total_entries} entry"
+    ]
+    
+    summary = random.choice(summary_templates)
     if total_entries != 1:
         summary += "s"
+    
+    # Add spending across categories if available
+    if categories and len(categories) > 1:
+        category_text = f". Spending across {len(categories)} categories"
+        summary += category_text
     summary += "."
     
     # Add categories if available
@@ -79,13 +134,42 @@ def format_ai_summary_reply(period: str, total_amount: float, total_entries: int
             summary += f" Spending across {len(categories)} categories."
     
     
-    # Add coaching insights
+    # Add coaching insights with natural variation
     if total_amount > 5000:
-        summary += "\n\n💡 Heavy spending period - want insights to optimize?"
+        coaching_tips = [
+            "\n\n💡 Heavy spending period - want insights to optimize?",
+            "\n\n💡 That's quite a bit - interested in some tips to trim costs?",
+            "\n\n📊 Big spending month - let me know if you want analysis!"
+        ]
+        summary += random.choice(coaching_tips)
     elif total_amount > 2000:
-        summary += "\n\n📈 Solid tracking! Type 'insight' for spending analysis."
+        medium_tips = [
+            "\n\n📈 Solid tracking! Type 'insight' for spending analysis.",
+            "\n\n📊 Nice spending discipline! Want deeper insights?",
+            "\n\n💪 Good financial awareness - need any optimization tips?"
+        ]
+        summary += random.choice(medium_tips)
     else:
-        summary += "\n\n✅ Great job staying mindful of your spending!"
+        positive_tips = [
+            "\n\n✅ Great job staying mindful of your spending!",
+            "\n\n🌟 Excellent expense control - keep it up!",
+            "\n\n💚 Love your spending discipline!"
+        ]
+        summary += random.choice(positive_tips)
+    
+    # Add friendly "check back again" closings that vary naturally
+    friendly_closings = [
+        " Feel free to check back anytime! 😊",
+        " Check back again soon for updates!",
+        " Hope that helps - come back anytime!",
+        " Always here when you need spending insights!",
+        " Thanks for staying on top of your finances!",
+        " Keep up the great work and check in again soon!",
+        " Your financial awareness is impressive - see you next time!",
+        " Thanks for tracking with me - until next time! 🚀"
+    ]
+    
+    summary += random.choice(friendly_closings)
     
     return summary
 
@@ -101,11 +185,32 @@ def format_ai_insight_reply(insights: List[str], total_amount: Optional[float] =
     
     insight_text = "You asked for an analysis. Here's a quick read on your spending...\n\n💡 Here's what I noticed:\n" + "\n".join(f"• {insight}" for insight in insights)
     
-    # Add encouraging coaching
+    # Add encouraging coaching with friendly closings
     if total_amount and total_amount > 3000:
-        insight_text += "\n\n🚀 Small changes can make a big difference. Which area feels easiest to start with?"
+        insight_closings = [
+            "\n\n🚀 Small changes can make a big difference. Which area feels easiest to start with?",
+            "\n\n💡 Want to tackle any of these areas? I'm here to help!",
+            "\n\n🎯 Ready to optimize? Let me know where you'd like to focus!"
+        ]
+        insight_text += random.choice(insight_closings)
     else:
-        insight_text += "\n\n✨ You're building great financial awareness!"
+        positive_closings = [
+            "\n\n✨ You're building great financial awareness!",
+            "\n\n💪 Your spending discipline is impressive!",
+            "\n\n🌟 Keep up this excellent financial mindfulness!"
+        ]
+        insight_text += random.choice(positive_closings)
+    
+    # Add natural "check back again" closings
+    check_back_closings = [
+        " Check back anytime for fresh insights!",
+        " Feel free to ask for analysis again soon!",
+        " Always here when you need spending guidance!",
+        " Come back anytime for more financial insights!",
+        " Thanks for staying financially aware - see you next time!"
+    ]
+    
+    insight_text += random.choice(check_back_closings)
     
     return insight_text
 
@@ -118,14 +223,26 @@ def format_ai_corrected_reply(old_amount: float, old_currency: str, new_amount: 
     
     merchant_part = f" at {merchant}" if merchant else ""
     
-    variations = [
+    base_variations = [
         f"✅ Corrected: {old_symbol}{old_amount} → {new_symbol}{new_amount} for {category}{merchant_part}",
         f"Fixed! Updated from {old_symbol}{old_amount} to {new_symbol}{new_amount} for {category}{merchant_part}",
         f"Got it! Changed {category} expense: {old_symbol}{old_amount} → {new_symbol}{new_amount}{merchant_part}",
         f"✅ Updated: {category} expense now {new_symbol}{new_amount} (was {old_symbol}{old_amount}){merchant_part}"
     ]
     
-    return variations[int(float(new_amount)) % len(variations)]
+    friendly_endings = [
+        " Thanks for keeping your records accurate!",
+        " Great attention to detail!",
+        " Love the precision! 📊",
+        " Perfect - accuracy matters!",
+        " Nice catch on that correction!"
+    ]
+    
+    import random
+    base = random.choice(base_variations)
+    ending = random.choice(friendly_endings)
+    
+    return f"{base}{ending}"
 
 def format_ai_correction_no_candidate_reply(amount: Decimal, currency: str, category: str) -> str:
     """AI-style reply when no correction candidate found"""

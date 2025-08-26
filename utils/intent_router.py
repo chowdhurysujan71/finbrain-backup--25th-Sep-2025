@@ -30,11 +30,34 @@ def detect_intent(text: str) -> str:
     if "budget" in text_lower or "spending status" in text_lower:
         return "SUMMARY"
     
+    # Category-specific queries - New intent type for specific category breakdowns
+    category_keywords = [
+        "food", "transport", "transportation", "groceries", "grocery", "dining", "restaurant",
+        "coffee", "entertainment", "shopping", "gas", "fuel", "uber", "taxi", "bills",
+        "utilities", "rent", "housing", "health", "medical", "pharmacy", "clothes", "clothing"
+    ]
+    
+    # Check for category-specific spending queries
+    category_query_patterns = [
+        "how much did i spend on", "what did i spend on", "how much on",
+        "spent on", "spending on", "expenses on", "cost of", "total for"
+    ]
+    
+    if any(pattern in text_lower for pattern in category_query_patterns):
+        for category in category_keywords:
+            if category in text_lower:
+                return "CATEGORY_BREAKDOWN"
+    
+    # Check for "food this month", "transport this week" pattern
+    if any(category in text_lower for category in category_keywords):
+        if any(timeframe in text_lower for timeframe in ["this month", "this week", "last week", "last month", "today", "yesterday"]):
+            return "CATEGORY_BREAKDOWN"
+
     # Summary commands - Enhanced to catch natural questions
     summary_patterns = [
         "summary", "total", "spent", "spending", "recap", "report", 
-        "how much", "show me", "expenses", "overview", "costs", "spend",
-        # Natural questions that should be summaries
+        "show me", "expenses", "overview", "costs", "spend",
+        # Natural questions that should be summaries (excluding specific category queries)
         "what did i spend", "what have i spent", "how much did i spend",
         "my expenses", "expenses this", "expenses last", "expenses for",
         "yesterday", "today", "this week", "last week", "this month"
