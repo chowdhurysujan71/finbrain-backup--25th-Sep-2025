@@ -61,6 +61,147 @@ class ProductionAIAdapter:
         """Compose system prompt with messaging guardrails prepended"""
         return f"{MESSAGING_GUARDRAIL_PROMPT}\n\n{base_prompt}"
     
+    def generate_insights(self, expenses_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate AI-powered spending insights and recommendations
+        
+        Args:
+            expenses_data: Dictionary containing user's expense data and context
+            
+        Returns:
+            Dict with insights, tips, and analysis
+        """
+        if not self.enabled:
+            return {"failover": True, "reason": "ai_disabled"}
+        
+        # Route to appropriate provider
+        if self.provider == "gemini":
+            return self._generate_insights_gemini(expenses_data)
+        elif self.provider == "openai":
+            return self._generate_insights_openai(expenses_data)
+        else:
+            return {"failover": True, "reason": "unsupported_provider"}
+    
+    def _generate_insights_gemini(self, expenses_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate insights using Gemini API"""
+        try:
+            # Extract data for prompt
+            total_amount = expenses_data.get('total_amount', 0)
+            expenses = expenses_data.get('expenses', [])
+            timeframe = expenses_data.get('timeframe', 'this month')
+            
+            # Build expense breakdown text
+            expense_breakdown = ""
+            if expenses:
+                expense_breakdown = "\n".join([
+                    f"• {exp.get('category', 'Uncategorized')}: ৳{exp.get('total', 0):,.0f} ({exp.get('percentage', 0):.1f}%)"
+                    for exp in expenses[:8]  # Top 8 categories
+                ])
+            else:
+                expense_breakdown = "No expenses found for this period"
+            
+            # Construct insights prompt
+            insights_prompt = f"""Analyze these spending patterns and provide 3-4 actionable financial insights:
+
+SPENDING SUMMARY ({timeframe}):
+Total: ৳{total_amount:,.0f}
+Breakdown:
+{expense_breakdown}
+
+Provide insights in this JSON format:
+{{
+  "insights": [
+    "insight 1: specific observation with actionable advice",
+    "insight 2: spending pattern with optimization tip", 
+    "insight 3: budget recommendation or saving opportunity"
+  ],
+  "tone": "encouraging",
+  "focus_area": "highest impact category for optimization"
+}}
+
+Make insights:
+- Specific to their spending patterns
+- Actionable (clear next steps)
+- Encouraging and positive
+- Bengali context-aware (mention local alternatives/tips when relevant)
+- 1-2 sentences each, max 50 words per insight"""
+
+            # Prepare API request
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={GEMINI_API_KEY}"
+            
+            payload = {
+                "contents": [{
+                    "parts": [{
+                        "text": insights_prompt
+                    }]
+                }],
+                "generationConfig": {
+                    "temperature": 0.3,
+                    "maxOutputTokens": 800,
+                    "topP": 0.8
+                }
+            }
+            
+            # Make request with timeout
+            response = self.session.post(url, json=payload, timeout=AI_TIMEOUT)
+            
+            if response.status_code != 200:
+                logger.warning(f"Gemini insights API error: {response.status_code}")
+                return {"failover": True, "reason": f"api_error_{response.status_code}"}
+            
+            # Parse response
+            data = response.json()
+            candidates = data.get('candidates', [])
+            
+            if not candidates:
+                return {"failover": True, "reason": "no_candidates"}
+            
+            content = candidates[0].get('content', {})
+            parts = content.get('parts', [])
+            
+            if not parts:
+                return {"failover": True, "reason": "no_content"}
+            
+            ai_text = parts[0].get('text', '').strip()
+            
+            # Try to parse JSON response
+            try:
+                import json
+                insights_json = json.loads(ai_text)
+                return {
+                    "success": True,
+                    "insights": insights_json.get("insights", []),
+                    "focus_area": insights_json.get("focus_area", "spending optimization"),
+                    "raw_response": ai_text
+                }
+            except json.JSONDecodeError:
+                # Fallback: extract insights from text
+                insights = []
+                lines = ai_text.split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if line and not line.startswith('{') and not line.startswith('}'):
+                        if line.startswith('•') or line.startswith('-') or line.startswith('*'):
+                            insights.append(line[1:].strip())
+                        elif len(line) > 20 and len(line) < 200:  # Reasonable insight length
+                            insights.append(line)
+                
+                return {
+                    "success": True,
+                    "insights": insights[:4],  # Max 4 insights
+                    "focus_area": "spending optimization",
+                    "raw_response": ai_text
+                }
+                
+        except Exception as e:
+            logger.error(f"Gemini insights generation failed: {e}")
+            return {"failover": True, "reason": f"exception: {str(e)[:50]}"}
+    
+    def _generate_insights_openai(self, expenses_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate insights using OpenAI API (fallback)"""
+        # Similar implementation for OpenAI if needed
+        return {"failover": True, "reason": "openai_insights_not_implemented"}
+    
     def phrase_summary(self, summary: Dict[str, Any]) -> Dict[str, Any]:
         """
         Shim for summary phrasing - maintains compatibility with existing calls
