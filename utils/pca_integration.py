@@ -33,9 +33,8 @@ def integrate_pca_with_webhook(user_id: str, message_text: str, message_id: str,
         if pca_flags.global_kill_switch or pca_flags.mode == PCAMode.FALLBACK:
             return True, {'pca_processed': False, 'mode': 'FALLBACK'}
         
-        # Check if user is enabled for PCA
-        if not pca_flags.is_pca_enabled_for_user(user_id):
-            return True, {'pca_processed': False, 'reason': 'user_not_enabled'}
+        # Skip canary user logic - process all users in DRYRUN mode
+        # Note: Canary logic removed due to lack of gated releases
         
         # Process message through PCA system
         start_time = time.time()
@@ -82,37 +81,21 @@ def integrate_pca_with_webhook(user_id: str, message_text: str, message_id: str,
         # Always fallback to legacy on errors
         return True, {'pca_processed': False, 'error': str(e)}
 
-def setup_canary_users() -> Dict[str, Any]:
+def get_pca_deployment_status() -> Dict[str, Any]:
     """
-    Setup canary users for PCA SHADOW mode testing
+    Get PCA deployment status (simplified from canary system)
     
     Returns:
-        Dictionary with canary user configuration
+        Dictionary with deployment configuration
     """
-    import os
-    
-    # Get canary users from environment or use defaults for testing
-    canary_users_str = os.environ.get('PCA_CANARY_USERS', '')
-    
-    # If no canary users configured, create a test configuration
-    if not canary_users_str:
-        # These are example hashed user IDs - replace with real ones for production
-        test_canary_users = [
-            "a1b2c3d4e5f6789",  # Example hash 1
-            "x9y8z7w6v5u4321",  # Example hash 2
-            "m5n6o7p8q9r0123"   # Example hash 3
-        ]
-        canary_users_str = ','.join(test_canary_users)
-        
-        logger.info(f"PCA canary users configured for testing: {len(test_canary_users)} users")
-    else:
-        canary_count = len([u for u in canary_users_str.split(',') if u.strip()])
-        logger.info(f"PCA canary users loaded from environment: {canary_count} users")
+    from utils.pca_flags import pca_flags
     
     return {
-        'canary_users': canary_users_str,
-        'user_count': len([u for u in canary_users_str.split(',') if u.strip()]),
-        'mode_required': 'SHADOW',
+        'deployment_model': 'full_population',  # No gated releases available
+        'pca_mode': pca_flags.mode.value,
+        'global_kill_switch': pca_flags.global_kill_switch,
+        'coverage': '100%' if pca_flags.mode.value != 'FALLBACK' else '0%',
+        'ready_for_dryrun': pca_flags.mode.value in ['DRYRUN', 'ON'],
         'setup_timestamp': datetime.utcnow().isoformat()
     }
 

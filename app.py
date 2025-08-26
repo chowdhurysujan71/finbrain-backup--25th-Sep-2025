@@ -870,16 +870,16 @@ def pca_canary_management():
     if request.method == "GET":
         # Get current canary user status
         try:
-            from utils.pca_integration import setup_canary_users
+            from utils.pca_integration import get_pca_deployment_status
             from utils.pca_flags import pca_flags
             
-            canary_config = setup_canary_users()
+            deployment_status = get_pca_deployment_status()
             
             return jsonify({
-                'phase': 'Phase 2 - Shadow Mode Testing',
+                'phase': 'Phase 3 - DRYRUN Mode Ready',
                 'pca_mode': pca_flags.mode.value,
-                'canary_config': canary_config,
-                'ready_for_shadow': pca_flags.mode.value in ['SHADOW', 'DRYRUN', 'ON'],
+                'deployment_status': deployment_status,
+                'ready_for_dryrun': pca_flags.mode.value in ['DRYRUN', 'ON'],
                 'timestamp': datetime.utcnow().isoformat()
             })
             

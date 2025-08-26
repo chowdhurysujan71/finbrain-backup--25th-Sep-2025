@@ -67,7 +67,7 @@ def log_cc_snapshot(cc_dict: Dict[str, Any], processing_time_ms: Optional[int] =
         return True
         
     except IntegrityError as e:
-        logger.warning(f"CC snapshot already exists: {cc_id}")
+        logger.warning(f"CC snapshot already exists: {cc_dict.get('cc_id', 'unknown')}")
         try:
             db.session.rollback()
         except:
@@ -75,7 +75,7 @@ def log_cc_snapshot(cc_dict: Dict[str, Any], processing_time_ms: Optional[int] =
         return False
         
     except Exception as e:
-        logger.error(f"Failed to log CC snapshot {cc_id}: {e}")
+        logger.error(f"Failed to log CC snapshot {cc_dict.get('cc_id', 'unknown')}: {e}")
         try:
             db.session.rollback()
         except:
@@ -100,14 +100,8 @@ def process_message_with_pca(user_id: str, message_text: str, message_id: str, t
         from utils.canonical_command import CanonicalCommand, create_help_cc, create_fallback_cc
         from utils.production_router import production_router
         
-        # Check if PCA should process this user
-        if not pca_flags.is_pca_enabled_for_user(user_id):
-            return {
-                'pca_processed': False,
-                'reason': 'user_not_enabled',
-                'mode': pca_flags.mode.value,
-                'fallback_to_legacy': True
-            }
+        # PHASE 3: DRYRUN Mode - Process all users (no canary logic)
+        # Note: Removed user-level enablement due to no gated releases
         
         # Generate deterministic CC ID
         cc_id = generate_cc_id(user_id, message_id, timestamp, message_text)
@@ -189,13 +183,8 @@ def process_message_with_pca(user_id: str, message_text: str, message_id: str, t
                 }
         
         elif pca_flags.mode == PCAMode.DRYRUN:
-            # DRYRUN mode - not implemented yet
-            return {
-                'pca_processed': False,
-                'reason': 'dryrun_not_implemented',
-                'mode': 'DRYRUN',
-                'fallback_to_legacy': True
-            }
+            # PHASE 3: DRYRUN mode - Enhanced CC generation for all users
+            return process_dryrun_mode(user_id, message_text, message_id, cc_id, timestamp, pca_flags)
         
         elif pca_flags.mode == PCAMode.ON:
             # ON mode - not implemented yet
@@ -220,6 +209,165 @@ def process_message_with_pca(user_id: str, message_text: str, message_id: str, t
         return {
             'pca_processed': False,
             'error': str(e),
+            'fallback_to_legacy': True
+        }
+
+def process_dryrun_mode(user_id: str, message_text: str, message_id: str, cc_id: str, 
+                       timestamp: datetime, pca_flags) -> Dict[str, Any]:
+    """
+    PHASE 3: Enhanced DRYRUN mode processing for all users
+    
+    Features:
+    - Enhanced expense detection patterns (Bengali + English)
+    - All messages processed (not just expenses)
+    - Complete audit trail logging
+    - Performance monitoring
+    - Zero impact on user experience
+    """
+    import re
+    import time as time_module
+    
+    processing_start = time_module.time()
+    
+    try:
+        from utils.canonical_command import CanonicalCommand, create_help_cc, create_fallback_cc, CCSlots, CCIntent, CCDecision
+        
+        # Enhanced expense detection patterns
+        expense_patterns = [
+            r'৳\s*(\d+(?:,\d{3})*(?:\.\d{2})?)',  # ৳500, ৳1,500.50
+            r'(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(?:taka|৳|tk|BDT)',  # 500 taka, 1500৳, 200 tk
+            r'(?:spent|cost|paid|bought|expense|khoroch|খরচ)\s*৳?\s*(\d+)',  # spent ৳500, খরচ 200
+            r'(?:kinlam|kিনলাম|dilam|দিলাম)\s*৳?\s*(\d+)',  # Bengali expense verbs
+            r'(\d+)\s*(?:টাকা|taka)',  # 500 টাকা
+        ]
+        
+        # Check for expense patterns
+        expense_detected = False
+        amount_value = None
+        amount_match = None
+        
+        for pattern in expense_patterns:
+            match = re.search(pattern, message_text, re.IGNORECASE)
+            if match:
+                expense_detected = True
+                amount_match = match
+                try:
+                    # Extract numeric amount
+                    amount_text = match.group(1) if match.group(1) else match.group(2) if len(match.groups()) > 1 else match.group(0)
+                    amount_value = float(amount_text.replace(',', '').replace('৳', '').strip())
+                except (ValueError, AttributeError):
+                    amount_value = None
+                break
+        
+        # Generate appropriate CC based on message content
+        if expense_detected:
+            # Create expense CC with enhanced data
+            cc = CanonicalCommand(
+                cc_id=cc_id,
+                user_id=user_id,
+                intent=CCIntent.LOG_EXPENSE.value,
+                slots=CCSlots(
+                    amount=amount_value,
+                    currency='BDT',
+                    category='general',  # Could be enhanced with AI categorization
+                    merchant_text=message_text[:100],
+                    note=f"Auto-detected expense: ৳{amount_value}" if amount_value else "Expense pattern detected"
+                ),
+                confidence=0.8 if amount_value else 0.6,  # Higher confidence if amount extracted
+                decision=CCDecision.AUTO_APPLY.value,
+                source_text=message_text,
+                model_version='dryrun-enhanced-v1',
+                ui_note=f"Detected ৳{amount_value} expense via pattern matching" if amount_value else "Expense detected"
+            )
+            intent_result = "LOG_EXPENSE"
+            confidence_result = cc.confidence
+            
+        else:
+            # Simple intent classification for non-expense messages
+            query_keywords = ['help', 'summary', 'total', 'report', 'balance', 'show', 'আমার', 'দেখাও']
+            greeting_keywords = ['hello', 'hi', 'hey', 'assalam', 'নমস্কার', 'হাই']
+            
+            if any(word in message_text.lower() for word in query_keywords):
+                cc = create_help_cc(user_id, cc_id, message_text, "Query or help request detected")
+                intent_result = "HELP"
+                confidence_result = 0.75
+                
+            elif any(word in message_text.lower() for word in greeting_keywords):
+                cc = CanonicalCommand(
+                    cc_id=cc_id,
+                    user_id=user_id,
+                    intent=CCIntent.GREETING.value,
+                    slots=CCSlots(),
+                    confidence=0.9,
+                    decision=CCDecision.RAW_ONLY.value,
+                    source_text=message_text,
+                    model_version='dryrun-enhanced-v1',
+                    ui_note="Greeting detected"
+                )
+                intent_result = "GREETING"
+                confidence_result = 0.9
+                
+            else:
+                # Fallback for unrecognized messages
+                cc = create_fallback_cc(user_id, cc_id, message_text, "Unrecognized message type")
+                intent_result = "UNKNOWN"
+                confidence_result = 0.3
+        
+        # Calculate processing metrics
+        processing_time_ms = int((time_module.time() - processing_start) * 1000)
+        
+        # Log CC snapshot to audit trail
+        cc_dict = cc.to_dict()
+        cc_logged = log_cc_snapshot(cc_dict, processing_time_ms=processing_time_ms, applied=False)
+        
+        # Log structured telemetry for analysis
+        try:
+            from utils.structured import log_cc_generation_event
+            log_cc_generation_event(cc_dict, processing_time_ms, applied=False)
+        except Exception as telemetry_error:
+            logger.warning(f"Telemetry logging failed: {telemetry_error}")
+        
+        # Return comprehensive result
+        result = {
+            'pca_processed': True,
+            'cc_logged': cc_logged,
+            'cc_id': cc_id,
+            'intent': intent_result,
+            'confidence': confidence_result,
+            'processing_time_ms': processing_time_ms,
+            'expense_detected': expense_detected,
+            'amount_extracted': amount_value,
+            'pattern_matched': expense_detected,
+            'mode': 'DRYRUN',
+            'model_version': 'dryrun-enhanced-v1',
+            'fallback_to_legacy': True  # Always continue to existing flow in DRYRUN
+        }
+        
+        # Performance monitoring
+        if processing_time_ms > 100:
+            logger.warning(f"DRYRUN processing slow: {processing_time_ms}ms for CC {cc_id}")
+        
+        logger.debug(f"DRYRUN processed: {intent_result} conf={confidence_result:.2f} time={processing_time_ms}ms")
+        
+        return result
+        
+    except Exception as e:
+        processing_time_ms = int((time_module.time() - processing_start) * 1000)
+        logger.error(f"DRYRUN mode processing failed: {e}")
+        
+        # Log error CC for debugging
+        try:
+            error_cc = create_help_cc(user_id, cc_id, message_text, f"DRYRUN processing error: {str(e)}")
+            log_cc_snapshot(error_cc.to_dict(), processing_time_ms=processing_time_ms, error_message=str(e))
+        except:
+            pass
+        
+        return {
+            'pca_processed': True,
+            'cc_logged': False,
+            'error': str(e),
+            'processing_time_ms': processing_time_ms,
+            'mode': 'DRYRUN',
             'fallback_to_legacy': True
         }
 
