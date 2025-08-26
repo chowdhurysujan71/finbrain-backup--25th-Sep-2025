@@ -136,6 +136,15 @@ class CCReplayEngine:
 # Initialize replay engine
 replay_engine = CCReplayEngine()
 
+def register_replay_routes(app):
+    """Register replay routes if enabled"""
+    if replay_engine.replay_enabled:
+        app.register_blueprint(replay_bp)
+        print("✅ Replay API registered at /api/replay/* (enabled)")
+    else:
+        print("🔒 Replay API disabled (ENABLE_REPLAY=false)")
+    return replay_engine.replay_enabled
+
 @replay_bp.route('/<cc_id>', methods=['GET'])
 def replay_cc(cc_id: str):
     """Replay a specific CC and return decision analysis"""
