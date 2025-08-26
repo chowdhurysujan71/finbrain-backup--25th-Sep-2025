@@ -2,6 +2,13 @@ from app import db
 from datetime import datetime, date, time
 from sqlalchemy import JSON
 
+# Import PCA overlay models
+try:
+    from models_pca import TransactionEffective, UserCorrection, UserRule, InferenceSnapshot
+except ImportError:
+    # PCA models not available yet
+    pass
+
 class Expense(db.Model):
     """Detailed expense log table"""
     __tablename__ = 'expenses'

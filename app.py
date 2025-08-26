@@ -776,6 +776,76 @@ def user_insights(psid_hash):
         logger.error(f"User insights error: {e}")
         return jsonify({"error": "Failed to generate insights"}), 500
 
+@app.route("/ops/pca/status")
+@require_basic_auth
+def pca_status():
+    """PCA system status endpoint for monitoring"""
+    try:
+        from utils.pca_flags import pca_flags
+        from utils.config import get_config_summary
+        
+        status = pca_flags.get_status()
+        config = get_config_summary()
+        
+        return jsonify({
+            'status': 'healthy',
+            'pca_flags': status,
+            'config_summary': config,
+            'timestamp': datetime.utcnow().isoformat(),
+            'phase': 'Phase 0 - Safety Rails Online'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
+
+@app.route("/ops/pca/health")
+@require_basic_auth  
+def pca_health():
+    """Simple PCA health check for monitoring systems"""
+    try:
+        from utils.pca_flags import pca_flags, force_fallback_mode
+        
+        return jsonify({
+            'healthy': True,
+            'mode': pca_flags.mode.value,
+            'kill_switch_active': force_fallback_mode(),
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'healthy': False,
+            'error': str(e),
+            'timestamp': datetime.utcnow().isoformat()  
+        }), 500
+
+@app.route("/ops/pca/overlay")
+@require_basic_auth
+def pca_overlay_health():
+    """PCA overlay database health check"""
+    try:
+        from utils.pca_processor import get_pca_health_status
+        
+        health_status = get_pca_health_status()
+        status_code = 200 if health_status.get('healthy', False) else 500
+        
+        return jsonify(health_status), status_code
+        
+    except Exception as e:
+        return jsonify({
+            'healthy': False,
+            'error': f'Overlay health check failed: {str(e)}',
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
+        
+    except Exception as e:
+        logger.error(f"User insights error: {e}")
+        return jsonify({"error": "Failed to generate insights"}), 500
+
 @app.route('/psid/<psid_hash>', methods=['GET'])
 @require_basic_auth 
 def psid_explorer(psid_hash):
