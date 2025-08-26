@@ -72,11 +72,15 @@ class PCAFlags:
         if self.mode == PCAMode.FALLBACK:
             return False
         
-        # SHADOW and DRYRUN - enabled for canary users only
-        if self.mode in [PCAMode.SHADOW, PCAMode.DRYRUN]:
-            return user_id_hash in self.canary_users
+        # SHADOW mode - enabled for canary users only (if we had canary capability)
+        if self.mode == PCAMode.SHADOW:
+            return user_id_hash in self.canary_users if self.canary_users else True
+            
+        # DRYRUN mode - PHASE 3: enabled for ALL users (no canary logic)
+        if self.mode == PCAMode.DRYRUN:
+            return True  # Full population processing
         
-        # ON mode - enabled for canary users only (for now)
+        # ON mode - enabled for canary users only (for now) 
         if self.mode == PCAMode.ON:
             return user_id_hash in self.canary_users
         
