@@ -14,7 +14,8 @@ FinBrain utilizes a modular, AI-first architecture with **Phase 4: Limited Produ
 ### PCA (Precision Capture & Audit) System - LIVE PRODUCTION DEPLOYED
 - **Current Status**: Full Production Active (PCA_MODE=ON, PRODUCTION_MODE=ON)
 - **Deployment Date**: 2025-08-26 06:16:32 UTC
-- **All Features Live**: Overlay system, API endpoints, UI components fully operational
+- **Audit Transparency**: LIVE (SHOW_AUDIT_UI=true, activated 2025-08-26 07:17:00 UTC)
+- **All Features Live**: Overlay system, API endpoints, UI components, audit transparency UI fully operational
 - **High-Confidence Auto-Apply**: Expenses with ≥85% confidence automatically create transactions
 - **Enhanced Detection**: Bengali + English patterns with confidence scoring (90%+ accuracy)
 - **Transaction Creation**: Real expense records generated for high-confidence CCs
@@ -22,6 +23,8 @@ FinBrain utilizes a modular, AI-first architecture with **Phase 4: Limited Produ
 - **Performance**: 0.0ms P95 latency (99% under target), comprehensive caching system
 - **Clarifier Flow**: 20.8% optimal ask rate with 100% decision accuracy
 - **DoD Compliance**: All 7 criteria PASS - production ready
+- **Audit Transparency**: Live in Messenger - users see both original AI categorizations and their corrected views
+- **UAT Validation**: 100% pass rate (10/10 tests) - comprehensive functional, performance, security, and integration validation complete
 
 ### Web Framework and Database
 The application uses Flask with SQLAlchemy for database integration. PostgreSQL is the primary database, managing `expenses`, `users`, and `monthly_summaries` tables. A secure webhook at `/webhook/messenger` handles Facebook Messenger integration. Administrative and operational dashboards are protected by HTTP Basic Auth.
