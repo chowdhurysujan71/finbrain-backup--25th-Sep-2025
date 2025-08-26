@@ -472,13 +472,19 @@ def webhook_messenger():
         challenge = request.args.get("hub.challenge")
         mode = request.args.get("hub.mode")
         
-        logger.info(f"Webhook verification: mode={mode}, token_provided={bool(verify_token)}, challenge={bool(challenge)}")
+        # Enhanced logging to debug verification issues
+        logger.info(f"Webhook verification request - mode={mode}, token_provided={bool(verify_token)}, challenge={bool(challenge)}")
+        logger.info(f"Full request args: {dict(request.args)}")
         
-        if mode == "subscribe" and verify_token == os.environ.get("FACEBOOK_VERIFY_TOKEN"):
-            logger.info("Webhook verification successful")
+        expected_token = os.environ.get("FACEBOOK_VERIFY_TOKEN")
+        logger.info(f"Expected token present: {bool(expected_token)}, Received token matches: {verify_token == expected_token}")
+        
+        if mode == "subscribe" and verify_token == expected_token:
+            logger.info("✅ Webhook verification successful")
             return challenge or ""
         else:
-            logger.warning(f"Webhook verification failed: mode={mode}, token_match={verify_token == os.environ.get('FACEBOOK_VERIFY_TOKEN')}")
+            logger.warning(f"❌ Webhook verification failed: mode={mode}, expected_mode=subscribe, token_match={verify_token == expected_token}")
+            logger.warning(f"Received token: '{verify_token}', Expected: '{expected_token[:10]}...' (masked)")
             return "Verification token mismatch", 403
         
     elif request.method == "POST":
