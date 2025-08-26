@@ -836,12 +836,25 @@ class ProductionRouter:
         return response, "ai_expense_logged", category, amount
     
     def _route_cc_decision(self, text: str, psid: str, psid_hash: str, rid: str) -> Optional[Tuple[str, str, Optional[str], Optional[float]]]:
-        """Route based on Canonical Command decision logic (Phase 2)"""
+        """
+        Route based on Canonical Command decision logic with Feature Flags/Kill Switch
+        Implements 4-state PCA_MODE conditional flow: FALLBACK/SHADOW/DRYRUN/ON
+        """
         try:
             from utils.ai_adapter_v2 import production_ai_adapter
-            from utils.pca_flags import pca_flags
+            from utils.pca_flags import pca_flags, PCAMode
+            from datetime import datetime
             
-            # Get CC from AI adapter
+            # PHASE 0: Check PCA_MODE and apply conditional flow
+            current_mode = pca_flags.mode
+            logger.debug(f"CC routing with PCA_MODE={current_mode.value} for user={psid_hash[:8]}")
+            
+            # FALLBACK mode: Skip CC entirely, use legacy parser flow
+            if current_mode == PCAMode.FALLBACK:
+                logger.debug("PCA_MODE=FALLBACK: Skipping CC generation, using legacy flow")
+                return None  # Falls back to legacy AI in production_router
+            
+            # Generate CC for SHADOW, DRYRUN, and ON modes
             ai_result = production_ai_adapter.ai_parse(text, {'user_id': psid_hash})
             
             # Check if we got a valid CC response
@@ -849,11 +862,11 @@ class ProductionRouter:
                 logger.debug(f"No valid CC from AI: failover={ai_result.get('failover')}")
                 return None
             
+            # Extract CC data
             decision = ai_result.get('decision')
             confidence = ai_result.get('confidence', 0.0)
             ui_note = ai_result.get('ui_note', '')
-            
-            self._log_routing_decision(rid, psid_hash, "cc_decision", f"decision={decision}, conf={confidence:.2f}")
+            cc_id = ai_result.get('cc_id', f"cc_{rid[:8]}")
             
             # Extract slot data for expense logging
             slots = ai_result.get('slots', {})
@@ -862,42 +875,141 @@ class ProductionRouter:
             note = slots.get('note', '')
             merchant_text = slots.get('merchant_text', '')
             
-            # Handle decision tree (Phase 2: clarifiers disabled, so ASK_ONCE → AUTO_APPLY)
+            # ALWAYS persist CC snapshot for SHADOW, DRYRUN, ON modes
+            if pca_flags.should_log_snapshots():
+                self._persist_cc_snapshot(cc_id, psid_hash, text, ai_result, current_mode.value, rid)
+            
+            self._log_routing_decision(rid, psid_hash, "cc_decision", 
+                                     f"mode={current_mode.value}, decision={decision}, conf={confidence:.2f}")
+            
+            # SHADOW mode: CC generated and persisted, but show legacy response to user
+            if current_mode == PCAMode.SHADOW:
+                logger.debug("PCA_MODE=SHADOW: CC persisted, returning None for legacy response")
+                return None  # User sees legacy response, CC logged invisibly
+            
+            # DRYRUN mode: CC persisted + raw ledger write + "would log" message
+            if current_mode == PCAMode.DRYRUN:
+                return self._handle_dryrun_mode(decision, amount, category, note, merchant_text, 
+                                              text, psid_hash, rid, ui_note)
+            
+            # ON mode: Full CC processing with raw + overlay writes
+            if current_mode == PCAMode.ON:
+                return self._handle_on_mode(decision, amount, category, note, merchant_text, 
+                                          text, psid_hash, rid, ui_note, ai_result)
+            
+            # Should not reach here, but fail safe
+            logger.warning(f"Unexpected PCA_MODE: {current_mode.value}")
+            return None
+                
+        except Exception as e:
+            logger.error(f"CC decision routing failed: {e}")
+            return None
+    
+    def _persist_cc_snapshot(self, cc_id: str, user_hash: str, text: str, ai_result: dict, pca_mode: str, rid: str):
+        """Persist CC snapshot to inference_snapshots table (append-only)"""
+        try:
+            from app import db
+            from sqlalchemy import text
+            from datetime import datetime
+            import json
+            
+            # Create CC snapshot record
+            db.session.execute(text("""
+                INSERT INTO inference_snapshots 
+                (cc_id, user_id, intent, slots_json, confidence, decision, clarifier_json,
+                 model_version, processing_time_ms, source_text, ui_note, created_at, 
+                 pca_mode, applied, error_message)
+                VALUES 
+                (:cc_id, :user_id, :intent, :slots_json, :confidence, :decision, :clarifier_json,
+                 :model_version, :processing_time_ms, :source_text, :ui_note, :created_at,
+                 :pca_mode, :applied, :error_message)
+            """), {
+                'cc_id': cc_id,
+                'user_id': user_hash,
+                'intent': ai_result.get('intent', 'LOG_EXPENSE'),
+                'slots_json': json.dumps(ai_result.get('slots', {})),
+                'confidence': ai_result.get('confidence', 0.0),
+                'decision': ai_result.get('decision', 'RAW_ONLY'),
+                'clarifier_json': json.dumps(ai_result.get('clarifier')),
+                'model_version': ai_result.get('model_version', 'gemini-2.5-flash-lite'),
+                'processing_time_ms': ai_result.get('processing_time_ms', 0),
+                'source_text': text,
+                'ui_note': ai_result.get('ui_note', ''),
+                'created_at': datetime.utcnow(),
+                'pca_mode': pca_mode,
+                'applied': False,  # Will be updated when expense is saved
+                'error_message': None
+            })
+            
+            db.session.commit()
+            logger.debug(f"CC snapshot persisted: {cc_id} (mode={pca_mode})")
+            
+        except Exception as e:
+            logger.error(f"Failed to persist CC snapshot: {e}")
+            # Don't fail the entire request if snapshot fails
+            
+    def _handle_dryrun_mode(self, decision: str, amount: float, category: str, note: str, 
+                          merchant_text: str, text: str, user_hash: str, rid: str, ui_note: str):
+        """Handle DRYRUN mode: Raw ledger write + 'would log' message"""
+        try:
+            if amount and amount > 0:
+                # Write to RAW ledger only (no overlays)
+                success = self._save_cc_expense_raw_only(user_hash, amount, category, note, merchant_text, text, rid)
+                if success:
+                    # DRYRUN "would log" message format
+                    category_display = category or 'expense'
+                    dryrun_message = f"✅ Saved ৳{amount:.0f}\n(Would log as {category_display})"
+                    return dryrun_message, "log_dryrun", category, amount
+                else:
+                    return "Failed to save expense, please try again.", "error", None, None
+            else:
+                return ui_note or "I need an amount to log this expense.", "help", None, None
+                
+        except Exception as e:
+            logger.error(f"DRYRUN mode handling failed: {e}")
+            return "Processing failed, please try again.", "error", None, None
+    
+    def _handle_on_mode(self, decision: str, amount: float, category: str, note: str,
+                       merchant_text: str, text: str, user_hash: str, rid: str, ui_note: str, ai_result: dict):
+        """Handle ON mode: Full CC processing with raw + overlay writes"""
+        try:
+            from utils.pca_flags import pca_flags
+            
+            # Handle decision tree based on confidence
             if decision == "AUTO_APPLY":
-                # High confidence - direct save
+                # High confidence - direct save with overlays
                 if amount and amount > 0:
-                    success = self._save_cc_expense(psid_hash, amount, category, note, merchant_text, text, rid)
+                    success = self._save_cc_expense_with_overlays(user_hash, amount, category, note, merchant_text, text, rid)
                     if success:
-                        return ui_note or f"✅ Logged ৳{amount:.0f} for {category or 'expense'}", "log_single", category, amount
+                        # Full audit UI response
+                        return self._format_full_audit_response(amount, category, ui_note)
                     else:
                         return "Failed to log expense, please try again.", "error", None, None
                 else:
                     return ui_note or "I need an amount to log this expense.", "help", None, None
                     
             elif decision == "ASK_ONCE":
-                # Mid confidence - in Phase 2, treat as AUTO_APPLY since clarifiers disabled
+                # Mid confidence - check clarifiers setting
                 if not pca_flags.should_enable_clarifiers():
                     # Clarifiers disabled - auto-apply anyway
                     if amount and amount > 0:
-                        success = self._save_cc_expense(psid_hash, amount, category, note, merchant_text, text, rid)
+                        success = self._save_cc_expense_with_overlays(user_hash, amount, category, note, merchant_text, text, rid)
                         if success:
-                            # Use the CC ui_note for response
-                            return ui_note or f"✅ Logged ৳{amount:.0f} for {category or 'expense'}", "log_single", category, amount
+                            return self._format_full_audit_response(amount, category, ui_note)
                         else:
                             return "Failed to log expense, please try again.", "error", None, None
                     else:
                         return ui_note or "I need an amount to log this expense.", "help", None, None
                 else:
-                    # Phase 3+: Render clarifier UI
-                    return self._render_clarifier_response(ai_result, psid_hash, rid)
+                    # Render clarifier UI
+                    return self._render_clarifier_response(ai_result, user_hash, rid)
                     
             elif decision == "RAW_ONLY":
-                # Low confidence - save raw, ask for clarification later
+                # Low confidence - save raw with minimal categorization
                 if amount and amount > 0:
-                    # Save as raw transaction with minimal categorization
-                    success = self._save_cc_expense(psid_hash, amount, "other", note or "Raw expense", merchant_text, text, rid)
+                    success = self._save_cc_expense_with_overlays(user_hash, amount, "other", note or "Raw expense", merchant_text, text, rid)
                     if success:
-                        return ui_note or f"✅ Saved ৳{amount:.0f} (will categorize later)", "log_single", "other", amount
+                        return f"✅ Saved ৳{amount:.0f} (will categorize later)", "log_single", "other", amount
                     else:
                         return "Failed to save expense, please try again.", "error", None, None
                 else:
@@ -908,11 +1020,12 @@ class ProductionRouter:
                 return ui_note or "I'm here to help! Try something like 'coffee 50' to log expenses.", "help", None, None
                 
         except Exception as e:
-            logger.error(f"CC decision routing failed: {e}")
-            return None
+            logger.error(f"ON mode handling failed: {e}")
+            return "Processing failed, please try again.", "error", None, None
     
-    def _save_cc_expense(self, user_hash: str, amount: float, category: str, note: str, merchant_text: str, original_text: str, rid: str) -> bool:
-        """Save expense from CC data"""
+    def _save_cc_expense_raw_only(self, user_hash: str, amount: float, category: str, note: str, 
+                                merchant_text: str, original_text: str, rid: str) -> bool:
+        """Save expense to RAW ledger only (DRYRUN mode)"""
         try:
             from utils.db import save_expense
             
@@ -927,6 +1040,7 @@ class ProductionRouter:
             
             description = " - ".join(description_parts)
             
+            # Save to RAW ledger only (no overlay tables in DRYRUN)
             save_expense(
                 user_identifier=user_hash,
                 description=description,
@@ -940,8 +1054,59 @@ class ProductionRouter:
             return True
             
         except Exception as e:
-            logger.error(f"Failed to save CC expense: {e}")
+            logger.error(f"Failed to save RAW-only CC expense: {e}")
             return False
+    
+    def _save_cc_expense_with_overlays(self, user_hash: str, amount: float, category: str, note: str,
+                                     merchant_text: str, original_text: str, rid: str) -> bool:
+        """Save expense to RAW + overlay tables (ON mode)"""
+        try:
+            from utils.db import save_expense
+            
+            # Create description from available data
+            description_parts = []
+            if merchant_text:
+                description_parts.append(merchant_text)
+            if note and note != merchant_text:
+                description_parts.append(note)
+            if not description_parts:
+                description_parts.append(f"{category or 'expense'}")
+            
+            description = " - ".join(description_parts)
+            
+            # Save to RAW + overlay tables
+            save_expense(
+                user_identifier=user_hash,
+                description=description,
+                amount=amount,
+                category=category or "other",
+                platform="facebook",
+                original_message=original_text,
+                unique_id=rid
+            )
+            
+            # TODO: Add overlay table writes here when overlay system is implemented
+            # This would include category corrections, audit trails, etc.
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to save CC expense with overlays: {e}")
+            return False
+    
+    def _format_full_audit_response(self, amount: float, category: str, ui_note: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+        """Format response for ON mode with full audit transparency"""
+        if ui_note:
+            # Use AI-generated response
+            response = ui_note
+        else:
+            # Default format with audit info
+            response = f"✅ Logged ৳{amount:.0f} for {category or 'expense'}"
+        
+        # TODO: Add audit transparency info when overlay system is ready
+        # response += "\n🔍 View details: /audit/{tx_id}"
+        
+        return response, "log_single", category, amount
     
     def _render_clarifier_response(self, cc_data: Dict[str, Any], user_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Render clarifier UI (Phase 3+) - placeholder for now"""
