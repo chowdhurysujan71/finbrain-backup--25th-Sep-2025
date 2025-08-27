@@ -29,3 +29,23 @@ def psid_hash(psid: str) -> str:
 
 # Legacy alias for backward compatibility
 psid_from_event = extract_sender_psid
+
+def ensure_hashed(user_identifier: str) -> str:
+    """
+    Ensure user identifier is properly hashed
+    
+    Args:
+        user_identifier: Raw PSID or already hashed identifier
+        
+    Returns:
+        Hashed user identifier
+    """
+    if not user_identifier:
+        raise ValueError("User identifier cannot be empty")
+    
+    # If already looks like a hash (64 hex chars), return as-is
+    if len(user_identifier) == 64 and all(c in '0123456789abcdef' for c in user_identifier.lower()):
+        return user_identifier
+    
+    # Otherwise, hash it
+    return psid_hash(user_identifier)

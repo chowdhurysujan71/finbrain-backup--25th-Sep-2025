@@ -1,0 +1,132 @@
+{
+  "session_id": "uat_e2e_1756297541",
+  "timestamp": "2025-08-27T12:25:41.870572",
+  "test_results": {
+    "data_handling": [
+      {
+        "test": "Bengali Digit Conversion",
+        "input": "\u09eb\u09e6 \u099f\u09be\u0995\u09be",
+        "output": "50 \u099f\u09be\u0995\u09be",
+        "expected": "50 \u099f\u09be\u0995\u09be",
+        "passed": true
+      },
+      {
+        "test": "Money Pattern Detection",
+        "passed": false,
+        "error": "cannot import name 'extract_money_amount' from 'nlp.money_patterns' (/home/runner/workspace/nlp/money_patterns.py)"
+      }
+    ],
+    "routing": [
+      {
+        "test": "Bengali expense with verb",
+        "input": "\u0986\u099c \u099a\u09be \u09eb\u09e6 \u099f\u09be\u0995\u09be \u0996\u09b0\u099a \u0995\u09b0\u09c7\u099b\u09bf",
+        "expected_intent": "EXPENSE_LOG",
+        "actual_intent": "EXPENSE_LOG",
+        "reason_codes": [
+          "HAS_MONEY",
+          "HAS_FIRST_PERSON_SPENT_VERB"
+        ],
+        "confidence": 0.95,
+        "passed": true
+      },
+      {
+        "test": "Bengali expense without verb",
+        "input": "\u099a\u09be \u09eb\u09e6 \u099f\u09be\u0995\u09be",
+        "expected_intent": "CLARIFY_EXPENSE",
+        "actual_intent": "CLARIFY_EXPENSE",
+        "reason_codes": [
+          "HAS_MONEY_NO_VERB"
+        ],
+        "confidence": 0.9,
+        "passed": true
+      },
+      {
+        "test": "Bengali analysis request",
+        "input": "\u098f\u0987 \u09ae\u09be\u09b8\u09c7\u09b0 \u0996\u09b0\u099a\u09c7\u09b0 \u09b8\u09be\u09b0\u09be\u0982\u09b6 \u09a6\u09be\u0993",
+        "expected_intent": "ANALYSIS",
+        "actual_intent": "ANALYSIS",
+        "reason_codes": [
+          "EXPLICIT_ANALYSIS_REQUEST",
+          "HAS_TIME_WINDOW",
+          "HAS_ANALYSIS_TERMS"
+        ],
+        "confidence": 0.95,
+        "passed": true
+      },
+      {
+        "test": "Time window query (OR logic)",
+        "input": "\u098f\u0987 \u09b8\u09aa\u09cd\u09a4\u09be\u09b9?",
+        "expected_intent": "ANALYSIS",
+        "actual_intent": "ANALYSIS",
+        "reason_codes": [
+          "HAS_TIME_WINDOW"
+        ],
+        "confidence": 0.95,
+        "passed": true
+      },
+      {
+        "test": "English expense with verb",
+        "input": "I spent 100 on food",
+        "expected_intent": "EXPENSE_LOG",
+        "actual_intent": "SMALLTALK",
+        "reason_codes": [
+          "DEFAULT_FALLBACK"
+        ],
+        "confidence": 0.7,
+        "passed": false
+      }
+    ],
+    "database": [
+      {
+        "test": "Database Operations",
+        "passed": false,
+        "error": "cannot import name 'ensure_hashed' from 'utils.identity' (/home/runner/workspace/utils/identity.py)"
+      }
+    ],
+    "integration": [
+      {
+        "test": "Bengali Expense Logging",
+        "input": "\u0986\u099c \u09a6\u09c1\u09aa\u09c1\u09b0\u09c7\u09b0 \u0996\u09be\u09ac\u09be\u09b0 \u09e7\u09e8\u09e6 \u099f\u09be\u0995\u09be \u0996\u09b0\u099a \u0995\u09b0\u09c7\u099b\u09bf",
+        "intent": "conversation_error",
+        "category": null,
+        "amount": null,
+        "response_preview": "I'm here to help! Try logging an expense like 'coffee 50' or ask for your 'summary'.",
+        "response_time_ms": 725.5,
+        "pattern_matches": "0/3",
+        "passed": false
+      },
+      {
+        "test": "Bengali Clarification",
+        "input": "\u09b0\u09be\u09a4\u09c7\u09b0 \u0996\u09be\u09ac\u09be\u09b0 \u09ee\u09e6 \u099f\u09be\u0995\u09be",
+        "intent": "clarify_expense",
+        "category": null,
+        "amount": null,
+        "response_preview": "Tea \u09b9\u09bf\u09b8\u09c7\u09ac\u09c7 \u09f380 \u099f\u09be\u0995\u09be \u0986\u099c \u09b2\u0997 \u0995\u09b0\u09a4\u09c7 \u099a\u09be\u09a8?",
+        "response_time_ms": 228.7,
+        "pattern_matches": "2/3",
+        "passed": true
+      },
+      {
+        "test": "English Analysis",
+        "input": "show my spending summary",
+        "intent": "error",
+        "category": null,
+        "amount": null,
+        "response_preview": "\ud83e\udded I can help you track expenses, show summaries, or give insights.\nTry: *\"spent 100 on lunch\"* or *\"...",
+        "response_time_ms": 455.0,
+        "pattern_matches": "1/2",
+        "passed": true
+      }
+    ]
+  },
+  "summary": {
+    "total_tests": 11,
+    "passed_tests": 7,
+    "success_rate": 63.63636363636363,
+    "deployment_approved": false
+  },
+  "deployment_recommendation": {
+    "status": "\u274c NOT APPROVED FOR DEPLOYMENT",
+    "recommendation": "Critical failures detected - requires fixes"
+  }
+}
