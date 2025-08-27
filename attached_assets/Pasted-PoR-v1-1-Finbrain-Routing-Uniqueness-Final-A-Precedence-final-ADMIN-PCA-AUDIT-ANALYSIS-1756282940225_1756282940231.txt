@@ -1,0 +1,192 @@
+PoR v1.1 — Finbrain Routing & Uniqueness (Final)
+A. Precedence (final)
+
+ADMIN → PCA_AUDIT → ANALYSIS → FAQ → COACHING → SMALLTALK
+
+PCA_AUDIT is evaluated after ADMIN and before ANALYSIS.
+
+in_coaching_session AND explicit_analysis_request routes to ANALYSIS.
+
+B. Flags / overlays (final defaults)
+ROUTER_MODE=hybrid                    # ai_first | hybrid | rules_first
+ROUTER_SCOPE=zero_ledger_only         # zero_ledger_only | analysis_keywords_only | all
+ROUTER_RULES_VERSION=2025-08-27
+PCA_AUDIT_MODE=false
+COACHING_TXN_THRESHOLD=10             # configurable via overlay
+COACHING_SESSION_RESPECT=true
+BILINGUAL_ROUTING=true
+UNIQUENESS_MODE=data_version          # vs timestamp
+
+C. Deterministic rules (final)
+
+Evaluate top → bottom; first match wins.
+
+ADMIN
+^/(id|debug|help)\b → admin handler
+
+PCA_AUDIT
+PCA_AUDIT_MODE=true → audit handler
+
+ANALYSIS
+
+has_time_window(text) OR has_analysis_terms(text) OR
+
+in_coaching_session AND explicit_analysis_request(text)
+
+Output: if totals == 0 → safe minimal
+
+FAQ
+has_faq_terms(text)
+
+COACHING
+
+(has_coaching_verbs(text) AND ledger_count_30d ≥ COACHING_TXN_THRESHOLD AND NOT explicit_analysis_request(text))
+
+OR (in_coaching_session AND NOT explicit_analysis_request(text))
+
+SMALLTALK
+default
+
+D. Keyword & regex library (EN + BN, final)
+Time window
+
+EN: \b(today|this (week|month)|last (week|month)|yesterday)\b|\b\d{4}-\d{2}-\d{2}\b
+
+BN: আজ|এই (সপ্তাহ|মাস)|গত (সপ্তাহ|মাস)|গতকাল|\b\d{4}-\d{2}-\d{2}\b
+
+Explicit analysis request
+
+EN: \b(analysis please|spending (summary|report)|what did i spend|expense report)\b
+
+BN: বিশ্লেষণ( দাও)?|খরচের (সারাংশ|রিপোর্ট)|আমি কত খরচ করেছি
+
+Analysis terms (non-explicit)
+
+EN: \b(analysis|summary|report)\b
+
+BN: \b(বিশ্লেষণ|সারাংশ|রিপোর্ট)\b
+
+Coaching verbs
+
+EN: \b(save|reduce|cut|budget|plan)\b
+
+BN: \b(সেভ|কমানো|কাট|বাজেট|পরিকল্পনা)\b
+
+FAQ terms (expanded per your concern)
+
+EN: \b(what can you do|how (do|does) it work|features?|capabilities?|privacy|is my data (safe|private)|security|pricing|cost|subscription|plans?)\b
+
+BN: \b(তুমি কী করতে পারো|কিভাবে কাজ করে|ফিচার(স)?|ক্ষমতা|প্রাইভেসি|ডেটা নিরাপদ|নিরাপত্তা|দাম|মূল্য|সাবস্ক্রিপশন|প্ল্যান)\b
+
+Mixed-language handling: we evaluate both EN and BN patterns on the same text (compiled with re.UNICODE | re.IGNORECASE). Phrases like “আজকের analysis please” will match because the explicit-analysis EN pattern triggers even when surrounded by BN text.
+
+E. Uniqueness (final copy & behavior)
+Decision
+
+If data_version unchanged and bullets_hash unchanged → suppress repeat and reply:
+
+EN: No changes since your last check. Add a new expense to refresh your analysis.
+
+BN: শেষবারের পর থেকে নতুন পরিবর্তন নেই। নতুন খরচ যোগ করলে বিশ্লেষণ আপডেট হবে।
+
+Then append a deterministic micro-insight (not AI “variety”):
+
+EN: Tip: your top category this month is {TopCategory} (~{Share}%). Want ideas to trim it?
+
+BN: টিপস: এই মাসে আপনার শীর্ষ ক্যাটাগরি {TopCategory} (~{Share}%)। কমানোর উপায় দেখবো?
+
+Micro-insight eligibility: only when ledger_count_30d ≥ 5 and grand_total > 0.
+
+F. Data-version (final, robust)
+Preferred (strong) fingerprint
+
+PostgreSQL example for window [from,to]:
+
+SELECT encode(
+  digest(
+    string_agg(
+      concat_ws(
+        ':', id, amount_minor, currency, category_id, merchant_id,
+        extract(epoch from updated_at)::bigint
+      ) ORDER BY updated_at, id
+    ),
+    'sha256'
+  ),
+  'hex'
+) AS data_version
+FROM ledger
+WHERE user_id = :uid
+  AND occurred_at >= :from
+  AND occurred_at <  :to
+  AND is_deleted = false;
+
+Lightweight fallback (if the above is too heavy)
+
+Hash of COUNT + SUM + MAX(updated_at) to catch amount changes even if categories unchanged:
+
+SELECT encode(
+  digest(
+    concat_ws(':',
+      count(*),
+      coalesce(sum(amount_minor),0),
+      extract(epoch from coalesce(max(updated_at), 'epoch'::timestamptz))::bigint
+    ),
+    'sha256'
+  ),
+  'hex'
+) AS data_version
+FROM ledger
+WHERE user_id = :uid
+  AND occurred_at >= :from
+  AND occurred_at <  :to
+  AND is_deleted = false;
+
+
+This addresses your “category unchanged but amounts changed” concern—SUM and MAX(updated_at) will flip.
+
+G. Contract tests (final minimum set)
+
+Total: 60 phrases (≥12 per intent) — include mixed EN/BN and mixed-language combos.
+
+Must pass identically across builds. Keep in CI.
+
+Add weekly from confusion matrix.
+
+H. Monitoring & acceptance (final)
+Must-hold invariants
+
+insights.tenant_mismatch_total == 0
+
+Webhook success ≥ 99.5%
+
+routing.misroute_corrections_total flat → down week over week
+
+insights.repeat_suppressed_total correlates with unchanged data_version (not random)
+
+Rollout (one-button deploy, Phase 1)
+
+ROUTER_MODE=hybrid
+
+ROUTER_SCOPE=zero_ledger_only
+
+COACHING_TXN_THRESHOLD=10
+
+UNIQUENESS_MODE=data_version
+
+Bilingual patterns enabled
+
+Rollback: ROUTER_MODE=ai_first (keeps all contamination safeguards + safe minimal).
+
+I. Open items closed (final answers)
+
+FAQ scope breadth: expanded patterns above; review weekly from support logs.
+
+Mixed-language queries: dual pattern evaluation w/ UNICODE; included examples.
+
+Data-version stability: strong fingerprint + lightweight fallback defined.
+
+Coaching threshold: configurable via COACHING_TXN_THRESHOLD overlay; default 10.
+
+Final Executive Summary (one paragraph)
+
+We’re introducing a rules + state routing layer that sits before existing handlers, respects PCA_AUDIT, supports bilingual (EN/BN) keywords, and routes explicit analysis even during coaching. Repetition is eliminated truthfully with a data-version check and a helpful micro-insight, not fake variety. The plan ships with overlays (no new infra), rolls out to the safest cohort first (zero_ledger_only), and maintains instant rollback to ai_first. Contract tests and weekly analytics tighten patterns over time.
