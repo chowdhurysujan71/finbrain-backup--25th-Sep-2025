@@ -4,8 +4,8 @@ Handles currency symbols, Bengali "টাকা" word, and both orderings
 """
 import re
 
-# Currency patterns - symbols and Bengali word
-CURRENCY_BEFORE = r"(?:৳|tk|bdt|taka|টাকা)"
+# Currency patterns - symbols and Bengali word (improved mixed language support)
+CURRENCY_BEFORE = r"(?:৳|tk|bdt|taka|টাকা|ট)"
 
 # Number patterns - supports comma-separated thousands and decimals
 NUM = r"(?:[0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)"

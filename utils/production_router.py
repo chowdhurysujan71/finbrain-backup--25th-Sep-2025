@@ -83,9 +83,9 @@ def _is_audit_ui_enabled() -> bool:
     except:
         return False
 
-# Summary detection patterns
+# Summary detection patterns (Enhanced for Bengali + comprehensive English)
 SUMMARY_RE = re.compile(
-    r"\b(summary|recap|overview|report|what did i spend|how much did i spend|show (me )?my (spend|spending|expenses))\b",
+    r"\b(summary|recap|overview|report|what did i spend|how much did i spend|show (me )?my (spend|spending|expenses)|how much.*spend.*week|how much.*spend.*month|spending.*week|spending.*month)\b|সারাংশ|খরচের.*সারাংশ|মাসের.*খরচ|আমার.*খরচ|কত.*খরচ.*করেছি",
     re.IGNORECASE,
 )
 
@@ -95,7 +95,16 @@ def _norm_text(s: str) -> str:
 def _is_summary_command(text: str) -> bool:
     if not text:
         return False
-    return bool(SUMMARY_RE.search(text)) or _norm_text(text) in {"summary", "recap", "report", "overview"}
+    
+    # Enhanced summary detection with Bengali support
+    bengali_summary_terms = ["সারাংশ", "খরচের সারাংশ", "মাসের খরচ", "আমার খরচ", "কত খরচ করেছি"]
+    english_summary_terms = {"summary", "recap", "report", "overview", "show my spending", "spending summary"}
+    
+    normalized = _norm_text(text)
+    
+    return (bool(SUMMARY_RE.search(text)) or 
+            normalized in english_summary_terms or
+            any(term in text for term in bengali_summary_terms))
 
 def handle_summary(psid: str, text: str):
     """Deterministic summary handler with timeframe detection"""
@@ -240,6 +249,18 @@ class ProductionRouter:
                     return response, "learning_applied", None, None
                 except Exception as e:
                     logger.warning(f"Learning intent handling failed: {e}")
+            
+            # Step 1.3: SUMMARY/ANALYSIS DETECTION (BEFORE AI processing)
+            if _is_summary_command(text):
+                logger.info(f"[ROUTER] Summary command detected: '{text[:50]}...'")
+                try:
+                    summary_response = handle_summary(psid, text)
+                    self._log_routing_decision(rid, user_hash, "summary", "analysis_provided")
+                    self._record_processing_time(time.time() - start_time)
+                    return normalize(summary_response), "analysis", None, None
+                except Exception as e:
+                    logger.error(f"Summary handler error: {e}")
+                    # Fall through to other handlers if summary fails
             
             # Step 1.5: DETERMINISTIC ROUTING (PoR v1.1 - EXPENSE_LOG and CLARIFY_EXPENSE intents)
             try:

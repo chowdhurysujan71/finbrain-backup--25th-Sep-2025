@@ -50,6 +50,22 @@ def log_structured_event(event_type: str, event_data: Dict[str, Any],
         logger.error(f"Failed to log structured event {event_type}: {e}")
         return False
 
+def log_correction_detected(user_hash: str, original_text: str, corrected_data: dict):
+    """Log correction detection for analytics"""
+    try:
+        event_data = {
+            "user_hash_prefix": user_hash[:8] + "...",
+            "original_text": original_text[:50],
+            "correction_type": corrected_data.get("type", "unknown"),
+            "amount": corrected_data.get("amount"),
+            "category": corrected_data.get("category")
+        }
+        
+        log_structured_event("CORRECTION_DETECTED", event_data)
+        
+    except Exception as e:
+        logger.warning(f"Failed to log correction detection: {e}")
+
 def log_cc_generation_event(cc_dict: Dict[str, Any], processing_time_ms: int, 
                            applied: bool = False) -> bool:
     """

@@ -113,21 +113,21 @@ class BilingualPatterns:
         
         # Explicit analysis request patterns  
         self.explicit_analysis_en = re.compile(
-            r'\b(analysis please|spending (summary|report)|what did i spend|expense report)\b',
+            r'\b(analysis please|spending (summary|report)|what did i spend|expense report|how much.*spend|spend.*week|spend.*month)\b',
             re.IGNORECASE | re.UNICODE
         )
         self.explicit_analysis_bn = re.compile(
-            r'বিশ্লেষণ( দাও)?|খরচের (সারাংশ|রিপোর্ট)|আমি কত খরচ করেছি',
+            r'বিশ্লেষণ( দাও)?|খরচের (সারাংশ|রিপোর্ট)|আমি কত খরচ করেছি|সারাংশ দাও|মাসের খরচ',
             re.IGNORECASE | re.UNICODE
         )
         
-        # Analysis terms (non-explicit)
+        # Analysis terms (non-explicit) - enhanced for better matching
         self.analysis_terms_en = re.compile(
-            r'\b(analysis|summary|report)\b',
+            r'\b(analysis|summary|report|spent.*month|spent.*week|spend.*week|spend.*month)\b',
             re.IGNORECASE | re.UNICODE
         )
         self.analysis_terms_bn = re.compile(
-            r'\b(বিশ্লেষণ|সারাংশ|রিপোর্ট)\b',
+            r'\b(বিশ্লেষণ|সারাংশ|রিপোর্ট|খরচ.*মাসে|খরচ.*সপ্তাহ)\b',
             re.IGNORECASE | re.UNICODE
         )
         
@@ -156,13 +156,13 @@ class BilingualPatterns:
             re.IGNORECASE | re.UNICODE
         )
         
-        # First-person expense verb patterns (for EXPENSE_LOG intent)
+        # First-person expense verb patterns (for EXPENSE_LOG intent) + implicit items
         self.expense_verbs_en = re.compile(
-            r'\b(spent|paid|bought|purchased)\b',
+            r'\b(spent|paid|bought|purchased|cost|costs)\b|(coffee|lunch|dinner|breakfast|tea|food)\s+\d',
             re.IGNORECASE | re.UNICODE
         )
         self.expense_verbs_bn = re.compile(
-            r'(খরচ করেছি|খরচ করলাম|দিলাম|পেমেন্ট করেছি|কিনেছি|নিয়েছি)',
+            r'(খরচ করেছি|খরচ করলাম|দিলাম|দিয়েছি|পেমেন্ট করেছি|কিনেছি|নিয়েছি)',
             re.IGNORECASE | re.UNICODE
         )
         
