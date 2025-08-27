@@ -263,7 +263,8 @@ class ProductionRouter:
                     logger.warning(f"Learning intent handling failed: {e}")
             
             # Step 1.3: SUMMARY/ANALYSIS DETECTION (BEFORE AI processing)
-            if _is_summary_command(text):
+            # Skip summary detection for category-specific queries - let deterministic router handle them
+            if _is_summary_command(text) and not self._is_category_specific_query(text):
                 logger.info(f"[ROUTER] Summary command detected: '{text[:50]}...'")
                 try:
                     summary_response = handle_summary(user_hash, text)
@@ -426,7 +427,8 @@ class ProductionRouter:
                     "FAQ": "FAQ",
                     "COACHING": "COACHING",
                     "SMALLTALK": "FAQ",
-                    "UNKNOWN": "UNKNOWN"
+                    "UNKNOWN": "UNKNOWN",
+                    "CATEGORY_BREAKDOWN": "CATEGORY_BREAKDOWN"
                 }
                 intent = intent_mapping.get(routing_result.intent.value, "UNKNOWN")
                 
@@ -475,7 +477,7 @@ class ProductionRouter:
                 return response, "clarify", None, None
             
             # Step 4: Route non-AI intents immediately (bypass rate limits)
-            if intent in ["DIAGNOSTIC", "SUMMARY", "INSIGHT", "UNDO", "UNKNOWN"]:
+            if intent in ["DIAGNOSTIC", "SUMMARY", "INSIGHT", "UNDO", "UNKNOWN", "CATEGORY_BREAKDOWN"]:
                 # Only allow SUMMARY if no money was detected
                 if intent == "SUMMARY" and contains_money(text):
                     logger.info(f"[ROUTER] Blocking SUMMARY due to money detection: psid={user_hash[:8]}...")
@@ -508,8 +510,8 @@ class ProductionRouter:
                 # Store current intent for future upgrade detection
                 self._store_previous_bot_intent(user_hash, intent)
                 
-                # For protected intents (SUMMARY, UNKNOWN), NEVER attempt coaching - return immediately
-                if intent in ["SUMMARY", "UNKNOWN"]:
+                # For protected intents (SUMMARY, UNKNOWN, CATEGORY_BREAKDOWN), NEVER attempt coaching - return immediately
+                if intent in ["SUMMARY", "UNKNOWN", "CATEGORY_BREAKDOWN"]:
                     from utils.structured import log_structured_event
                     log_structured_event("COACH_SKIPPED_INTENT", {
                         "intent": intent,
@@ -831,6 +833,12 @@ class ProductionRouter:
             # Fail-open: never break message flow due to guardrail errors
             logger.warning(f"[GUARDRAIL] Check failed (user={user_hash[:8]}): {e}")
             return None
+
+    def _is_category_specific_query(self, text: str) -> bool:
+        """Check if query is asking for category-specific breakdown"""
+        from utils.routing_policy import DeterministicRouter
+        router = DeterministicRouter()
+        return router._is_category_breakdown_query(text)
 
     def _get_previous_bot_intent(self, user_hash: str) -> Optional[str]:
         """

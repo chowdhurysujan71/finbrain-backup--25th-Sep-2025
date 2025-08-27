@@ -28,11 +28,12 @@ class RouterScope(Enum):
     ALL = "all"                                  # All requests (full coverage)
 
 class IntentType(Enum):
-    """Intent types with hard precedence: ADMIN → PCA_AUDIT → EXPENSE_LOG → ANALYSIS → FAQ → COACHING → SMALLTALK → UNKNOWN"""
+    """Intent types with hard precedence: ADMIN → PCA_AUDIT → EXPENSE_LOG → CATEGORY_BREAKDOWN → ANALYSIS → FAQ → COACHING → SMALLTALK → UNKNOWN"""
     ADMIN = "ADMIN"
     PCA_AUDIT = "PCA_AUDIT"
     EXPENSE_LOG = "EXPENSE_LOG"
     CLARIFY_EXPENSE = "CLARIFY_EXPENSE"
+    CATEGORY_BREAKDOWN = "CATEGORY_BREAKDOWN"
     ANALYSIS = "ANALYSIS"
     FAQ = "FAQ"
     COACHING = "COACHING"
@@ -422,7 +423,13 @@ class DeterministicRouter:
             matched_patterns.append("money_pattern")
             return RoutingResult(IntentType.CLARIFY_EXPENSE, reason_codes, matched_patterns, 0.9)
         
-        # 5. ANALYSIS - OR logic: time window OR analysis terms OR explicit analysis
+        # 5. CATEGORY_BREAKDOWN (category + timeframe queries)
+        if self._is_category_breakdown_query(text):
+            reason_codes.append("CATEGORY_BREAKDOWN_DETECTED")
+            matched_patterns.append("category_timeframe")
+            return RoutingResult(IntentType.CATEGORY_BREAKDOWN, reason_codes, matched_patterns, 0.95)
+        
+        # 6. ANALYSIS - OR logic: time window OR analysis terms OR explicit analysis
         if (user_signals.has_explicit_analysis or 
             user_signals.has_time_window or 
             user_signals.has_analysis_terms):
@@ -439,13 +446,13 @@ class DeterministicRouter:
             
             return RoutingResult(IntentType.ANALYSIS, reason_codes, matched_patterns, 0.95)
         
-        # 6. FAQ (but not if it has coaching context)
+        # 7. FAQ (but not if it has coaching context)
         if user_signals.has_faq_terms and not user_signals.has_coaching_verbs:
             reason_codes.append("HAS_FAQ_TERMS")
             matched_patterns.append("faq_terms")
             return RoutingResult(IntentType.FAQ, reason_codes, matched_patterns, 0.9)
         
-        # 7. COACHING
+        # 8. COACHING
         coaching_conditions = [
             # Standard coaching: verbs + sufficient history + not explicit analysis
             (user_signals.has_coaching_verbs and 
@@ -468,7 +475,7 @@ class DeterministicRouter:
             
             return RoutingResult(IntentType.COACHING, reason_codes, matched_patterns, 0.85)
         
-        # 8. SMALLTALK (greetings and social conversation)
+        # 9. SMALLTALK (greetings and social conversation)
         smalltalk_patterns_en = r'\b(hello|hi|hey|thanks|thank you|bye|goodbye|good morning|good night|how are you)\b'
         smalltalk_patterns_bn = r'\b(হ্যালো|হাই|ধন্যবাদ|শুভ সকাল|শুভ রাত্রি|কেমন আছেন)\b'
         
@@ -479,7 +486,7 @@ class DeterministicRouter:
             matched_patterns.append("social_conversation")
             return RoutingResult(IntentType.SMALLTALK, reason_codes, matched_patterns, 0.8)
         
-        # 9. UNKNOWN (truly unrecognized terms)
+        # 10. UNKNOWN (truly unrecognized terms)
         reason_codes.append("UNRECOGNIZED_INPUT")
         return RoutingResult(IntentType.UNKNOWN, reason_codes, matched_patterns, 0.5)
     
@@ -503,6 +510,40 @@ class DeterministicRouter:
             money_pattern = r'\b\d+\s*(taka|টাকা|৳|dollars?|\$)\b|(?:৳|taka|টাকা|\$)\s*\d+\b'
             return bool(re.search(money_pattern, normalized, re.IGNORECASE | re.UNICODE))
     
+    def _is_category_breakdown_query(self, text: str) -> bool:
+        """Check if text is asking for category-specific breakdown"""
+        text_lower = self.patterns.normalize_text(text)
+        
+        # Category keywords
+        category_keywords = [
+            "food", "foods", "eating", "meals", "groceries", "grocery", "dining", "restaurant",
+            "restaurants", "lunch", "dinner", "breakfast", "coffee", "snacks", "drinks",
+            "transport", "transportation", "travel", "rides", "ride", "riding", "uber", "taxi", 
+            "bus", "train", "gas", "fuel", "parking", "shopping", "clothes", "clothing",
+            "amazon", "online", "store", "entertainment", "movie", "movies", "games", "cinema",
+            "bills", "bill", "utilities", "utility", "rent", "housing", "internet", "phone",
+            "health", "medical", "pharmacy", "doctor", "medicine", "hospital"
+        ]
+        
+        # Category query patterns
+        category_query_patterns = [
+            "how much did i spend on", "what did i spend on", "how much on",
+            "spent on", "spending on", "expenses on", "cost of", "total for"
+        ]
+        
+        # Check for category-specific spending queries
+        if any(pattern in text_lower for pattern in category_query_patterns):
+            if any(category in text_lower for category in category_keywords):
+                return True
+        
+        # Check for "food this month", "transport this week" pattern
+        if any(category in text_lower for category in category_keywords):
+            timeframe_patterns = ["this month", "this week", "last week", "last month", "today", "yesterday"]
+            if any(timeframe in text_lower for timeframe in timeframe_patterns):
+                return True
+        
+        return False
+
     def _get_ledger_count_30d(self, user_id: str) -> int:
         """Get user's expense count in last 30 days"""
         try:
