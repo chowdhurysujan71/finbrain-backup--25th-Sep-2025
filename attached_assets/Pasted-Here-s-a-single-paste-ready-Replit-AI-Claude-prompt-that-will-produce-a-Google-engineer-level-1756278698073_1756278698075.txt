@@ -1,0 +1,210 @@
+Here’s a single, paste-ready **Replit AI (Claude)** prompt that will produce a Google-engineer-level UAT for your fixes. It bakes in your constraints (single-button deploy; no canary/shadow), the four fixes, concrete acceptance criteria, test data, and runnable checks (cURL & Playwright). Just replace the placeholders at the top after Claude returns the artifacts.
+
+---
+
+**PROMPT TO PASTE INTO REPLIT AI (CLAUDE)**
+
+You are a principal QA/SWE at Google tasked with authoring a complete, execution-ready **UAT plan + scripts** for a production rollout. Product is **finbrain**. Deployment is **single-button**, **no canary or shadow**. The following fixes have shipped and must be verified end-to-end:
+
+1. Monthly Summary Routing — “show me this months summary” must resolve to the **monthly** time window and return **₹12,410** for the seeded test ledger.
+2. AI Response Repetition — add **request uniqueness** so back-to-back prompts don’t return duplicated cached analyses.
+3. Safe Truncation — outputs must end on **word/sentence boundaries** (no “where po”, cut words, or broken punctuation).
+4. Dashboard Real-Time — UI must reflect latest backend state via **cache-busting headers**.
+
+**What I need from you:**
+
+### A. UAT Document (engineer-grade, concise)
+
+Produce a single UAT doc with these sections:
+
+* **Objective & Scope** (explicitly list the four fixes above).
+* **Environments & Constraints**
+
+  * One-button deploy; no canary/shadow/traffic mirroring.
+  * Feature flags: `PCA_MODE=ON` only.
+* **Test Data & Idempotency**
+
+  * Seeded ledger for user `TEST_USER_A` with deterministic entries that sum to **₹12,410** for the current month.
+  * Include a reset script and a ledger seeder (SQL or HTTP calls).
+* **Entry/Exit Criteria**
+
+  * Entry: build `BUILD_ID=$(date +%Y%m%d%H%M%S)` deployed; migrations complete; health checks green.
+  * Exit: all P0/P1 pass; no regression in metrics listed below for 30 minutes.
+* **Test Matrix (P0 first)**
+  For each test, write:
+
+  * **ID**, **Purpose**, **Pre-conditions**, **Steps**, **Expected**, **Logs/Metrics to check**, **Negative/Edge variants**.
+
+Cover at minimum:
+
+**P0-1 Monthly Routing correctness**
+
+* Prompts:
+  a) “show me this months summary”
+  b) “monthly summary”
+  c) “this month overview”
+  d) “এই মাসের খরচের সারাংশ দেখাও”
+* **Expected:** monthly window detected; total = **₹12,410**; categories add up; currency symbol present; date range labels correct (first→last day of current month).
+* **Guards:** NOT weekly; NOT last-7-days; no fallback copy.
+* **API/DB assertions:** time filter SQL or controller params include `start_of_month..end_of_month`.
+
+**P0-2 Request-uniqueness / no duplicate AI responses**
+
+* Send the **same** prompt 3× within 10s; assert:
+
+  * Different `X-Request-ID` (or request hash) on backend.
+  * Response text is not byte-identical (allowing minor variation), and analysis block includes fresh context markers (e.g., regenerated insight ID).
+* Stress with 10 parallel requests; ensure no cached stale response is served across different request IDs.
+
+**P0-3 Graceful truncation**
+
+* Force long outputs (use “give me a detailed monthly analysis with 10 suggestions”).
+* **Expected:** last character is `.`/`!`/`?` or a newline; no mid-word splits; no dangling conjunctions; UTF-8 valid.
+* Add multi-byte (Bangla) and emoji lines; confirm no grapheme splits.
+
+**P0-4 Dashboard real-time refresh**
+
+* **Headers expected:** `Cache-Control: no-store, no-cache, must-revalidate`, `Pragma: no-cache`, `ETag` present and changes when data changes.
+* After seeding + one new expense, refresh dashboard → total increments immediately (no stale cache).
+* Hard refresh & soft navigation both reflect new totals.
+
+**P1-1 Weekly vs Monthly coherence**
+
+* After logging a large weekly spike, verify monthly rolls up consistently and insight text links them (no contradictions).
+
+**P1-2 Localization & currency formatting**
+
+* Mixed prompts EN/BN; currency displayed as **₹** consistently; no double symbols; thousand separators correct.
+
+**P1-3 Zero-ledger safety**
+
+* With empty month, summaries return “safe minimal line” (no error, no hallucinated totals).
+
+**P1-4 Resilience**
+
+* Backend 429/5xx from AI adapter → user sees friendly fallback; retries capped; no duplicate ledger writes.
+
+**Monitoring / Metrics to watch (must stay healthy)**
+
+* `insights.tenant_mismatch_total == 0`
+* `insights.adapter.schema_violation_total <= 5/hour`
+* `insights.adapter.nonjson_total <= 10/hour`
+* `insufficient_data_responses` spike only for true zero-ledger
+* HTTP 5xx rate < 0.1%, p95 latency within SLO
+
+### B. Ready-to-run assets (put in code blocks)
+
+1. **Environment variables (placeholders to replace):**
+
+```
+export BASE_URL="https://<your-repl>.replit.dev"
+export PAGE_TOKEN="<FB_PAGE_ACCESS_TOKEN>"
+export TEST_PSID="<TEST_PSID>"
+export BUILD_ID=$(date +%Y%m%d%H%M%S)
+```
+
+2. **Health & routing checks (cURL):**
+
+```bash
+# Health
+curl -sS ${BASE_URL}/health | jq
+
+# Diagnose router: should show monthly intent for phrase variants
+for q in \
+  "show me this months summary" \
+  "monthly summary" \
+  "this month overview" \
+  "এই মাসের খরচের সারাংশ দেখাও"
+do
+  echo ">>> $q"
+  curl -sS "${BASE_URL}/diagnose/router?q=$(python3 - <<EOF
+import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))
+EOF
+"$q")" | jq '.router_result.intent,.router_result.timeframe'
+done
+```
+
+3. **Messenger send helper (simulate user prompts):**
+
+```bash
+send_msg () {
+  curl -sS -X POST "https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d "{\"recipient\":{\"id\":\"${TEST_PSID}\"},\"message\":{\"text\":\"$1\"}}"
+  echo
+}
+send_msg "show me this months summary"
+send_msg "give me a detailed monthly analysis with 10 suggestions"
+```
+
+4. **Uniqueness test (compare response bodies + headers):**
+
+```bash
+for i in 1 2 3; do
+  curl -i -sS "${BASE_URL}/api/insight?prompt=$(python3 - <<EOF
+import urllib.parse; print(urllib.parse.quote('show me this months summary'))
+EOF
+)" -H "X-Client-Test: repeat-$i" -o resp_$i.txt
+  grep -i '^x-request-id:' resp_$i.txt || true
+done
+diff -q resp_1.txt resp_2.txt || echo "OK: not identical"
+```
+
+5. **Seeder & reset (SQL or HTTP):**
+
+```bash
+# Reset & seed deterministic monthly total = ₹12410
+curl -sS -X POST "${BASE_URL}/admin/test/reset?user=TEST_USER_A"
+curl -sS -X POST "${BASE_URL}/admin/test/seed?user=TEST_USER_A&month_total=12410&currency=INR"
+```
+
+6. **Header validation (dashboard):**
+
+```bash
+curl -i -sS "${BASE_URL}/dashboard?user=TEST_USER_A" | \
+  awk 'tolower($0) ~ /cache-control|pragma|etag/'
+```
+
+7. **Playwright smoke (TypeScript) — run headless in CI:**
+
+```ts
+import { test, expect } from '@playwright/test';
+test('Dashboard reflects real-time total and proper caching', async ({ page }) => {
+  await page.goto(process.env.BASE_URL + '/dashboard?user=TEST_USER_A', { waitUntil: 'networkidle' });
+  const total1 = await page.locator('[data-testid="monthly-total"]').innerText();
+  await page.request.post(process.env.BASE_URL + '/api/expense', { data: { user:'TEST_USER_A', amount:210, currency:'INR', ts: Date.now() }});
+  await page.reload({ waitUntil: 'networkidle' });
+  const total2 = await page.locator('[data-testid="monthly-total"]').innerText();
+  expect(total2).not.toBe(total1);
+  const headers = await page.evaluate(async () => {
+    const res = await fetch('/dashboard?user=TEST_USER_A', { cache: 'no-store' });
+    return { cc: res.headers.get('cache-control'), pragma: res.headers.get('pragma'), etag: res.headers.get('etag') };
+  });
+  expect(headers.cc?.toLowerCase()).toContain('no-store');
+  expect(headers.pragma?.toLowerCase()).toContain('no-cache');
+  expect(headers.etag).toBeTruthy();
+});
+```
+
+### C. Runbook (pre-deploy → validate → rollback)
+
+* **Pre-deploy:** migrate DB; run 7/7 tenancy tests; purge old insight caches; confirm webhook `GET /webhook?hub.mode=subscribe&verify_token=...` OK.
+* **Deploy:** push build with `BUILD_ID`; verify health; run Seeder; execute **P0** matrix via scripts above.
+* **Monitoring window:** 30 minutes; watch counters listed; capture p95 latency and error rates.
+* **Rollback:** one-button revert to previous image; run reset script; confirm router/health green.
+
+### D. Deliverables
+
+Return:
+
+1. The UAT document (markdown).
+2. A `scripts/` folder layout with the bash & Playwright files exactly as above.
+3. A short **checklist** (one screen) that an on-call can follow to certify the release.
+
+**Assumptions/Placeholders to keep explicit in output:**
+
+* `BASE_URL`, `PAGE_TOKEN`, `TEST_PSID` to be filled by operator.
+* Admin endpoints `/admin/test/reset` and `/admin/test/seed` exist; if not, generate stub implementations (FastAPI/Flask) as appendix.
+* Router diagnose endpoint `/diagnose/router` returns `intent` and `timeframe`.
+
+Make the UAT terse, deterministic, and runnable as-is once placeholders are set. Use unambiguous pass/fail wording and include sample expected payloads for success cases (monthly total = **₹12,410**).
