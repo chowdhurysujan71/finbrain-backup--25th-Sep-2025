@@ -1,0 +1,103 @@
+Overview (what this fixes today)
+
+Deterministic, bilingual signal extraction (EN/BN) with robust text normalization and time-window parsing (Asia/Dhaka).
+
+Vendor-resilient AI client with retries, JSON enforcement, schema validation, and local fallback so “AI processing” can never be 0%.
+
+Input sanitization that preserves the original text for audit but only processes a sanitized copy (fail-safe by design).
+
+1) Data Handling: normalization + signals
+1.1 Text normalization (NFKC + casefold + zero-width removal)
+
+Create utils/text_normalizer.py:
+
+# utils/text_normalizer.py
+from __future__ import annotations
+import unicodedata, re
+
+_ZW = re.compile(r"[\u200B-\u200D\uFEFF]")  # ZWSP, ZWNJ, ZWJ, BOM
+
+def normalize_for_processing(text: str) -> str:
+    if not isinstance(text, str):
+        return ""
+    # 1) Unicode canonical form
+    t = unicodedata.normalize("NFKC", text)
+    # 2) Remove zero-width chars
+    t = _ZW.sub("", t)
+    # 3) Lower & casefold for i18n
+    t = t.casefold()
+    # 4) Collapse whitespace
+    t = re.sub(r"\s+", " ", t).strip()
+    return t
+
+1.2 Signals extractor (EN/BN intents + money + time windows)
+
+Create nlp/signals_extractor.py:
+
+# nlp/signals_extractor.py
+from __future__ import annotations
+import re
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+from utils.text_normalizer import normalize_for_processing
+
+# --- Patterns (EN + BN) ---
+RE_TIME = re.compile(r"\b(today|yesterday|this (week|month)|last (week|month))\b|\b\d{4}-\d{2}-\d{2}\b")
+RE_ANALYSIS_EXPL = re.compile(r"\b(analysis please|spending (summary|report)|what did i spend|expense report)\b|বিশ্লেষণ( দাও)?|খরচের (সারাংশ|রিপোর্ট)|আমি কত খরচ করেছি")
+RE_ANALYSIS_GENERIC = re.compile(r"\b(analysis|summary|report)\b|বিশ্লেষণ|সারাংশ|রিপোর্ট")
+RE_COACHING = re.compile(r"\b(save|reduce|cut|budget|plan)\b|সেভ|কমানো|কাট|বাজেট|পরিকল্পনা")
+RE_FAQ = re.compile(r"what can you do|how (do|does) it work|features?|capabilities?|privacy|is my data (safe|private)|security|pricing|cost|subscription|plans?|তুমি কী করতে পারো|কিভাবে কাজ করে|ফিচার|ক্ষমতা|প্রাইভেসি|ডেটা নিরাপদ|নিরাপত্তা|দাম|মূল্য|সাবস্ক্রিপশন|প্ল্যান")
+RE_ADMIN = re.compile(r"^/(id|debug|help)\b")
+
+# Money (৳, tk, bdt) + numerals; allow commas & decimals
+RE_MONEY = re.compile(r"(?:৳|tk|bdt)\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)")
+
+def extract_signals(raw_text: str, tz: str = "Asia/Dhaka") -> dict:
+    t = normalize_for_processing(raw_text)
+    return {
+        "is_admin": bool(RE_ADMIN.search(t)),
+        "has_time_window": bool(RE_TIME.search(t)),
+        "explicit_analysis_request": bool(RE_ANALYSIS_EXPL.search(t)),
+        "has_analysis_terms": bool(RE_ANALYSIS_GENERIC.search(t) or RE_ANALYSIS_EXPL.search(t)),
+        "has_coaching_verbs": bool(RE_COACHING.search(t)),
+        "has_faq_terms": bool(RE_FAQ.search(t)),
+        "money_mentions": [m.group(0) for m in RE_MONEY.finditer(t)],
+        "window": parse_window(tz=tz, text=t)
+    }
+
+def parse_window(tz: str, text: str) -> dict | None:
+    # Maps common phrases to [start, end)
+    zone = ZoneInfo(tz)
+    now = datetime.now(zone)
+    today = now.date()
+    if "today" in text or "আজ" in text:
+        return {"from": str(today), "to": str(today + timedelta(days=1))}
+    if "yesterday" in text or "গতকাল" in text:
+        y = today - timedelta(days=1)
+        return {"from": str(y), "to": str(today)}
+    if "this week" in text or "এই সপ্তাহ" in text:
+        start = today - timedelta(days=today.weekday())  # Monday start
+        return {"from": str(start), "to": str(start + timedelta(days=7))}
+    if "last week" in text or "গত সপ্তাহ" in text:
+        start = today - timedelta(days=today.weekday()+7)
+        return {"from": str(start), "to": str(start + timedelta(days=7))}
+    if "this month" in text or "এই মাস" in text:
+        start = today.replace(day=1)
+        if start.month == 12:
+            end = start.replace(year=start.year+1, month=1, day=1)
+        else:
+            end = start.replace(month=start.month+1, day=1)
+        return {"from": str(start), "to": str(end)}
+    if "last month" in text or "গত মাস" in text:
+        if today.month == 1:
+            start = today.replace(year=today.year-1, month=12, day=1)
+        else:
+            start = today.replace(month=today.month-1, day=1)
+        end = today.replace(day=1)
+        return {"from": str(start), "to": str(end)}
+    # ISO date single-day
+    m = re.search(r"\b(\d{4}-\d{2}-\d{2})\b", text)
+    if m:
+        d = datetime.fromisoformat(m.group(1)).date()
+        return {"from": str(d), "to": str(d + timedelta(days=1))}
+    return None
