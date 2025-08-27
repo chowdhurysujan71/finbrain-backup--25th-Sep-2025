@@ -66,6 +66,50 @@ def log_correction_detected(user_hash: str, original_text: str, corrected_data: 
     except Exception as e:
         logger.warning(f"Failed to log correction detection: {e}")
 
+def log_correction_no_candidate(user_hash: str, mid: str, reason: str):
+    """Log when no correction candidate is found"""
+    try:
+        event_data = {
+            "user_hash_prefix": user_hash[:8] + "...",
+            "message_id": mid,
+            "reason": reason
+        }
+        
+        log_structured_event("CORRECTION_NO_CANDIDATE", event_data)
+        
+    except Exception as e:
+        logger.warning(f"Failed to log correction no candidate: {e}")
+
+def log_correction_duplicate(user_hash: str, mid: str, expense_id: str):
+    """Log when correction is a duplicate"""
+    try:
+        event_data = {
+            "user_hash_prefix": user_hash[:8] + "...",
+            "message_id": mid,
+            "expense_id": expense_id
+        }
+        
+        log_structured_event("CORRECTION_DUPLICATE", event_data)
+        
+    except Exception as e:
+        logger.warning(f"Failed to log correction duplicate: {e}")
+
+def log_correction_applied(user_hash: str, mid: str, original_expense_id: str, new_expense_id: str, changes: dict):
+    """Log when correction is successfully applied"""
+    try:
+        event_data = {
+            "user_hash_prefix": user_hash[:8] + "...",
+            "message_id": mid,
+            "original_expense_id": original_expense_id,
+            "new_expense_id": new_expense_id,
+            "changes": changes
+        }
+        
+        log_structured_event("CORRECTION_APPLIED", event_data)
+        
+    except Exception as e:
+        logger.warning(f"Failed to log correction applied: {e}")
+
 def log_cc_generation_event(cc_dict: Dict[str, Any], processing_time_ms: int, 
                            applied: bool = False) -> bool:
     """

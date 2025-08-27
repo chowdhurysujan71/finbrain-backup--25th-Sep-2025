@@ -53,6 +53,17 @@ def save_expense(user_identifier, description, amount, category, platform, origi
         # User identifier is already hashed when passed from production_router
         user_hash = user_identifier
         
+        # Validate amount to prevent database overflow
+        # Database field is Numeric(10, 2) so max is 99,999,999.99
+        MAX_AMOUNT = 99999999.99
+        MIN_AMOUNT = 0.01
+        
+        amount_float = float(amount)
+        if amount_float > MAX_AMOUNT:
+            raise ValueError(f"Amount {amount_float} exceeds maximum allowed value of ৳{MAX_AMOUNT:,.2f}")
+        if amount_float < MIN_AMOUNT:
+            raise ValueError(f"Amount {amount_float} below minimum allowed value of ৳{MIN_AMOUNT}")
+        
         # Strict validation in debug mode
         import os
         if os.environ.get('STRICT_IDS', 'false').lower() == 'true':
@@ -68,6 +79,7 @@ def save_expense(user_identifier, description, amount, category, platform, origi
         # Create expense record
         expense = Expense(
             user_id=user_hash,
+            user_id_hash=user_hash,  # Ensure both fields are set for data integrity
             description=description,
             amount=amount,
             category=category,

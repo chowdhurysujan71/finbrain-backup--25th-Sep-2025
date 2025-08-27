@@ -1027,12 +1027,12 @@ class ProductionRouter:
         """Persist CC snapshot to inference_snapshots table (append-only)"""
         try:
             from app import db
-            from sqlalchemy import text
+            from sqlalchemy import text as sql_text
             from datetime import datetime
             import json
             
             # Create CC snapshot record
-            db.session.execute(text("""
+            db.session.execute(sql_text("""
                 INSERT INTO inference_snapshots 
                 (cc_id, user_id, intent, slots_json, confidence, decision, clarifier_json,
                  model_version, processing_time_ms, source_text, ui_note, created_at, 
