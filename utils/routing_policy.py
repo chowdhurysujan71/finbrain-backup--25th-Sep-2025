@@ -421,17 +421,11 @@ class DeterministicRouter:
             matched_patterns.append("money_pattern")
             return RoutingResult(IntentType.CLARIFY_EXPENSE, reason_codes, matched_patterns, 0.9)
         
-        # 5. ANALYSIS - More conservative routing to prevent over-routing
-        analysis_conditions = [
-            # Explicit analysis always wins
-            user_signals.has_explicit_analysis,
-            # Time window + analysis terms (both required for strong signal)
-            (user_signals.has_time_window and user_signals.has_analysis_terms),
-            # Override coaching session for explicit analysis
-            (user_signals.in_coaching_session and user_signals.has_explicit_analysis)
-        ]
-        
-        if any(analysis_conditions):
+        # 5. ANALYSIS - OR logic: time window OR analysis terms OR explicit analysis
+        if (user_signals.has_explicit_analysis or 
+            user_signals.has_time_window or 
+            user_signals.has_analysis_terms):
+            
             if user_signals.has_explicit_analysis:
                 reason_codes.append("EXPLICIT_ANALYSIS_REQUEST")
                 matched_patterns.append("explicit_analysis")
