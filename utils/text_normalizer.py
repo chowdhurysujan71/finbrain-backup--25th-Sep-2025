@@ -25,9 +25,9 @@ def normalize_for_processing(text: str) -> str:
     # 1. Unicode canonical form (handles composed characters)
     normalized = unicodedata.normalize("NFKC", text)
     
-    # 2. Convert Bengali numerals to ASCII (NFKC doesn't always do this)
-    bengali_to_ascii = str.maketrans('০১২৩৪৫৬৭৮৯', '0123456789')
-    normalized = normalized.translate(bengali_to_ascii)
+    # 2. Convert Bengali numerals to ASCII using proper utility
+    from utils.bn_digits import to_en_digits
+    normalized = to_en_digits(normalized)
     
     # 3. Remove zero-width characters that can break pattern matching
     normalized = _ZERO_WIDTH_CHARS.sub("", normalized)

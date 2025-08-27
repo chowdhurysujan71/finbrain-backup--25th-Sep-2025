@@ -44,11 +44,8 @@ RE_FAQ = re.compile(
 # Admin commands
 RE_ADMIN = re.compile(r"^/(id|debug|help|status)\b")
 
-# Money patterns (৳, tk, bdt, taka, টাকা) with ASCII numerals (Bengali converted by normalizer)
-RE_MONEY = re.compile(
-    r"(?:৳|tk|bdt|taka|টাকা)\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)|"
-    r"([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)\s*(?:৳|tk|bdt|taka|টাকা)"
-)
+# Import enhanced money patterns
+from nlp.money_patterns import RE_MONEY, extract_money_mentions, has_money_mention
 
 def extract_signals(raw_text: str, user_id: str = None, timezone: str = "Asia/Dhaka") -> Dict:
     """
@@ -72,8 +69,8 @@ def extract_signals(raw_text: str, user_id: str = None, timezone: str = "Asia/Dh
         "has_analysis_terms": bool(RE_ANALYSIS_GENERIC.search(normalized) or RE_ANALYSIS_EXPLICIT.search(normalized)),
         "has_coaching_verbs": bool(RE_COACHING.search(normalized)),
         "has_faq_terms": bool(RE_FAQ.search(normalized)),
-        "money_mentions": [m.group(0) for m in RE_MONEY.finditer(normalized)],
-        "has_money": bool(RE_MONEY.search(normalized)),
+        "money_mentions": extract_money_mentions(normalized),
+        "has_money": has_money_mention(normalized),
         "window": parse_time_window(timezone=timezone, text=normalized),
         "raw_text": raw_text,
         "normalized_text": normalized
