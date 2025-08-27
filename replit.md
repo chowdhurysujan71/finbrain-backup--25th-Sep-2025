@@ -9,117 +9,25 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Core Design Principles
-FinBrain utilizes a modular, AI-first architecture with **Phase 4: Limited Production PCA** active (`PCA_MODE=ON`). It prioritizes security with mandatory HTTPS and signature verification. All AI features are always-on, with AI-first routing. The system employs a Canonical Command (CC) architecture for deterministic operations and idempotency. User-level correction isolation is designed for granular control over financial data.
+FinBrain utilizes a modular, AI-first architecture with **Phase 4: Limited Production PCA** active. It prioritizes security with mandatory HTTPS and signature verification. All AI features are always-on, with AI-first routing. The system employs a Canonical Command (CC) architecture for deterministic operations and idempotency. User-level correction isolation is designed for granular control over financial data.
 
-### PCA (Precision Capture & Audit) System - LIVE PRODUCTION DEPLOYED
-- **Current Status**: Full Production Active (PCA_MODE=ON, PRODUCTION_MODE=ON)
-- **Deployment Date**: 2025-08-26 06:16:32 UTC
-- **Audit Transparency**: LIVE (SHOW_AUDIT_UI=true, activated 2025-08-26 07:17:00 UTC)
-- **All Features Live**: Overlay system, API endpoints, UI components, audit transparency UI fully operational
-- **High-Confidence Auto-Apply**: Expenses with ≥85% confidence automatically create transactions
-- **Enhanced Detection**: Bengali + English patterns with confidence scoring (90%+ accuracy)
-- **Transaction Creation**: Real expense records generated for high-confidence CCs
-- **Audit Trail**: Complete CC history logged to inference_snapshots table
-- **Performance**: 0.0ms P95 latency (99% under target), comprehensive caching system
-- **Clarifier Flow**: 20.8% optimal ask rate with 100% decision accuracy
-- **DoD Compliance**: All 7 criteria PASS - production ready
-- **Audit Transparency**: Live in Messenger - users see both original AI categorizations and their corrected views
-- **UAT Validation**: 100% pass rate (10/10 tests) - comprehensive functional, performance, security, and integration validation complete
+### PCA (Precision Capture & Audit) System
+The PCA system is in Full Production Active mode, ensuring audit transparency and high-confidence auto-application of expenses (≥85% confidence). It includes enhanced Bengali + English pattern detection, real expense record generation for high-confidence CCs, and a complete CC history logged for audit. Performance is optimized with a P95 latency of 0.0ms and comprehensive caching. The Clarifier Flow achieves a 20.8% optimal ask rate with 100% decision accuracy. Audit transparency is live in Messenger, allowing users to see original AI categorizations and their corrected views.
 
 ### Web Framework and Database
 The application uses Flask with SQLAlchemy for database integration. PostgreSQL is the primary database, managing `expenses`, `users`, and `monthly_summaries` tables. A secure webhook at `/webhook/messenger` handles Facebook Messenger integration. Administrative and operational dashboards are protected by HTTP Basic Auth.
 
 ### Security
-Security measures include X-Hub-Signature-256 verification, HTTPS enforcement, and automated monitoring of Facebook Page Access Tokens. User identifiers (Facebook PSIDs) are SHA-256 hashed, and sensitive credentials are environment variables. The system adheres to messaging policies, implements per-user rate limiting, and uses a single-source-of-truth identity system.
+Security measures include X-Hub-Signature-256 verification, HTTPS enforcement, and automated monitoring of Facebook Page Access Tokens. User identifiers (Facebook PSIDs) are SHA-256 hashed, and sensitive credentials are environment variables. The system adheres to messaging policies, implements per-user rate limiting, and uses a single-source-of-truth identity system. Critical AI cross-contamination issues have been addressed by implementing per-request session isolation, user ID logging, real-time contamination detection, AI prompt user isolation, and response validation gateways.
 
 ### Background Processing and AI
-A thread pool handles background message processing to ensure non-blocking webhook responses. An intelligent AI recommendation layer (Gemini-2.5-flash-lite) categorizes expenses and provides tips. A pluggable AI adapter system supports multiple providers with PII hygiene and failover. Robust AI rate limiting prevents abuse. AI providers are pre-warmed on app boot, and a 5-minute health ping system maintains server activity. The system supports complex multi-item messages using regex and AI fallback, provides context-driven responses based on user-specific spending patterns, and enforces structured responses via JSON schema validation. AI responses follow a summary/action/question structure, are limited to 280 characters, and include graceful clipping. Key AI capabilities include context awareness, multi-step reasoning, recommendation intelligence, self-learning, long-term intelligence, meta-intelligence, and safeguards.
+A thread pool handles background message processing. An intelligent AI recommendation layer (Gemini-2.5-flash-lite) categorizes expenses and provides tips. A pluggable AI adapter system supports multiple providers with PII hygiene and failover. Robust AI rate limiting prevents abuse. AI providers are pre-warmed on app boot, and a 5-minute health ping system maintains server activity. The system supports complex multi-item messages using regex and AI fallback, provides context-driven responses based on user-specific spending patterns, and enforces structured responses via JSON schema validation. AI responses follow a summary/action/question structure, are limited to 280 characters, and include graceful clipping. Key AI capabilities include context awareness, multi-step reasoning, recommendation intelligence, self-learning, long-term intelligence, meta-intelligence, and safeguards. Duplicate AI calls for insights have been eliminated by correcting the production router configuration.
 
 ### User Interaction and Dashboard
-The system acknowledges inbound messages immediately and queues them for background processing. It features an engagement-driven AI architecture with proactive onboarding and personalized interactions for new users. Each user has a personalized AI insights dashboard accessible via `/user/{psid_hash}/insights`, providing real-time financial analysis and recommendations. The system includes a smart reminder system for policy-compliant user engagement. Corrections are handled intelligently, allowing users to naturally correct expenses with enhanced money detection and intelligent candidate matching.
+The system acknowledges inbound messages immediately and queues them for background processing. It features an engagement-driven AI architecture with proactive onboarding and personalized interactions for new users. Each user has a personalized AI insights dashboard accessible via `/user/{psid_hash}/insights`, providing real-time financial analysis and recommendations. The system includes a smart reminder system for policy-compliant user engagement. Corrections are handled intelligently, allowing users to naturally correct expenses with enhanced money detection and intelligent candidate matching. Comprehensive message system overhauls have ensured monthly summary routing, AI response uniqueness through timestamp + random ID + user context, graceful message truncation, and real-time dashboard updates via cache-busting headers. Timeframe clarity UX enhancements have been implemented across Messenger templates, web dashboard labels, and insight templates to explicitly show timeframes (e.g., "Last 7 Days" vs "This Month").
 
 ### UI/UX
 The web dashboard uses Bootstrap 5 for its CSS framework and Font Awesome 6 for icons, providing a clean and intuitive interface for financial analysis. The AI maintains a coach-style tone for consistent user experience.
-
-## Recent Changes
-*Keep this section updated with recent significant changes and their dates*
-
-### 2025-08-27: CRITICAL AI CROSS-CONTAMINATION SECURITY FIX ✅ FINANCIAL DATA MIXING ELIMINATED
-- **Scope**: Emergency response to critical AI response contamination where users were receiving mixed financial data from other accounts
-- **CRITICAL SECURITY BREACH**: Screenshots revealed AI responses containing mixed amounts from different users (e.g., User 1 data mixed with KC's data)
-- **Root Cause**: Shared `requests.Session` object in AI adapter causing potential cross-user data leakage and state mixing
-- **Emergency Safeguards Implemented**:
-  - **Per-Request Session Isolation**: Eliminated shared session objects - each AI request uses isolated session with immediate cleanup
-  - **User ID Logging & Audit Trail**: Every AI request logs user ID and generates unique request ID for contamination tracking
-  - **Real-Time Contamination Detection**: Active monitoring system automatically detects and blocks responses containing foreign user data
-  - **AI Prompt User Isolation**: All AI prompts explicitly instructed to analyze only specific user's data with user ID markers
-  - **Response Validation Gateway**: All AI responses validated for contamination before delivery to users
-- **Technical Fix**: `isolated_session = requests.Session()` → `isolated_session.close()` per request with contamination monitoring
-- **Security Verification**: Comprehensive testing shows no cross-contamination in current system - all users receive only their own financial data
-- **Production Impact**: **AI FINANCIAL DATA MIXING COMPLETELY ELIMINATED** - Users can trust AI responses contain only their own spending data. Core security requirement for financial application fully restored.
-
-### 2025-08-27: AI REPETITION ROOT CAUSE FIX ✅ DUPLICATE AI CALLS ELIMINATED
-- **Critical Issue**: AI generating identical repeated responses despite UAT validation of uniqueness logic
-- **Root Cause Discovery**: Production router was making **TWO separate AI calls** for insight requests:
-  - Call 1: Normal insight handler (`handlers/insight.py`) with uniqueness context ✅
-  - Call 2: Additional coaching system (lines 410-420 in router) without uniqueness ❌
-- **Result**: Same context sent twice = identical AI responses repeated in user interface
-- **Technical Fix**: Disabled duplicate coaching call in production router for INSIGHT intent
-  - Commented out lines 414-426 in `utils/production_router.py`
-  - Now only ONE AI call made per insight request using our uniqueness implementation
-- **Impact**: **DUPLICATE AI RESPONSES COMPLETELY ELIMINATED** - Users will now receive unique, varied AI analysis without repetition
-
-### 2025-08-27: COMPREHENSIVE MESSAGE SYSTEM OVERHAUL ✅ UAT VALIDATED - PRODUCTION READY
-- **Issue Suite**: Four critical system issues causing user confusion and poor UX: monthly summary routing, AI response repetition, message truncation, and static dashboard data
-- **Root Cause Analysis**: 
-  - **Routing Architecture**: Dual routing systems with `utils/dispatcher.py` missing text parameter causing timeframe detection bypass
-  - **AI Caching**: Identical context data causing repeated AI responses due to lack of request uniqueness
-  - **Message Truncation**: Harsh 280-character cutoffs causing mid-sentence breaks ("where po" instead of complete thoughts)
-  - **Dashboard Caching**: Missing cache-busting headers preventing real-time data updates
-- **Comprehensive Technical Solutions**:
-  1. **Monthly Summary Routing Fixed**: Enhanced `utils/dispatcher.py` to pass text parameter to `handlers/summary.py` enabling intelligent timeframe detection (month/weekly keywords)
-  2. **AI Response Uniqueness**: Added timestamp + random ID + user context to AI requests preventing identical responses and response caching
-  3. **Graceful Message Truncation**: Implemented smart truncation in `utils/textutil.py` preserving sentence/word boundaries instead of harsh cutoffs
-  4. **Dashboard Real-Time Updates**: Added cache-busting headers (`Cache-Control: no-cache`) to admin dashboard for live data refresh
-- **UAT Validation Results**: Comprehensive testing completed with 31/31 tests passed (100% success rate)
-  - ✅ Monthly timeframe detection: 6/6 test cases passed
-  - ✅ AI request uniqueness: 3/3 test cases passed
-  - ✅ Graceful truncation: 4/4 test cases passed  
-  - ✅ Cache-busting headers: 3/3 test cases passed
-  - ✅ Edge cases and integration: 15/15 test cases passed
-- **Production Status**: **ALL FIXES VALIDATED AND PRODUCTION READY** - Zero regressions, robust edge case handling, 100% test coverage
-- **User Impact**: **COMPLETE MESSAGING SYSTEM RELIABILITY** - Monthly summaries work correctly (₹12,410 vs ₹10,910), AI provides varied insights, messages end gracefully, dashboard shows real-time data
-
-### 2025-08-27: TIMEFRAME CLARITY UX ENHANCEMENT ✅ USER CONFUSION ELIMINATED
-- **Issue**: User confusion between Messenger responses (showing "Last 7 Days" data) and web dashboard (showing "This Month" data) causing apparent data mismatches
-- **Root Cause**: Generic timeframe labels like "this period" and "summary" without explicit timeframe specifications led users to compare different timeframes thinking they were the same dataset
-- **UX Enhancements Implemented**:
-  - **Messenger Templates Enhanced**: Updated AI response templates to explicitly show "Last 7 Days" vs "This Month" instead of generic period terms
-  - **Web Dashboard Labels Clarified**: Updated dashboard cards to show "This Month's Total" and "This Month's Transactions" for absolute clarity
-  - **Insight Templates Enhanced**: Updated AI insight responses to specify exact timeframe being analyzed (e.g., "Here's what I noticed (This Month):")
-  - **Template Mapping System**: Added explicit timeframe mapping system to ensure consistent display across all user interfaces
-- **Data Verification**: Confirmed user's data is mathematically accurate - ৳10,910 (Last 7 Days) vs ৳12,410 (This Month) with ৳1,500 difference from 2 expenses earlier in month
-- **User Impact**: **TIMEFRAME CONFUSION ELIMINATED** - Users now clearly understand whether they're viewing weekly vs monthly data, preventing false data mismatch concerns
-
-### 2025-08-27: DATA INTEGRITY AUDIT COMPLETED ✅ FINANCIAL RELIABILITY SECURED  
-- **Scope**: Comprehensive system-wide audit to ensure users only see their own accurate financial data (core value proposition requirement)
-- **Critical Issues Identified**: 5 major data integrity vulnerabilities threatening financial data accuracy and user privacy
-- **Issues Resolved**:
-  - **4 Orphaned Expenses Fixed** (₹3,100 total): Created proper user records for expenses that existed without user accounts - prevented potential data access failures
-  - **Transport Category Mapping Enhanced**: Verified KC's transport breakdown issue completely resolved from previous fixes
-  - **User Isolation Verified**: 100% confirmation that no cross-user data contamination exists across all 43 users and 77 expenses
-  - **Financial Calculations Validated**: Mathematical accuracy verified for all expense totals, category breakdowns, and timeframe filters
-  - **Invalid Hash Managed**: 1 test user with non-standard hash preserved (has real expense data, system handles gracefully)
-- **Security Verification**: Multi-layer testing confirmed complete user data isolation - no foreign expense data detected in any user responses
-- **Monitoring Established**: Real-time data integrity monitoring system deployed with automatic alerts for future issues
-- **Production Impact**: **FINANCIAL DATA INTEGRITY 100% SECURED** - Users can trust their expense data is completely accurate, properly isolated, and mathematically reliable. Core value proposition of accurate financial tracking fully maintained.
-
-### 2025-08-26: Transport/Rides Category Mapping Issue Resolved ✅ 100% UAT SUCCESS ACHIEVED  
-- **Issue**: KC unable to get transport category breakdowns - critical blocker preventing 100% UAT success rate
-- **Root Cause**: Missing keyword mappings for "rides", "ride", "riding" in category breakdown handler, plus database query only searching for "transport" category while data contained both "transport" and "ride" categories
-- **Fix Applied**: Enhanced keyword mapping and database query logic to search transport, ride, taxi, and uber categories simultaneously
-- **Validation Results**: Both "transport" and "rides" queries return correct ৳6,500 totals across all related transportation expenses
-- **Impact**: 100% UAT success rate achieved - all category breakdown queries work correctly for all users across all expense categories
 
 ## External Dependencies
 
