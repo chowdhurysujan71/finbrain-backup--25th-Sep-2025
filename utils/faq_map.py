@@ -5,13 +5,12 @@ from typing import Optional
 FAQ_JSON = {
     "faq": {
         "what is finbrain": (
-            "🤖 **finbrain** is your personal finance AI assistant that lives in your favorite messaging apps. "
-            "It helps you track expenses, manage budgets, and get financial insights through simple conversations. "
-            "For details and updates visit www.finbrain.app"
+            "I'm your personal finance buddy! 🤖 I help you track spending through simple conversations - "
+            "just tell me what you bought and I'll handle the rest. Think expense tracking made as easy as texting a friend!"
         ),
         "how does expense tracking work": (
-            "🧾 Just send a message like 'I spent $23 on lunch' and finbrain automatically categorizes and logs your expense. "
-            "No apps or forms needed. For details and updates visit www.finbrain.app"
+            "Super simple! Just tell me what you spent - like '500 taka for lunch' or 'bought groceries 2000' - "
+            "and I'll automatically sort it into the right category. No forms, no hassle! 🧾"
         ),
         "is my financial data secure": (
             "🔒 Your data is encrypted **in transit and at rest**. We don't store sensitive banking details and follow "
@@ -30,9 +29,9 @@ FAQ_JSON = {
             "For details and updates visit www.finbrain.app"
         ),
         "what kind of insights can i get": (
-            "💡 You'll see spending analysis, budget alerts, category breakdowns, trends, and **personalized recommendations** to improve decisions. "
-            "For details and updates visit www.finbrain.app\n\n"
-            "📋 Educational insights only - not professional financial advice."
+            "Great question! I'll show you where your money goes and help you make smarter decisions. "
+            "Think personalized spending patterns, budget suggestions, and tips tailored just for you. "
+            "Want to see what I can find in your current spending? Just ask for insights! 💡"
         ),
         "how do i get started": (
             "🚀 Join early access with your email and be among the first to experience finbrain. "
@@ -57,10 +56,8 @@ FAQ_JSON = {
     },
     "fallback": {
         "default": (
-            "🧭 I can help you track expenses, show summaries, or give insights.\n"
-            "Try: *\"spent 100 on lunch\"* or *\"summary this week\"*. "
-            "For details and updates visit www.finbrain.app\n\n"
-            "📋 Educational only - not financial advice."
+            "I'm here to help with your money! Want to log an expense, see your spending summary, or get some insights? "
+            "Try something like 'spent 500 on groceries' or 'show my summary' 💰"
         )
     }
 }
