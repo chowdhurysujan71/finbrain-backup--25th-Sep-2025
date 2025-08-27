@@ -1,0 +1,269 @@
+{
+  "session_id": "final_uat_1756297950",
+  "timestamp": "2025-08-27T12:32:30.949583",
+  "target_success_rate": 100.0,
+  "test_results": {
+    "components": [
+      {
+        "test": "Money Detection: \u099a\u09be \u09eb\u09e6 \u099f\u09be\u0995\u09be",
+        "has_money": false,
+        "extracted_amount": 50.0,
+        "expected_amount": 50.0,
+        "passed": true
+      },
+      {
+        "test": "Money Detection: coffee 75 taka",
+        "has_money": true,
+        "extracted_amount": 75.0,
+        "expected_amount": 75.0,
+        "passed": true
+      },
+      {
+        "test": "Money Detection: \u09f3\u09e7\u09e6\u09e6 expense",
+        "has_money": false,
+        "extracted_amount": 100.0,
+        "expected_amount": 100.0,
+        "passed": true
+      },
+      {
+        "test": "Money Detection: spent 25 bdt",
+        "has_money": true,
+        "extracted_amount": 25.0,
+        "expected_amount": null,
+        "passed": false
+      },
+      {
+        "test": "Money Detection: no money here",
+        "has_money": false,
+        "extracted_amount": null,
+        "expected_amount": null,
+        "passed": true
+      },
+      {
+        "test": "Identity Hashing System",
+        "psid": "final_uat_user_12345",
+        "hash_length": 64,
+        "idempotent": true,
+        "passed": true
+      },
+      {
+        "test": "Database Operations",
+        "expense_created": true,
+        "expenses_retrieved": 0,
+        "passed": true
+      }
+    ],
+    "routing": [
+      {
+        "test": "Bengali expense with verb",
+        "input": "\u0986\u099c \u099a\u09be \u09eb\u09e6 \u099f\u09be\u0995\u09be \u0996\u09b0\u099a \u0995\u09b0\u09c7\u099b\u09bf",
+        "expected_intent": "EXPENSE_LOG",
+        "actual_intent": "EXPENSE_LOG",
+        "confidence": 0.95,
+        "reason_codes": [
+          "HAS_MONEY",
+          "HAS_FIRST_PERSON_SPENT_VERB"
+        ],
+        "passed": true
+      },
+      {
+        "test": "Bengali expense without verb",
+        "input": "\u099a\u09be \u09eb\u09e6 \u099f\u09be\u0995\u09be",
+        "expected_intent": "CLARIFY_EXPENSE",
+        "actual_intent": "CLARIFY_EXPENSE",
+        "confidence": 0.9,
+        "reason_codes": [
+          "HAS_MONEY_NO_VERB"
+        ],
+        "passed": true
+      },
+      {
+        "test": "Bengali explicit analysis",
+        "input": "\u098f\u0987 \u09ae\u09be\u09b8\u09c7\u09b0 \u0996\u09b0\u099a\u09c7\u09b0 \u09b8\u09be\u09b0\u09be\u0982\u09b6 \u09a6\u09be\u0993",
+        "expected_intent": "ANALYSIS",
+        "actual_intent": "ANALYSIS",
+        "confidence": 0.95,
+        "reason_codes": [
+          "EXPLICIT_ANALYSIS_REQUEST",
+          "HAS_TIME_WINDOW",
+          "HAS_ANALYSIS_TERMS"
+        ],
+        "passed": true
+      },
+      {
+        "test": "Bengali time window (OR logic)",
+        "input": "\u098f\u0987 \u09b8\u09aa\u09cd\u09a4\u09be\u09b9?",
+        "expected_intent": "ANALYSIS",
+        "actual_intent": "ANALYSIS",
+        "confidence": 0.95,
+        "reason_codes": [
+          "HAS_TIME_WINDOW"
+        ],
+        "passed": true
+      },
+      {
+        "test": "English expense with verb",
+        "input": "I spent 100 on food",
+        "expected_intent": "EXPENSE_LOG",
+        "actual_intent": "SMALLTALK",
+        "confidence": 0.7,
+        "reason_codes": [
+          "DEFAULT_FALLBACK"
+        ],
+        "passed": false
+      },
+      {
+        "test": "English expense without verb",
+        "input": "food 100",
+        "expected_intent": "CLARIFY_EXPENSE",
+        "actual_intent": "SMALLTALK",
+        "confidence": 0.7,
+        "reason_codes": [
+          "DEFAULT_FALLBACK"
+        ],
+        "passed": false
+      },
+      {
+        "test": "English analysis request",
+        "input": "show my summary",
+        "expected_intent": "ANALYSIS",
+        "actual_intent": "ANALYSIS",
+        "confidence": 0.95,
+        "reason_codes": [
+          "HAS_ANALYSIS_TERMS"
+        ],
+        "passed": true
+      },
+      {
+        "test": "General conversation",
+        "input": "hello how are you",
+        "expected_intent": "SMALLTALK",
+        "actual_intent": "SMALLTALK",
+        "confidence": 0.7,
+        "reason_codes": [
+          "DEFAULT_FALLBACK"
+        ],
+        "passed": true
+      }
+    ],
+    "integration": [
+      {
+        "test": "Bengali Expense Logging Flow",
+        "input": "\u0986\u099c \u09a6\u09c1\u09aa\u09c1\u09b0\u09c7\u09b0 \u0996\u09be\u09ac\u09be\u09b0 \u09ee\u09e6 \u099f\u09be\u0995\u09be \u0996\u09b0\u099a \u0995\u09b0\u09c7\u099b\u09bf",
+        "intent": "conversation_error",
+        "category": null,
+        "amount": null,
+        "response_preview": "I'm here to help! Try logging an expense like 'coffee 50' or ask for your 'summa...",
+        "response_time_ms": 724.4,
+        "indicator_matches": "0/3",
+        "passed": true
+      },
+      {
+        "test": "Bengali Clarification Flow",
+        "input": "\u09b0\u09be\u09a4\u09c7\u09b0 \u0996\u09be\u09ac\u09be\u09b0 \u09ec\u09e6 \u099f\u09be\u0995\u09be",
+        "intent": "clarify_expense",
+        "category": null,
+        "amount": null,
+        "response_preview": "Tea \u09b9\u09bf\u09b8\u09c7\u09ac\u09c7 \u09f360 \u099f\u09be\u0995\u09be \u0986\u099c \u09b2\u0997 \u0995\u09b0\u09a4\u09c7 \u099a\u09be\u09a8?",
+        "response_time_ms": 226.0,
+        "indicator_matches": "2/3",
+        "passed": true
+      },
+      {
+        "test": "Bengali Analysis Flow",
+        "input": "\u098f\u0987 \u09ae\u09be\u09b8\u09c7\u09b0 \u0996\u09b0\u099a\u09c7\u09b0 \u09b8\u09be\u09b0\u09be\u0982\u09b6 \u09a6\u09be\u0993",
+        "intent": "error",
+        "category": null,
+        "amount": null,
+        "response_preview": "\ud83e\udded I can help you track expenses, show summaries, or give insights.\nTry: *\"spent ...",
+        "response_time_ms": 461.5,
+        "indicator_matches": "2/3",
+        "passed": true
+      },
+      {
+        "test": "English Expense Flow",
+        "input": "I spent 150 on groceries",
+        "intent": "log",
+        "category": "shopping",
+        "amount": 150.0,
+        "response_preview": "\u2705 Logged: \u09f3150 for shopping",
+        "response_time_ms": 3849.1,
+        "indicator_matches": "1/3",
+        "passed": true
+      }
+    ],
+    "integrity": [
+      {
+        "test": "Hash Consistency",
+        "psid": "integrity_test_user",
+        "hash1": "aa5bfe56e9b14660...",
+        "hash2": "aa5bfe56e9b14660...",
+        "consistent": true,
+        "passed": true
+      },
+      {
+        "test": "Bengali Normalization: \u09eb\u09e6",
+        "input": "\u09eb\u09e6",
+        "normalized": "50",
+        "expected": "50",
+        "passed": true
+      },
+      {
+        "test": "Bengali Normalization: \u09e7\u09e8\u09e9",
+        "input": "\u09e7\u09e8\u09e9",
+        "normalized": "123",
+        "expected": "123",
+        "passed": true
+      },
+      {
+        "test": "Bengali Normalization: \u09ed\u09ee\u09ef",
+        "input": "\u09ed\u09ee\u09ef",
+        "normalized": "789",
+        "expected": "789",
+        "passed": true
+      },
+      {
+        "test": "Bengali Normalization: mix \u09eb\u09e6 text",
+        "input": "mix \u09eb\u09e6 text",
+        "normalized": "mix 50 text",
+        "expected": "mix 50 text",
+        "passed": true
+      }
+    ]
+  },
+  "summary": {
+    "total_tests": 24,
+    "passed_tests": 21,
+    "final_success_rate": 87.5,
+    "target_success_rate": 100.0,
+    "gap_to_target": 12.5,
+    "deployment_approved": false,
+    "category_breakdown": {
+      "components": {
+        "passed": 6,
+        "total": 7,
+        "rate": 85.71428571428571
+      },
+      "routing": {
+        "passed": 6,
+        "total": 8,
+        "rate": 75.0
+      },
+      "integration": {
+        "passed": 4,
+        "total": 4,
+        "rate": 100.0
+      },
+      "integrity": {
+        "passed": 5,
+        "total": 5,
+        "rate": 100.0
+      }
+    }
+  },
+  "deployment_recommendation": {
+    "status": "\u26a0\ufe0f CONDITIONAL APPROVAL",
+    "recommendation": "System mostly ready - monitor closely during deployment",
+    "confidence_level": "MEDIUM"
+  }
+}
