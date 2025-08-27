@@ -58,6 +58,18 @@ The web dashboard uses Bootstrap 5 for its CSS framework and Font Awesome 6 for 
 - **Security Verification**: Comprehensive testing shows no cross-contamination in current system - all users receive only their own financial data
 - **Production Impact**: **AI FINANCIAL DATA MIXING COMPLETELY ELIMINATED** - Users can trust AI responses contain only their own spending data. Core security requirement for financial application fully restored.
 
+### 2025-08-27: CRITICAL MONTHLY SUMMARY ROUTING FIX ✅ DATA MISMATCH RESOLVED
+- **Issue**: User requesting "show me this months summary" received weekly data (₹10,910) instead of monthly data (₹12,410), causing confusion about data accuracy
+- **Root Cause**: Production router (`utils/production_router.py`) hardcoded summary handler to always return "last 7 days" data regardless of user timeframe request
+- **Technical Fix**: Enhanced production router's `handle_summary()` function with intelligent timeframe detection:
+  - **Month Detection**: Keywords "month", "monthly", "this month", "months" → routes to monthly data
+  - **Week Detection**: Keywords "week", "weekly", "last week", "this week" → routes to weekly data  
+  - **Default Fallback**: Generic "summary" requests default to weekly data for consistency
+  - **Proper Handler Integration**: Routes to `handlers/summary.py` with correct timeframe parameter instead of hardcoded logic
+- **AI Insights Enhancement**: Fixed identical response issue by adding request uniqueness and explicit timeframe parameters to prevent response caching
+- **Testing Verification**: Confirmed timeframe detection works correctly for all test cases
+- **User Impact**: **MONTHLY SUMMARY REQUESTS NOW WORK CORRECTLY** - Users get accurate monthly data (₹12,410) when requesting monthly summaries and weekly data (₹10,910) for weekly requests
+
 ### 2025-08-27: TIMEFRAME CLARITY UX ENHANCEMENT ✅ USER CONFUSION ELIMINATED
 - **Issue**: User confusion between Messenger responses (showing "Last 7 Days" data) and web dashboard (showing "This Month" data) causing apparent data mismatches
 - **Root Cause**: Generic timeframe labels like "this period" and "summary" without explicit timeframe specifications led users to compare different timeframes thinking they were the same dataset

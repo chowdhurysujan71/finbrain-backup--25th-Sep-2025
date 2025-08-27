@@ -98,30 +98,22 @@ def _is_summary_command(text: str) -> bool:
     return bool(SUMMARY_RE.search(text)) or _norm_text(text) in {"summary", "recap", "report", "overview"}
 
 def handle_summary(psid: str, text: str):
-    """Deterministic summary handler that bypasses AI rate limits"""
-    # Choose timeframe (fallback: last 7 days)
-    end = datetime.utcnow()
-    start = end - timedelta(days=7)
+    """Deterministic summary handler with timeframe detection"""
+    # Detect timeframe from user message
+    text_lower = text.lower() if text else ""
     
-    # Get user summary data
+    # Default to week, but check for month indicators
+    timeframe = "week"
+    if any(keyword in text_lower for keyword in ["month", "monthly", "this month", "months"]):
+        timeframe = "month"
+    elif any(keyword in text_lower for keyword in ["week", "weekly", "last week", "this week"]):
+        timeframe = "week"
+    
+    # Use proper summary handler with timeframe support
     try:
-        from services.summaries import build_user_summary, format_summary_text
-        rollup = build_user_summary(psid, start, end)
-        if not rollup:
-            return "No recent spending found in the last 7 days."
-
-        # Optional AI phrasing ONLY if enabled (but summary must not be blocked if AI is off/limited)
-        if AI_ENABLED:
-            try:
-                from utils.ai_adapter_v2 import production_ai_adapter
-
-                ai_result = production_ai_adapter.phrase_summary(rollup)
-                if ai_result and not ai_result.get('failover', False):
-                    return ai_result.get('text', format_summary_text(rollup))
-            except Exception:
-                pass
-        
-        return format_summary_text(rollup)
+        from handlers.summary import handle_summary as proper_handler
+        result = proper_handler(psid, timeframe)
+        return result.get('text', 'Unable to generate summary at this time.')
     except Exception as e:
         logger.error(f"Summary handler error: {e}")
         return "Unable to generate summary at this time."

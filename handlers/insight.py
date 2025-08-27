@@ -33,7 +33,7 @@ def handle_insight(user_id: str) -> Dict[str, str]:
         log_reply_banner('INSIGHT', user_id)
         
         if not expenses:
-            return {"text": format_ai_insight_reply([], 0)}
+            return {"text": format_ai_insight_reply([], 0, "this month")}
         
         total = sum(exp.total for exp in expenses)
         
@@ -42,7 +42,8 @@ def handle_insight(user_id: str) -> Dict[str, str]:
             from utils.ai_adapter_v2 import production_ai_adapter
             ai_adapter = production_ai_adapter
             
-            # Prepare data for AI
+            # Prepare data for AI with request uniqueness
+            import time
             expense_data = []
             for exp in expenses:
                 pct = (exp.total / total) * 100
@@ -56,7 +57,8 @@ def handle_insight(user_id: str) -> Dict[str, str]:
                 'total_amount': total,
                 'expenses': expense_data,
                 'timeframe': 'this month',
-                'expense_count': len(expenses)
+                'expense_count': len(expenses),
+                'request_id': f"{user_id}_{int(time.time())}"  # Add uniqueness
             }
             
             # Generate AI insights with user isolation
@@ -65,8 +67,8 @@ def handle_insight(user_id: str) -> Dict[str, str]:
             if ai_result.get('success'):
                 insights = ai_result.get('insights', [])
                 if insights:
-                    # Use AI-generated insights
-                    msg = format_ai_insight_reply(insights, total)
+                    # Use AI-generated insights with timeframe
+                    msg = format_ai_insight_reply(insights, total, "this month")
                     logger.info(f"AI insights generated successfully for {user_id[:8]}...")
                     return {"text": msg}
             
