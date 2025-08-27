@@ -106,7 +106,7 @@ def _is_summary_command(text: str) -> bool:
             normalized in english_summary_terms or
             any(term in text for term in bengali_summary_terms))
 
-def handle_summary(psid: str, text: str):
+def handle_summary(user_hash: str, text: str):
     """Deterministic summary handler with timeframe detection"""
     # Detect timeframe from user message
     text_lower = text.lower() if text else ""
@@ -121,7 +121,7 @@ def handle_summary(psid: str, text: str):
     # Use proper summary handler with timeframe support
     try:
         from handlers.summary import handle_summary as proper_handler
-        result = proper_handler(psid, timeframe)
+        result = proper_handler(user_hash, timeframe)
         return result.get('text', 'Unable to generate summary at this time.')
     except Exception as e:
         logger.error(f"Summary handler error: {e}")
@@ -160,13 +160,23 @@ class ProductionRouter:
         
         return bool(has_number and (has_expense_keyword or len(text.split()) <= 3))
     
-    def route_message(self, text: str, psid: str, rid: str = "") -> Tuple[str, str, Optional[str], Optional[float]]:
+    def route_message(self, text: str, psid_or_hash: str, rid: str = "") -> Tuple[str, str, Optional[str], Optional[float]]:
         """
         Single entry point for all message processing
+        Now accepts either original PSID or user_id_hash for flexible processing
         Returns: (response_text, intent, category, amount)
         """
         start_time = time.time()
-        user_hash = psid_hash(psid)
+        
+        # Determine if input is PSID (numeric) or hash (hex string)
+        if psid_or_hash.isdigit() and len(psid_or_hash) >= 10:
+            # Original Facebook PSID - convert to hash for data processing
+            user_hash = psid_hash(psid_or_hash)
+            psid_display = psid_or_hash[:8]
+        else:
+            # Already a hash - use directly
+            user_hash = psid_or_hash
+            psid_display = psid_or_hash[:8]
         
         if not rid:
             rid = get_request_id() or "unknown"
@@ -187,7 +197,7 @@ class ProductionRouter:
         try:
             # Always log router banner with current config
             from utils.config import FEATURE_FLAGS_VERSION
-            logger.info(f"[ROUTER] mode=AI features=[NLP_ROUTING,TONE,CORRECTIONS] config_version={FEATURE_FLAGS_VERSION} psid={psid[:8]}...")
+            logger.info(f"[ROUTER] mode=AI features=[NLP_ROUTING,TONE,CORRECTIONS] config_version={FEATURE_FLAGS_VERSION} psid={psid_display}...")
             
             # Panic mode - immediate acknowledgment
             if PANIC_PLAIN_REPLY:
@@ -254,7 +264,7 @@ class ProductionRouter:
             if _is_summary_command(text):
                 logger.info(f"[ROUTER] Summary command detected: '{text[:50]}...'")
                 try:
-                    summary_response = handle_summary(psid, text)
+                    summary_response = handle_summary(user_hash, text)
                     self._log_routing_decision(rid, user_hash, "summary", "analysis_provided")
                     self._record_processing_time(time.time() - start_time)
                     return normalize(summary_response), "analysis", None, None

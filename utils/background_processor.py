@@ -129,8 +129,9 @@ class BackgroundProcessor:
                         pca_result = {'pca_processed': False, 'error': str(pca_error)}
                     
                     # Use production router for all message processing (legacy flow continues)
+                    # CRITICAL: router needs user_id_hash for data processing, but we preserve original PSID for messaging
                     response_text, intent, category, amount = production_router.route_message(
-                        job.text, job.psid, job.rid
+                        job.text, psid_hash, job.rid  # Pass hash to router for data processing
                     )
                     
                     # Send response within timeout
@@ -146,6 +147,7 @@ class BackgroundProcessor:
                         # Always use AI templates - no debug footers
                         from templates.replies_ai import clean_ai_reply
                         clean_response = clean_ai_reply(response_text)
+                        # CRITICAL FIX: Use original PSID for Facebook message delivery
                         response_sent = send_facebook_message(job.psid, clean_response)
                         logger.info(f"Request {job.rid}: Response sent successfully to {job.psid[:10]}*** (hash: {psid_hash[:8]}...)")
                     except ValueError as psid_error:

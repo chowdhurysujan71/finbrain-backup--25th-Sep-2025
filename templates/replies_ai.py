@@ -130,19 +130,15 @@ def format_ai_summary_reply(period: str, total_amount: float, total_entries: int
     if total_entries != 1:
         summary += "s"
     
-    # Add spending across categories if available
-    if categories and len(categories) > 1:
-        category_text = f". Spending across {len(categories)} categories"
-        summary += category_text
-    summary += "."
-    
-    # Add categories if available
+    # Add category information (avoiding duplication)
     if categories and len(categories) > 0:
         if len(categories) <= 3:
             cat_text = ", ".join(categories)
-            summary += f" Main areas: {cat_text}."
+            summary += f". Main areas: {cat_text}."
         else:
-            summary += f" Spending across {len(categories)} categories."
+            summary += f". Spending across {len(categories)} categories."
+    else:
+        summary += "."
     
     
     # Add coaching insights with natural variation
