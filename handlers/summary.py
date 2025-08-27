@@ -71,9 +71,9 @@ def _pct_change(cur: float, prev: float) -> float:
         return 100.0 if cur > 0 else 0.0
     return round(abs((cur - prev) / prev) * 100.0, 1)
 
-def handle_summary(user_id: str, timeframe: str = "week") -> Dict[str, str]:
+def handle_summary(user_id: str, text: str = "", timeframe: str = "week") -> Dict[str, str]:
     """
-    Generate expense summary for user
+    Generate expense summary for user with intelligent timeframe detection
     Returns dict with 'text' key containing the summary message
     """
     try:
@@ -82,6 +82,14 @@ def handle_summary(user_id: str, timeframe: str = "week") -> Dict[str, str]:
         
         # Ensure we're running within Flask application context
         with app.app_context():
+            # Detect timeframe from user message if provided
+            if text:
+                text_lower = text.lower()
+                if any(keyword in text_lower for keyword in ["month", "monthly", "this month", "months"]):
+                    timeframe = "month"
+                elif any(keyword in text_lower for keyword in ["week", "weekly", "last week", "this week"]):
+                    timeframe = "week"
+            
             # Get appropriate time bounds
             if timeframe == "month":
                 start, end = month_bounds()

@@ -102,15 +102,34 @@ def normalize(message: str) -> str:
     return normalized
 
 def cap_len(message: str, max_len: Optional[int] = None) -> str:
-    """Hard cap message length"""
+    """Smart cap message length with graceful truncation"""
     if max_len is None:
         max_len = MAX_REPLY_LEN
     
     if len(message) <= max_len:
         return message
     
-    # Truncate with ellipsis
-    return message[:max_len-3] + "..."
+    # Graceful truncation - preserve complete words and sentences
+    target_length = max_len - 3  # Reserve space for "..."
+    
+    # Try to break at sentence boundary first (. ! ?)
+    truncated = message[:target_length]
+    sentence_end = max(
+        truncated.rfind('.'),
+        truncated.rfind('!'), 
+        truncated.rfind('?')
+    )
+    
+    if sentence_end > target_length - 50:  # If sentence end is reasonably close
+        return message[:sentence_end + 1]
+    
+    # Fall back to word boundary
+    last_space = truncated.rfind(' ')
+    if last_space > target_length - 20:  # If word boundary is reasonably close  
+        return truncated[:last_space] + "..."
+    
+    # Last resort: hard truncate with ellipsis (preserve existing behavior)
+    return message[:target_length] + "..."
 
 def finalize_message(template_or_list: Union[str, List[str]], data: Optional[Dict[str, Any]] = None) -> str:
     """

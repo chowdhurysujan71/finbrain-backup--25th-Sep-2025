@@ -354,18 +354,28 @@ def admin_dashboard():
             AND e.superseded_by IS NULL
         """), {'month': current_month, 'year': current_year}).scalar()
         
-        return render_template('dashboard.html',
+        response = make_response(render_template('dashboard.html',
                              recent_expenses=recent_expenses,
                              total_users=total_users,
                              total_expenses_this_month=total_expenses_this_month,
-                             total_transactions_this_month=total_transactions_this_month)
+                             total_transactions_this_month=total_transactions_this_month))
+        # Add cache-busting headers for dynamic data
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
     except Exception as e:
         logger.error(f"Dashboard error: {str(e)}")
-        return render_template('dashboard.html',
+        response = make_response(render_template('dashboard.html',
                              recent_expenses=[],
                              total_users=0,
                              total_expenses_this_month=0,
-                             total_transactions_this_month=0)
+                             total_transactions_this_month=0))
+        # Add cache-busting headers even for error cases
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
 
 @app.route('/health', methods=['GET'])
 def health_check():

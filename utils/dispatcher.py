@@ -27,7 +27,7 @@ def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
             return diag_text, intent
             
         elif intent == "SUMMARY":
-            result = handle_summary(user_id)
+            result = handle_summary(user_id, text)  # Pass text for timeframe detection
             return result.get('text', 'Summary unavailable'), intent
             
         elif intent == "INSIGHT":

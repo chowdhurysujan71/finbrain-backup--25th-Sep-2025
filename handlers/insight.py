@@ -53,12 +53,19 @@ def handle_insight(user_id: str) -> Dict[str, str]:
                     'percentage': pct
                 })
             
+            # Add request uniqueness to prevent AI response caching
+            import time
+            import random
+            request_uniqueness = f"{user_id}_{int(time.time())}_{random.randint(1000,9999)}"
+            
             expenses_context = {
                 'total_amount': total,
                 'expenses': expense_data,
                 'timeframe': 'this month',
                 'expense_count': len(expenses),
-                'request_id': f"{user_id}_{int(time.time())}"  # Add uniqueness
+                'request_id': request_uniqueness,
+                'user_context': f"user_{user_id[:8]}_insights",
+                'timestamp': time.time()
             }
             
             # Generate AI insights with user isolation
