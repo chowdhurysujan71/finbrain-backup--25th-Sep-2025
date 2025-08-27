@@ -4,16 +4,16 @@ Handles currency symbols, Bengali "টাকা" word, and both orderings
 """
 import re
 
-# Currency patterns - symbols and Bengali word (improved mixed language support)
-CURRENCY_BEFORE = r"(?:৳|tk|bdt|taka|টাকা|ট)"
+# Currency patterns - comprehensive support for multiple currencies and Bengali terms
+CURRENCY_BEFORE = r"(?:\b(?:৳|tk|bdt|taka|টাকা|ট|পয়সা|euro|eur|usd|dollar|পাউন্ড|pound|gbp)\b)"
 
-# Number patterns - supports comma-separated thousands and decimals
-NUM = r"(?:[0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)"
+# Number patterns - supports comma-separated thousands, decimals, and Bengali numerals
+NUM = r"(?:[০১২৩৪৫৬৭৮৯0-9]{1,3}(?:[,][০১২৩৪৫৬৭৮৯0-9]{3})*(?:[.][০১২৩৪৫৬৭৮৯0-9]{1,2})?|[০১২৩৪৫৬৭৮৯0-9]+(?:[.][০১২৩৪৫৬৭৮৯0-9]{1,2})?)"
 
-# Money regex - handles both currency-before-number and number-before-currency
+# Money regex - hardened with word boundaries and comprehensive currency support
 RE_MONEY = re.compile(
     rf"(?:{CURRENCY_BEFORE})\s*({NUM})|({NUM})\s*(?:{CURRENCY_BEFORE})",
-    flags=re.IGNORECASE
+    flags=re.IGNORECASE | re.UNICODE
 )
 
 def extract_money_mentions(text: str) -> list:

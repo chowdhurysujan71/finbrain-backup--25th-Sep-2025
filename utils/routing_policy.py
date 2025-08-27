@@ -158,11 +158,11 @@ class BilingualPatterns:
         
         # First-person expense verb patterns (for EXPENSE_LOG intent) + implicit items
         self.expense_verbs_en = re.compile(
-            r'\b(spent|paid|bought|purchased|cost|costs)\b|(coffee|lunch|dinner|breakfast|tea|food)\s+\d',
+            r'\b(spent|paid|bought|purchased|cost|costs|ordered|got|took)\b|(coffee|lunch|dinner|breakfast|tea|food)\s+\d',
             re.IGNORECASE | re.UNICODE
         )
         self.expense_verbs_bn = re.compile(
-            r'(খরচ করেছি|খরচ করলাম|দিলাম|দিয়েছি|পেমেন্ট করেছি|কিনেছি|নিয়েছি)',
+            r'(খরচ করেছি|খরচ করলাম|দিলাম|দিয়েছি|পেমেন্ট করেছি|কিনেছি|নিয়েছি|কিনলাম|ব্যয় করেছি|পয়সা দিয়েছি|টাকা খরচ করেছি|ক্রয় করেছি|অর্ডার করেছি|নিয়েছিলাম|কিনে এনেছি|টাকা দিয়েছি)',
             re.IGNORECASE | re.UNICODE
         )
         
@@ -515,7 +515,7 @@ class DeterministicRouter:
         try:
             from utils.session import get_coaching_session
             session = get_coaching_session(user_id)
-            return session and session.get('state') != 'idle'
+            return bool(session and session.get('state') != 'idle')
         except Exception as e:
             logger.warning(f"Failed to check coaching session for {user_id[:8]}: {e}")
             return False
