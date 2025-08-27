@@ -19,7 +19,7 @@ def generate_daily_report(user_identifier, platform):
         
         # Get today's expenses
         today_expenses = Expense.query.filter(
-            Expense.user_id == user_hash,
+            Expense.user_id_hash == user_hash,
             Expense.date == today
         ).all()
         
@@ -70,7 +70,7 @@ def generate_weekly_report(user_identifier, platform):
         
         # Get week's expenses
         week_expenses = Expense.query.filter(
-            Expense.user_id == user_hash,
+            Expense.user_id_hash == user_hash,
             Expense.date >= week_start,
             Expense.date <= today
         ).all()

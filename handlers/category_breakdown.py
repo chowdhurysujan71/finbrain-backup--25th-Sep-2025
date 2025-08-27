@@ -156,7 +156,7 @@ def handle_category_breakdown(user_id: str, text: str) -> Dict[str, str]:
                 func.coalesce(func.sum(Expense.amount), 0).label('total'),
                 func.count(Expense.id).label('count')
             ).filter(
-                Expense.user_id == user_id,
+                Expense.user_id_hash == user_id,
                 category_filter,
                 Expense.created_at >= start,
                 Expense.created_at < end

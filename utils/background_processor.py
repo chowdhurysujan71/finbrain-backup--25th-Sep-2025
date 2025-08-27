@@ -248,7 +248,7 @@ class BackgroundProcessor:
             user_hash = psid_hash(psid)
             
             expenses = db.session.query(Expense).filter(
-                Expense.user_id == user_hash,
+                Expense.user_id_hash == user_hash,
                 Expense.created_at >= week_ago
             ).order_by(Expense.created_at.desc()).limit(10).all()
             

@@ -117,7 +117,7 @@ class UserLearningSystem:
             # Get recent expense patterns
             from models import Expense
             recent_expenses = db.session.query(Expense).filter(
-                Expense.user_id == user_hash
+                Expense.user_id_hash == user_hash
             ).order_by(Expense.created_at.desc()).limit(50).all()
             
             # Analyze patterns

@@ -725,7 +725,7 @@ class ProductionRouter:
             # Look for recent expenses (last 10 minutes) that might match
             recent_time = datetime.utcnow() - timedelta(minutes=10)
             recent_expenses = db.session.query(Expense).filter(
-                Expense.user_id == user_hash,
+                Expense.user_id_hash == user_hash,
                 Expense.created_at >= recent_time,
                 Expense.original_message.ilike(f'%{item}%')
             ).order_by(Expense.created_at.desc()).limit(3).all()

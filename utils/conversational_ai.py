@@ -34,7 +34,7 @@ class ConversationalAI:
         
         try:
             expenses = Expense.query.filter(
-                Expense.user_id == user_id,
+                Expense.user_id_hash == user_id,
                 Expense.created_at >= cutoff_date
             ).order_by(Expense.created_at.desc()).all()
             
@@ -320,7 +320,7 @@ Keep response conversational and under 280 characters."""
         
         try:
             expenses = Expense.query.filter(
-                Expense.user_id == psid_hash,
+                Expense.user_id_hash == psid_hash,
                 Expense.created_at >= cutoff_date
             ).order_by(Expense.created_at.desc()).all()
             

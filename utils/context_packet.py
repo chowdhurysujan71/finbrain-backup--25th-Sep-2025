@@ -94,7 +94,7 @@ def get_spend_by_category(db: Session, user_hash: str, days: int, days_end: int 
         start_date = end_date - timedelta(days=days)
         
         expenses = db.query(Expense).filter(
-            Expense.user_id == user_hash,
+            Expense.user_id_hash == user_hash,
             Expense.created_at >= start_date,
             Expense.created_at <= end_date
         ).all()
@@ -130,7 +130,7 @@ def get_recurring_expenses(db: Session, user_hash: str) -> List[Tuple[str, float
         start_date = end_date - timedelta(days=90)
         
         expenses = db.query(Expense).filter(
-            Expense.user_id == user_hash,
+            Expense.user_id_hash == user_hash,
             Expense.created_at >= start_date,
             Expense.created_at <= end_date
         ).all()
