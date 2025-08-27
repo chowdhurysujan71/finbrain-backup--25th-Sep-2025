@@ -18,8 +18,17 @@ class ColdStartMitigation:
     def __init__(self):
         self.boot_time = time.time()
         self.ai_enabled = os.environ.get('AI_ENABLED', 'false').lower() == 'true'
-        self.ai_provider_url = os.environ.get('AI_PROVIDER_URL', 'https://api.openai.com')
-        self.ai_status_endpoint = f"{self.ai_provider_url}/v1/models"
+        self.ai_provider = os.environ.get('AI_PROVIDER', 'none')
+        
+        # Set provider-specific URLs and endpoints
+        if self.ai_provider == 'gemini':
+            self.ai_provider_url = 'https://generativelanguage.googleapis.com'
+            self.ai_status_endpoint = f"{self.ai_provider_url}/v1beta/models"
+        else:
+            # Default to OpenAI for backwards compatibility
+            self.ai_provider_url = os.environ.get('AI_PROVIDER_URL', 'https://api.openai.com')
+            self.ai_status_endpoint = f"{self.ai_provider_url}/v1/models"
+            
         self.warm_up_completed = False
         self.ai_warm_up_status = None
         
