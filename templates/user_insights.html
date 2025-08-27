@@ -110,7 +110,7 @@
                 <div class="metric-card">
                     <i class="fas fa-chart-line fa-2x text-success mb-2"></i>
                     <h4>{{ spending_metrics.monthly_total | round(2) }}</h4>
-                    <p class="text-muted mb-0">Monthly Spending</p>
+                    <p class="text-muted mb-0">This Month's Spending</p>
                     <small class="text-{{ 'success' if spending_metrics.trend == 'down' else 'warning' }}">
                         <i class="fas fa-arrow-{{ 'down' if spending_metrics.trend == 'down' else 'up' }} me-1"></i>
                         {{ spending_metrics.trend_percentage }}%
@@ -122,8 +122,8 @@
                 <div class="metric-card">
                     <i class="fas fa-receipt fa-2x text-info mb-2"></i>
                     <h4>{{ spending_metrics.transaction_count }}</h4>
-                    <p class="text-muted mb-0">Transactions</p>
-                    <small class="text-muted">This month</small>
+                    <p class="text-muted mb-0">This Month's Transactions</p>
+                    <small class="text-muted">{{ current_month_name }}</small>
                 </div>
             </div>
             
@@ -132,7 +132,7 @@
                     <i class="fas fa-percentage fa-2x text-warning mb-2"></i>
                     <h4>{{ spending_metrics.largest_category_pct }}%</h4>
                     <p class="text-muted mb-0">{{ spending_metrics.largest_category | title }}</p>
-                    <small class="text-muted">Biggest category</small>
+                    <small class="text-muted">This Month's Top Category</small>
                 </div>
             </div>
             
