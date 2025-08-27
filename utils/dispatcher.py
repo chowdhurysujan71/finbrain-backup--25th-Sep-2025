@@ -46,6 +46,17 @@ def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
             # Handle spending contradiction clarification with coach-tone
             return "🤔 I want to make sure I help you the right way! Are you looking for tips to spend *less* and save more money, or do you actually want to increase your spending? Just want to point my advice in the right direction! 💡", intent
             
+        elif intent == "UNKNOWN":
+            # Ask for clarification when we don't understand something
+            import random
+            clarification_responses = [
+                "I'm not sure what you mean by that. Could you clarify? I'm here to help with your spending and finances! 💰",
+                "That's not something I recognize - could you explain what you're looking for? I can help with expenses, budgets, and financial insights! 📊",
+                "I don't quite understand that term. Mind clarifying? I'm great with tracking spending and giving money advice! 💡",
+                "Not sure I follow - could you rephrase that? I specialize in expense tracking and financial guidance! 🎯"
+            ]
+            return random.choice(clarification_responses), "CLARIFICATION"
+            
         else:
             # Engaging help responses with variety
             import random

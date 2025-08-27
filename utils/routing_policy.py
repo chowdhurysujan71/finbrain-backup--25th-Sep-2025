@@ -28,7 +28,7 @@ class RouterScope(Enum):
     ALL = "all"                                  # All requests (full coverage)
 
 class IntentType(Enum):
-    """Intent types with hard precedence: ADMIN → PCA_AUDIT → EXPENSE_LOG → ANALYSIS → FAQ → COACHING → SMALLTALK"""
+    """Intent types with hard precedence: ADMIN → PCA_AUDIT → EXPENSE_LOG → ANALYSIS → FAQ → COACHING → SMALLTALK → UNKNOWN"""
     ADMIN = "ADMIN"
     PCA_AUDIT = "PCA_AUDIT"
     EXPENSE_LOG = "EXPENSE_LOG"
@@ -37,6 +37,7 @@ class IntentType(Enum):
     FAQ = "FAQ"
     COACHING = "COACHING"
     SMALLTALK = "SMALLTALK"
+    UNKNOWN = "UNKNOWN"
 
 @dataclass
 class RoutingSignals:
@@ -467,9 +468,20 @@ class DeterministicRouter:
             
             return RoutingResult(IntentType.COACHING, reason_codes, matched_patterns, 0.85)
         
-        # 8. SMALLTALK (default)
-        reason_codes.append("DEFAULT_FALLBACK")
-        return RoutingResult(IntentType.SMALLTALK, reason_codes, matched_patterns, 0.7)
+        # 8. SMALLTALK (greetings and social conversation)
+        smalltalk_patterns_en = r'\b(hello|hi|hey|thanks|thank you|bye|goodbye|good morning|good night|how are you)\b'
+        smalltalk_patterns_bn = r'\b(হ্যালো|হাই|ধন্যবাদ|শুভ সকাল|শুভ রাত্রি|কেমন আছেন)\b'
+        
+        normalized_text = self.patterns.normalize_text(text)
+        if (re.search(smalltalk_patterns_en, normalized_text, re.IGNORECASE | re.UNICODE) or
+            re.search(smalltalk_patterns_bn, normalized_text, re.IGNORECASE | re.UNICODE)):
+            reason_codes.append("SMALLTALK_DETECTED")
+            matched_patterns.append("social_conversation")
+            return RoutingResult(IntentType.SMALLTALK, reason_codes, matched_patterns, 0.8)
+        
+        # 9. UNKNOWN (truly unrecognized terms)
+        reason_codes.append("UNRECOGNIZED_INPUT")
+        return RoutingResult(IntentType.UNKNOWN, reason_codes, matched_patterns, 0.5)
     
     def _has_money_pattern(self, text: str) -> bool:
         """Check if text contains money patterns using existing Bengali-aware utilities"""

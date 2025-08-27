@@ -425,9 +425,10 @@ class ProductionRouter:
                     "ANALYSIS": "INSIGHT",
                     "FAQ": "FAQ",
                     "COACHING": "COACHING",
-                    "SMALLTALK": "FAQ"
+                    "SMALLTALK": "FAQ",
+                    "UNKNOWN": "UNKNOWN"
                 }
-                intent = intent_mapping.get(routing_result.intent.value, "FAQ")
+                intent = intent_mapping.get(routing_result.intent.value, "UNKNOWN")
                 
                 logger.info(f"[ROUTER] Deterministic routing: {routing_result.intent.value} → {intent} "
                            f"(confidence={routing_result.confidence:.2f}, reasons={routing_result.reason_codes})")
@@ -474,7 +475,7 @@ class ProductionRouter:
                 return response, "clarify", None, None
             
             # Step 4: Route non-AI intents immediately (bypass rate limits)
-            if intent in ["DIAGNOSTIC", "SUMMARY", "INSIGHT", "UNDO"]:
+            if intent in ["DIAGNOSTIC", "SUMMARY", "INSIGHT", "UNDO", "UNKNOWN"]:
                 # Only allow SUMMARY if no money was detected
                 if intent == "SUMMARY" and contains_money(text):
                     logger.info(f"[ROUTER] Blocking SUMMARY due to money detection: psid={user_hash[:8]}...")
@@ -507,8 +508,8 @@ class ProductionRouter:
                 # Store current intent for future upgrade detection
                 self._store_previous_bot_intent(user_hash, intent)
                 
-                # For protected intents (SUMMARY), NEVER attempt coaching - return immediately
-                if intent in ["SUMMARY"]:
+                # For protected intents (SUMMARY, UNKNOWN), NEVER attempt coaching - return immediately
+                if intent in ["SUMMARY", "UNKNOWN"]:
                     from utils.structured import log_structured_event
                     log_structured_event("COACH_SKIPPED_INTENT", {
                         "intent": intent,
