@@ -1,0 +1,72 @@
+Why the AI misroutes (even though it’s smart)
+
+LLMs are poor routers by default
+Free-text models are great at generation, unreliable at deterministic intent routing. They’re probabilistic, context-sensitive, and can flip decisions on tiny phrasing changes. That’s why “analysis please” sometimes wanders into coaching.
+
+Ambiguous & overlapping intents
+“analysis”, “report”, “how am I doing”, “help me reduce spend” overlap semantically. Without hard precedence rules, the same text can match multiple flows and your system picks whichever fires first.
+
+Missing ground-truth signals
+The router likely isn’t using the strongest signals you already have:
+
+Request shape (question vs command)
+
+Window cues (“this week/this month”)
+
+Presence of ledger data (0 vs >0)
+
+User state (first-time vs returning)
+When those aren’t considered, routing leans on brittle text alone.
+
+No labeled feedback loop
+You validated in UAT, but in production there’s no continuous labeled dataset of (query → correct_intent). Without it, you can’t learn where the router confuses ANALYSIS vs COACHING or tune thresholds.
+
+Cold-start & repeated payloads
+If a user has zero data (or unchanged data_version), the output will look “repetitive” by necessity. That’s not an NLU failure; it’s the system doing the same deterministic thing with the same inputs.
+
+Prompt brittleness & session variance
+If the “decide intent” step is itself an LLM call, prompt drift, vendor updates, or small context differences cause different choices for the same input. That volatility shows up as random misroutes.
+
+Caching without intent binding
+If caches don’t bind to intent + data_version, you can accidentally reuse a reply from a near-match path, reinforcing the feeling that the AI “keeps saying the same thing.”
+
+What’s actually missing (and how to fix the “intelligent flow”)
+
+Think of “intelligent flow” as a decision system, not a bigger model.
+
+A deterministic intent policy (not just a prompt)
+
+Define a small taxonomy (ADMIN > ANALYSIS > FAQ > COACHING > SMALLTALK) and hard precedence.
+
+Add a handful of high-precision rules for ANALYSIS (e.g., “analysis please”, “what did I spend”, “spending summary”, window words). Rules beat models for your top revenue path.
+
+A lightweight semantic classifier (optional, not required)
+
+If text doesn’t match rules, fall back to a tiny embedding KNN or logistic regression trained on your own labeled logs (you only need ~200–500 examples per class to beat chance).
+
+Set a confidence threshold; below it, default to ANALYSIS (safe) or ask a one-line disambiguation.
+
+Add state signals to routing
+
+Route to ANALYSIS if: phrase has a time window OR user has ledger>0.
+
+Route to COACHING only if: explicit verbs (“save, reduce, budget”) AND user has enough history (e.g., ≥10 txns in 30 days).
+
+Route to SAFE MINIMAL when ledger=0 (no guesswork).
+
+Uniqueness guard tied to data_version
+
+If data_version unchanged and the computed bullet hash equals last one, return:
+“No changes since your last check. Log new expenses to refresh your analysis.”
+
+This converts “repetitive” into a useful, truthful status message.
+
+Continuous feedback & evaluation
+
+Log (text, routed_intent, corrected_intent) whenever you or users correct it.
+
+Produce a weekly confusion matrix; fix the top 3 ambiguous phrases with either a new rule or retraining your tiny classifier.
+
+Contract tests for routing
+
+Keep a flat file of 50–100 canonical phrases per intent. Your CI must pass them all. This prevents future regressions from prompt drift or code changes.
