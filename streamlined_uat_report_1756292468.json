@@ -1,0 +1,37 @@
+{
+  "overall_success": false,
+  "deployment_readiness": "NOT_READY",
+  "timestamp": "2025-08-27T11:01:08.643509",
+  "phases": {
+    "contract_tests": {
+      "passed": 63,
+      "total": 63,
+      "success_rate": 100.0,
+      "status": "PASS"
+    },
+    "integration_tests": {
+      "passed": 15,
+      "total": 15,
+      "success_rate": 100.0,
+      "status": "PASS"
+    },
+    "scenario_tests": {
+      "passed": 12,
+      "total": 12,
+      "success_rate": 100.0,
+      "status": "PASS"
+    },
+    "pattern_tests": {
+      "passed": 4,
+      "total": 6,
+      "success_rate": 66.66666666666666,
+      "status": "FAIL"
+    },
+    "health_checks": {
+      "passed": 5,
+      "total": 5,
+      "success_rate": 100.0,
+      "status": "PASS"
+    }
+  }
+}

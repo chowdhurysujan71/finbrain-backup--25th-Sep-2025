@@ -123,7 +123,7 @@ class BilingualPatterns:
             re.IGNORECASE | re.UNICODE
         )
         self.analysis_terms_bn = re.compile(
-            r'\b(বিশ্লেষণ|সারাংশ|রিপোর্ট)\b',
+            r'\b(বিশ্লেষণ|সারাংশ|রিপোর্ট)\b|(?<!কমাতে\s)(?<!কাট\s)খরচ(?!\s(?:কমাতে|কাট))',
             re.IGNORECASE | re.UNICODE
         )
         

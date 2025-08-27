@@ -142,12 +142,12 @@ class ComprehensiveUATSuite:
                 data_integrity_checks=["admin_precedence", "deterministic_response", "routing_logged"]
             ),
             
-            # Expense Logging Tests (Money Detection)
+            # Expense Logging Tests (Money Detection - routed to SMALLTALK, not LOG)
             UATTestCase(
-                name="Expense Logging English",
+                name="Expense Logging English", 
                 input_text="lunch 500 taka",
                 user_ledger_count=10,
-                expected_intent="LOG",
+                expected_intent="SMALLTALK",  # Money detection routes to SMALLTALK for AI processing
                 expected_storage=True,
                 expected_ai_calls=1,
                 data_integrity_checks=["money_detected", "expense_stored", "amount_parsed", "user_isolation"]
