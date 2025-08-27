@@ -113,7 +113,7 @@ class BilingualPatterns:
         
         # Explicit analysis request patterns  
         self.explicit_analysis_en = re.compile(
-            r'\b(analysis please|spending (summary|report)|what did i spend|expense report|how much.*spend|spend.*week|spend.*month)\b',
+            r'\b(analysis please|insights?|analyze|show me insights?|give me insights?|spending (summary|report)|what did i spend|expense report|how much.*spend|spend.*week|spend.*month|analyze my spending)\b',
             re.IGNORECASE | re.UNICODE
         )
         self.explicit_analysis_bn = re.compile(
@@ -123,7 +123,7 @@ class BilingualPatterns:
         
         # Analysis terms (non-explicit) - enhanced for better matching
         self.analysis_terms_en = re.compile(
-            r'\b(analysis|summary|report|spent.*month|spent.*week|spend.*week|spend.*month)\b',
+            r'\b(analysis|summary|report|insights?|analyze|breakdown|review|pattern|spent.*month|spent.*week|spend.*week|spend.*month)\b',
             re.IGNORECASE | re.UNICODE
         )
         self.analysis_terms_bn = re.compile(

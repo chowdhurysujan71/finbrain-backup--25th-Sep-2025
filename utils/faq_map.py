@@ -21,12 +21,12 @@ FAQ_JSON = {
             "For details and updates visit www.finbrain.app"
         ),
         "how much does finbrain cost": (
-            "💸 We're in **early access**. Pricing will be announced before general availability, with special consideration for early users. "
-            "For details and updates visit www.finbrain.app"
+            "We're currently in early access - it's free while we perfect the experience! "
+            "When we launch, early users like you will get special pricing. Want to try it out? 💰"
         ),
         "can i connect my bank accounts": (
-            "🏦 Bank integration is planned for future releases. Right now, finbrain focuses on **conversational expense tracking** for maximum privacy. "
-            "For details and updates visit www.finbrain.app"
+            "Bank connections are in our roadmap! For now, we focus on simple conversation-based tracking - "
+            "just tell me what you spent and I'll handle the rest. Much more private this way! 🏦"
         ),
         "what kind of insights can i get": (
             "Great question! I'll show you where your money goes and help you make smarter decisions. "
