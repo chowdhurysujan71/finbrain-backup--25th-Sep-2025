@@ -1,0 +1,298 @@
+{
+  "audit_session_id": "da332231",
+  "timestamp": "2025-08-27T11:14:09.506566",
+  "system_info": {
+    "contract_tests": {
+      "success": true,
+      "passed": 63,
+      "total": 63,
+      "success_rate": 100.0,
+      "failures": [],
+      "breakdown": {
+        "routing": {
+          "passed": 49,
+          "total": 49
+        },
+        "scope": {
+          "passed": 6,
+          "total": 6
+        },
+        "bilingual": {
+          "passed": 8,
+          "total": 8
+        }
+      }
+    },
+    "integration_tests": {
+      "passed": 15,
+      "total": 15,
+      "success_rate": 100.0
+    },
+    "database_status": {
+      "connected": true,
+      "tables_exist": true,
+      "available_tables": [
+        "expenses",
+        "users"
+      ]
+    },
+    "timestamp": "2025-08-27T11:14:23.459427"
+  },
+  "data_handling": {
+    "tests": [
+      {
+        "name": "English expense parsing",
+        "input": "lunch 500 taka",
+        "success": false,
+        "error": "'RoutingSignals' object has no attribute 'has_money'"
+      },
+      {
+        "name": "Bengali expense parsing",
+        "input": "\u099a\u09be \u09eb\u09e6 \u099f\u09be\u0995\u09be",
+        "success": false,
+        "error": "'RoutingSignals' object has no attribute 'has_money'"
+      },
+      {
+        "name": "Analysis request parsing",
+        "input": "analysis please",
+        "success": false,
+        "error": "'RoutingSignals' object has no attribute 'has_money'"
+      },
+      {
+        "name": "Coaching request parsing",
+        "input": "help me save money",
+        "success": false,
+        "error": "'RoutingSignals' object has no attribute 'has_money'"
+      }
+    ],
+    "summary": {
+      "total_tests": 4,
+      "passed_tests": 0,
+      "success_rate": 0.0,
+      "overall_success": false
+    }
+  },
+  "routing_validation": {
+    "tests": [
+      {
+        "name": "explicit_analysis routing",
+        "input": "analysis please",
+        "expected_intent": "ANALYSIS",
+        "actual_intent": "ANALYSIS",
+        "success": true,
+        "reasoning": "deterministic",
+        "confidence": 0.95
+      },
+      {
+        "name": "bengali_analysis routing",
+        "input": "\u098f\u0987 \u09ae\u09be\u09b8\u09c7\u09b0 \u0996\u09b0\u099a \u09ac\u09bf\u09b6\u09cd\u09b2\u09c7\u09b7\u09a3",
+        "expected_intent": "ANALYSIS",
+        "actual_intent": "ANALYSIS",
+        "success": true,
+        "reasoning": "deterministic",
+        "confidence": 0.95
+      },
+      {
+        "name": "faq_query routing",
+        "input": "what can you do",
+        "expected_intent": "FAQ",
+        "actual_intent": "FAQ",
+        "success": true,
+        "reasoning": "deterministic",
+        "confidence": 0.9
+      },
+      {
+        "name": "bengali_faq routing",
+        "input": "\u09a4\u09c1\u09ae\u09bf \u0995\u09c0 \u0995\u09b0\u09a4\u09c7 \u09aa\u09be\u09b0\u09cb",
+        "expected_intent": "FAQ",
+        "actual_intent": "FAQ",
+        "success": true,
+        "reasoning": "deterministic",
+        "confidence": 0.9
+      },
+      {
+        "name": "coaching_request routing",
+        "input": "help me reduce spending",
+        "expected_intent": "COACHING",
+        "actual_intent": "COACHING",
+        "success": true,
+        "reasoning": "deterministic",
+        "confidence": 0.85
+      },
+      {
+        "name": "bengali_coaching routing",
+        "input": "\u099f\u09be\u0995\u09be \u09b8\u09c7\u09ad \u0995\u09b0\u09ac\u09cb \u0995\u09bf\u09ad\u09be\u09ac\u09c7",
+        "expected_intent": "COACHING",
+        "actual_intent": "COACHING",
+        "success": true,
+        "reasoning": "deterministic",
+        "confidence": 0.85
+      },
+      {
+        "name": "expense_logging routing",
+        "input": "lunch 500 taka",
+        "expected_intent": "SMALLTALK",
+        "actual_intent": "SMALLTALK",
+        "success": true,
+        "reasoning": "deterministic",
+        "confidence": 0.7
+      },
+      {
+        "name": "admin_command routing",
+        "input": "/id",
+        "expected_intent": "ADMIN",
+        "actual_intent": "ADMIN",
+        "success": true,
+        "reasoning": "deterministic",
+        "confidence": 1.0
+      },
+      {
+        "name": "general_chat routing",
+        "input": "hello there",
+        "expected_intent": "SMALLTALK",
+        "actual_intent": "SMALLTALK",
+        "success": true,
+        "reasoning": "deterministic",
+        "confidence": 0.7
+      }
+    ],
+    "summary": {
+      "total_tests": 9,
+      "passed_tests": 9,
+      "success_rate": 100.0,
+      "overall_success": true
+    }
+  },
+  "processing_validation": {
+    "tests": [
+      {
+        "name": "expense_processing",
+        "message": "coffee 200 taka",
+        "intent": "SMALLTALK",
+        "success": false,
+        "error": "cannot import name 'get_ai_response' from 'utils.ai_adapter_v2' (/home/runner/workspace/utils/ai_adapter_v2.py)"
+      },
+      {
+        "name": "coaching_processing",
+        "message": "how to save money",
+        "intent": "COACHING",
+        "success": false,
+        "error": "cannot import name 'get_ai_response' from 'utils.ai_adapter_v2' (/home/runner/workspace/utils/ai_adapter_v2.py)"
+      }
+    ],
+    "summary": {
+      "total_tests": 2,
+      "passed_tests": 0,
+      "success_rate": 0.0,
+      "overall_success": false
+    }
+  },
+  "storage_validation": {
+    "tests": [
+      {
+        "name": "expense_insertion",
+        "success": false,
+        "error": "(psycopg2.errors.NotNullViolation) null value in column \"date\" of relation \"expenses\" violates not-null constraint\nDETAIL:  Failing row contains (180, uat_da332231, UAT test expense, 250.00, Testing, null, null, null, null, null, 2025-08-27 11:14:26.601849, null, null, null, null, null, null, null).\n\n[SQL: \n                    INSERT INTO expenses (user_id, amount, description, category, created_at)\n                    VALUES (%(user_id)s, %(amount)s, %(description)s, %(category)s, %(created_at)s)\n                    RETURNING id, amount\n                ]\n[parameters: {'user_id': 'uat_da332231', 'amount': 250.0, 'description': 'UAT test expense', 'category': 'Testing', 'created_at': datetime.datetime(2025, 8, 27, 11, 14, 26, 601849)}]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)"
+      },
+      {
+        "name": "data_retrieval",
+        "success": false,
+        "retrieved_amount": null
+      },
+      {
+        "name": "user_isolation",
+        "success": false,
+        "user_record_count": 0
+      }
+    ],
+    "summary": {
+      "total_tests": 3,
+      "passed_tests": 0,
+      "success_rate": 0.0,
+      "overall_success": false
+    }
+  },
+  "integrity_validation": {
+    "checks": [
+      {
+        "name": "data_consistency",
+        "description": "All expense records have required fields",
+        "success": true,
+        "details": {
+          "total": 0,
+          "valid_amounts": 0,
+          "with_user_ids": 0,
+          "with_timestamps": 0
+        }
+      },
+      {
+        "name": "temporal_integrity",
+        "description": "All timestamps are valid and recent",
+        "success": true,
+        "details": {
+          "total": 0,
+          "valid_timestamps": 0
+        }
+      },
+      {
+        "name": "amount_validation",
+        "description": "All amounts are positive numbers",
+        "success": false,
+        "error": "'>' not supported between instances of 'NoneType' and 'int'"
+      }
+    ],
+    "summary": {
+      "total_checks": 3,
+      "passed_checks": 2,
+      "success_rate": 66.66666666666666,
+      "overall_success": false
+    }
+  },
+  "security_validation": {
+    "checks": [
+      {
+        "name": "user_id_hashing",
+        "description": "User IDs are properly hashed",
+        "success": false,
+        "details": {}
+      },
+      {
+        "name": "sql_injection_protection",
+        "description": "SQL injection attempts are safely handled",
+        "success": true,
+        "details": {
+          "query_executed_safely": true,
+          "result_count": 0
+        }
+      },
+      {
+        "name": "data_isolation",
+        "description": "User data is properly isolated",
+        "success": true,
+        "details": {
+          "test_user_records": 0,
+          "total_unique_users": 26
+        }
+      }
+    ],
+    "summary": {
+      "total_checks": 3,
+      "passed_checks": 2,
+      "success_rate": 66.66666666666666,
+      "overall_success": false
+    }
+  },
+  "deployment_assessment": {
+    "overall_success_rate": 16.666666666666664,
+    "deployment_ready": false,
+    "critical_failures": [
+      "Data Handling",
+      "Processing",
+      "Storage",
+      "Integrity",
+      "Security"
+    ],
+    "recommendation": "REQUIRES FIXES BEFORE DEPLOYMENT",
+    "timestamp": "2025-08-27T11:14:29.767153"
+  }
+}

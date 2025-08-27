@@ -1,0 +1,59 @@
+{
+  "audit_session_id": "42db94e0",
+  "timestamp": "2025-08-27T11:11:48.876587",
+  "phases": {
+    "phase1_preflight": {
+      "success": true,
+      "contract_tests": {
+        "passed": 63,
+        "total": 63,
+        "success_rate": 100.0
+      },
+      "integration_tests": {
+        "passed": 15,
+        "total": 15,
+        "success_rate": 100.0
+      },
+      "database_connectivity": true,
+      "router_initialization": true,
+      "timestamp": "2025-08-27T11:12:02.552346"
+    },
+    "phase2_ingestion": {
+      "success": false,
+      "error": "'RoutingSignals' object has no attribute 'has_money'",
+      "timestamp": "2025-08-27T11:12:02.777447"
+    },
+    "phase3_processing": {
+      "success": false,
+      "error": "cannot import name 'get_ai_response' from 'utils.ai_adapter_v2' (/home/runner/workspace/utils/ai_adapter_v2.py)",
+      "timestamp": "2025-08-27T11:12:02.777903"
+    },
+    "phase4_storage": {
+      "success": false,
+      "error": "(psycopg2.errors.NotNullViolation) null value in column \"date\" of relation \"expenses\" violates not-null constraint\nDETAIL:  Failing row contains (179, audit_user_42db94e0, Test lunch expense, 500.00, Food, null, null, null, null, null, 2025-08-27 11:12:02.778215, null, null, null, null, null, null, null).\n\n[SQL: \n                INSERT INTO expenses (user_id, amount, description, category, created_at)\n                VALUES (%(user_id)s, %(amount)s, %(description)s, %(category)s, %(created_at)s)\n                RETURNING id, user_id, amount, description, category, created_at\n            ]\n[parameters: {'user_id': 'audit_user_42db94e0', 'amount': 500.0, 'description': 'Test lunch expense', 'category': 'Food', 'created_at': datetime.datetime(2025, 8, 27, 11, 12, 2, 778215)}]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)",
+      "timestamp": "2025-08-27T11:12:03.259898"
+    },
+    "phase5_integrity": {
+      "success": false,
+      "error": "(psycopg2.errors.UndefinedFunction) operator does not exist: integer = character varying\nLINE 5: ... AND NOT EXISTS (SELECT 1 FROM users u WHERE u.id = e.user_i...\n                                                             ^\nHINT:  No operator matches the given name and argument types. You might need to add explicit type casts.\n\n[SQL: \n                SELECT COUNT(*) as orphaned_records\n                FROM expenses e\n                WHERE e.user_id = %(user_id)s\n                AND NOT EXISTS (SELECT 1 FROM users u WHERE u.id = e.user_id)\n            ]\n[parameters: {'user_id': 'audit_user_42db94e0'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+      "timestamp": "2025-08-27T11:12:04.386193"
+    },
+    "phase6_flow_trace": {
+      "success": false,
+      "error": "'RoutingSignals' object has no attribute 'has_money'",
+      "timestamp": "2025-08-27T11:12:04.611375"
+    },
+    "phase7_security": {
+      "success": false,
+      "error": "cannot import name 'ensure_hashed' from 'utils.security' (/home/runner/workspace/utils/security.py)",
+      "timestamp": "2025-08-27T11:12:04.611631"
+    }
+  },
+  "data_flow_trace": [],
+  "integrity_checks": {},
+  "performance_metrics": {},
+  "security_validation": {},
+  "deployment_readiness": false,
+  "overall_success_rate": 0,
+  "recommendation": "REQUIRES FIXES BEFORE DEPLOYMENT"
+}
