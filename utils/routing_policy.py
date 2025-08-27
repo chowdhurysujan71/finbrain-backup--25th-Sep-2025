@@ -28,9 +28,11 @@ class RouterScope(Enum):
     ALL = "all"                                  # All requests (full coverage)
 
 class IntentType(Enum):
-    """Intent types with hard precedence"""
+    """Intent types with hard precedence: ADMIN → PCA_AUDIT → EXPENSE_LOG → ANALYSIS → FAQ → COACHING → SMALLTALK"""
     ADMIN = "ADMIN"
-    PCA_AUDIT = "PCA_AUDIT" 
+    PCA_AUDIT = "PCA_AUDIT"
+    EXPENSE_LOG = "EXPENSE_LOG"
+    CLARIFY_EXPENSE = "CLARIFY_EXPENSE"
     ANALYSIS = "ANALYSIS"
     FAQ = "FAQ"
     COACHING = "COACHING"
@@ -40,6 +42,8 @@ class IntentType(Enum):
 class RoutingSignals:
     """State signals used for routing decisions"""
     ledger_count_30d: int
+    has_money: bool
+    has_first_person_spent_verb: bool
     has_time_window: bool
     has_analysis_terms: bool
     has_explicit_analysis: bool
@@ -152,6 +156,16 @@ class BilingualPatterns:
             re.IGNORECASE | re.UNICODE
         )
         
+        # First-person expense verb patterns (for EXPENSE_LOG intent)
+        self.expense_verbs_en = re.compile(
+            r'\b(spent|paid|bought|purchased)\b',
+            re.IGNORECASE | re.UNICODE
+        )
+        self.expense_verbs_bn = re.compile(
+            r'(খরচ করেছি|খরচ করলাম|দিলাম|পেমেন্ট করেছি|কিনেছি|নিয়েছি)',
+            re.IGNORECASE | re.UNICODE
+        )
+        
         # Admin command patterns
         self.admin_commands = re.compile(r'^/(id|debug|help)\b', re.IGNORECASE)
     
@@ -173,6 +187,11 @@ class BilingualPatterns:
         """Check if text contains explicit analysis request"""
         normalized = self.normalize_text(text)
         return bool(self.explicit_analysis_en.search(normalized) or self.explicit_analysis_bn.search(normalized))
+    
+    def has_first_person_spent_verb(self, text: str) -> bool:
+        """Check if text contains first-person past-tense expense verbs"""
+        normalized = self.normalize_text(text)
+        return bool(self.expense_verbs_en.search(normalized) or self.expense_verbs_bn.search(normalized))
     
     def has_analysis_terms(self, text: str) -> bool:
         """Check if text contains general analysis terms"""
@@ -335,6 +354,8 @@ class DeterministicRouter:
             RoutingSignals with computed state
         """
         # Pattern matching signals
+        has_money = self._has_money_pattern(text)
+        has_first_person_spent_verb = self.patterns.has_first_person_spent_verb(text)
         has_time_window = self.patterns.has_time_window(text)
         has_analysis_terms = self.patterns.has_analysis_terms(text)
         has_explicit_analysis = self.patterns.has_explicit_analysis_request(text)
@@ -348,6 +369,8 @@ class DeterministicRouter:
         
         return RoutingSignals(
             ledger_count_30d=ledger_count_30d,
+            has_money=has_money,
+            has_first_person_spent_verb=has_first_person_spent_verb,
             has_time_window=has_time_window,
             has_analysis_terms=has_analysis_terms,
             has_explicit_analysis=has_explicit_analysis,
@@ -371,7 +394,7 @@ class DeterministicRouter:
         reason_codes = []
         matched_patterns = []
         
-        # ADMIN → PCA_AUDIT → ANALYSIS → FAQ → COACHING → SMALLTALK
+        # ADMIN → PCA_AUDIT → EXPENSE_LOG → ANALYSIS → FAQ → COACHING → SMALLTALK
         
         # 1. ADMIN (highest precedence)
         if user_signals.is_admin_command:
@@ -384,7 +407,21 @@ class DeterministicRouter:
             reason_codes.append("PCA_AUDIT_MODE")
             return RoutingResult(IntentType.PCA_AUDIT, reason_codes, matched_patterns, 1.0)
         
-        # 3. ANALYSIS - More conservative routing to prevent over-routing
+        # 3. EXPENSE_LOG (money + first-person past-tense verb)
+        if user_signals.has_money and user_signals.has_first_person_spent_verb:
+            reason_codes.append("HAS_MONEY")
+            reason_codes.append("HAS_FIRST_PERSON_SPENT_VERB")
+            matched_patterns.append("money_pattern")
+            matched_patterns.append("expense_verb")
+            return RoutingResult(IntentType.EXPENSE_LOG, reason_codes, matched_patterns, 0.95)
+        
+        # 4. CLARIFY_EXPENSE (money without verb, not explicit analysis)
+        if user_signals.has_money and not user_signals.has_first_person_spent_verb and not user_signals.has_explicit_analysis:
+            reason_codes.append("HAS_MONEY_NO_VERB")
+            matched_patterns.append("money_pattern")
+            return RoutingResult(IntentType.CLARIFY_EXPENSE, reason_codes, matched_patterns, 0.9)
+        
+        # 5. ANALYSIS - More conservative routing to prevent over-routing
         analysis_conditions = [
             # Explicit analysis always wins
             user_signals.has_explicit_analysis,
@@ -407,13 +444,13 @@ class DeterministicRouter:
             
             return RoutingResult(IntentType.ANALYSIS, reason_codes, matched_patterns, 0.95)
         
-        # 4. FAQ (but not if it has coaching context)
+        # 6. FAQ (but not if it has coaching context)
         if user_signals.has_faq_terms and not user_signals.has_coaching_verbs:
             reason_codes.append("HAS_FAQ_TERMS")
             matched_patterns.append("faq_terms")
             return RoutingResult(IntentType.FAQ, reason_codes, matched_patterns, 0.9)
         
-        # 5. COACHING
+        # 7. COACHING
         coaching_conditions = [
             # Standard coaching: verbs + sufficient history + not explicit analysis
             (user_signals.has_coaching_verbs and 
@@ -436,9 +473,29 @@ class DeterministicRouter:
             
             return RoutingResult(IntentType.COACHING, reason_codes, matched_patterns, 0.85)
         
-        # 6. SMALLTALK (default)
+        # 8. SMALLTALK (default)
         reason_codes.append("DEFAULT_FALLBACK")
         return RoutingResult(IntentType.SMALLTALK, reason_codes, matched_patterns, 0.7)
+    
+    def _has_money_pattern(self, text: str) -> bool:
+        """Check if text contains money patterns using existing Bengali-aware utilities"""
+        try:
+            # Use existing Bengali digit normalization and money detection
+            from utils.bn_digits import to_en_digits
+            from nlp.money_patterns import has_money_mention
+            
+            # Normalize Bengali digits to ASCII first
+            normalized_text = to_en_digits(text)
+            
+            # Use proven money pattern detection
+            return has_money_mention(normalized_text)
+            
+        except ImportError:
+            # Fallback to basic detection if imports fail
+            import re
+            normalized = self.patterns.normalize_text(text)
+            money_pattern = r'\b\d+\s*(taka|টাকা|৳|dollars?|\$)\b|(?:৳|taka|টাকা|\$)\s*\d+\b'
+            return bool(re.search(money_pattern, normalized, re.IGNORECASE | re.UNICODE))
     
     def _get_ledger_count_30d(self, user_id: str) -> int:
         """Get user's expense count in last 30 days"""

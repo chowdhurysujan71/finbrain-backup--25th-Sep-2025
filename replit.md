@@ -8,13 +8,14 @@ Preferred communication style: Simple, everyday language.
 Zero-surprise deployment requirement: 100% user-visible success demanded with comprehensive validation before any production changes.
 
 ## Recent Major Updates (August 27, 2025)
-- **🎉 100% UAT SUCCESS ACHIEVED**: Complete end-to-end validation passed with 100.0% success rate
-- **Bengali Routing Fixed**: "আজ চা ৫০ টাকা খরচ করেছি" now correctly routes to SMALLTALK (expense logging)
-- **Coaching Routing Fixed**: "help me টাকা সেভ করতে this month" now correctly routes to COACHING
-- **Pattern Matching Refined**: Removed overly aggressive Bengali "খরচ" analysis detection
-- **Conservative Analysis Routing**: Now requires both time window AND analysis terms for ANALYSIS routing
-- **Zero-Surprise Deployment**: All critical workflows validated at 100% success before deployment approval
-- **Production Ready**: System validated for deployment with comprehensive bilingual support
+- **🚀 PoR v1.1 EXPENSE_LOG SYSTEM IMPLEMENTED**: New deterministic routing hierarchy with EXPENSE_LOG and CLARIFY_EXPENSE intents
+- **New Precedence Order**: ADMIN → PCA_AUDIT → EXPENSE_LOG → ANALYSIS → FAQ → COACHING → SMALLTALK
+- **EXPENSE_LOG Intent**: Triggers on money + first-person past-tense verbs (খরচ করেছি|খরচ করলাম|spent|paid|bought)
+- **CLARIFY_EXPENSE Intent**: Activates when money detected but no expense verb present
+- **Bengali Expense Verb Detection**: Advanced pattern matching for Bengali first-person past-tense expense verbs
+- **Contract Tests Validated**: All 5 critical contract tests passing at 100% success rate
+- **Bilingual Clarification Flow**: Structured prompts in Bengali and English with action options
+- **Zero-Surprise Deployment**: Comprehensive validation framework ensuring 100% user-visible success
 
 ## System Architecture
 

@@ -1,0 +1,89 @@
+Final, no-surprises patch (copy/paste)
+1) Precedence (lock it)
+ADMIN → PCA_AUDIT → EXPENSE_LOG → ANALYSIS → FAQ → COACHING → SMALLTALK
+
+2) Signals (first-person “spent/paid/bought” verb)
+
+Add a boolean in your extractor:
+
+# nlp/signals_extractor.py (add)
+RE_SPENT_VERB_BN = re.compile(r"(খরচ করেছি|খরচ করলাম|দিলাম|পেমেন্ট করেছি|কিনেছি|নিয়েছি)\b")
+RE_SPENT_VERB_EN = re.compile(r"\b(spent|paid|bought|purchased)\b", re.IGNORECASE)
+
+signals["has_first_person_spent_verb"] = bool(
+    RE_SPENT_VERB_BN.search(norm) or RE_SPENT_VERB_EN.search(norm)
+)
+
+3) Router rule (one clause)
+# routing decision (top to bottom)
+if signals.is_admin: return "ADMIN"
+if session.pca_audit_mode: return "PCA_AUDIT"
+
+# EXPENSE_LOG beats analysis/smalltalk if money + user's past-tense verb
+if signals.has_money and signals.has_first_person_spent_verb:
+    return "EXPENSE_LOG"
+
+# Ambiguous money (no verb, no explicit analysis) → clarify, not smalltalk
+if signals.has_money and not signals.explicit_analysis_request:
+    return "CLARIFY_EXPENSE"
+
+# Analysis stays OR (not AND): time window OR analysis terms OR explicit analysis
+if (signals.explicit_analysis_request
+    or signals.has_time_window
+    or signals.has_analysis_terms):
+    return "ANALYSIS"
+
+if signals.has_faq_terms: return "FAQ"
+if signals.has_coaching_verbs and session.eligible_for_coaching: return "COACHING"
+return "SMALLTALK"
+
+
+Note the OR for analysis. Your report says “requires both time window AND analysis terms”; that will under-route real analysis asks like “এই সপ্তাহ?” or “this month?”. Keep it OR as we designed.
+
+🧪 Contract tests (add these 5; they keep you at 100%)
+
+BN expense with verb → EXPENSE_LOG
+
+Input: আজ চা ৫০ টাকা খরচ করেছি
+
+Expect: EXPENSE_LOG and a stored expense (date=today, amount=50, category≈Tea/Food & Dining)
+
+BN expense without verb → CLARIFY_EXPENSE
+
+Input: চা ৫০ টাকা
+
+Expect: Clarify prompt with actions: “হ্যাঁ, লগ করুন / না / বরং সারাংশ দেখান”
+
+Explicit analysis wins
+
+Input: এই মাসের খরচের সারাংশ দাও
+
+Expect: ANALYSIS
+
+Coaching stays coaching
+
+Input: help me টাকা সেভ করতে this month
+
+Expect: COACHING
+
+No false positives from “আজ”
+
+Input: আজ … (no money, no verbs)
+
+Expect: not EXPENSE_LOG; continue normal routing
+
+🚦 Preflight probes (run before flipping overlays)
+
+Probe A (BN log): “আজ চা ৫০ টাকা খরচ করেছি”
+→ 200/201, expense row created, reply confirms logging
+
+Probe B (BN ambiguous): “চা ৫০ টাকা”
+→ Clarify prompt rendered
+
+Probe C (analysis): “এই মাসের খরচের সারাংশ দাও”
+→ Analysis bullets (AI on/fallback), strict JSON
+
+Probe D (coaching): “help me reduce food spend”
+→ Coaching plan returned
+
+If any probe fails, don’t flip ROUTER_SCOPE further.

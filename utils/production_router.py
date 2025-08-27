@@ -241,6 +241,55 @@ class ProductionRouter:
                 except Exception as e:
                     logger.warning(f"Learning intent handling failed: {e}")
             
+            # Step 1.5: DETERMINISTIC ROUTING (PoR v1.1 - EXPENSE_LOG and CLARIFY_EXPENSE intents)
+            try:
+                from utils.routing_policy import deterministic_router
+                
+                # Extract signals for routing decision
+                signals = deterministic_router.extract_signals(text, user_hash)
+                
+                # Check if deterministic routing should be used
+                if deterministic_router.should_use_deterministic_routing(signals):
+                    routing_result = deterministic_router.route_intent(text, signals)
+                    
+                    # Handle EXPENSE_LOG intent
+                    if routing_result.intent.value == "EXPENSE_LOG":
+                        logger.info(f"[ROUTER] EXPENSE_LOG intent detected: '{text[:50]}...'")
+                        try:
+                            from expense_log_handlers import handle_expense_log_intent
+                            expense_result = handle_expense_log_intent(user_hash, text, signals.__dict__)
+                            
+                            if expense_result['success']:
+                                self._log_routing_decision(rid, user_hash, "expense_log", "logged_successfully")
+                                self._record_processing_time(time.time() - start_time)
+                                return normalize(expense_result['response']), "expense_log", expense_result.get('category'), expense_result.get('amount')
+                            else:
+                                logger.warning("EXPENSE_LOG processing failed, falling through")
+                        except Exception as e:
+                            logger.error(f"EXPENSE_LOG handler failed: {e}")
+                    
+                    # Handle CLARIFY_EXPENSE intent
+                    elif routing_result.intent.value == "CLARIFY_EXPENSE":
+                        logger.info(f"[ROUTER] CLARIFY_EXPENSE intent detected: '{text[:50]}...'")
+                        try:
+                            from expense_log_handlers import handle_clarify_expense_intent
+                            clarify_result = handle_clarify_expense_intent(user_hash, text, signals.__dict__)
+                            
+                            if clarify_result['success']:
+                                self._log_routing_decision(rid, user_hash, "clarify_expense", "prompted")
+                                self._record_processing_time(time.time() - start_time)
+                                return normalize(clarify_result['response']), "clarify_expense", None, None
+                            else:
+                                logger.warning("CLARIFY_EXPENSE processing failed, falling through")
+                        except Exception as e:
+                            logger.error(f"CLARIFY_EXPENSE handler failed: {e}")
+                    
+                    # For other deterministic intents (ANALYSIS, FAQ, COACHING), continue to existing handlers
+                    logger.debug(f"Deterministic routing returned {routing_result.intent.value}, continuing to existing handlers")
+                
+            except Exception as e:
+                logger.warning(f"Deterministic routing failed: {e}, falling back to legacy routing")
+            
             # Step 2: CORRECTION DETECTION - After learning check
             if is_correction_message(text):
                 logger.info(f"[ROUTER] Correction detected: user={user_hash[:8]}...")
