@@ -9,6 +9,7 @@ import logging
 import requests
 from typing import Dict, Any, Optional
 from datetime import datetime
+from .ai_contamination_monitor import ai_contamination_monitor
 
 logger = logging.getLogger(__name__)
 
@@ -42,31 +43,40 @@ class ProductionAIAdapter:
     def __init__(self):
         self.enabled = AI_ENABLED
         self.provider = AI_PROVIDER
+        # CRITICAL: Use per-request sessions to prevent cross-contamination
+        # DO NOT share session objects between users - this caused financial data mixing
+        self._session_template = {
+            "timeout": AI_TIMEOUT,
+            "headers": {}
+        }
+        
+        # Keep backwards compatibility session for health checks (DO NOT use for user requests)
         self.session = requests.Session()
         
-        # Setup provider-specific configuration
+        # Setup provider-specific configuration template
         if self.provider == "openai" and OPENAI_API_KEY:
-            self.session.headers.update({
+            self._session_template["headers"].update({
                 "Authorization": f"Bearer {OPENAI_API_KEY}",
                 "Content-Type": "application/json"
             })
         elif self.provider == "gemini" and GEMINI_API_KEY:
-            self.session.headers.update({
+            self._session_template["headers"].update({
                 "Content-Type": "application/json"
             })
         
-        logger.info(f"Production AI Adapter initialized: enabled={self.enabled}, provider={self.provider}")
+        logger.info(f"Production AI Adapter initialized: enabled={self.enabled}, provider={self.provider} [USER_ISOLATED]")
     
     def _compose_system_prompt(self, base_prompt: str) -> str:
         """Compose system prompt with messaging guardrails prepended"""
         return f"{MESSAGING_GUARDRAIL_PROMPT}\n\n{base_prompt}"
     
-    def generate_insights(self, expenses_data: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_insights(self, expenses_data: Dict[str, Any], user_id: str = "unknown") -> Dict[str, Any]:
         """
         Generate AI-powered spending insights and recommendations
         
         Args:
             expenses_data: Dictionary containing user's expense data and context
+            user_id: User identifier for contamination prevention logging
             
         Returns:
             Dict with insights, tips, and analysis
@@ -74,21 +84,28 @@ class ProductionAIAdapter:
         if not self.enabled:
             return {"failover": True, "reason": "ai_disabled"}
         
-        # Route to appropriate provider
+        # CRITICAL: Log user_id for contamination tracking
+        logger.info(f"AI insights request for user {user_id[:8]}... with {len(expenses_data.get('expenses', []))} categories")
+        
+        # Route to appropriate provider with user isolation
         if self.provider == "gemini":
-            return self._generate_insights_gemini(expenses_data)
+            return self._generate_insights_gemini(expenses_data, user_id)
         elif self.provider == "openai":
-            return self._generate_insights_openai(expenses_data)
+            return self._generate_insights_openai(expenses_data, user_id)
         else:
             return {"failover": True, "reason": "unsupported_provider"}
     
-    def _generate_insights_gemini(self, expenses_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate insights using Gemini API"""
+    def _generate_insights_gemini(self, expenses_data: Dict[str, Any], user_id: str = "unknown") -> Dict[str, Any]:
+        """Generate insights using Gemini API with user isolation"""
         try:
             # Extract data for prompt
             total_amount = expenses_data.get('total_amount', 0)
             expenses = expenses_data.get('expenses', [])
             timeframe = expenses_data.get('timeframe', 'this month')
+            
+            # CRITICAL: Create isolated session per request to prevent cross-contamination
+            isolated_session = requests.Session()
+            isolated_session.headers.update(self._session_template["headers"])
             
             # Build expense breakdown text
             expense_breakdown = ""
@@ -100,8 +117,15 @@ class ProductionAIAdapter:
             else:
                 expense_breakdown = "No expenses found for this period"
             
-            # Construct insights prompt
-            insights_prompt = f"""Analyze these spending patterns and provide 3-4 actionable financial insights:
+            # CRITICAL: Log request for contamination monitoring
+            request_id = ai_contamination_monitor.log_request(user_id, expenses_data)
+            
+            # Add user isolation marker to prompt
+            insights_prompt = f"""SYSTEM: Analyze ONLY the following user's spending data. Do not mix with other users' data.
+USER_ID: {user_id[:8]}...
+REQUEST_ID: {request_id}
+
+Analyze these spending patterns and provide 3-4 actionable financial insights:
 
 SPENDING SUMMARY ({timeframe}):
 Total: ৳{total_amount:,.0f}
@@ -142,8 +166,11 @@ Make insights:
                 }
             }
             
-            # Make request with timeout
-            response = self.session.post(url, json=payload, timeout=AI_TIMEOUT)
+            # Make request with isolated session - CRITICAL FOR USER ISOLATION
+            response = isolated_session.post(url, json=payload, timeout=AI_TIMEOUT)
+            
+            # CRITICAL: Close session immediately to prevent data leakage
+            isolated_session.close()
             
             if response.status_code != 200:
                 logger.warning(f"Gemini insights API error: {response.status_code}")
@@ -179,11 +206,19 @@ Make insights:
                 clean_text = clean_text.strip()
                 
                 insights_json = json.loads(clean_text)
+                
+                # CRITICAL: Check response for contamination before returning
+                contamination_check = ai_contamination_monitor.check_response(request_id, ai_text)
+                if contamination_check.get("contamination", False):
+                    logger.error(f"🚨 CONTAMINATION DETECTED in AI response for user {user_id[:8]}...: {contamination_check['issues']}")
+                    return {"failover": True, "reason": "contamination_detected", "issues": contamination_check['issues']}
+                
                 return {
                     "success": True,
                     "insights": insights_json.get("insights", []),
                     "focus_area": insights_json.get("focus_area", "spending optimization"),
-                    "raw_response": ai_text
+                    "raw_response": ai_text,
+                    "contamination_check": "passed"
                 }
             except json.JSONDecodeError:
                 # Fallback: extract insights from text

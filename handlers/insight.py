@@ -59,8 +59,8 @@ def handle_insight(user_id: str) -> Dict[str, str]:
                 'expense_count': len(expenses)
             }
             
-            # Generate AI insights
-            ai_result = ai_adapter.generate_insights(expenses_context)
+            # Generate AI insights with user isolation
+            ai_result = ai_adapter.generate_insights(expenses_context, user_id)
             
             if ai_result.get('success'):
                 insights = ai_result.get('insights', [])
