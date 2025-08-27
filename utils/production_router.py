@@ -407,19 +407,20 @@ class ProductionRouter:
                 
                 # For INSIGHT only: Check if we should append coaching as SECOND message
                 # This is now safe because normal reply is already composed
-                if intent == "INSIGHT" and text.lower().strip() == "insight":
-                    try:
-                        from handlers.coaching import maybe_continue
-                        coaching_reply = maybe_continue(user_hash, intent.lower(), {
-                            'original_text': text
-                        })
-                        if coaching_reply:
-                            # Send normal reply first, then coaching as separate message
-                            # For now, return coaching reply - TODO: implement dual message sending
-                            return normalize(coaching_reply['text']), coaching_reply['intent'], coaching_reply.get('category'), coaching_reply.get('amount')
-                    except Exception as e:
-                        logger.error(f"[COACH][ERROR] Optional coaching failed: {e}")
-                        # Continue with normal response - coaching failure doesn't break normal flow
+                # DISABLED: This was causing duplicate AI responses - insights already generated above
+                # if intent == "INSIGHT" and text.lower().strip() == "insight":
+                #     try:
+                #         from handlers.coaching import maybe_continue
+                #         coaching_reply = maybe_continue(user_hash, intent.lower(), {
+                #             'original_text': text
+                #         })
+                #         if coaching_reply:
+                #             # Send normal reply first, then coaching as separate message
+                #             # For now, return coaching reply - TODO: implement dual message sending
+                #             return normalize(coaching_reply['text']), coaching_reply['intent'], coaching_reply.get('category'), coaching_reply.get('amount')
+                #     except Exception as e:
+                #         logger.error(f"[COACH][ERROR] Optional coaching failed: {e}")
+                #         # Continue with normal response - coaching failure doesn't break normal flow
                 
                 return normal_reply, intent.lower(), None, None
             

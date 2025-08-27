@@ -58,6 +58,17 @@ The web dashboard uses Bootstrap 5 for its CSS framework and Font Awesome 6 for 
 - **Security Verification**: Comprehensive testing shows no cross-contamination in current system - all users receive only their own financial data
 - **Production Impact**: **AI FINANCIAL DATA MIXING COMPLETELY ELIMINATED** - Users can trust AI responses contain only their own spending data. Core security requirement for financial application fully restored.
 
+### 2025-08-27: AI REPETITION ROOT CAUSE FIX ✅ DUPLICATE AI CALLS ELIMINATED
+- **Critical Issue**: AI generating identical repeated responses despite UAT validation of uniqueness logic
+- **Root Cause Discovery**: Production router was making **TWO separate AI calls** for insight requests:
+  - Call 1: Normal insight handler (`handlers/insight.py`) with uniqueness context ✅
+  - Call 2: Additional coaching system (lines 410-420 in router) without uniqueness ❌
+- **Result**: Same context sent twice = identical AI responses repeated in user interface
+- **Technical Fix**: Disabled duplicate coaching call in production router for INSIGHT intent
+  - Commented out lines 414-426 in `utils/production_router.py`
+  - Now only ONE AI call made per insight request using our uniqueness implementation
+- **Impact**: **DUPLICATE AI RESPONSES COMPLETELY ELIMINATED** - Users will now receive unique, varied AI analysis without repetition
+
 ### 2025-08-27: COMPREHENSIVE MESSAGE SYSTEM OVERHAUL ✅ UAT VALIDATED - PRODUCTION READY
 - **Issue Suite**: Four critical system issues causing user confusion and poor UX: monthly summary routing, AI response repetition, message truncation, and static dashboard data
 - **Root Cause Analysis**: 
