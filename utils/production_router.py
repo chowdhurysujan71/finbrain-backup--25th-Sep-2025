@@ -171,10 +171,12 @@ class ProductionRouter:
         # Determine if input is PSID (numeric) or hash (hex string)
         if psid_or_hash.isdigit() and len(psid_or_hash) >= 10:
             # Original Facebook PSID - convert to hash for data processing
+            original_psid = psid_or_hash
             user_hash = psid_hash(psid_or_hash)
             psid_display = psid_or_hash[:8]
         else:
-            # Already a hash - use directly
+            # Already a hash - use directly (use hash as psid fallback)
+            original_psid = psid_or_hash  # Use hash as fallback PSID
             user_hash = psid_or_hash
             psid_display = psid_or_hash[:8]
         
@@ -356,7 +358,7 @@ class ProductionRouter:
             if money_detected:
                 # Try CC-based AI routing first (always enabled)
                 try:
-                    cc_result = self._route_cc_decision(text, psid, user_hash, rid)
+                    cc_result = self._route_cc_decision(text, original_psid, user_hash, rid)
                     if cc_result:
                         response, intent, category, amount = cc_result
                         self._emit_structured_telemetry(rid, user_hash, "LOG", "cc_routing_success", {
@@ -395,7 +397,7 @@ class ProductionRouter:
                 # Legacy fallback only if AI fails  
                 parsed_data = parse_amount_currency_category(text)
                 if parsed_data and parsed_data.get('amount'):
-                    response, intent, category, amount = self._handle_unified_log(text, psid, user_hash, rid, parsed_data)
+                    response, intent, category, amount = self._handle_unified_log(text, original_psid, user_hash, rid, parsed_data)
                     self._emit_structured_telemetry(rid, user_hash, "LOG", "legacy_fallback", {
                         'amount': float(parsed_data['amount']),
                         'currency': parsed_data['currency'],
@@ -475,11 +477,11 @@ class ProductionRouter:
             if intent in ["DIAGNOSTIC", "SUMMARY", "INSIGHT", "UNDO"]:
                 # Only allow SUMMARY if no money was detected
                 if intent == "SUMMARY" and contains_money(text):
-                    logger.info(f"[ROUTER] Blocking SUMMARY due to money detection: psid={psid[:8]}...")
+                    logger.info(f"[ROUTER] Blocking SUMMARY due to money detection: psid={user_hash[:8]}...")
                     # Force to LOG path instead
                     parsed_data = parse_amount_currency_category(text)
                     if parsed_data and parsed_data.get('amount'):
-                        response, intent, category, amount = self._handle_unified_log(text, psid, user_hash, rid, parsed_data)
+                        response, intent, category, amount = self._handle_unified_log(text, user_hash, user_hash, rid, parsed_data)
                         self._emit_structured_telemetry(rid, user_hash, "LOG", "summary_blocked_by_money", {
                             'amount': float(parsed_data['amount']),
                             'currency': parsed_data['currency'], 
@@ -487,7 +489,8 @@ class ProductionRouter:
                         })
                         return response, intent, category, amount
                 
-                logger.info(f"[ROUTER] Deterministic intent={intent} psid={psid}")
+                logger.info(f"[ROUTER] Deterministic intent={intent} psid={user_hash[:8]}...")
+                from utils.dispatcher import handle_message_dispatch
                 response_text, _ = handle_message_dispatch(user_hash, text)
                 
                 # CRITICAL: Always send normal reply first, then check for optional coaching
@@ -561,7 +564,7 @@ class ProductionRouter:
 
             if not rate_limit_result.ai_allowed:
                 # Step 5: RL-2 path (rate limited)
-                response, intent, category, amount = self._route_rl2(text, psid, user_hash, rid, rate_limit_result)
+                response, intent, category, amount = self._route_rl2(text, original_psid, user_hash, rid, rate_limit_result)
                 self.telemetry['rl2_messages'] += 1
                 self._record_processing_time(time.time() - start_time)
                 return response, intent, category, amount
@@ -569,7 +572,7 @@ class ProductionRouter:
             # Step 6: Check if AI should be used (for expense messages)
             if AI_ENABLED and self._is_expense_message(text):
                 # Step 7: AI branch with crash protection
-                response, intent, category, amount = self._route_ai(text, psid, user_hash, rid, rate_limit_result)
+                response, intent, category, amount = self._route_ai(text, original_psid, user_hash, rid, rate_limit_result)
                 self.telemetry['ai_messages'] += 1
                 self._record_processing_time(time.time() - start_time)
                 return response, intent, category, amount
@@ -632,7 +635,7 @@ class ProductionRouter:
             logger.info(f"[ROUTER] No FAQ/clarification match, routing to AI conversation: '{text[:50]}...'")
             try:
                 # Try AI-powered natural conversation (NOT expense parsing)
-                response, intent, category, amount = self._route_ai_conversation(text, psid, user_hash, rid, rate_limit_result)
+                response, intent, category, amount = self._route_ai_conversation(text, user_hash, user_hash, rid, rate_limit_result)
                 self.telemetry['ai_messages'] += 1
                 self._log_routing_decision(rid, user_hash, "ai_conversation", "natural_chat")
                 self._record_processing_time(time.time() - start_time)
@@ -1246,8 +1249,8 @@ class ProductionRouter:
                 conv_ai = ConversationalAI()
                 
                 # Generate context-aware response
-                response = conv_ai.generate_conversational_response(psid_hash, text)
-                mode = "CONVERSATION"
+                response, conversation_type = conv_ai.generate_conversational_response(psid_hash, text)
+                mode = f"CONVERSATION_{conversation_type}"
                 
             except Exception as conv_error:
                 logger.warning(f"Conversational AI failed: {conv_error}")
@@ -2131,3 +2134,4 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
 # Global instance
 production_router = ProductionRouter()
 
+# Force reload
