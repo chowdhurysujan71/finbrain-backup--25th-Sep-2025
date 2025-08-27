@@ -47,11 +47,16 @@ def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
             return "🤔 I want to make sure I help you the right way! Are you looking for tips to spend *less* and save more money, or do you actually want to increase your spending? Just want to point my advice in the right direction! 💡", intent
             
         else:
-            # Unknown intent - provide engaging help
-            return (
-                "🤔 I'm not sure what you're looking for, but I can help with expenses! "
-                "Try asking about your spending this week or logging a new expense."
-            ), "HELP"
+            # Engaging help responses with variety
+            import random
+            help_responses = [
+                "I'm here to help with your finances! What would you like to know?",
+                "Not quite sure what you're looking for, but I'm great with money stuff! Try asking about your spending or logging an expense",
+                "I can help with your financial tracking! Want to see your spending summary or add a new expense?",
+                "Ready to assist with your money! How about checking your spending patterns or logging a purchase?",
+                "I'm your financial companion! Try asking for insights, summaries, or expense logging"
+            ]
+            return random.choice(help_responses), "HELP"
             
     except Exception as e:
         logger.error(f"Dispatcher error: {e}")

@@ -85,25 +85,68 @@ def handle_insight(user_id: str) -> Dict[str, str]:
         except Exception as ai_error:
             logger.warning(f"AI insights error, falling back to rules: {ai_error}")
         
-        # Fallback to rule-based insights if AI fails
+        # Generate engaging, human-like insights when AI fails
         insights = []
+        import random
+        
         for exp in expenses:
             pct = (exp.total / total) * 100
             category_lower = exp.category.lower()
             
-            # Rule-based recommendations
+            # ENGAGING food insights with variety
             if category_lower in {"groceries", "food"} and pct > 30:
-                insights.append(f"Food spending is {pct:.0f}% - consider meal planning to reduce by 10%")
+                food_insights = [
+                    f"Food's taking {pct:.0f}% of your budget! 🍽️ Maybe try cooking one extra meal at home this week?",
+                    f"Noticed food is {pct:.0f}% of spending - what if you tried batch cooking this weekend?",
+                    f"Food lovers unite! {pct:.0f}% goes to meals. Try the 'cook twice, eat thrice' approach?",
+                    f"Food is {pct:.0f}% - totally normal! Consider prepping snacks to avoid impulse food buys",
+                    f"Your {pct:.0f}% food spending shows you eat well! Maybe try one homemade lunch per week?"
+                ]
+                insights.append(random.choice(food_insights))
+                
+            # ENGAGING transport insights
             elif category_lower in {"ride", "transport", "uber", "taxi"} and pct > 20:
-                insights.append(f"Transport is {pct:.0f}% - try batching trips or using off-peak times")
+                transport_insights = [
+                    f"Transport's {pct:.0f}% of your budget - consider combining errands into one trip?",
+                    f"Getting around costs {pct:.0f}%! What about trying public transport for short trips?",
+                    f"Travel expenses at {pct:.0f}% - maybe walk to nearby places when the weather's nice?",
+                    f"{pct:.0f}% on transport! Try ride-sharing apps during off-peak hours for better rates",
+                    f"Movement is {pct:.0f}% of spending - consider a monthly transit pass if you ride often?"
+                ]
+                insights.append(random.choice(transport_insights))
+                
+            # ENGAGING shopping insights  
             elif category_lower in {"shopping", "clothes"} and pct > 25:
-                insights.append(f"Shopping is {pct:.0f}% - set a monthly budget limit")
+                shopping_insights = [
+                    f"Shopping therapy taking {pct:.0f}%? Try the 24-hour rule before buying non-essentials",
+                    f"Retail at {pct:.0f}%! What about making a wishlist before shopping trips?",
+                    f"Shopping's {pct:.0f}% - maybe check your closet first before buying new clothes?",
+                    f"{pct:.0f}% on shopping! Consider the 'one in, one out' rule for new purchases",
+                    f"Spending {pct:.0f}% shopping - try browsing online first to compare prices?"
+                ]
+                insights.append(random.choice(shopping_insights))
+                
+            # ENGAGING entertainment insights
             elif category_lower in {"entertainment", "fun"} and pct > 15:
-                insights.append(f"Entertainment is {pct:.0f}% - look for free activities")
+                fun_insights = [
+                    f"Fun spending at {pct:.0f}%! Life's about balance - maybe mix in some free activities?",
+                    f"Entertainment is {pct:.0f}% - what about exploring free museums or parks this month?",
+                    f"Having fun costs {pct:.0f}%! Try hosting friends at home instead of going out sometimes?",
+                    f"{pct:.0f}% on entertainment - consider happy hour prices or matinee shows?",
+                    f"Fun budget is {pct:.0f}%! Look for free community events or outdoor activities?"
+                ]
+                insights.append(random.choice(fun_insights))
         
-        # Use fallback template
+        # DYNAMIC fallback insights with personality
         if not insights:
-            insights = ["Your spending looks balanced!", "Great job tracking your expenses"]
+            balanced_insights = [
+                f"Looking good! ৳{total:,.0f} spread nicely across {len(expenses)} categories. Your spending's got balance! 💚",
+                f"Nice work! ৳{total:,.0f} this month shows you're being mindful. Keep up the awareness! 🌟",
+                f"Solid spending pattern! ৳{total:,.0f} across categories - you're staying conscious of your money 📊",
+                f"Your ৳{total:,.0f} monthly spend looks thoughtful. Love seeing this level of tracking! ✨",
+                f"Great balance! ৳{total:,.0f} distributed well. You're building excellent money habits 💪"
+            ]
+            insights = [random.choice(balanced_insights)]
             
         msg = format_ai_insight_reply(insights, total)
         logger.info(f"Rule-based insights generated for {user_id[:8]}...")

@@ -642,8 +642,16 @@ class ProductionRouter:
                 return response, intent, category, amount
             except Exception as e:
                 logger.warning(f"AI conversation failed for unknown intent: {e}")
-                # Last resort fallback with engaging tone
-                response = "🤔 I'm not sure what you're looking for, but I can help with expenses! Try asking about your spending this week or logging a new expense."
+                # Engaging fallback responses with variety
+                import random
+                fallback_responses = [
+                    "I'm here to help with your finances! What would you like to explore - your spending patterns, log a new expense, or get some insights?",
+                    "Not quite sure what you're looking for, but I'm great with money stuff! Want to see your summary, track an expense, or get spending tips?",
+                    "Let me help you with your finances! Try asking about your weekly spending, logging an expense, or getting insights",
+                    "I'm your financial assistant! How about checking your spending this week, adding an expense, or getting some money insights?",
+                    "Ready to help with your money! Want to see your spending breakdown, log a purchase, or get personalized tips?"
+                ]
+                response = random.choice(fallback_responses)
                 self._log_routing_decision(rid, user_hash, "help_enhanced", "unknown_intent_final")
                 self._record_processing_time(time.time() - start_time)
                 return normalize(response), "help", None, None
