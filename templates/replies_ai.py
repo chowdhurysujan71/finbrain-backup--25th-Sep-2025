@@ -99,21 +99,31 @@ def format_ai_summary_reply(period: str, total_amount: float, total_entries: int
     """AI-style summary with coaching tone and natural variation"""
     import random
     
+    # Make timeframes more explicit and clear
+    timeframe_map = {
+        "last 7 days": "Last 7 Days",
+        "this month": "This Month", 
+        "month": "This Month",
+        "week": "Last 7 Days"
+    }
+    
+    display_period = timeframe_map.get(period.lower(), period.title())
+    
     if total_amount == 0:
         no_data_responses = [
-            f"📊 No expenses tracked this {period.lower()} yet. Ready to start logging?",
-            f"📊 Clean slate this {period.lower()}! Time to track some expenses?",
-            f"📊 Nothing logged this {period.lower()} - let's get started!",
-            f"📊 Fresh start this {period.lower()}! Ready to track your spending?"
+            f"📊 No expenses tracked in {display_period} yet. Ready to start logging?",
+            f"📊 Clean slate for {display_period}! Time to track some expenses?",
+            f"📊 Nothing logged in {display_period} - let's get started!",
+            f"📊 Fresh start for {display_period}! Ready to track your spending?"
         ]
         return random.choice(no_data_responses)
     
-    # Main summary with variations
+    # Main summary with clear timeframe variations
     summary_templates = [
-        f"📊 This {period.lower()}: ৳{total_amount:.0f} across {total_entries} expense",
-        f"📊 {period.title()} summary: ৳{total_amount:.0f} in {total_entries} transaction",
-        f"📊 Your {period.lower()}: ৳{total_amount:.0f} over {total_entries} expense",
-        f"📊 Quick {period.lower()} recap: ৳{total_amount:.0f} across {total_entries} entry"
+        f"📊 {display_period}: ৳{total_amount:.0f} across {total_entries} expense",
+        f"📊 {display_period} Summary: ৳{total_amount:.0f} in {total_entries} transaction",
+        f"📊 Your {display_period}: ৳{total_amount:.0f} over {total_entries} expense",
+        f"📊 {display_period} Recap: ৳{total_amount:.0f} across {total_entries} entry"
     ]
     
     summary = random.choice(summary_templates)
@@ -175,16 +185,24 @@ def format_ai_summary_reply(period: str, total_amount: float, total_entries: int
     return summary
 
 # AI Insight Templates
-def format_ai_insight_reply(insights: List[str], total_amount: Optional[float] = None) -> str:
+def format_ai_insight_reply(insights: List[str], total_amount: Optional[float] = None, timeframe: str = "this month") -> str:
     """AI-style insights with personalized coaching and user acknowledgment"""
+    
+    # Make timeframe explicit in insights
+    timeframe_display = {
+        "this month": "This Month",
+        "last 7 days": "Last 7 Days", 
+        "month": "This Month",
+        "week": "Last 7 Days"
+    }.get(timeframe.lower(), timeframe.title())
     
     # User-acknowledgment line prepended
     if not insights:
-        return ("You asked for an analysis. Here's a quick read on your spending...\n\n"
+        return (f"You asked for an analysis. Here's a quick read on your {timeframe_display.lower()} spending...\n\n"
                 "🎯 Your spending looks balanced! You're doing well with tracking expenses. "
                 "Keep it up and consider setting monthly goals for even better control.")
     
-    insight_text = "You asked for an analysis. Here's a quick read on your spending...\n\n💡 Here's what I noticed:\n" + "\n".join(f"• {insight}" for insight in insights)
+    insight_text = f"You asked for an analysis. Here's a quick read on your {timeframe_display.lower()} spending...\n\n💡 Here's what I noticed ({timeframe_display}):\n" + "\n".join(f"• {insight}" for insight in insights)
     
     # Add encouraging coaching with friendly closings
     if total_amount and total_amount > 3000:
