@@ -1,0 +1,148 @@
+I think your diagnosis is spot-on—and the framing is exactly right: this isn’t about “more AI,” it’s about a decision system with clear rules, state, and a learning loop. If you ship that, routing stops wobbling and the AI can focus on generation.
+
+Here’s the fastest, cleanest way to move from insight → implementation without adding partial files or overhauling your stack.
+
+Routing Policy Spec (v1)
+Intent hierarchy (hard precedence)
+
+ADMIN > ANALYSIS > FAQ > COACHING > SMALLTALK
+
+This removes ambiguity and ensures revenue-critical ANALYSIS wins ties.
+
+Decision table (rules-first + state-aware)
+Condition (evaluate top → bottom)	Route	Notes
+Text starts with /id, /debug, /help	ADMIN	System ops first.
+Contains time window keywords (today, this week/month, dates) OR “analysis”, “report”, “summary”	ANALYSIS	If ledger=0, still ANALYSIS but returns safe minimal.
+Text matches FAQ terms (“what can you do”, “privacy”, “pricing”, “features”)	FAQ	Deterministic.
+Contains coaching verbs (save, reduce, budget, cut) AND user has ≥10 txns in last 30 days	COACHING	Requires history to be useful.
+Else	SMALLTALK	Gentle nudge to log expense or ask analysis.
+
+State signals you must pass into the router (no LLM needed):
+
+ledger_count_30d
+
+has_time_window (regex)
+
+has_analysis_keywords (regex)
+
+has_coaching_verbs (regex)
+
+is_admin_command (prefix match)
+
+Uniqueness rule
+
+Compute data_version = hash/MAX(updated_at) of the user’s ledger within the requested window.
+
+If data_version unchanged and new insight bullets hash == last hash → respond:
+
+“No changes since your last check. Log new expenses to refresh your analysis.”
+
+This is truthful and eliminates perceived repetition without fake randomness.
+
+Safe minimal for zero data
+
+When totals==0 (any window):
+
+“📊 No expenses tracked this month yet. Ready to start logging?”
+
+Feedback & Learning Loop (v1)
+
+Log every routing decision as a structured event:
+
+route_event {
+  user_id_hash,
+  text,
+  routed_intent,          // ADMIN | ANALYSIS | FAQ | COACHING | SMALLTALK
+  reason_codes: [ ... ],  // e.g., ["HAS_TIME_WINDOW","LEDGER_GT_0"]
+  ledger_count_30d,
+  data_version,
+  ts
+}
+
+
+When you or support correct a route, log:
+
+route_correction {
+  user_id_hash,
+  text,
+  routed_intent,
+  corrected_intent,
+  ts
+}
+
+
+Weekly job:
+
+Build a confusion matrix from (routed_intent vs corrected_intent).
+
+Add/adjust a small number of rules or thresholds that fix the top 3 confusions.
+
+(Optional) Train a tiny logistic regression / KNN on your logs to catch edge cases, behind rules and with a confidence threshold. Low-confidence → default to ANALYSIS or ask a 1-line clarification.
+
+Contract Tests (keep in CI)
+
+Maintain 50–100 canonical phrases per intent. Examples to start:
+
+ANALYSIS: “analysis please”, “what did I spend this week?”, “monthly spending summary”, “expense report today”
+
+FAQ: “what can you do”, “is my data private”, “pricing”
+
+COACHING: “how can I save on food”, “help me reduce transport costs”
+
+ADMIN: “/id”, “/help”
+
+SMALLTALK: “hi”, “hello”, “thanks”
+
+CI must pass all phrases to the expected route. This prevents prompt drift or refactors from silently breaking production.
+
+Monitoring (what proves it’s working)
+
+routing.analysis_rate (should increase vs baseline on analysis-intended queries)
+
+routing.misroute_corrections_total (should trend down week over week)
+
+insights.tenant_mismatch_total = 0 (continues as guardrail)
+
+insights.adapter.schema_violation_total ≤ threshold
+
+insights.repeat_suppressed_total (number of “no changes” suppressions; should correlate with unchanged data_version, not spike randomly)
+
+Rollout fit for “one-button deploy” (Messenger)
+
+Since you can’t canary or shadow:
+
+Pre-deploy
+
+Wire the router to use the policy above (deterministic rules + state).
+
+Keep your existing safeguards (per-request isolation, JSON contract, cache isolation, safe minimal).
+
+Ensure the uniqueness rule is on the presenter path (no extra files needed).
+
+Deploy
+
+One-shot deploy with your flags:
+
+INSIGHTS_V2_ENABLED=true
+
+SAFE_MINIMAL_ON_NODATA=true
+
+BANNED_PHRASES_ENFORCE=true
+
+CACHE_NAMESPACE=prod:{build_id}
+
+Immediate validation (5 min)
+
+Phrase set smoke test (send 5–10 canonical messages) and confirm routes match the table.
+
+Check metrics and logs for routing events and “no changes” suppressions.
+
+Why this will fix the live issue
+
+You stop asking a generative model to do classification + business policy.
+
+You inject the missing state (ledger size & window) that resolves ambiguity.
+
+You acknowledge unchanged data explicitly instead of trying to be “creative,” which felt repetitive.
+
+You create a learning loop so every correction improves the router.
