@@ -324,11 +324,39 @@ class ProductionRouter:
                     self._record_processing_time(time.time() - start_time)
                     return response, intent, category, amount
             
-            # Step 3: Use intent router for command detection (only if no money detected)
-            from utils.intent_router import detect_intent, is_followup_after_summary_or_log
-            from utils.dispatcher import handle_message_dispatch
+            # Step 3: PoR v1.1 Deterministic Routing Layer
+            from utils.routing_policy import deterministic_router
             
-            intent = detect_intent(text)
+            # Extract user signals for deterministic routing
+            user_signals = deterministic_router.extract_signals(text, user_hash)
+            
+            # Check if we should use deterministic routing based on scope
+            if deterministic_router.should_use_deterministic_routing(user_signals):
+                # Use deterministic routing
+                routing_result = deterministic_router.route_intent(text, user_signals)
+                deterministic_router.log_routing_decision(user_hash, text, routing_result, rid)
+                
+                # Map deterministic intent to legacy intent for compatibility
+                intent_mapping = {
+                    "ADMIN": "DIAGNOSTIC",
+                    "PCA_AUDIT": "SUMMARY", 
+                    "ANALYSIS": "INSIGHT",
+                    "FAQ": "FAQ",
+                    "COACHING": "COACHING",
+                    "SMALLTALK": "FAQ"
+                }
+                intent = intent_mapping.get(routing_result.intent.value, "FAQ")
+                
+                logger.info(f"[ROUTER] Deterministic routing: {routing_result.intent.value} → {intent} "
+                           f"(confidence={routing_result.confidence:.2f}, reasons={routing_result.reason_codes})")
+            else:
+                # Fallback to legacy intent detection
+                from utils.intent_router import detect_intent
+                intent = detect_intent(text)
+                logger.info(f"[ROUTER] Legacy AI routing: {intent} (scope={deterministic_router.flags.scope.value})")
+            
+            # Continue with existing intent upgrade logic
+            from utils.intent_router import is_followup_after_summary_or_log
             
             # Step 3.1: Handle category-specific breakdown queries
             if intent == "CATEGORY_BREAKDOWN":
