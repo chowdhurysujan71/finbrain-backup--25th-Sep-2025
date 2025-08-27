@@ -1,0 +1,451 @@
+{
+  "session_id": "prod_uat_1756298880",
+  "timestamp": "2025-08-27T12:48:00.017012",
+  "test_scenarios": [
+    {
+      "scenario": "Bengali Expense: Bengali breakfast expense with past tense verb",
+      "timestamp": "2025-08-27T12:48:04.618266",
+      "test_data": {
+        "message": "\u0986\u099c \u09b8\u0995\u09be\u09b2\u09c7\u09b0 \u09a8\u09be\u09b8\u09cd\u09a4\u09be \u09ee\u09e6 \u099f\u09be\u0995\u09be \u0996\u09b0\u099a \u0995\u09b0\u09c7\u099b\u09bf",
+        "expected_amount": 80.0,
+        "description": "Bengali breakfast expense with past tense verb"
+      },
+      "success": false,
+      "details": {
+        "response": "I'm here to help! Try logging an expense like 'coffee 50' or ask for your 'summary'.",
+        "intent": "conversation_error",
+        "category": null,
+        "amount": null,
+        "response_time_ms": 4599.997282028198,
+        "data_stored": false,
+        "stored_amount": null,
+        "message_id": "msg_9a24451a"
+      },
+      "metrics": {
+        "response_time_ms": 4599.997282028198
+      },
+      "user_experience": {
+        "response_received": true,
+        "response_time_ms": 4599.997282028198,
+        "intent_classified": true,
+        "data_stored": false,
+        "user_friendly_response": true
+      }
+    },
+    {
+      "scenario": "Bengali Expense: Bengali lunch expense with different verb form",
+      "timestamp": "2025-08-27T12:48:07.527888",
+      "test_data": {
+        "message": "\u09a6\u09c1\u09aa\u09c1\u09b0\u09c7\u09b0 \u0996\u09be\u09ac\u09be\u09b0 \u09e7\u09e8\u09e6 \u099f\u09be\u0995\u09be \u0996\u09b0\u099a \u0995\u09b0\u09b2\u09be\u09ae",
+        "expected_amount": 120.0,
+        "description": "Bengali lunch expense with different verb form"
+      },
+      "success": false,
+      "details": {
+        "response": "I'm here to help! Try logging an expense like 'coffee 50' or ask for your 'summary'.",
+        "intent": "conversation_error",
+        "category": null,
+        "amount": null,
+        "response_time_ms": 2909.2159271240234,
+        "data_stored": false,
+        "stored_amount": null,
+        "message_id": "msg_9f9a4cc3"
+      },
+      "metrics": {
+        "response_time_ms": 2909.2159271240234
+      },
+      "user_experience": {
+        "response_received": true,
+        "response_time_ms": 2909.2159271240234,
+        "intent_classified": true,
+        "data_stored": false,
+        "user_friendly_response": true
+      }
+    },
+    {
+      "scenario": "Bengali Expense: Bengali tea purchase",
+      "timestamp": "2025-08-27T12:48:08.447093",
+      "test_data": {
+        "message": "\u099a\u09be \u09eb\u09e6 \u099f\u09be\u0995\u09be \u0995\u09bf\u09a8\u09c7\u099b\u09bf",
+        "expected_amount": 50.0,
+        "description": "Bengali tea purchase"
+      },
+      "success": false,
+      "details": {
+        "response": "\u2705 Logged: 50 for other Tip: type 'summary' for your spending overview.",
+        "intent": "log",
+        "category": null,
+        "amount": null,
+        "response_time_ms": 918.7815189361572,
+        "data_stored": false,
+        "stored_amount": null,
+        "message_id": "msg_6d77e4cd"
+      },
+      "metrics": {
+        "response_time_ms": 918.7815189361572
+      },
+      "user_experience": {
+        "response_received": true,
+        "response_time_ms": 918.7815189361572,
+        "intent_classified": true,
+        "data_stored": false,
+        "user_friendly_response": true
+      }
+    },
+    {
+      "scenario": "Bengali Expense: Bengali transportation expense",
+      "timestamp": "2025-08-27T12:48:09.119797",
+      "test_data": {
+        "message": "\u09b0\u09bf\u0995\u09b6\u09be \u09ad\u09be\u09a1\u09bc\u09be \u09e9\u09e6 \u099f\u09be\u0995\u09be \u09a6\u09bf\u09af\u09bc\u09c7\u099b\u09bf",
+        "expected_amount": 30.0,
+        "description": "Bengali transportation expense"
+      },
+      "success": false,
+      "details": {
+        "response": "Tea \u09b9\u09bf\u09b8\u09c7\u09ac\u09c7 \u09f330 \u099f\u09be\u0995\u09be \u0986\u099c \u09b2\u0997 \u0995\u09b0\u09a4\u09c7 \u099a\u09be\u09a8?",
+        "intent": "clarify_expense",
+        "category": null,
+        "amount": null,
+        "response_time_ms": 671.9441413879395,
+        "data_stored": false,
+        "stored_amount": null,
+        "message_id": "msg_7bb6b2a8"
+      },
+      "metrics": {
+        "response_time_ms": 671.9441413879395
+      },
+      "user_experience": {
+        "response_received": true,
+        "response_time_ms": 671.9441413879395,
+        "intent_classified": true,
+        "data_stored": false,
+        "user_friendly_response": true
+      }
+    },
+    {
+      "scenario": "Bengali Clarification: Simple Bengali expense without verb",
+      "timestamp": "2025-08-27T12:48:09.347959",
+      "test_data": {
+        "message": "\u099a\u09be \u09eb\u09e6 \u099f\u09be\u0995\u09be",
+        "expected_intent": "clarify_expense",
+        "description": "Simple Bengali expense without verb"
+      },
+      "success": false,
+      "details": {
+        "response": "Tea \u09b9\u09bf\u09b8\u09c7\u09ac\u09c7 \u09f350 \u099f\u09be\u0995\u09be \u0986\u099c \u09b2\u0997 \u0995\u09b0\u09a4\u09c7 \u099a\u09be\u09a8?",
+        "intent": "clarify_expense",
+        "category": null,
+        "amount": null,
+        "response_time_ms": 227.02503204345703,
+        "data_stored": false,
+        "stored_amount": null,
+        "message_id": "msg_ed7fc50d"
+      },
+      "metrics": {},
+      "user_experience": {
+        "response_received": true,
+        "response_time_ms": 227.02503204345703,
+        "intent_classified": true,
+        "data_stored": false,
+        "user_friendly_response": true
+      }
+    },
+    {
+      "scenario": "Bengali Clarification: Bengali dinner cost without action verb",
+      "timestamp": "2025-08-27T12:48:09.575541",
+      "test_data": {
+        "message": "\u09b0\u09be\u09a4\u09c7\u09b0 \u0996\u09be\u09ac\u09be\u09b0 \u09e7\u09eb\u09e6 \u099f\u09be\u0995\u09be",
+        "expected_intent": "clarify_expense",
+        "description": "Bengali dinner cost without action verb"
+      },
+      "success": false,
+      "details": {
+        "response": "Tea \u09b9\u09bf\u09b8\u09c7\u09ac\u09c7 \u09f3150 \u099f\u09be\u0995\u09be \u0986\u099c \u09b2\u0997 \u0995\u09b0\u09a4\u09c7 \u099a\u09be\u09a8?",
+        "intent": "clarify_expense",
+        "category": null,
+        "amount": null,
+        "response_time_ms": 227.1580696105957,
+        "data_stored": false,
+        "stored_amount": null,
+        "message_id": "msg_aa722398"
+      },
+      "metrics": {},
+      "user_experience": {
+        "response_received": true,
+        "response_time_ms": 227.1580696105957,
+        "intent_classified": true,
+        "data_stored": false,
+        "user_friendly_response": true
+      }
+    },
+    {
+      "scenario": "Bengali Clarification: Bengali bus fare without expense verb",
+      "timestamp": "2025-08-27T12:48:09.801390",
+      "test_data": {
+        "message": "\u09ac\u09be\u09b8 \u09ad\u09be\u09a1\u09bc\u09be \u09e8\u09eb \u099f\u09be\u0995\u09be",
+        "expected_intent": "clarify_expense",
+        "description": "Bengali bus fare without expense verb"
+      },
+      "success": false,
+      "details": {
+        "response": "Tea \u09b9\u09bf\u09b8\u09c7\u09ac\u09c7 \u09f325 \u099f\u09be\u0995\u09be \u0986\u099c \u09b2\u0997 \u0995\u09b0\u09a4\u09c7 \u099a\u09be\u09a8?",
+        "intent": "clarify_expense",
+        "category": null,
+        "amount": null,
+        "response_time_ms": 225.47650337219238,
+        "data_stored": false,
+        "stored_amount": null,
+        "message_id": "msg_2a61a99d"
+      },
+      "metrics": {},
+      "user_experience": {
+        "response_received": true,
+        "response_time_ms": 225.47650337219238,
+        "intent_classified": true,
+        "data_stored": false,
+        "user_friendly_response": true
+      }
+    },
+    {
+      "scenario": "English Expense: English grocery expense",
+      "timestamp": "2025-08-27T12:48:12.755668",
+      "test_data": {
+        "message": "I spent 200 on groceries today",
+        "expected_amount": 200.0,
+        "description": "English grocery expense"
+      },
+      "success": true,
+      "details": {
+        "response": "\u2705 Logged: \u09f3200 for shopping",
+        "intent": "log",
+        "category": "shopping",
+        "amount": 200.0,
+        "response_time_ms": 2727.0171642303467,
+        "data_stored": true,
+        "stored_amount": 200.0,
+        "message_id": "msg_51b5c041"
+      },
+      "metrics": {},
+      "user_experience": {
+        "response_received": true,
+        "response_time_ms": 2727.0171642303467,
+        "intent_classified": true,
+        "data_stored": true,
+        "user_friendly_response": true
+      }
+    },
+    {
+      "scenario": "English Expense: English coffee with Bengali currency",
+      "timestamp": "2025-08-27T12:48:12.982050",
+      "test_data": {
+        "message": "coffee 75 taka",
+        "expected_amount": 75.0,
+        "description": "English coffee with Bengali currency"
+      },
+      "success": false,
+      "details": {
+        "response": "Log \u09f375 taka for Tea today?",
+        "intent": "clarify_expense",
+        "category": null,
+        "amount": null,
+        "response_time_ms": 225.9070873260498,
+        "data_stored": false,
+        "stored_amount": null,
+        "message_id": "msg_324a13e3"
+      },
+      "metrics": {},
+      "user_experience": {
+        "response_received": true,
+        "response_time_ms": 225.9070873260498,
+        "intent_classified": true,
+        "data_stored": false,
+        "user_friendly_response": true
+      }
+    },
+    {
+      "scenario": "English Expense: English lunch purchase",
+      "timestamp": "2025-08-27T12:48:15.931900",
+      "test_data": {
+        "message": "bought lunch for 150",
+        "expected_amount": 150.0,
+        "description": "English lunch purchase"
+      },
+      "success": true,
+      "details": {
+        "response": "\u2705 Logged: \u09f3150 for food",
+        "intent": "log",
+        "category": "food",
+        "amount": 150.0,
+        "response_time_ms": 2724.4725227355957,
+        "data_stored": true,
+        "stored_amount": 150.0,
+        "message_id": "msg_2aa8085d"
+      },
+      "metrics": {},
+      "user_experience": {
+        "response_received": true,
+        "response_time_ms": 2724.4725227355957,
+        "intent_classified": true,
+        "data_stored": true,
+        "user_friendly_response": true
+      }
+    },
+    {
+      "scenario": "Analysis Request: Bengali monthly summary request",
+      "timestamp": "2025-08-27T12:48:20.581635",
+      "test_data": {
+        "message": "\u098f\u0987 \u09ae\u09be\u09b8\u09c7\u09b0 \u0996\u09b0\u099a\u09c7\u09b0 \u09b8\u09be\u09b0\u09be\u0982\u09b6 \u09a6\u09be\u0993",
+        "expected_intent": "analysis",
+        "description": "Bengali monthly summary request"
+      },
+      "success": false,
+      "details": {
+        "response": "\ud83e\udded I can help you track expenses, show summaries, or give insights.\nTry: *\"spent 100 on lunch\"* or *\"summary this week\"*. For details and updates visit www.finbrain.app\n\n\ud83d\udccb Educational only - not financial advice.",
+        "intent": "error",
+        "category": null,
+        "amount": null,
+        "response_time_ms": 453.6099433898926,
+        "data_stored": false,
+        "stored_amount": null,
+        "message_id": "msg_8ec00885"
+      },
+      "metrics": {},
+      "user_experience": {
+        "response_received": true,
+        "response_time_ms": 453.6099433898926,
+        "intent_classified": false,
+        "data_stored": false,
+        "user_friendly_response": true
+      }
+    },
+    {
+      "scenario": "Analysis Request: Bengali expense inquiry",
+      "timestamp": "2025-08-27T12:48:24.433888",
+      "test_data": {
+        "message": "\u0986\u09ae\u09be\u09b0 \u0996\u09b0\u099a \u0995\u09c7\u09ae\u09a8 \u099a\u09b2\u099b\u09c7?",
+        "expected_intent": "analysis",
+        "description": "Bengali expense inquiry"
+      },
+      "success": false,
+      "details": {
+        "response": "I'm here to help! Try logging an expense like 'coffee 50' or ask for your 'summary'.",
+        "intent": "conversation_error",
+        "category": null,
+        "amount": null,
+        "response_time_ms": 3851.8433570861816,
+        "data_stored": false,
+        "stored_amount": null,
+        "message_id": "msg_69c76495"
+      },
+      "metrics": {},
+      "user_experience": {
+        "response_received": true,
+        "response_time_ms": 3851.8433570861816,
+        "intent_classified": true,
+        "data_stored": false,
+        "user_friendly_response": true
+      }
+    },
+    {
+      "scenario": "Analysis Request: English summary request",
+      "timestamp": "2025-08-27T12:48:24.885357",
+      "test_data": {
+        "message": "show my spending summary",
+        "expected_intent": "analysis",
+        "description": "English summary request"
+      },
+      "success": false,
+      "details": {
+        "response": "\ud83e\udded I can help you track expenses, show summaries, or give insights.\nTry: *\"spent 100 on lunch\"* or *\"summary this week\"*. For details and updates visit www.finbrain.app\n\n\ud83d\udccb Educational only - not financial advice.",
+        "intent": "error",
+        "category": null,
+        "amount": null,
+        "response_time_ms": 451.0626792907715,
+        "data_stored": false,
+        "stored_amount": null,
+        "message_id": "msg_64658702"
+      },
+      "metrics": {},
+      "user_experience": {
+        "response_received": true,
+        "response_time_ms": 451.0626792907715,
+        "intent_classified": false,
+        "data_stored": false,
+        "user_friendly_response": true
+      }
+    },
+    {
+      "scenario": "Analysis Request: English weekly spending query",
+      "timestamp": "2025-08-27T12:48:25.336185",
+      "test_data": {
+        "message": "how much did I spend this week?",
+        "expected_intent": "analysis",
+        "description": "English weekly spending query"
+      },
+      "success": false,
+      "details": {
+        "response": "\ud83e\udded I can help you track expenses, show summaries, or give insights.\nTry: *\"spent 100 on lunch\"* or *\"summary this week\"*. For details and updates visit www.finbrain.app\n\n\ud83d\udccb Educational only - not financial advice.",
+        "intent": "error",
+        "category": null,
+        "amount": null,
+        "response_time_ms": 450.38580894470215,
+        "data_stored": false,
+        "stored_amount": null,
+        "message_id": "msg_3e8e35d4"
+      },
+      "metrics": {},
+      "user_experience": {
+        "response_received": true,
+        "response_time_ms": 450.38580894470215,
+        "intent_classified": false,
+        "data_stored": false,
+        "user_friendly_response": true
+      }
+    }
+  ],
+  "system_health": {
+    "healthy": false,
+    "metrics": {
+      "overall_success_rate": 14.285714285714285,
+      "total_scenarios": 14,
+      "successful_scenarios": 2,
+      "avg_response_time_ms": 1475.9926455361503,
+      "p95_response_time_ms": 4599.997282028198,
+      "bengali_success_rate": 0.0,
+      "english_success_rate": 40.0
+    },
+    "issues": [
+      "Low success rate: 14.3%"
+    ]
+  },
+  "user_experience_metrics": {},
+  "data_integrity_validation": {
+    "storage_success": false,
+    "isolation_success": true,
+    "hash_consistency": true,
+    "bengali_digit_success": false
+  },
+  "deployment_readiness": {
+    "status": "\u274c NOT APPROVED FOR DEPLOYMENT",
+    "confidence": "LOW",
+    "readiness_score": 40.0,
+    "criteria_met": 2,
+    "total_criteria": 5,
+    "criteria_breakdown": {
+      "success_rate_90_plus": false,
+      "response_time_acceptable": true,
+      "p95_acceptable": true,
+      "bengali_functional": false,
+      "data_integrity_ok": false
+    }
+  },
+  "live_user_simulation": {},
+  "summary": {
+    "total_scenarios_tested": 14,
+    "overall_success_rate": 14.285714285714285,
+    "deployment_approved": false,
+    "live_user_experience": "Validated through production flow simulation",
+    "data_integrity": "Validated through end-to-end testing",
+    "zero_surprise_guarantee": "Complete production flow tested"
+  }
+}

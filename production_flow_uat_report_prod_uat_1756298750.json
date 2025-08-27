@@ -1,0 +1,18 @@
+{
+  "session_id": "prod_uat_1756298750",
+  "timestamp": "2025-08-27T12:45:50.289997",
+  "test_scenarios": [
+    {
+      "scenario": "Bengali Expense: Bengali breakfast expense with past tense verb",
+      "timestamp": "2025-08-27T12:45:54.393330",
+      "test_data": {
+        "message": "\u0986\u099c \u09b8\u0995\u09be\u09b2\u09c7\u09b0 \u09a8\u09be\u09b8\u09cd\u09a4\u09be \u09ee\u09e6 \u099f\u09be\u0995\u09be \u0996\u09b0\u099a \u0995\u09b0\u09c7\u099b\u09bf",
+        "expected_amount": 80.0,
+        "description": "Bengali breakfast expense with past tense verb"
+      },
+      "success": false,
+      "details": {
+        "response": "\u2705 Logged BDT80 for general",
+        "intent": "expense_log",
+        "category": "general",
+        "amount": 

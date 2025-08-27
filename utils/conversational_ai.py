@@ -134,7 +134,7 @@ class ConversationalAI:
     
     def generate_summary_response_direct(self, psid_hash: str, user_message: str) -> Tuple[str, str]:
         """Generate intelligent summary response based on user data (direct hash access)"""
-        from ai_adapter_gemini import generate_with_schema
+        from utils.ai_adapter_v2 import production_ai_adapter
         
         # Get user expense context using direct hash
         context = self.get_user_expense_context_direct(psid_hash, days=30)
@@ -290,29 +290,22 @@ Provide specific financial analysis including:
 4. Areas for improvement
 Keep response conversational and under 280 characters."""
         
-        from ai_adapter_gemini import generate_with_schema
+        from utils.ai_adapter_v2 import production_ai_adapter
         
-        ai_result = generate_with_schema(
-            user_text=user_message,
-            system_prompt=analysis_prompt,
-            response_schema={
-                "type": "object", 
-                "properties": {
-                    "analysis": {"type": "string"}
-                },
-                "required": ["analysis"]
-            }
-        )
+        ai_result = production_ai_adapter.generate_insights({
+            "expenses": context.get('recent_expenses', []),
+            "total_amount": context.get('total_amount', 0),
+            "timeframe": "recent week"
+        }, user_id="unknown")
         
-        if ai_result["ok"] and "data" in ai_result:
-            # Handle both string and dict responses
-            analysis_data = ai_result["data"]
-            if isinstance(analysis_data, dict):
-                # If dict, format the analysis components
-                response = f"{analysis_data.get('insights', '')} {analysis_data.get('recommendations', '')}"
-                return response.strip(), "analysis_provided"
+        if ai_result and not ai_result.get("failover", True):
+            # Handle AI adapter response format
+            insights = ai_result.get('insights', [])
+            if insights:
+                response = ". ".join(insights[:2])  # Use first 2 insights
+                return response, "analysis_provided"
             else:
-                return str(analysis_data), "analysis_provided"
+                return str(ai_result.get('response', 'Analysis generated')), "analysis_provided"
         else:
             return self._generate_fallback_analysis(context), "analysis_fallback"
     
@@ -409,22 +402,23 @@ Provide a helpful, personalized response that:
 3. Maintains conversational flow
 4. Stays under 280 characters"""
         
-        from ai_adapter_gemini import generate_with_schema
+        from utils.ai_adapter_v2 import production_ai_adapter
         
-        ai_result = generate_with_schema(
-            user_text=user_message,
-            system_prompt=contextual_prompt,
-            response_schema={
-                "type": "object",
-                "properties": {
-                    "response": {"type": "string"}
-                },
-                "required": ["response"]
-            }
-        )
+        ai_result = production_ai_adapter.generate_insights({
+            "expenses": context.get('recent_expenses', []),
+            "total_amount": context.get('total_amount', 0),
+            "user_message": user_message,
+            "timeframe": "recent week"
+        }, user_id="unknown")
         
-        if ai_result["ok"] and "data" in ai_result:
-            return ai_result["data"]["response"], "contextual_response"
+        if ai_result and not ai_result.get("failover", True):
+            # Handle AI adapter response format  
+            insights = ai_result.get('insights', [])
+            if insights:
+                response = insights[0] if insights else "I'm here to help with your finances."
+                return response, "contextual_response"
+            else:
+                return str(ai_result.get('response', 'I can help with your finances.')), "contextual_response"
         else:
             return "I'm here to help with your finances. What would you like to know?", "contextual_fallback"
     

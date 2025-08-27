@@ -1,0 +1,265 @@
+You’ve got three concrete breakpoints. Here’s exactly **how** to fix each, why they broke, and how to prove it with UAT so there are **zero surprises**.
+
+---
+
+# 0) Quick map: your red symptoms → root causes
+
+* **AI Integration**: `ai_adapter_gemini` missing import ⇒ adapter never called ⇒ generic “help” fallback.
+* **Routing**: `EXPENSE_LOG` is detected but mapped to **FAQ** in the router table (copy-paste/typo) ⇒ expense messages land in FAQ/help text.
+* **Bengali processing**: language detection gate rejects BN path ⇒ only EN rules run ⇒ BN users get English help text.
+
+We’ll fix imports, routing map, and **remove language detection gating** (run EN+BN rules on the same normalized text). Then we lock it with tests + preflight probes.
+
+---
+
+# 1) AI Integration: resilient import + guaranteed fallback
+
+**Problem**: missing/optional import kills AI path.
+
+**Fix (drop-in):** in `utils/ai_adapter_v2.py` add a shim so the adapter always exists.
+
+```python
+# utils/ai_adapter_v2.py
+try:
+    from ai.ai_adapter_gemini import generate_insights_for_user as _gemini_generate
+    GEMINI_AVAILABLE = True
+except Exception:
+    GEMINI_AVAILABLE = False
+    _gemini_generate = None
+
+from ai.vendor_pool import generate_with_resilience  # your resilience pack
+from utils.stale_cache import StaleCache
+stale_cache = StaleCache(kv=redis_kv)  # your KV/redis wrapper
+
+def generate_insights_for_user(user_id: str, window: str, payload: dict) -> dict:
+    dv = payload.get("meta", {}).get("data_version", "none")
+
+    # Primary: vendor_pool + circuit breaker + strict JSON
+    if GEMINI_AVAILABLE and _gemini_generate:
+        try:
+            out = _gemini_generate(user_id=user_id, window=window, payload=payload)
+            if out and out.get("bullet_points"):
+                stale_cache.put_last_good(user_id, dv, out)
+                return out
+        except Exception:
+            pass  # fall through to resilience
+
+    # Resilience path (backup → stale → local)
+    out = generate_with_resilience(payload, user_id=user_id, data_version=dv, stale_cache=stale_cache)
+    if not out.get("bullet_points"):
+        out = {"bullet_points": ["Not enough data to analyze yet."], "flags": {"insufficient_data": True}}
+    return out
+```
+
+---
+
+# 2) Routing: fix precedence + mapping typo
+
+**Problem**: `EXPENSE_LOG` being routed to **FAQ** handler (typo/mis-map).
+
+**Fix (exact):** in `utils/production_router.py` (or wherever you map routes → handlers)
+
+```python
+# utils/production_router.py
+from handlers.expense_log import handle_expense_log
+from handlers.analysis import handle_analysis
+from handlers.faq import handle_faq
+from handlers.coaching import handle_coaching
+from handlers.admin import handle_admin
+from handlers.pca_audit import handle_pca_audit
+from handlers.smalltalk import handle_smalltalk
+from handlers.clarify_expense import handle_clarify_expense
+
+ROUTE_ORDER = ["ADMIN","PCA_AUDIT","EXPENSE_LOG","ANALYSIS","FAQ","COACHING","SMALLTALK","CLARIFY_EXPENSE"]
+
+ROUTE_TO_HANDLER = {
+    "ADMIN": handle_admin,
+    "PCA_AUDIT": handle_pca_audit,
+    "EXPENSE_LOG": handle_expense_log,         # ✅ FIX: was wrongly mapped
+    "ANALYSIS": handle_analysis,
+    "FAQ": handle_faq,
+    "COACHING": handle_coaching,
+    "SMALLTALK": handle_smalltalk,
+    "CLARIFY_EXPENSE": handle_clarify_expense, # for money w/o verb
+}
+```
+
+Decision logic (ensure **EXPENSE\_LOG** before Analysis/Smalltalk):
+
+```python
+def decide_route(signals, session):
+    if signals.is_admin: return "ADMIN"
+    if session.pca_audit_mode: return "PCA_AUDIT"
+    if signals.has_money and signals.has_first_person_spent_verb:
+        return "EXPENSE_LOG"
+    if signals.has_money and not signals.explicit_analysis_request:
+        return "CLARIFY_EXPENSE"
+    if (signals.explicit_analysis_request
+        or signals.has_time_window
+        or signals.has_analysis_terms):
+        return "ANALYSIS"
+    if signals.has_faq_terms: return "FAQ"
+    if signals.has_coaching_verbs and session.eligible_for_coaching: return "COACHING"
+    return "SMALLTALK"
+```
+
+---
+
+# 3) Bengali processing: normalize + digits + **no lang gate**
+
+**Problem**: You’re gating BN rules on language detection → BN path never runs.
+
+**Fix**: Always run **both** EN and BN regexes on a **normalized** string (NFKC + zero-width removal + casefold + BN→EN digits). No language detection needed.
+
+```python
+# nlp/signals_extractor.py (key pieces)
+import re, unicodedata
+from utils.bn_digits import to_en_digits
+
+ZW = re.compile(r"[\u200B-\u200D\uFEFF]")
+def _norm(s:str)->str:
+    s = unicodedata.normalize("NFKC", s)
+    s = ZW.sub("", s)
+    s = s.casefold().strip()
+    s = to_en_digits(s)  # ৫০ → 50
+    return re.sub(r"\s+", " ", s)
+
+RE_MONEY = re.compile(r"(?:৳|tk|bdt|taka|টাকা)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)|([0-9][0-9,]*(?:\.[0-9]{1,2})?)\s*(?:৳|tk|bdt|taka|টাকা)")
+RE_SPENT_VERB_BN = re.compile(r"(খরচ করেছি|খরচ করলাম|দিলাম|পেমেন্ট করেছি|কিনেছি|নিয়েছি)\b")
+RE_SPENT_VERB_EN = re.compile(r"\b(spent|paid|bought|purchased)\b")
+RE_ANALYSIS_EXPL_BN = re.compile(r"(বিশ্লেষণ( দাও| দিন)?|খরচের (সারাংশ|রিপোর্ট))")
+RE_ANALYSIS_EXPL_EN = re.compile(r"\b(analysis please|spending (summary|report)|what did i spend|expense report)\b")
+RE_ANALYSIS_GENERIC = re.compile(r"\b(analysis|summary|report)\b|বিশ্লেষণ|সারাংশ|রিপোর্ট")
+RE_TIME = re.compile(r"\b(today|yesterday|this (week|month)|last (week|month))\b|আজ|গতকাল|এই (সপ্তাহ|মাস)|গত (সপ্তাহ|মাস)|\b\d{4}-\d{2}-\d{2}\b")
+RE_FAQ = re.compile(r"what can you do|how (do|does) it work|features?|capabilities?|privacy|is my data (safe|private)|security|pricing|cost|subscription|plans?|তুমি কী করতে পারো|কিভাবে কাজ করে|ফিচার|ক্ষমতা|প্রাইভেসি|ডেটা নিরাপদ|নিরাপত্তা|দাম|মূল্য|সাবস্ক্রিপশন|প্ল্যান")
+
+def extract_signals(raw_text:str, tz:str="Asia/Dhaka")->dict:
+    t = _norm(raw_text)
+    has_money = bool(RE_MONEY.search(t))
+    spent_verb = bool(RE_SPENT_VERB_BN.search(t) or RE_SPENT_VERB_EN.search(t))
+    explicit_analysis = bool(RE_ANALYSIS_EXPL_BN.search(t) or RE_ANALYSIS_EXPL_EN.search(t))
+    return {
+        "normalized_text": t,
+        "has_money": has_money,
+        "has_first_person_spent_verb": spent_verb,
+        "explicit_analysis_request": explicit_analysis,
+        "has_analysis_terms": bool(RE_ANALYSIS_GENERIC.search(t)),
+        "has_time_window": bool(RE_TIME.search(t)),
+        "has_faq_terms": bool(RE_FAQ.search(t)),
+        "is_admin": t.startswith("/id") or t.startswith("/debug") or t.startswith("/help"),
+    }
+```
+
+---
+
+# 4) Expense logging handler: make sure it **stores** (no silent loss)
+
+**Problem**: data storage shows 0% because handler never commits (or fails RLS).
+
+**Fix**: Write with an explicit transaction, set RLS context, and confirm row count.
+
+```python
+# handlers/expense_log.py
+from db import Session, Expense
+from sqlalchemy import text
+from nlp.signals_extractor import extract_signals
+from nlp.money_utils import extract_money_amount_and_item  # your helper
+
+def handle_expense_log(message, user):
+    sess = Session()
+    try:
+        # RLS tenant context if enabled
+        sess.execute(text("SELECT set_config('app.user_id', :uid, true)"), {"uid": user.user_id_hash})
+
+        amt, item, currency = extract_money_amount_and_item(message)  # e.g., (80.0, "সকালের নাস্তা"/"breakfast", "BDT")
+        if amt is None:
+            return {"text": "Couldn't find an amount. Try like: coffee 50 or চা ৫০ টাকা."}
+
+        exp = Expense(
+            user_id=user.user_id_hash,
+            amount_minor=int(round(amt*100)),
+            currency=currency or "BDT",
+            category=guess_category(item),  # simple mapping: tea/coffee → Food & Dining
+            description=item or "Expense",
+            occurred_at=user.now_in_tz("Asia/Dhaka")
+        )
+        sess.add(exp)
+        sess.commit()
+
+        # Friendly confirmation (BN/EN)
+        return {"text": f"লগ করা হয়েছে: {item or 'Expense'} • ৳{amt:.0f} • আজ"}
+    except Exception as e:
+        sess.rollback()
+        return {"text": "Couldn't save that expense. Please try again."}
+    finally:
+        sess.close()
+```
+
+> If RLS blocks insert, ensure a matching `INSERT` policy exists or run under a role that can insert for that `user_id_hash`.
+
+---
+
+# 5) Two tiny tests that catch your exact prod regressions
+
+**BN log path:**
+
+```python
+def test_bn_expense_logs_not_faq(client):
+    r = client.post("/message", json={"text":"আজ সকালের নাস্তা ৮০ টাকা খরচ করেছি","user_id":"U_BN"})
+    data = r.get_json()
+    assert r.status_code in (200,201)
+    assert "লগ করা হয়েছে" in data["text"]  # not FAQ/help text
+```
+
+**EN log path:**
+
+```python
+def test_en_expense_logs(client):
+    r = client.post("/message", json={"text":"I spent 200 on groceries today","user_id":"U_EN"})
+    data = r.get_json()
+    assert r.status_code in (200,201)
+    assert "Logged" in data["text"] or "লগ করা হয়েছে" in data["text"]
+```
+
+These fail if EXPENSE\_LOG maps to FAQ, or BN rules are gated, or DB insert fails.
+
+---
+
+# 6) Preflight probes (run before flipping any flag)
+
+```bash
+# Probe A — Bengali logging
+curl -sS -X POST "$APP_URL/message" -H 'content-type: application/json' \
+  -d '{"text":"আজ সকালের নাস্তা ৮০ টাকা খরচ করেছি","user_id":"probe_bn"}' | jq .
+
+# Probe B — English logging
+curl -sS -X POST "$APP_URL/message" -H 'content-type: application/json' \
+  -d '{"text":"I spent 200 on groceries today","user_id":"probe_en"}' | jq .
+
+# Probe C — Analysis still works
+curl -sS -X POST "$APP_URL/message" -H 'content-type: application/json' \
+  -d '{"text":"এই মাসের খরচের সারাংশ দাও","user_id":"probe_bn"}' | jq .
+```
+
+**Pass condition**: A/B return a logging confirmation line; C returns JSON bullets. If any shows help text, **do not deploy**.
+
+---
+
+# 7) Guardrails to keep it green
+
+* **Fail-closed gate**: Any suite at **0%** or any **preflight probe** fails ⇒ block deploy.
+* **Metrics**:
+
+  * `routing.intent_distribution{intent="EXPENSE_LOG"}` should rise for BN+EN test users.
+  * `expense.insert_success_total` increments for your probes.
+  * `ai.nonjson_total` \~ 0; `ai.fallback_used_total/calls_total` low.
+
+---
+
+## TL;DR—How to fix your three bullets
+
+* **AI Integration**: add safe import shim + resilience fallback (never empty).
+* **Routing Failure**: map `EXPENSE_LOG → handle_expense_log` and keep it **before** Analysis/Smalltalk.
+* **Bengali Processing**: remove language gate; always run EN+BN regex on normalized text with BN-digit conversion.
+
+Run the two unit tests + three preflight probes. If those pass, the exact production failures you saw (“English help text for BN/EN spending messages” and “silent data loss”) are fixed.

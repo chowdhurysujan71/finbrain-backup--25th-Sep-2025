@@ -89,12 +89,12 @@ class RoutingPolicyFlags:
     
     def _get_router_scope(self) -> RouterScope:
         """Get router scope from environment"""
-        scope_str = os.environ.get('ROUTER_SCOPE', 'zero_ledger_only').lower()
+        scope_str = os.environ.get('ROUTER_SCOPE', 'all').lower()  # Default to ALL for full coverage
         try:
             return RouterScope(scope_str)
         except ValueError:
-            logger.warning(f"Invalid ROUTER_SCOPE '{scope_str}', defaulting to zero_ledger_only")
-            return RouterScope.ZERO_LEDGER_ONLY
+            logger.warning(f"Invalid ROUTER_SCOPE '{scope_str}', defaulting to all")
+            return RouterScope.ALL
 
 class BilingualPatterns:
     """Bilingual (EN + BN) pattern matching for routing"""
