@@ -127,20 +127,23 @@ class BilingualPatterns:
             re.IGNORECASE | re.UNICODE
         )
         
-        # Coaching verb patterns
+        # Coaching verb patterns (comprehensive, excluding FAQ contexts)
         self.coaching_verbs_en = re.compile(
-            r'(save|reduce|cut|budget|plan|help me reduce|how can I save)',
+            r'(save money|reduce|cut|budget planning|help me reduce|how can I save|'
+            r'cut my expenses|reduce transport costs|'
+            r'save|planning advice|(?<!subscription\s)plan(?!s\b))',
             re.IGNORECASE | re.UNICODE
         )
         self.coaching_verbs_bn = re.compile(
-            r'(সেভ|কমানো|কাট|বাজেট|পরিকল্পনা|কমাতে চাই|সেভ করবো)',
+            r'(সেভ|কমানো|কাট|বাজেট|পরিকল্পনা|কমাতে চাই|সেভ করবো|'
+            r'খরচ কমাতে|টাকা সেভ)',
             re.IGNORECASE | re.UNICODE
         )
         
         # FAQ terms (expanded)
         self.faq_terms_en = re.compile(
             r'(what can you do|how (do|does) it work|features?|capabilities?|privacy|'
-            r'is my data (safe|private)|security|pricing|cost|subscription|plans?)',
+            r'is my data (safe|private)|security|pricing|cost|subscription plans?|plans?)',
             re.IGNORECASE | re.UNICODE
         )
         self.faq_terms_bn = re.compile(
@@ -403,8 +406,8 @@ class DeterministicRouter:
             
             return RoutingResult(IntentType.ANALYSIS, reason_codes, matched_patterns, 0.95)
         
-        # 4. FAQ
-        if user_signals.has_faq_terms:
+        # 4. FAQ (but not if it has coaching context)
+        if user_signals.has_faq_terms and not user_signals.has_coaching_verbs:
             reason_codes.append("HAS_FAQ_TERMS")
             matched_patterns.append("faq_terms")
             return RoutingResult(IntentType.FAQ, reason_codes, matched_patterns, 0.9)

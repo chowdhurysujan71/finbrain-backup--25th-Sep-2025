@@ -1,0 +1,37 @@
+{
+  "overall_success": false,
+  "phase": "contract_validation",
+  "reason": "Contract tests not 100%: 84.1%",
+  "contract_results": {
+    "success": false,
+    "passed": 53,
+    "total": 63,
+    "success_rate": 84.1,
+    "failures": [
+      "FAIL: 'subscription plans' \u2192 SMALLTALK, expected FAQ",
+      "FAIL: 'help me reduce food spend' \u2192 SMALLTALK, expected COACHING",
+      "FAIL: 'how can I save money' \u2192 SMALLTALK, expected COACHING",
+      "FAIL: 'budget planning advice' \u2192 SMALLTALK, expected COACHING",
+      "FAIL: 'cut my expenses' \u2192 SMALLTALK, expected COACHING",
+      "FAIL: 'reduce transport costs' \u2192 SMALLTALK, expected COACHING",
+      "FAIL: '\u0996\u09be\u09ac\u09be\u09b0\u09c7\u09b0 \u0996\u09b0\u099a \u0995\u09ae\u09be\u09a4\u09c7 \u099a\u09be\u0987' \u2192 SMALLTALK, expected COACHING",
+      "FAIL: '\u099f\u09be\u0995\u09be \u09b8\u09c7\u09ad \u0995\u09b0\u09ac\u09cb \u0995\u09bf\u09ad\u09be\u09ac\u09c7' \u2192 SMALLTALK, expected COACHING",
+      "FAIL: '\u09ac\u09be\u099c\u09c7\u099f \u09aa\u09b0\u09bf\u0995\u09b2\u09cd\u09aa\u09a8\u09be' \u2192 SMALLTALK, expected COACHING",
+      "FAIL: '\u0996\u09b0\u099a \u0995\u09be\u099f \u0995\u09b0\u09a4\u09c7 \u099a\u09be\u0987' \u2192 SMALLTALK, expected COACHING"
+    ],
+    "breakdown": {
+      "routing": {
+        "passed": 39,
+        "total": 49
+      },
+      "scope": {
+        "passed": 6,
+        "total": 6
+      },
+      "bilingual": {
+        "passed": 8,
+        "total": 8
+      }
+    }
+  }
+}

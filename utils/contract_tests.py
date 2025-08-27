@@ -119,9 +119,11 @@ class ContractTestSuite:
                         is_admin_command=False
                     )
                     
-                    # Override signals based on phrase
-                    signals = deterministic_router.extract_signals(phrase, "test_user")
-                    result = deterministic_router.route_intent(phrase, signals)
+                    # Extract signals based on phrase
+                    extracted_signals = deterministic_router.extract_signals(phrase, "test_user")
+                    # Override ledger count for consistent testing
+                    extracted_signals.ledger_count_30d = signals.ledger_count_30d
+                    result = deterministic_router.route_intent(phrase, extracted_signals)
                     
                     if result.intent.value == expected_intent:
                         passed += 1
