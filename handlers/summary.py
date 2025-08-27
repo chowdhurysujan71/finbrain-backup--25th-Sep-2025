@@ -55,7 +55,7 @@ def _totals_by_category(user_id: str, start: datetime, end: datetime):
             Expense.category.label("category"),
             func.coalesce(func.sum(Expense.amount), 0).label("total"),
         )
-        .filter(Expense.user_id == user_id)
+        .filter(Expense.user_id_hash == user_id)
         .filter(Expense.created_at >= start)
         .filter(Expense.created_at < end)   # exclusive end
         .group_by(Expense.category)
@@ -104,7 +104,7 @@ def handle_summary(user_id: str, text: str = "", timeframe: str = "week") -> Dic
                 db.func.sum(Expense.amount).label('total'),
                 db.func.count(Expense.id).label('count')
             ).filter(
-                Expense.user_id == user_id,
+                Expense.user_id_hash == user_id,
                 Expense.created_at >= start,
                 Expense.created_at < end
             ).group_by(Expense.category).all()

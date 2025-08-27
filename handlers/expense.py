@@ -64,7 +64,7 @@ def handle_multi_expense_logging(psid_hash_val: str, mid: str, text: str, now: d
             
             # Check for existing expense with this derived mid (idempotency)
             existing = db.session.query(Expense).filter(
-                Expense.user_id == psid_hash_val,
+                Expense.user_id_hash == psid_hash_val,
                 Expense.mid == derived_mid
             ).first()
             
@@ -177,7 +177,7 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: Dict[str,
     """
     # Check for existing expense (idempotency)
     existing = db.session.query(Expense).filter(
-        Expense.user_id == psid_hash_val,
+        Expense.user_id_hash == psid_hash_val,
         Expense.unique_id == mid
     ).first()
     
@@ -319,7 +319,7 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
         
         # Query uncorrected expenses for this user within the time window
         candidate_expenses = db.session.query(Expense).filter(
-            Expense.user_id == psid_hash_val,
+            Expense.user_id_hash == psid_hash_val,
             Expense.created_at >= window_start,
             Expense.superseded_by.is_(None)  # Only uncorrected expenses
         ).order_by(Expense.created_at.desc()).limit(5).all()
@@ -359,7 +359,7 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
         
         # Step 4: Check for duplicate correction attempt (same mid)
         existing_correction = db.session.query(Expense).filter(
-            Expense.user_id == psid_hash_val,
+            Expense.user_id_hash == psid_hash_val,
             Expense.unique_id.like(f'%{mid}%')
         ).first()
         

@@ -23,7 +23,7 @@ def handle_insight(user_id: str) -> Dict[str, str]:
             Expense.category,
             db.func.sum(Expense.amount).label('total')
         ).filter(
-            Expense.user_id == user_id,
+            Expense.user_id_hash == user_id,
             Expense.created_at >= start,
             Expense.created_at < end
         ).group_by(Expense.category).order_by(db.desc('total')).all()

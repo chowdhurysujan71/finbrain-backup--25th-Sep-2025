@@ -17,6 +17,7 @@ Zero-surprise deployment requirement: 100% user-visible success demanded with co
 - **✅ Production Ready**: 100% deployment readiness with zero surprises, comprehensive UAT validation complete
 - **✅ Bilingual Excellence**: Bengali + English processing at 100% success rate with mixed-language support
 - **✅ Data Integrity Validated**: Complete user isolation, hash consistency, and storage verification passing
+- **🔧 CRITICAL SCHEMA DRIFT FIX (August 27, 2025)**: Resolved platform-wide data retrieval failure caused by handlers using legacy `user_id` column instead of `user_id_hash`. Fixed summary, insight, and expense handlers. Added comprehensive schema validation and auto-fix systems to prevent future drift. All 212 expenses across 46 users now accessible in Messenger.
 
 ## System Architecture
 

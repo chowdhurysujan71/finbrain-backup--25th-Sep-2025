@@ -69,7 +69,7 @@ def fetch_expense_totals(psid: str, start: datetime, end: datetime):
         
         # Query database for expenses in timeframe
         expenses = Expense.query.filter(
-            Expense.user_id == user_hash,
+            Expense.user_id_hash == user_hash,
             Expense.created_at >= start,
             Expense.created_at <= end
         ).all()
