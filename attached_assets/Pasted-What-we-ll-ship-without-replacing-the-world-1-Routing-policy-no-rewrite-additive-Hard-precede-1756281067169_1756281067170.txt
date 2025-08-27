@@ -1,0 +1,160 @@
+What we’ll ship (without replacing the world)
+1) Routing policy (no rewrite, additive)
+
+Hard precedence (documented + logged): ADMIN > ANALYSIS > FAQ > COACHING > SMALLTALK.
+
+State signals (cheap, available today):
+
+ledger_count_30d
+
+has_time_window (regex for today/this week/this month/dates)
+
+has_analysis_terms (analysis/report/summary)
+
+has_coaching_verbs (save/reduce/budget/cut)
+
+in_coaching_session (from your session store)
+
+Decisions (deterministic):
+
+ledger==0 → ANALYSIS (but returns safe-minimal)
+
+has_time_window OR has_analysis_terms → ANALYSIS
+
+has_coaching_verbs AND ledger_count_30d ≥ 10 AND NOT in_coaching_session → COACHING
+
+in_coaching_session → COACHING (session continuity wins)
+
+else FAQ/SMALLTALK heuristics
+
+This sits before the current handlers; handlers remain unchanged.
+
+2) Data-version uniqueness (truthful, not dull)
+
+If data_version unchanged and new bullets hash == last → respond:
+
+EN: “No changes since your last check. Add a new expense to refresh.”
+
+BN: “কোনো নতুন পরিবর্তন নেই। নতুন খরচ যোগ করলে বিশ্লেষণ আপডেট হবে।”
+
+Add a micro-insight when unchanged (still deterministic, no “fake variety”):
+
+“Tip: your top category this month is Food (~38%). Want ideas to trim it?”
+
+3) Bilingual intent cues (EN + BN)
+
+Extend keyword sets for Bangla equivalents (e.g., “বিশ্লেষণ”, “রিপোর্ট”, “এই সপ্তাহ/মাস”, “সেভ/কমানো/বাজেট”).
+
+Language detection is not required; keep dual regex lists and match either.
+
+4) Auditability & PCA compatibility
+
+Log route_event with intent, precedence_hit, signals[], pca_mode, rules_version.
+
+Respect existing PCA overlays: a single overlay toggle can flip between AI-first, HYBRID, RULES-first without redeploy.
+
+Flags & overlays (so we can roll forward/back instantly)
+
+Add (or reuse) these feature flags / PCA overlays:
+
+ROUTER_MODE = ai_first | hybrid | rules_first (default: hybrid)
+
+ROUTER_RULES_VERSION = 2025-08-27 (for audit)
+
+ROUTER_SCOPE = zero_ledger_only | analysis_keywords_only | all (default: zero_ledger_only)
+
+UNIQUENESS_MODE = data_version | timestamp (default: data_version)
+
+COACHING_SESSION_RESPECT = true (default: true)
+
+BILINGUAL_ROUTING = true
+
+Because these are overlays, you can flip them live (single deploy, no canary/shadow).
+
+Phased rollout (works with one-button deploy)
+Phase 1 — Additive hybrid (Low risk, ~same day)
+
+Set: ROUTER_MODE=hybrid, ROUTER_SCOPE=zero_ledger_only, UNIQUENESS_MODE=data_version.
+
+Effect:
+
+Users with 0 ledger hit ANALYSIS → safe-minimal (no confusion).
+
+Everyone else still primarily follows current AI routing, except explicit “analysis this week/month” which we can optionally include by setting ROUTER_SCOPE=analysis_keywords_only.
+
+Monitor: routing accuracy, repeat suppressions, user reply rates.
+
+Phase 2 — State integration (Medium risk, next day)
+
+Flip: ROUTER_SCOPE=analysis_keywords_only → then all if metrics stable.
+
+Add rule: has_time_window OR has_analysis_terms → ANALYSIS.
+
+Preserve UX: COACHING only when ledger_count_30d ≥ 10 or in_coaching_session=true.
+
+Phase 3 — Learning loop (Low risk, ongoing)
+
+Start logging route_correction (internal tools/support only).
+
+Weekly confusion matrix; adjust keyword sets/thresholds—not wholesale rewrites.
+
+Optional: tiny classifier for ambiguous phrases behind rules (low confidence → ANALYSIS or ask a 1-line clarify).
+
+Addressing your three risk buckets
+🔴 Deployment strategy risk (no canary/shadow)
+
+Mitigation: single deploy contains both systems; behavior controlled by overlays:
+
+Start with zero_ledger_only scope → least disruptive.
+
+Flip overlays live if anything diverges; fallback ROUTER_MODE=ai_first.
+
+🔴 UX regression risk (“feels dumber”)
+
+Mitigation:
+
+Maintain session continuity (in_coaching_session wins).
+
+When unchanged: show truth + action (micro-insight), not silence.
+
+For complex queries: rules route to ANALYSIS, then append coaching suggestion (don’t replace).
+
+🔴 Data-uniqueness expectation risk
+
+Mitigation:
+
+Be explicit: “No changes since last check.” Add the top-category micro-insight.
+
+Offer a button: “See ideas to reduce Food by 10% →” (routes to coaching intentionally).
+
+Tests & acceptance (what “good” looks like)
+
+Contract tests (EN + BN): 20–30 phrases per intent must route identically on every build.
+
+Routing KPIs (1 week):
+
+analysis_intent_precision ↑ (fewer coaching misroutes on “analysis” prompts)
+
+misroute_corrections ↓ (downward trend)
+
+repeat_suppressed_total correlates with unchanged data_version (not random)
+
+CSAT/response rates stable or improved for analysis flows
+
+Safety gates:
+
+If routing error rate > threshold, set ROUTER_MODE=ai_first instantly (overlay), no redeploy.
+
+What you need from Product (so Eng can build safely)
+
+Confirmation that ANALYSIS outranks COACHING when both match (revenue focus).
+
+Approved Bangla keyword list for analysis/coaching/time windows.
+
+Agreement on the unchanged-data UX copy (EN + BN) and the micro-insight rule.
+
+Final call
+
+Your critique is right: the engineering is sound, but rollout must respect PCA, sessions, and Messenger constraints. This plan gives you the determinism the engineer wants, without ripping out AI or risking a big-bang failure. One deploy, flip overlays, measure, expand.
+
+If you want, I’ll package this as a 1-page Routing Policy SOP (ready to pin), plus a 10-line ops checklist for toggling overlays during business hours.
