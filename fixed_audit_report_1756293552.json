@@ -1,0 +1,218 @@
+{
+  "audit_session_id": "aec79b7e",
+  "timestamp": "2025-08-27T11:18:58.214278",
+  "data_handling": {
+    "tests": [
+      {
+        "input": "lunch 500 taka",
+        "type": "expense",
+        "success": false,
+        "error": "'RoutingSignals' object has no attribute 'has_money'"
+      },
+      {
+        "input": "analysis please",
+        "type": "analysis",
+        "success": false,
+        "error": "'RoutingSignals' object has no attribute 'has_analysis'"
+      },
+      {
+        "input": "help me save money",
+        "type": "coaching",
+        "success": false,
+        "error": "'RoutingSignals' object has no attribute 'has_coaching'"
+      },
+      {
+        "input": "what can you do",
+        "type": "faq",
+        "success": false,
+        "error": "'RoutingSignals' object has no attribute 'has_faq'"
+      }
+    ],
+    "summary": {
+      "passed": 0,
+      "total": 4,
+      "success_rate": 0.0,
+      "overall_success": false
+    }
+  },
+  "routing_validation": {
+    "tests": [
+      {
+        "input": "analysis please",
+        "expected": "ANALYSIS",
+        "actual": "ANALYSIS",
+        "success": true
+      },
+      {
+        "input": "\u098f\u0987 \u09ae\u09be\u09b8\u09c7\u09b0 \u0996\u09b0\u099a \u09ac\u09bf\u09b6\u09cd\u09b2\u09c7\u09b7\u09a3",
+        "expected": "ANALYSIS",
+        "actual": "ANALYSIS",
+        "success": true
+      },
+      {
+        "input": "what can you do",
+        "expected": "FAQ",
+        "actual": "FAQ",
+        "success": true
+      },
+      {
+        "input": "help me reduce spending",
+        "expected": "COACHING",
+        "actual": "COACHING",
+        "success": true
+      },
+      {
+        "input": "lunch 500 taka",
+        "expected": "SMALLTALK",
+        "actual": "SMALLTALK",
+        "success": true
+      },
+      {
+        "input": "/id",
+        "expected": "ADMIN",
+        "actual": "ADMIN",
+        "success": true
+      }
+    ],
+    "summary": {
+      "passed": 6,
+      "total": 6,
+      "success_rate": 100.0,
+      "overall_success": true
+    }
+  },
+  "ai_processing": {
+    "tests": [
+      {
+        "message": "coffee 200 taka",
+        "intent": "SMALLTALK",
+        "success": false,
+        "processing_time_ms": 3326.2529373168945,
+        "result_status": "unknown"
+      },
+      {
+        "message": "how to save money",
+        "intent": "COACHING",
+        "success": false,
+        "processing_time_ms": 3242.0167922973633,
+        "result_status": "unknown"
+      }
+    ],
+    "summary": {
+      "passed": 0,
+      "total": 2,
+      "success_rate": 0.0,
+      "overall_success": false
+    }
+  },
+  "storage_validation": {
+    "tests": [
+      {
+        "name": "expense_insertion",
+        "success": true,
+        "record_id": 181
+      },
+      {
+        "name": "data_retrieval",
+        "success": true,
+        "retrieved_amount": "150.00"
+      },
+      {
+        "name": "user_isolation",
+        "success": true,
+        "record_count": 1
+      }
+    ],
+    "summary": {
+      "passed": 3,
+      "total": 3,
+      "success_rate": 100.0,
+      "overall_success": true
+    }
+  },
+  "integrity_validation": {
+    "checks": [
+      {
+        "name": "data_completeness",
+        "description": "All records have required fields",
+        "success": true,
+        "details": {
+          "total": 1,
+          "valid_amounts": 1,
+          "with_dates": 1
+        }
+      },
+      {
+        "name": "temporal_consistency",
+        "description": "Timestamps are consistent",
+        "success": true,
+        "details": {
+          "total": 1,
+          "valid_timestamps": 1
+        }
+      },
+      {
+        "name": "amount_validity",
+        "description": "Amounts are reasonable",
+        "success": true,
+        "details": {
+          "total": 1,
+          "min_amount": "150.00",
+          "max_amount": "150.00"
+        }
+      }
+    ],
+    "summary": {
+      "passed": 3,
+      "total": 3,
+      "success_rate": 100.0,
+      "overall_success": true
+    }
+  },
+  "security_validation": {
+    "checks": [
+      {
+        "name": "sql_injection_protection",
+        "description": "SQL injection is prevented",
+        "success": true,
+        "details": {
+          "executed_safely": true,
+          "count": 0
+        }
+      },
+      {
+        "name": "user_data_isolation",
+        "description": "User data is isolated",
+        "success": true,
+        "details": {
+          "test_user_records": 1,
+          "other_users": 26
+        }
+      },
+      {
+        "name": "input_sanitization",
+        "description": "Input is properly sanitized",
+        "success": false,
+        "details": {}
+      }
+    ],
+    "summary": {
+      "passed": 2,
+      "total": 3,
+      "success_rate": 66.66666666666666,
+      "overall_success": false
+    }
+  },
+  "final_assessment": {
+    "overall_success_rate": 50.0,
+    "phase_successes": 3,
+    "total_phases": 6,
+    "deployment_ready": false,
+    "critical_failures": [
+      "Data Handling",
+      "AI Processing",
+      "Security"
+    ],
+    "recommendation": "DEPLOYMENT BLOCKED"
+  }
+}
