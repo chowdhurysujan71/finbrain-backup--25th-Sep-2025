@@ -389,7 +389,7 @@ def admin_dashboard():
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Health check endpoint with production security monitoring and emergency mode support"""
+    """Enhanced health check endpoint for deployment verification with comprehensive startup checks"""
     # Check for emergency mode first
     from utils.panic_toggle import is_emergency_mode, get_emergency_status
     if is_emergency_mode():
@@ -449,6 +449,42 @@ def health_check():
     if health_status == "healthy" and not cold_start_mitigator.warm_up_completed:
         health_status = "warming"
     
+    # Additional deployment readiness checks
+    deployment_ready = True
+    deployment_issues = []
+    
+    # Check if Flask app is properly configured
+    try:
+        app_name = app.name
+        debug_mode = app.debug
+    except Exception as e:
+        deployment_ready = False
+        deployment_issues.append("app_configuration_error")
+        logger.error(f"App configuration check failed: {str(e)}")
+    
+    # Check if essential routes are registered
+    try:
+        essential_routes = ['/health', '/webhook/messenger']
+        registered_routes = [str(rule) for rule in app.url_map.iter_rules()]
+        for route in essential_routes:
+            if route not in registered_routes:
+                deployment_ready = False
+                deployment_issues.append(f"missing_route_{route.replace('/', '_')}")
+    except Exception as e:
+        deployment_ready = False
+        deployment_issues.append("route_registration_error")
+        logger.error(f"Route registration check failed: {str(e)}")
+    
+    # Check if blueprints are properly loaded
+    try:
+        blueprint_count = len(app.blueprints)
+        if blueprint_count == 0:
+            deployment_issues.append("no_blueprints_registered")
+    except Exception as e:
+        deployment_ready = False
+        deployment_issues.append("blueprint_check_error")
+        logger.error(f"Blueprint check failed: {str(e)}")
+    
     response = {
         "status": health_status,
         "service": "finbrain-expense-tracker",
@@ -457,6 +493,12 @@ def health_check():
         "required_envs": {
             "all_present": True,
             "count": len(required_envs)
+        },
+        "deployment_readiness": {
+            "ready": deployment_ready,
+            "app_configured": app_name is not None,
+            "routes_registered": len([r for r in app.url_map.iter_rules()]),
+            "blueprints_loaded": len(app.blueprints)
         },
         "boot_validation": "strict_enforcement_enabled",
         "uptime_s": round(uptime_seconds, 2),
@@ -473,6 +515,9 @@ def health_check():
         }
     }
     
+    if deployment_issues:
+        response["deployment_issues"] = deployment_issues
+    
     if present_optional:
         response["optional_envs_present"] = present_optional
     
@@ -480,6 +525,108 @@ def health_check():
         response["issues"] = issues
     
     return jsonify(response)
+
+@app.route('/health/deployment', methods=['GET'])
+def deployment_readiness_check():
+    """Dedicated deployment readiness check endpoint for production verification"""
+    try:
+        readiness_checks = {
+            "app_initialization": False,
+            "database_connection": False,
+            "environment_variables": False,
+            "route_registration": False,
+            "blueprint_loading": False,
+            "error_handling": False
+        }
+        
+        issues = []
+        
+        # Check app initialization
+        try:
+            if app and app.name:
+                readiness_checks["app_initialization"] = True
+            else:
+                issues.append("Flask app not properly initialized")
+        except Exception as e:
+            issues.append(f"App initialization error: {str(e)}")
+        
+        # Check database connection
+        try:
+            db.session.execute(db.text('SELECT 1'))
+            readiness_checks["database_connection"] = True
+        except Exception as e:
+            issues.append(f"Database connection failed: {str(e)}")
+        
+        # Check required environment variables
+        required_envs = ["DATABASE_URL", "ADMIN_USER", "ADMIN_PASS", 
+                        "FACEBOOK_PAGE_ACCESS_TOKEN", "FACEBOOK_VERIFY_TOKEN"]
+        missing_envs = [env for env in required_envs if not os.environ.get(env)]
+        if not missing_envs:
+            readiness_checks["environment_variables"] = True
+        else:
+            issues.extend([f"Missing environment variable: {env}" for env in missing_envs])
+        
+        # Check route registration
+        try:
+            essential_routes = ['/health', '/webhook/messenger', '/health/deployment']
+            registered_routes = [str(rule) for rule in app.url_map.iter_rules()]
+            missing_routes = [route for route in essential_routes if route not in registered_routes]
+            if not missing_routes:
+                readiness_checks["route_registration"] = True
+            else:
+                issues.extend([f"Missing essential route: {route}" for route in missing_routes])
+        except Exception as e:
+            issues.append(f"Route registration check failed: {str(e)}")
+        
+        # Check blueprint loading
+        try:
+            if len(app.blueprints) > 0:
+                readiness_checks["blueprint_loading"] = True
+            else:
+                issues.append("No blueprints registered")
+        except Exception as e:
+            issues.append(f"Blueprint check failed: {str(e)}")
+        
+        # Check error handling capabilities
+        try:
+            # Verify logger is available
+            logger.info("Deployment readiness check - error handling test")
+            readiness_checks["error_handling"] = True
+        except Exception as e:
+            issues.append(f"Error handling system failed: {str(e)}")
+        
+        # Determine overall readiness
+        all_checks_passed = all(readiness_checks.values())
+        deployment_status = "ready" if all_checks_passed else "not_ready"
+        
+        response = {
+            "deployment_status": deployment_status,
+            "service": "finbrain-expense-tracker",
+            "timestamp": datetime.utcnow().isoformat(),
+            "readiness_checks": readiness_checks,
+            "checks_passed": sum(readiness_checks.values()),
+            "total_checks": len(readiness_checks),
+            "success_rate": f"{(sum(readiness_checks.values()) / len(readiness_checks)) * 100:.1f}%"
+        }
+        
+        if issues:
+            response["issues"] = issues
+            
+        if not all_checks_passed:
+            response["recommendation"] = "Fix the identified issues before deploying to production"
+        
+        status_code = 200 if all_checks_passed else 503
+        return jsonify(response), status_code
+        
+    except Exception as e:
+        logger.error(f"Deployment readiness check failed: {str(e)}")
+        return jsonify({
+            "deployment_status": "error",
+            "service": "finbrain-expense-tracker",
+            "timestamp": datetime.utcnow().isoformat(),
+            "error": f"Readiness check system failure: {str(e)}",
+            "recommendation": "Contact support - deployment readiness system is not functioning"
+        }), 500
 
 @app.route("/webhook/messenger", methods=["GET", "POST"])
 def webhook_messenger():
