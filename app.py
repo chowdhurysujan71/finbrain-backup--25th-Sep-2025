@@ -78,6 +78,16 @@ with app.app_context():
     import models_pca  # noqa: F401
     db.create_all()
     
+    # Schema validation and auto-healing
+    try:
+        from utils.schema_validator import validate_schema_on_startup
+        if validate_schema_on_startup():
+            logger.info("✓ Database schema validation passed")
+        else:
+            logger.error("✗ Database schema validation failed - check logs")
+    except ImportError:
+        logger.warning("Schema validator not available - skipping validation")
+    
     # Register PCA blueprints for overlay features
     try:
         from utils.pca_feature_flags import pca_feature_flags

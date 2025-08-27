@@ -14,7 +14,8 @@ class Expense(db.Model):
     __tablename__ = 'expenses'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String(255), nullable=False)  # SHA-256 hashed user identifier
+    user_id = db.Column(db.String(255), nullable=False)  # Legacy: kept for backwards compatibility
+    user_id_hash = db.Column(db.String(255), nullable=False, index=True)  # SHA-256 hashed user identifier (PRIMARY)
     description = db.Column(db.Text, default='')  # Original expense message
     amount = db.Column(db.Numeric(10, 2), nullable=False)  # Expense amount
     category = db.Column(db.String(50), nullable=False)  # AI-categorized expense type
