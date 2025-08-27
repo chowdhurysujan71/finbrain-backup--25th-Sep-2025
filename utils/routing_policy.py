@@ -123,7 +123,7 @@ class BilingualPatterns:
             re.IGNORECASE | re.UNICODE
         )
         self.analysis_terms_bn = re.compile(
-            r'\b(বিশ্লেষণ|সারাংশ|রিপোর্ট)\b|(?<!কমাতে\s)(?<!কাট\s)খরচ(?!\s(?:কমাতে|কাট))',
+            r'\b(বিশ্লেষণ|সারাংশ|রিপোর্ট)\b',
             re.IGNORECASE | re.UNICODE
         )
         
@@ -384,25 +384,26 @@ class DeterministicRouter:
             reason_codes.append("PCA_AUDIT_MODE")
             return RoutingResult(IntentType.PCA_AUDIT, reason_codes, matched_patterns, 1.0)
         
-        # 3. ANALYSIS
+        # 3. ANALYSIS - More conservative routing to prevent over-routing
         analysis_conditions = [
-            user_signals.has_time_window,
-            user_signals.has_analysis_terms,
+            # Explicit analysis always wins
             user_signals.has_explicit_analysis,
+            # Time window + analysis terms (both required for strong signal)
+            (user_signals.has_time_window and user_signals.has_analysis_terms),
             # Override coaching session for explicit analysis
             (user_signals.in_coaching_session and user_signals.has_explicit_analysis)
         ]
         
         if any(analysis_conditions):
+            if user_signals.has_explicit_analysis:
+                reason_codes.append("EXPLICIT_ANALYSIS_REQUEST")
+                matched_patterns.append("explicit_analysis")
             if user_signals.has_time_window:
                 reason_codes.append("HAS_TIME_WINDOW")
                 matched_patterns.append("time_window")
             if user_signals.has_analysis_terms:
                 reason_codes.append("HAS_ANALYSIS_TERMS")
                 matched_patterns.append("analysis_terms")
-            if user_signals.has_explicit_analysis:
-                reason_codes.append("EXPLICIT_ANALYSIS_REQUEST")
-                matched_patterns.append("explicit_analysis")
             
             return RoutingResult(IntentType.ANALYSIS, reason_codes, matched_patterns, 0.95)
         

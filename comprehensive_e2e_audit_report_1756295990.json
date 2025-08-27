@@ -1,0 +1,457 @@
+{
+  "audit_id": "e2e_audit_1756295984",
+  "timestamp": 1756295984.7219338,
+  "audit_type": "comprehensive_end_to_end",
+  "test_scenarios": {
+    "bengali_expense_workflow": {
+      "workflow_steps": [
+        {
+          "step": "signal_extraction",
+          "success": true,
+          "details": {
+            "input": "\u0986\u099c \u099a\u09be \u09eb\u09e6 \u099f\u09be\u0995\u09be \u0996\u09b0\u099a \u0995\u09b0\u09c7\u099b\u09bf",
+            "has_money": true,
+            "money_mentions": [
+              "50 \u099f\u09be\u0995\u09be"
+            ],
+            "normalized_text": "\u0986\u099c \u099a\u09be 50 \u099f\u09be\u0995\u09be \u0996\u09b0\u099a \u0995\u09b0\u09c7\u099b\u09bf"
+          }
+        },
+        {
+          "step": "security_sanitization",
+          "success": true,
+          "details": {
+            "safe_text": "\u0986\u099c \u099a\u09be \u09eb\u09e6 \u099f\u09be\u0995\u09be \u0996\u09b0\u099a \u0995\u09b0\u09c7\u099b\u09bf",
+            "security_flags": [],
+            "sanitized": false
+          }
+        },
+        {
+          "step": "routing_decision",
+          "success": false,
+          "details": {
+            "intent": "ANALYSIS",
+            "confidence": 0.95,
+            "reasoning": "No reasoning available"
+          }
+        },
+        {
+          "step": "ai_processing",
+          "success": false,
+          "details": {
+            "bullet_points": [
+              "Not enough data to analyze yet."
+            ],
+            "flags": {
+              "insufficient_data": true
+            },
+            "processing_mode": "stub_mode"
+          }
+        },
+        {
+          "step": "database_storage",
+          "success": true,
+          "details": {
+            "user_created": true,
+            "expense_amount": 50.0,
+            "expense_category": "Food & Dining",
+            "currency": "BDT"
+          }
+        },
+        {
+          "step": "data_integrity",
+          "success": true,
+          "details": {
+            "amount_consistency": true,
+            "currency_consistency": true,
+            "user_id_consistency": true,
+            "category_assigned": true
+          }
+        }
+      ],
+      "overall_success": false,
+      "total_steps": 6,
+      "successful_steps": 4,
+      "test_user_id": "72d27900b47586a9",
+      "test_message": "\u0986\u099c \u099a\u09be \u09eb\u09e6 \u099f\u09be\u0995\u09be \u0996\u09b0\u099a \u0995\u09b0\u09c7\u099b\u09bf"
+    },
+    "english_analysis_workflow": {
+      "workflow_steps": [
+        {
+          "step": "analysis_signal_extraction",
+          "success": true,
+          "details": {
+            "input": "show me spending analysis for this month",
+            "explicit_analysis_request": true,
+            "has_analysis_terms": true,
+            "has_time_window": true,
+            "window": {
+              "from": "2025-08-01",
+              "to": "2025-09-01",
+              "description": "this month"
+            }
+          }
+        },
+        {
+          "step": "analysis_routing",
+          "success": true,
+          "details": {
+            "intent": "ANALYSIS",
+            "confidence": 0.95,
+            "hierarchy_level": "ANALYSIS"
+          }
+        },
+        {
+          "step": "data_aggregation",
+          "success": true,
+          "details": {
+            "user_id": "e6106cab72d81156",
+            "totals": {
+              "grand_total": 25000,
+              "food": 8000,
+              "transport": 7000,
+              "shopping": 6000,
+              "other": 4000
+            },
+            "expense_count": 23,
+            "date_range": "2025-08-01 to 2025-08-27"
+          }
+        },
+        {
+          "step": "ai_insight_generation",
+          "success": true,
+          "details": {
+            "bullet_point_count": 3,
+            "first_bullet_point": "Total spending tracked: \u09f325,000",
+            "insufficient_data": false
+          }
+        },
+        {
+          "step": "response_formatting",
+          "success": true,
+          "details": {
+            "response_type": "analysis_response",
+            "insight_count": 3,
+            "has_data_summary": true
+          }
+        }
+      ],
+      "overall_success": true,
+      "total_steps": 5,
+      "successful_steps": 5,
+      "test_user_id": "e6106cab72d81156",
+      "test_message": "show me spending analysis for this month"
+    },
+    "mixed_coaching_workflow": {
+      "workflow_steps": [
+        {
+          "step": "mixed_language_extraction",
+          "success": true,
+          "details": {
+            "input": "help me \u099f\u09be\u0995\u09be \u09b8\u09c7\u09ad \u0995\u09b0\u09a4\u09c7 this month",
+            "has_coaching_verbs": true,
+            "has_time_window": true,
+            "normalized_text": "help me \u099f\u09be\u0995\u09be \u09b8\u09c7\u09ad \u0995\u09b0\u09a4\u09c7 this month"
+          }
+        },
+        {
+          "step": "coaching_routing",
+          "success": true,
+          "details": {
+            "intent": "COACHING",
+            "ledger_count": 20,
+            "coaching_eligible": true
+          }
+        },
+        {
+          "step": "coaching_response",
+          "success": true,
+          "details": {
+            "bullet_points": [
+              "Total spending tracked: \u09f318,000",
+              "Consistent tracking helps identify patterns",
+              "Keep logging expenses for better insights"
+            ],
+            "coaching_quality": true
+          }
+        }
+      ],
+      "overall_success": true,
+      "total_steps": 3,
+      "successful_steps": 3,
+      "test_user_id": "d57607f506d62b7b",
+      "test_message": "help me \u099f\u09be\u0995\u09be \u09b8\u09c7\u09ad \u0995\u09b0\u09a4\u09c7 this month"
+    },
+    "faq_admin_workflow": {
+      "workflow_steps": [
+        {
+          "step": "faq_workflow",
+          "success": true,
+          "details": {
+            "intent": "FAQ",
+            "has_faq_terms": true
+          }
+        },
+        {
+          "step": "admin_workflow",
+          "success": true,
+          "details": {
+            "intent": "ADMIN",
+            "is_admin": true
+          }
+        }
+      ],
+      "overall_success": true,
+      "total_steps": 2,
+      "successful_steps": 2
+    },
+    "edge_cases_workflow": {
+      "edge_cases": [
+        {
+          "case": "empty_message",
+          "success": true,
+          "details": {
+            "signals_returned": true
+          }
+        },
+        {
+          "case": "very_long_message",
+          "success": true,
+          "details": {
+            "original_length": 3000,
+            "final_length": 2000,
+            "truncated": true
+          }
+        },
+        {
+          "case": "malicious_input",
+          "success": true,
+          "details": {
+            "security_flags": [
+              "html_escaped"
+            ],
+            "safe_for_processing": true
+          }
+        },
+        {
+          "case": "zero_amount",
+          "success": true,
+          "details": {
+            "has_money": true,
+            "money_mentions": [
+              "\u09f30"
+            ]
+          }
+        }
+      ],
+      "overall_success": true,
+      "total_cases": 4,
+      "successful_cases": 4
+    }
+  },
+  "data_integrity_checks": {
+    "integrity_checks": [
+      {
+        "check": "database_schema_simulation",
+        "success": true,
+        "details": {
+          "user_schema_simulated": true,
+          "expense_schema_simulated": true,
+          "required_user_fields": [
+            "psid_hash",
+            "first_name",
+            "created_at"
+          ],
+          "required_expense_fields": [
+            "user_id",
+            "amount",
+            "description",
+            "category"
+          ]
+        }
+      },
+      {
+        "check": "signal_extraction_consistency",
+        "success": true,
+        "details": {
+          "tested_messages": 4,
+          "all_consistent": true,
+          "extraction_details": [
+            {
+              "message": "lunch 500 taka",
+              "consistent": true,
+              "expected": {
+                "has_money": true
+              },
+              "actual": {
+                "has_money": true
+              }
+            },
+            {
+              "message": "\u099a\u09be \u09eb\u09e6 \u099f\u09be\u0995\u09be",
+              "consistent": true,
+              "expected": {
+                "has_money": true
+              },
+              "actual": {
+                "has_money": true
+              }
+            },
+            {
+              "message": "analysis please",
+              "consistent": true,
+              "expected": {
+                "explicit_analysis_request": true
+              },
+              "actual": {
+                "explicit_analysis_request": true
+              }
+            },
+            {
+              "message": "what can you do",
+              "consistent": true,
+              "expected": {
+                "has_faq_terms": true
+              },
+              "actual": {
+                "has_faq_terms": true
+              }
+            }
+          ]
+        }
+      },
+      {
+        "check": "routing_determinism",
+        "success": true,
+        "details": {
+          "tested_routes": 5,
+          "all_deterministic": true,
+          "routing_details": [
+            {
+              "message": "/id",
+              "expected": "ADMIN",
+              "actual": "ADMIN",
+              "consistent": true,
+              "correct": true
+            },
+            {
+              "message": "analysis please",
+              "expected": "ANALYSIS",
+              "actual": "ANALYSIS",
+              "consistent": true,
+              "correct": true
+            },
+            {
+              "message": "what can you do",
+              "expected": "FAQ",
+              "actual": "FAQ",
+              "consistent": true,
+              "correct": true
+            },
+            {
+              "message": "help me save money",
+              "expected": "COACHING",
+              "actual": "COACHING",
+              "consistent": true,
+              "correct": true
+            },
+            {
+              "message": "lunch 500 taka",
+              "expected": "SMALLTALK",
+              "actual": "SMALLTALK",
+              "consistent": true,
+              "correct": true
+            }
+          ]
+        }
+      }
+    ],
+    "overall_success": true,
+    "total_checks": 3,
+    "successful_checks": 3
+  },
+  "system_health": {
+    "health_checks": [
+      {
+        "check": "module_import_performance",
+        "success": true,
+        "details": {
+          "import_time_seconds": 1.8835067749023438e-05,
+          "performance_acceptable": true
+        }
+      },
+      {
+        "check": "signal_extraction_performance",
+        "success": true,
+        "details": {
+          "avg_time_per_extraction_ms": 0.0383913516998291,
+          "total_extractions": 40,
+          "performance_acceptable": true
+        }
+      },
+      {
+        "check": "ai_adapter_health",
+        "success": true,
+        "details": {
+          "mode": "stub",
+          "cached_users": 0,
+          "contract_guarantee": "never_empty",
+          "last_check": 1756295990.775368
+        }
+      },
+      {
+        "check": "memory_usage_simulation",
+        "success": true,
+        "details": {
+          "memory_usage_mb": 250,
+          "memory_acceptable": true,
+          "note": "psutil not available, using simulation"
+        }
+      }
+    ],
+    "overall_success": true,
+    "total_checks": 4,
+    "successful_checks": 4
+  },
+  "final_assessment": {
+    "deployment_ready": false,
+    "all_scenarios_pass": false,
+    "data_integrity_pass": true,
+    "system_health_pass": true,
+    "weighted_overall_score": 96.0,
+    "scenario_breakdown": {
+      "bengali_expense_workflow": {
+        "success": false,
+        "success_rate": 66.66666666666666
+      },
+      "english_analysis_workflow": {
+        "success": true,
+        "success_rate": 100.0
+      },
+      "mixed_coaching_workflow": {
+        "success": true,
+        "success_rate": 100.0
+      },
+      "faq_admin_workflow": {
+        "success": true,
+        "success_rate": 100.0
+      },
+      "edge_cases_workflow": {
+        "success": true,
+        "success_rate": 100.0
+      }
+    },
+    "critical_workflows": {
+      "bengali_expense": false,
+      "english_analysis": true,
+      "mixed_coaching": true,
+      "edge_case_handling": true
+    },
+    "data_flow_integrity": {
+      "extraction_to_routing": true,
+      "routing_to_processing": true,
+      "processing_to_storage": true,
+      "end_to_end_consistency": false
+    }
+  }
+}
