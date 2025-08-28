@@ -159,6 +159,122 @@ class ProductionRouter:
         has_expense_keyword = any(keyword in text.lower() for keyword in expense_keywords)
         
         return bool(has_number and (has_expense_keyword or len(text.split()) <= 3))
+
+    def _is_multi_expense_message(self, text: str) -> bool:
+        """Check if message contains multiple expenses"""
+        import re
+        
+        # Look for multiple amounts
+        amounts = re.findall(r'\b\d+(?:\.\d+)?\b', text)
+        if len(amounts) < 2:
+            return False
+            
+        # Look for expense separators
+        separators = ['and', ',', ';', '+', 'plus', 'also']
+        has_separator = any(sep in text.lower() for sep in separators)
+        
+        # Look for expense-related keywords  
+        expense_keywords = ['spent', 'paid', 'bought', 'cost', 'on', 'for']
+        has_expense_keyword = any(keyword in text.lower() for keyword in expense_keywords)
+        
+        return bool(has_separator and has_expense_keyword)
+
+    def _handle_multi_expense_logging(self, text: str, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+        """Handle logging multiple expenses from a single message"""
+        try:
+            from parsers.expense import extract_all_expenses
+            from utils.db import save_expense
+            from datetime import datetime
+            
+            # Extract all expenses from the message
+            expenses = extract_all_expenses(text, datetime.now())
+            
+            if not expenses or len(expenses) <= 1:
+                # Not actually multi-expense, fall back to single expense handling
+                return self._handle_single_expense_logging(text, psid, psid_hash, rid)
+            
+            logged_expenses = []
+            total_amount = 0.0
+            
+            # Log each expense separately
+            for i, expense in enumerate(expenses):
+                try:
+                    amount = float(expense['amount'])
+                    category = expense.get('category', 'general')
+                    note = expense.get('note', text)
+                    
+                    # Create unique ID for each expense
+                    unique_id = f"{rid}_multi_{i+1}"
+                    
+                    # Save expense to database
+                    save_expense(
+                        user_identifier=psid_hash,
+                        description=f"{category} expense",
+                        amount=amount,
+                        category=category,
+                        platform="facebook",
+                        original_message=text,
+                        unique_id=unique_id
+                    )
+                    
+                    logged_expenses.append(f"৳{amount:.0f} for {category}")
+                    total_amount += amount
+                    
+                except Exception as e:
+                    logger.error(f"Failed to log expense {i+1}: {e}")
+                    continue
+            
+            # Generate response for multiple expenses
+            if len(logged_expenses) >= 2:
+                expense_list = " and ".join(logged_expenses)
+                response = f"✅ Logged {len(logged_expenses)} expenses: {expense_list}"
+                self._log_routing_decision(rid, psid_hash, "multi_expense", f"logged_{len(logged_expenses)}_expenses")
+                return normalize(response), "multi_expense_logged", "multiple", total_amount
+            else:
+                # Only one succeeded, treat as single expense
+                return self._handle_single_expense_logging(text, psid, psid_hash, rid)
+                
+        except Exception as e:
+            logger.error(f"Multi-expense logging failed: {e}")
+            # Fall back to single expense handling
+            return self._handle_single_expense_logging(text, psid, psid_hash, rid)
+
+    def _handle_single_expense_logging(self, text: str, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+        """Handle logging a single expense (existing logic)"""
+        try:
+            from parsers.expense import parse_expense
+            from utils.db import save_expense
+            from datetime import datetime
+            
+            # Parse single expense
+            expense = parse_expense(text, datetime.now())
+            
+            if not expense:
+                response = "I couldn't understand that expense. Try: 'spent 200 on groceries'"
+                return normalize(response), "parse_failed", None, None
+            
+            amount = float(expense['amount'])
+            category = expense.get('category', 'general')
+            
+            # Save expense to database
+            save_expense(
+                user_identifier=psid_hash,
+                description=f"{category} expense",
+                amount=amount,
+                category=category,
+                platform="facebook",
+                original_message=text,
+                unique_id=rid
+            )
+            
+            response = f"✅ Logged: ৳{amount:.0f} for {category}"
+            self._log_routing_decision(rid, psid_hash, "single_expense", f"logged_{amount}_{category}")
+            return normalize(response), "expense_logged", category, amount
+            
+        except Exception as e:
+            logger.error(f"Single expense logging failed: {e}")
+            response = "Something went wrong logging your expense. Please try again."
+            return normalize(response), "expense_error", None, None
     
     def route_message(self, text: str, psid_or_hash: str, rid: str = "") -> Tuple[str, str, Optional[str], Optional[float]]:
         """
@@ -353,8 +469,16 @@ class ProductionRouter:
                     # Fall through to regular expense logging as fallback
                     
             # Step 2: AI ROUTING FIRST - Enhanced with CC Decision Tree (Phase 2)
-            # Check if this looks like an expense for AI routing
+            # Check if this looks like an expense for AI routing  
             money_detected = contains_money_with_correction_fallback(text, user_hash)
+            
+            # Check for multi-expense messages first
+            if money_detected and self._is_multi_expense_message(text):
+                logger.info(f"[ROUTER] Multi-expense detected: '{text[:50]}...'")
+                try:
+                    return self._handle_multi_expense_logging(text, original_psid, user_hash, rid)
+                except Exception as e:
+                    logger.error(f"Multi-expense handling failed: {e}, falling through to single expense")
             
             if money_detected:
                 # Try CC-based AI routing first (always enabled)

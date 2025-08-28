@@ -115,7 +115,21 @@ CATEGORY_ALIASES = {
     'baby': ('family', 9),
     'education': ('education', 10),
     'school': ('education', 9),
-    'tuition': ('education', 10)
+    'tuition': ('education', 10),
+    
+    # Pets & Animals (strength: 9) - ADDED FOR CAT FOOD ISSUE
+    'pet': ('pets', 10),
+    'pets': ('pets', 10),
+    'cat': ('pets', 9),
+    'dog': ('pets', 9),
+    'animal': ('pets', 8),
+    'vet': ('pets', 9),
+    'veterinary': ('pets', 9),
+    'cat food': ('pets', 10),
+    'dog food': ('pets', 10),
+    'pet food': ('pets', 10),
+    'pet supplies': ('pets', 9),
+    'pet store': ('pets', 9)
 }
 
 def normalize_text_for_parsing(text: str) -> str:
@@ -417,6 +431,8 @@ def _infer_category_from_context(context_text: str) -> str:
     category_keywords = {
         # Transport (strong indicators)
         'transport': ['uber', 'taxi', 'cng', 'bus', 'ride', 'lyft', 'grab', 'pathao', 'fuel', 'petrol', 'gas'],
+        # Pets & Animals - MOVED BEFORE FOOD FOR PRIORITY IN CAT FOOD ISSUE
+        'pets': ['cat', 'dog', 'pet', 'pets', 'animal', 'vet', 'veterinary', 'cat food', 'dog food', 'pet food', 'pet supplies', 'pet store'],
         # Food (strong indicators) - ADDED BENGALI FOODS + DRINKS FOR JUICE ISSUE
         'food': ['breakfast', 'lunch', 'dinner', 'coffee', 'tea', 'restaurant', 'meal', 'pizza', 'burger', 'food', 
                  'juice', 'fruit', 'water', 'milk', 'drink', 'beverage', 'soda', 'smoothie', 'shake', 'lassi', 'borhani', 
@@ -444,6 +460,10 @@ def _infer_category_from_context(context_text: str) -> str:
                 # Boost for exact category matches
                 if keyword in ['uber', 'taxi', 'breakfast', 'lunch', 'dinner', 'grocery']:
                     strength += 3
+                    
+                # Extra boost for pet-specific keywords to override generic "food"
+                if keyword in ['cat', 'dog', 'cat food', 'dog food', 'pet food', 'vet']:
+                    strength += 5
                 
                 if strength > best_strength:
                     best_strength = strength
