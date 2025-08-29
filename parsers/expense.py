@@ -322,18 +322,18 @@ def extract_all_expenses(text: str, now: Optional[datetime] = None) -> List[Dict
     normalized = normalize_text_for_parsing(text)
     expenses = []
     
-    # Find all amounts in the text (symbols, words, bare numbers)
+    # Find all amounts in the text (symbols, words, bare numbers) - ENHANCED FOR COMMA PARSING
     amount_patterns = [
-        # Currency symbols with amounts
-        (r'([৳$£€₹])\s*(\d+(?:[.,]\d{1,2})?)', 'symbol'),
-        # Amount with currency words  
-        (r'(\d+(?:[.,]\d{1,2})?)\s*(tk|taka|bdt|usd|eur|inr|rs|dollar|pound|euro|rupee)\b', 'word'),
-        # Action verbs with amounts
-        (r'\b(spent|paid|bought|blew|burned|used)\s+[^\d]*(\d+(?:[.,]\d{1,2})?)', 'verb'),
-        # Category + amount patterns (coffee 50, uber 2500)  
-        (r'\b(coffee|lunch|dinner|breakfast|uber|taxi|cng|bus|grocery|groceries|medicine|pharmacy)\s+(\d+(?:[.,]\d{1,2})?)', 'category'),
-        # Bare numbers (2+ digits, but prioritize context)
-        (r'\b(\d{2,7}(?:[.,]\d{1,2})?)\b', 'bare')
+        # Currency symbols with amounts (enhanced for comma handling)
+        (r'([৳$£€₹])\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)', 'symbol'),
+        # Amount with currency words (enhanced for comma handling)
+        (r'(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\s*(tk|taka|bdt|usd|eur|inr|rs|dollar|pound|euro|rupee)\b', 'word'),
+        # Action verbs with amounts (enhanced for comma handling)
+        (r'\b(spent|paid|bought|blew|burned|used)\s+[^\d]*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)', 'verb'),
+        # Category + amount patterns (enhanced for comma handling)
+        (r'\b(coffee|lunch|dinner|breakfast|uber|taxi|cng|bus|grocery|groceries|medicine|pharmacy)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)', 'category'),
+        # Bare numbers (enhanced for comma handling)
+        (r'\b(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d{2,7}(?:\.\d{1,2})?)\b', 'bare')
     ]
     
     found_amounts = []
@@ -359,16 +359,21 @@ def extract_all_expenses(text: str, now: Optional[datetime] = None) -> List[Dict
                 currency = 'BDT'  # Default
             
             try:
-                amount = Decimal(amount_val.replace(',', '.'))
-                if amount > 0:  # Skip zero amounts
-                    found_amounts.append({
-                        'amount': amount,
-                        'currency': currency,
-                        'start': match.start(),
-                        'end': match.end(),
-                        'context_start': max(0, match.start() - 50),
-                        'context_end': min(len(text), match.end() + 50)
-                    })
+                # Fix comma decimal parsing - handle thousands vs decimal separators
+                amount = _parse_amount_with_locale_support(amount_val)
+                
+                # Add database overflow protection
+                if amount <= 0 or amount >= Decimal('99999999.99'):  # Skip invalid amounts
+                    continue
+                
+                found_amounts.append({
+                    'amount': amount,
+                    'currency': currency,
+                    'start': match.start(),
+                    'end': match.end(),
+                    'context_start': max(0, match.start() - 50),
+                    'context_end': min(len(text), match.end() + 50)
+                })
             except (InvalidOperation, ValueError):
                 continue
     
@@ -384,10 +389,10 @@ def extract_all_expenses(text: str, now: Optional[datetime] = None) -> List[Dict
         if not is_duplicate:
             unique_amounts.append(amount_info)
     
-    # For each amount, infer category from nearby context (±6 words)
+    # For each amount, infer category from targeted context
     for amount_info in unique_amounts:
-        # Extract context window around the amount
-        context_text = text[amount_info['context_start']:amount_info['context_end']]
+        # Extract targeted context specific to this amount (fix multi-expense categories)
+        context_text = _extract_targeted_context(text, amount_info)
         
         # Infer category from context
         category = _infer_category_from_context(context_text)
@@ -409,6 +414,96 @@ def extract_all_expenses(text: str, now: Optional[datetime] = None) -> List[Dict
         expenses.append(expense)
     
     return expenses
+
+def _parse_amount_with_locale_support(amount_str: str) -> Decimal:
+    """
+    Parse amount string with proper comma/decimal handling.
+    
+    Args:
+        amount_str: Amount string like "1,250.50" or "2,500" or "4.50"
+        
+    Returns:
+        Decimal amount
+        
+    Examples:
+        "1,250.50" → 1250.50 (thousands separator + decimal)
+        "2,500" → 2500.00 (thousands separator only)
+        "4.50" → 4.50 (decimal only)
+        "1.25" → 1.25 (decimal only, ambiguous but treat as decimal)
+    """
+    if not amount_str:
+        raise ValueError("Empty amount string")
+    
+    # Remove spaces
+    amount_str = amount_str.strip()
+    
+    # Check for decimal format patterns
+    if ',' in amount_str and '.' in amount_str:
+        # Both comma and period present - comma is thousands separator
+        # Example: "1,250.50" → 1250.50
+        amount_str = amount_str.replace(',', '')
+        return Decimal(amount_str)
+    elif ',' in amount_str:
+        # Only comma present - check if it's thousands separator or decimal
+        parts = amount_str.split(',')
+        if len(parts) == 2 and len(parts[1]) <= 2:
+            # Likely decimal separator: "4,50" → 4.50
+            amount_str = amount_str.replace(',', '.')
+        else:
+            # Likely thousands separator: "2,500" → 2500
+            amount_str = amount_str.replace(',', '')
+    # If only period, treat as decimal separator (no change needed)
+    
+    return Decimal(amount_str)
+
+def _extract_targeted_context(text: str, amount_info: dict) -> str:
+    """
+    Extract targeted context around a specific amount for better category inference.
+    
+    Args:
+        text: Full text
+        amount_info: Dict with amount position info
+        
+    Returns:
+        Targeted context string focused on this specific amount
+    """
+    amount_start = amount_info['start']
+    amount_end = amount_info['end']
+    
+    # Look for word boundaries around the amount to create focused context
+    words = text.split()
+    text_positions = []
+    current_pos = 0
+    
+    # Map word positions to character positions
+    for word in words:
+        word_start = text.find(word, current_pos)
+        word_end = word_start + len(word)
+        text_positions.append((word, word_start, word_end))
+        current_pos = word_end
+    
+    # Find words near the amount (±3 words)
+    target_words = []
+    amount_word_index = -1
+    
+    # Find which word contains our amount
+    for i, (word, start, end) in enumerate(text_positions):
+        if start <= amount_start < end or start < amount_end <= end:
+            amount_word_index = i
+            break
+    
+    if amount_word_index >= 0:
+        # Take ±3 words around the amount word
+        start_idx = max(0, amount_word_index - 3)
+        end_idx = min(len(text_positions), amount_word_index + 4)
+        target_words = [pos[0] for pos in text_positions[start_idx:end_idx]]
+    else:
+        # Fallback to character-based context if word mapping fails
+        context_start = max(0, amount_start - 30)
+        context_end = min(len(text), amount_end + 30)
+        return text[context_start:context_end]
+    
+    return ' '.join(target_words)
 
 def _infer_category_from_context(context_text: str) -> str:
     """
