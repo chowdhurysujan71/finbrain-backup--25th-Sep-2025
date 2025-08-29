@@ -97,11 +97,17 @@ CATEGORY_ALIASES = {
     'pharmacy': ('health', 9),
     'doctor': ('health', 9),
     
-    # Bills (strength: 9)
+    # Bills (strength: 9) - ENHANCED FOR GAS BILL ISSUE
     'internet': ('bills', 10),
     'phone': ('bills', 9),
     'rent': ('bills', 10),
     'utilities': ('bills', 9),
+    'gas bill': ('bills', 10),  # Utility gas bill
+    'electricity bill': ('bills', 10),
+    'water bill': ('bills', 10),
+    'electric bill': ('bills', 10),
+    'power bill': ('bills', 10),
+    'utility bill': ('bills', 10),
     
     # Entertainment (strength: 8)
     'entertainment': ('entertainment', 8),
@@ -301,7 +307,7 @@ def infer_category_with_strength(text: str) -> str:
     
     return best_category
 
-def extract_all_expenses(text: str, now: Optional[datetime] = None) -> List[Dict[str, Any]]:
+def extract_all_expenses(text: str, now: Optional[datetime] = None, **kwargs) -> List[Dict[str, Any]]:
     """
     Extract all expenses from text that may contain multiple amounts.
     
@@ -394,8 +400,9 @@ def extract_all_expenses(text: str, now: Optional[datetime] = None) -> List[Dict
         # Extract targeted context specific to this amount (fix multi-expense categories)
         context_text = _extract_targeted_context(text, amount_info)
         
-        # Infer category from context
-        category = _infer_category_from_context(context_text)
+        # Infer category from context with user learning integration  
+        user_hash = kwargs.get('user_hash')  # Extract user hash from kwargs if passed
+        category = _infer_category_from_context(context_text, user_hash)
         
         # Extract merchant if present in context
         merchant = extract_merchant(context_text)
@@ -505,12 +512,13 @@ def _extract_targeted_context(text: str, amount_info: dict) -> str:
     
     return ' '.join(target_words)
 
-def _infer_category_from_context(context_text: str) -> str:
+def _infer_category_from_context(context_text: str, user_hash: str = None) -> str:
     """
-    Infer category from context text using a ±6 word window.
+    Infer category from context text using a ±6 word window with user learning integration.
     
     Args:
         context_text: Text context around the amount
+        user_hash: User's hash for checking learned preferences
         
     Returns:
         Inferred category string
@@ -522,10 +530,35 @@ def _infer_category_from_context(context_text: str) -> str:
     best_category = 'general'
     best_strength = 0
     
+    # PRIORITY 1: Check user's learned preferences first
+    if user_hash:
+        try:
+            from utils.expense_learning import user_learning_system
+            # Extract potential item names from context
+            words = context_lower.split()
+            for word in words:
+                if len(word) > 2:  # Skip short words
+                    user_pref = user_learning_system.get_user_preference(user_hash, word)
+                    if user_pref:
+                        # User has explicitly learned this - use it with highest priority
+                        return user_pref['category']
+            
+            # Also check multi-word items like "rc cola"
+            for i in range(len(words) - 1):
+                two_word_item = f"{words[i]} {words[i+1]}"
+                user_pref = user_learning_system.get_user_preference(user_hash, two_word_item)
+                if user_pref:
+                    return user_pref['category']
+        except Exception as e:
+            # Don't fail parsing if learning system has issues
+            pass
+    
     # Enhanced category matching with context-specific boosts
     category_keywords = {
-        # Transport (strong indicators)
-        'transport': ['uber', 'taxi', 'cng', 'bus', 'ride', 'lyft', 'grab', 'pathao', 'fuel', 'petrol', 'gas'],
+        # Bills - HIGHEST PRIORITY FOR UTILITY BILLS
+        'bills': ['gas bill', 'electricity bill', 'electric bill', 'water bill', 'power bill', 'utility bill', 'internet bill', 'phone bill', 'rent', 'utilities'],
+        # Transport (strong indicators) - NOTE: 'gas' alone can be fuel, but 'gas bill' is above  
+        'transport': ['uber', 'taxi', 'cng', 'bus', 'ride', 'lyft', 'grab', 'pathao', 'fuel', 'petrol', 'gas station', 'gas pump', 'paid gas', 'gas tank', 'fill gas', 'filled gas'],
         # Pets & Animals - MOVED BEFORE FOOD FOR PRIORITY IN CAT FOOD ISSUE
         'pets': ['cat', 'dog', 'pet', 'pets', 'animal', 'vet', 'veterinary', 'cat food', 'dog food', 'pet food', 'pet supplies', 'pet store'],
         # Food (strong indicators) - ADDED BENGALI FOODS + DRINKS FOR JUICE ISSUE

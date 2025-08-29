@@ -58,11 +58,33 @@ def handle_insight(user_id: str) -> Dict[str, str]:
             import random
             request_uniqueness = f"{user_id}_{int(time.time())}_{random.randint(1000,9999)}"
             
+            # Get recent activity context (last 7 days)
+            from datetime import datetime, timedelta
+            week_start = datetime.now() - timedelta(days=7)
+            
+            recent_expenses = db.session.query(
+                Expense.category,
+                db.func.sum(Expense.amount).label('total'),
+                db.func.count(Expense.id).label('count')
+            ).filter(
+                Expense.user_id_hash == user_id,
+                Expense.created_at >= week_start
+            ).group_by(Expense.category).all()
+            
+            recent_total = sum(exp.total for exp in recent_expenses) if recent_expenses else 0
+            recent_categories = [{'category': exp.category, 'total': float(exp.total), 'count': exp.count} 
+                               for exp in recent_expenses] if recent_expenses else []
+            
             expenses_context = {
                 'total_amount': total,
                 'expenses': expense_data,
                 'timeframe': 'this month',
                 'expense_count': len(expenses),
+                'recent_activity': {
+                    'last_7_days_total': recent_total,
+                    'last_7_days_categories': recent_categories,
+                    'recent_vs_monthly_ratio': (recent_total / total * 100) if total > 0 else 0
+                },
                 'request_id': request_uniqueness,
                 'user_context': f"user_{user_id[:8]}_insights",
                 'timestamp': time.time()

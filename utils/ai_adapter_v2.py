@@ -120,34 +120,55 @@ class ProductionAIAdapter:
             # CRITICAL: Log request for contamination monitoring
             request_id = ai_contamination_monitor.log_request(user_id, expenses_data)
             
-            # Add user isolation marker to prompt
+            # Extract recent activity for more current insights
+            recent_activity = expenses_data.get('recent_activity', {})
+            recent_ratio = recent_activity.get('recent_vs_monthly_ratio', 0)
+            recent_total = recent_activity.get('last_7_days_total', 0)
+            recent_categories = recent_activity.get('last_7_days_categories', [])
+            
+            # Build recent activity context
+            if recent_categories:
+                recent_breakdown = "Recent activity (last 7 days):\n"
+                for cat in sorted(recent_categories, key=lambda x: x['total'], reverse=True)[:3]:
+                    recent_breakdown += f"- {cat['category'].title()}: ৳{cat['total']:,.0f} ({cat['count']} transactions)\n"
+                recent_context = f"Recent spending: ৳{recent_total:,.0f} (last 7 days)\n{recent_breakdown}"
+            else:
+                recent_context = "No recent activity in last 7 days"
+
+            # Add user isolation marker to prompt with enhanced recent context
             insights_prompt = f"""SYSTEM: Analyze ONLY the following user's spending data. Do not mix with other users' data.
 USER_ID: {user_id[:8]}...
 REQUEST_ID: {request_id}
 
-Analyze these spending patterns and provide 3-4 actionable financial insights:
+Analyze spending patterns focusing on RECENT TRENDS and provide actionable insights:
 
-SPENDING SUMMARY ({timeframe}):
+MONTHLY OVERVIEW ({timeframe}):
 Total: ৳{total_amount:,.0f}
 Breakdown:
 {expense_breakdown}
 
+RECENT ACTIVITY ANALYSIS:
+{recent_context}
+Recent vs Monthly Ratio: {recent_ratio:.0f}% (last 7 days represent {recent_ratio:.0f}% of monthly spending)
+
 Provide insights in this JSON format:
 {{
   "insights": [
-    "insight 1: specific observation with actionable advice",
-    "insight 2: spending pattern with optimization tip", 
-    "insight 3: budget recommendation or saving opportunity"
+    "insight 1: recent trend observation with this week's action",
+    "insight 2: spending pace analysis with adjustment tip", 
+    "insight 3: pattern recognition with specific optimization"
   ],
   "tone": "encouraging",
-  "focus_area": "highest impact category for optimization"
+  "focus_area": "most actionable category based on recent activity"
 }}
 
 Make insights:
-- Specific to their spending patterns
-- Actionable (clear next steps)
-- Encouraging and positive
-- Bengali context-aware (mention local alternatives/tips when relevant)
+- PRIORITIZE recent activity (last 7 days) over monthly patterns
+- If recent ratio > 30%, address spending pace
+- Be specific to their actual behavior, not generic advice
+- Actionable for THIS WEEK (not generic tips)
+- Encouraging and positive tone
+- Bengali context-aware when relevant
 - 1-2 sentences each, max 50 words per insight"""
 
             # Prepare API request
