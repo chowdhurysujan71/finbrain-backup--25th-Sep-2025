@@ -47,20 +47,41 @@ def validate_facebook_psid(psid):
         return False
 
 def sanitize_input(text):
-    """Sanitize user input to prevent injection attacks"""
+    """Enhanced sanitize user input to prevent injection attacks and XSS"""
     try:
         if not text:
             return ""
         
-        # Remove potentially dangerous characters
+        # Convert to string and strip
         sanitized = str(text).strip()
         
-        # Remove SQL injection attempts
-        dangerous_chars = [';', '--', '/*', '*/', 'xp_', 'sp_']
-        for char in dangerous_chars:
-            sanitized = sanitized.replace(char, '')
+        # Remove control characters (except newline, carriage return, tab)
+        sanitized = ''.join(char for char in sanitized if ord(char) >= 32 or char in ['\n', '\r', '\t'])
         
-        return sanitized[:500]  # Limit length
+        # Remove/escape potentially dangerous characters for XSS
+        xss_patterns = [
+            '<script', '</script>', '<iframe', '</iframe>', '<object', '</object>',
+            'javascript:', 'vbscript:', 'onload=', 'onerror=', 'onclick=', 'onmouseover='
+        ]
+        for pattern in xss_patterns:
+            sanitized = sanitized.replace(pattern, '')
+            sanitized = sanitized.replace(pattern.upper(), '')
+        
+        # Remove SQL injection attempts
+        sql_patterns = [';', '--', '/*', '*/', 'xp_', 'sp_', 'DROP TABLE', 'DELETE FROM', 
+                       'INSERT INTO', 'UPDATE SET', 'UNION SELECT', 'SELECT * FROM']
+        for pattern in sql_patterns:
+            sanitized = sanitized.replace(pattern, '')
+            sanitized = sanitized.replace(pattern.upper(), '')
+        
+        # Limit length to prevent DoS
+        if len(sanitized) > 2000:
+            sanitized = sanitized[:2000]
+        
+        # Preserve Bengali/unicode characters but remove null bytes
+        sanitized = sanitized.replace('\x00', '')
+        
+        return sanitized
         
     except Exception as e:
         logger.error(f"Error sanitizing input: {str(e)}")
