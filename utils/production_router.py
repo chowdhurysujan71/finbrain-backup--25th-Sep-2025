@@ -391,6 +391,27 @@ class ProductionRouter:
                     logger.error(f"Summary handler error: {e}")
                     # Fall through to other handlers if summary fails
             
+            # Step 1.4: REPORT FEEDBACK DETECTION (BEFORE DETERMINISTIC ROUTING)
+            # Check for YES/NO responses to Money Story reports
+            try:
+                from handlers.feedback import handle_report_feedback, is_feedback_response
+                
+                # Quick pre-check to avoid unnecessary processing
+                if is_feedback_response(text):
+                    logger.debug(f"[ROUTER] Potential feedback response: '{text[:30]}...'")
+                    
+                    feedback_result = handle_report_feedback(user_hash, text)
+                    if feedback_result:
+                        logger.info(f"[ROUTER] Report feedback processed: {feedback_result.get('signal')} from user {user_hash[:8]}...")
+                        self._log_routing_decision(rid, user_hash, "report_feedback", feedback_result.get('signal', 'unknown'))
+                        self._record_processing_time(time.time() - start_time)
+                        return normalize(feedback_result['text']), "report_feedback", None, None
+                    else:
+                        logger.debug(f"[ROUTER] Not a valid feedback response, continuing routing")
+                        
+            except Exception as e:
+                logger.warning(f"Report feedback handler error: {e}, continuing routing")
+            
             # Step 1.5: DETERMINISTIC ROUTING (PoR v1.1 - EXPENSE_LOG and CLARIFY_EXPENSE intents)
             try:
                 from utils.routing_policy import deterministic_router

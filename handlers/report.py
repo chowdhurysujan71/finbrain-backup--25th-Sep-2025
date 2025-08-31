@@ -12,12 +12,14 @@ logger = logging.getLogger(__name__)
 
 def handle_report(user_id: str) -> Dict[str, str]:
     """
-    Generate Money Story report for user
-    Returns dict with 'text' key containing the narrative report
+    Generate Money Story report for user with feedback collection
+    Returns dict with 'text' key containing the narrative report + feedback prompt
     """
     try:
         from models import Expense
         from app import db
+        from utils.feedback_context import set_feedback_context
+        import uuid
         
         # Emit telemetry event
         _emit_telemetry_event(user_id)
@@ -37,8 +39,25 @@ def handle_report(user_id: str) -> Dict[str, str]:
         # Generate Money Story
         story = _generate_money_story(expenses, days_window, user_id)
         
-        logger.info(f"Generated Money Story for user {user_id[:8]}...")
-        return {"text": story}
+        # Phase 2: Add feedback collection
+        try:
+            # Generate unique context ID for this report
+            report_context_id = f"report_{int(datetime.now().timestamp())}_{str(uuid.uuid4())[:8]}"
+            
+            # Set feedback context
+            set_feedback_context(user_id, report_context_id)
+            
+            # Add feedback prompt to story
+            feedback_prompt = "\n\n💭 Was this helpful? Reply YES or NO"
+            enhanced_story = story + feedback_prompt
+            
+            logger.info(f"Generated Money Story with feedback prompt for user {user_id[:8]}... (context: {report_context_id})")
+            return {"text": enhanced_story}
+            
+        except Exception as feedback_error:
+            # Feedback system failure should not break reports
+            logger.warning(f"Feedback context setup failed: {feedback_error}, returning story without prompt")
+            return {"text": story}
         
     except Exception as e:
         logger.error(f"Report handler error: {e}")
