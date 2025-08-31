@@ -1,0 +1,84 @@
+Guardrails for Analytics vs Milestones
+🎯 Goal
+
+Ensure Block 4 analytics (D1, D3, reports_requested) and milestone gamification (streak-3, 10-logs) coexist without conflict, misfire, or user confusion. Guardrails = rules the system must enforce at all times.
+
+🛠 Instruction to Agent
+
+You are responsible for enforcing guardrails between analytics and gamified rules. Implement the following:
+
+Separate Purposes
+
+Treat Block 4 fields (d1_logged, d3_completed, reports_requested) as analytics-only.
+
+Treat milestones (streak-3, 10-logs) as user-visible nudges.
+
+Never let analytics fields trigger milestone messages.
+
+Canonical Day Handling
+
+Use helper functions:
+
+to_local(dt, 'Asia/Dhaka')
+
+day_key(dt) → "YYYY-MM-DD"
+
+is_same_local_day(a,b)
+
+All D1/D3/streak logic must rely on local-day comparisons.
+
+Example: signup at 23:50, first log at 00:05 → d1_logged=false, but streak may still advance normally.
+
+Streak Independence
+
+Compute streaks only from consecutive local calendar days with ≥1 log.
+
+Trigger streak-3 only when crossing from 2 → 3 days in a row today.
+
+Do not read d1_logged or d3_completed flags when calculating streaks.
+
+Daily Cap (Milestones Only)
+
+At most 1 milestone message per local calendar day.
+
+If multiple milestones occur, show the first that fires; suppress others.
+
+Analytics events (activation_d1, activation_d3, report counts) are not throttled.
+
+Telemetry Namespacing
+
+Emit analytics events with names: activation_d1, activation_d3, report_requested.
+
+Emit milestone events with names: milestone_fired(type='streak-3'|'10-logs').
+
+Never reuse event names between analytics and milestones.
+
+Feature Flags
+
+Add FEATURE_ANALYTICS_BLOCK4 and FEATURE_MILESTONES_SIMPLE.
+
+Must be toggleable independently.
+
+If milestones are disabled, analytics continues to function.
+
+✅ Acceptance Criteria
+
+D1/D3 flip once and emit analytics events exactly once each; never trigger user-visible nudges.
+
+Streak-3 only fires on the 3rd consecutive local-day log; never influenced by D1/D3.
+
+10-logs milestone fires once at exactly 10 logs; Block 4 never re-triggers it.
+
+Daily cap: if streak-3 and 10-logs both cross today, only the first milestone message is delivered.
+
+Telemetry clearly separates analytics vs milestones.
+
+Timezone correctness verified: Asia/Dhaka day boundaries respected.
+
+Feature flags tested: disabling milestones hides nudges but analytics still runs.
+
+🚦 Guardrail Principle
+
+Analytics = measurement of early activation + engagement.
+Milestones = gamified recognition for the user.
+They must share inputs (expense_count, logs) but never drive each other.
