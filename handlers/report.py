@@ -19,13 +19,32 @@ def handle_report(user_id: str) -> Dict[str, str]:
         from models import Expense
         from app import db
         from utils.feedback_context import set_feedback_context
+        from utils.performance_cache import performance_cache
         import uuid
         
         # Emit telemetry event
         _emit_telemetry_event(user_id)
         
-        # Determine time window (3-day challenge vs 7-day default)
+        # Determine time window first (for caching)
         days_window = _get_time_window(user_id)
+        
+        # Check cache first for ultra-fast response
+        cached_story = performance_cache.get_report(user_id, days_window)
+        if cached_story:
+            # Cache hit - add feedback prompt and return immediately
+            try:
+                import secrets
+                report_context_id = f"report_{int(datetime.now().timestamp())}_{secrets.token_hex(4)}"
+                set_feedback_context(user_id, report_context_id)
+                feedback_prompt = "\n\n💭 Was this helpful? Reply YES or NO"
+                enhanced_story = cached_story + feedback_prompt
+                logger.info(f"Generated Money Story from CACHE for user {user_id[:8]}... (context: {report_context_id})")
+                return {"text": enhanced_story}
+            except Exception as feedback_error:
+                logger.warning(f"Feedback context setup failed: {feedback_error}, returning cached story")
+                return {"text": cached_story}
+        
+        # days_window already determined above for caching
         end_time = datetime.now(timezone.utc)
         start_time = end_time - timedelta(days=days_window)
         
@@ -42,6 +61,9 @@ def handle_report(user_id: str) -> Dict[str, str]:
         
         # Generate Money Story
         story = _generate_money_story(expenses, days_window, user_id)
+        
+        # Cache the generated story for future requests
+        performance_cache.set_report(user_id, days_window, story)
         
         # Phase 2: Add feedback collection
         try:
@@ -92,25 +114,24 @@ def _generate_money_story(expenses, days_window: int, user_id: str) -> str:
         if not expenses:
             return f"No expenses logged in the last {days_window} days. Start tracking to see your money story unfold!"
         
-        # Calculate basic stats (optimized)
-        total_logs = len(expenses)
-        total_amount = 0.0
-        categories = {}
+        # Ultra-fast aggregation using pre-computed cache
+        from utils.aggregation_cache import aggregation_cache
         
-        # Single pass through expenses for all calculations
-        for expense in expenses:
-            amount = float(expense.amount)
-            total_amount += amount
-            cat = expense.category or "other"
-            categories[cat] = categories.get(cat, 0) + amount
+        # Try to get pre-computed aggregations
+        aggregations = aggregation_cache.get_user_aggregations(user_id, days_window)
+        if not aggregations:
+            # Compute and cache aggregations
+            aggregations = aggregation_cache.update_user_aggregations(user_id, days_window, expenses)
         
-        # Find top category
-        if categories:
-            top_category = max(categories.keys(), key=lambda k: categories[k])
-            top_percentage = int((categories[top_category] / total_amount) * 100) if total_amount > 0 else 0
-        else:
-            top_category = "general"
-            top_percentage = 0
+        # Extract values for story generation
+        total_logs = aggregations["total_logs"]
+        total_amount = aggregations["total_amount"]
+        categories = aggregations["categories"]
+        top_category = aggregations["top_category"]
+        top_percentage = aggregations["top_percentage"]
+        
+        if total_logs == 0:
+            return f"No expenses logged in the last {days_window} days. Start tracking to see your money story unfold!"
         
         # Skip expensive win/streak calculations for performance
         # These can be re-enabled after caching is implemented
