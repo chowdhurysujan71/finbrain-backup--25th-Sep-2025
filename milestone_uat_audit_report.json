@@ -1,0 +1,250 @@
+{
+  "test_execution": {
+    "start_time": "2025-08-31T06:49:42.562498",
+    "test_environment": "development",
+    "feature": "milestone_coaching_system",
+    "version": "v1.0",
+    "end_time": "2025-08-31T06:50:09.046111"
+  },
+  "test_results": {
+    "data_handling": {
+      "test_name": "data_handling_integrity",
+      "start_time": "2025-08-31T06:49:52.033706",
+      "sub_tests": {},
+      "overall_status": "ERROR",
+      "error": "name 'handle_message_dispatch' is not defined",
+      "end_time": "2025-08-31T06:49:53.138404"
+    },
+    "routing": {
+      "test_name": "routing_validation",
+      "start_time": "2025-08-31T06:49:53.138533",
+      "sub_tests": {
+        "intent_detection": {
+          "status": "FAIL",
+          "accuracy_percentage": 0.0,
+          "correct_detections": 0,
+          "total_tests": 10,
+          "details": [
+            {
+              "input": "spent 100 on food",
+              "expected_intent": "LOG_EXPENSE",
+              "error": "name 'handle_message_dispatch' is not defined",
+              "status": "ERROR"
+            },
+            {
+              "input": "coffee 150",
+              "expected_intent": "LOG_EXPENSE",
+              "error": "name 'handle_message_dispatch' is not defined",
+              "status": "ERROR"
+            },
+            {
+              "input": "100 \u099f\u09be\u0995\u09be breakfast",
+              "expected_intent": "LOG_EXPENSE",
+              "error": "name 'handle_message_dispatch' is not defined",
+              "status": "ERROR"
+            },
+            {
+              "input": "summary",
+              "expected_intent": "ANALYSIS",
+              "error": "name 'handle_message_dispatch' is not defined",
+              "status": "ERROR"
+            },
+            {
+              "input": "report",
+              "expected_intent": "ANALYSIS",
+              "error": "name 'handle_message_dispatch' is not defined",
+              "status": "ERROR"
+            },
+            {
+              "input": "show my spending",
+              "expected_intent": "ANALYSIS",
+              "error": "name 'handle_message_dispatch' is not defined",
+              "status": "ERROR"
+            },
+            {
+              "input": "help",
+              "expected_intent": "FAQ",
+              "error": "name 'handle_message_dispatch' is not defined",
+              "status": "ERROR"
+            },
+            {
+              "input": "what can you do",
+              "expected_intent": "FAQ",
+              "error": "name 'handle_message_dispatch' is not defined",
+              "status": "ERROR"
+            },
+            {
+              "input": "hello",
+              "expected_intent": "SMALLTALK",
+              "error": "name 'handle_message_dispatch' is not defined",
+              "status": "ERROR"
+            },
+            {
+              "input": "how are you",
+              "expected_intent": "SMALLTALK",
+              "error": "name 'handle_message_dispatch' is not defined",
+              "status": "ERROR"
+            }
+          ],
+          "summary": "Intent detection accuracy: 0.0% (\u274c FAIL)"
+        }
+      },
+      "overall_status": "ERROR",
+      "error": "name 'handle_message_dispatch' is not defined",
+      "end_time": "2025-08-31T06:49:53.138667"
+    },
+    "processing": {
+      "test_name": "processing_accuracy",
+      "start_time": "2025-08-31T06:49:53.138742",
+      "sub_tests": {
+        "streak_calculation": {
+          "status": "PASS",
+          "details": [
+            {
+              "scenario": "3 consecutive days",
+              "days_created": [
+                2,
+                1,
+                0
+              ],
+              "expected_streak": 3,
+              "calculated_streak": 3,
+              "accurate": true,
+              "status": "PASS"
+            },
+            {
+              "scenario": "5 consecutive days",
+              "days_created": [
+                4,
+                3,
+                2,
+                1,
+                0
+              ],
+              "expected_streak": 5,
+              "calculated_streak": 5,
+              "accurate": true,
+              "status": "PASS"
+            },
+            {
+              "scenario": "Non-consecutive (gap on day 1)",
+              "days_created": [
+                3,
+                2,
+                0
+              ],
+              "expected_streak": 1,
+              "calculated_streak": 1,
+              "accurate": true,
+              "status": "PASS"
+            }
+          ],
+          "summary": "Streak calculation accuracy: \u2705 PASS"
+        }
+      },
+      "overall_status": "ERROR",
+      "error": "name 'handle_message_dispatch' is not defined",
+      "end_time": "2025-08-31T06:50:01.425938"
+    },
+    "database_storage": {
+      "test_name": "database_storage_integrity",
+      "start_time": "2025-08-31T06:50:01.426142",
+      "sub_tests": {
+        "unique_constraints": {
+          "status": "PASS",
+          "duplicate_prevented": true,
+          "summary": "Unique constraint enforcement: \u2705 PASS"
+        },
+        "data_persistence": {
+          "status": "PASS",
+          "milestone_stored": true,
+          "data_matches": true,
+          "summary": "Data persistence: \u2705 PASS"
+        },
+        "transaction_integrity": {
+          "status": "PASS",
+          "rollback_successful": true,
+          "summary": "Transaction integrity: \u2705 PASS"
+        }
+      },
+      "overall_status": "PASS",
+      "end_time": "2025-08-31T06:50:07.081802"
+    },
+    "edge_cases": {
+      "test_name": "edge_cases_and_errors",
+      "start_time": "2025-08-31T06:50:07.081976",
+      "sub_tests": {},
+      "overall_status": "ERROR",
+      "error": "name 'handle_message_dispatch' is not defined",
+      "end_time": "2025-08-31T06:50:09.040543"
+    },
+    "performance": {
+      "test_name": "performance_and_concurrency",
+      "start_time": "2025-08-31T06:50:09.045963",
+      "sub_tests": {},
+      "overall_status": "ERROR",
+      "error": "name 'handle_message_dispatch' is not defined",
+      "end_time": "2025-08-31T06:50:09.046023"
+    }
+  },
+  "data_integrity": {},
+  "performance_metrics": {},
+  "error_scenarios": {},
+  "edge_cases": {},
+  "database_validation": {},
+  "audit_summary": {
+    "overall_status": "FAIL",
+    "test_summary": {
+      "data_handling": {
+        "status": "ERROR",
+        "sub_tests": 0,
+        "duration": "2025-08-31T06:49:53.138404"
+      },
+      "routing": {
+        "status": "ERROR",
+        "sub_tests": 1,
+        "duration": "2025-08-31T06:49:53.138667"
+      },
+      "processing": {
+        "status": "ERROR",
+        "sub_tests": 1,
+        "duration": "2025-08-31T06:50:01.425938"
+      },
+      "database_storage": {
+        "status": "PASS",
+        "sub_tests": 3,
+        "duration": "2025-08-31T06:50:07.081802"
+      },
+      "edge_cases": {
+        "status": "ERROR",
+        "sub_tests": 0,
+        "duration": "2025-08-31T06:50:09.040543"
+      },
+      "performance": {
+        "status": "ERROR",
+        "sub_tests": 0,
+        "duration": "2025-08-31T06:50:09.046023"
+      },
+      "totals": {
+        "total_tests": 6,
+        "passed": 1,
+        "failed": 0,
+        "errors": 5,
+        "pass_rate_percentage": 16.666666666666664
+      }
+    },
+    "critical_findings": [
+      "ERROR: data_handling",
+      "ERROR: routing",
+      "ERROR: processing",
+      "ERROR: edge_cases",
+      "ERROR: performance"
+    ],
+    "performance_metrics": {},
+    "deployment_readiness": "NOT_READY",
+    "recommendations": [
+      "\u274c Fix critical issues before deployment",
+      "\u274c Re-run UAT after fixes"
+    ]
+  }
+}
