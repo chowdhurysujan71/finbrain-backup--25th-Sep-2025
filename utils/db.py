@@ -136,10 +136,35 @@ def save_expense(user_identifier, description, amount, category, platform, origi
             # Fail-safe: analytics errors never break expense logging
             logger.debug(f"Expense analytics tracking failed: {e}")
         
+        # BLOCK 4 GROWTH METRICS: Analytics and Milestones (fail-safe)
+        milestone_message = None
+        try:
+            from utils.analytics_engine import track_d1_activation, track_d3_completion
+            from utils.milestone_engine import update_user_streak, check_milestone_nudges
+            from utils.timezone_helpers import local_date_from_datetime
+            
+            # Get expense local date for streak calculations
+            expense_datetime = datetime.combine(current_date, current_time)
+            expense_local_date = local_date_from_datetime(expense_datetime)
+            
+            # Track D1/D3 analytics (silent data collection)
+            track_d1_activation(user, expense_datetime)
+            track_d3_completion(user)
+            
+            # Update user streak and check milestones (user-visible nudges)
+            if expense_local_date:
+                update_user_streak(user, expense_local_date)
+                milestone_message = check_milestone_nudges(user)
+                
+        except Exception as e:
+            # Fail-safe: growth metrics errors never break expense logging
+            logger.debug(f"Growth metrics tracking failed: {e}")
+        
         return {
             'success': True,
             'monthly_total': float(monthly_summary.total_amount),
-            'expense_count': monthly_summary.expense_count
+            'expense_count': monthly_summary.expense_count,
+            'milestone_message': milestone_message  # Include milestone nudge if triggered
         }
         
     except SQLAlchemyError as e:

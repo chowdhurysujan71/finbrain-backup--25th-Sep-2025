@@ -28,6 +28,16 @@ def handle_insight(user_id: str) -> Dict[str, str]:
             Expense.created_at < end
         ).group_by(Expense.category).order_by(db.desc('total')).all()
         
+        # BLOCK 4 ANALYTICS: Track report request (fail-safe)
+        try:
+            from utils.analytics_engine import track_report_request
+            from models import User
+            user = db.session.query(User).filter_by(user_id_hash=user_id).first()
+            if user:
+                track_report_request(user, "insight_command")
+        except Exception as e:
+            logger.debug(f"Report analytics tracking failed: {e}")
+        
         # Generate AI insights reply
         from templates.replies_ai import format_ai_insight_reply, log_reply_banner
         log_reply_banner('INSIGHT', user_id)

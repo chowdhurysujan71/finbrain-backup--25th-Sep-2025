@@ -109,6 +109,16 @@ def handle_summary(user_id: str, text: str = "", timeframe: str = "week") -> Dic
                 Expense.created_at < end
             ).group_by(Expense.category).all()
             
+            # BLOCK 4 ANALYTICS: Track report request (fail-safe)
+            try:
+                from utils.analytics_engine import track_report_request
+                from models import User
+                user = db.session.query(User).filter_by(user_id_hash=user_id).first()
+                if user:
+                    track_report_request(user, "summary_command")
+            except Exception as e:
+                logger.debug(f"Report analytics tracking failed: {e}")
+            
             # Generate AI summary reply
             from templates.replies_ai import format_ai_summary_reply, log_reply_banner
             log_reply_banner('SUMMARY', user_id)

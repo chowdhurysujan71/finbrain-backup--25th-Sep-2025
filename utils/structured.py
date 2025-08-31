@@ -255,3 +255,82 @@ def log_money_detection_fallback(user_id: str, message_text: str,
     except Exception as e:
         logger.error(f"Failed to log money detection fallback: {e}")
         return False
+
+# Block 4 Growth Metrics Telemetry Functions
+
+def log_analytics_event(event_name: str, user_id_hash: str, event_data: Dict[str, Any]) -> bool:
+    """
+    Log Block 4 analytics events (D1/D3/report tracking)
+    
+    Args:
+        event_name: Event name (activation_d1, activation_d3, report_requested)
+        user_id_hash: User identifier hash
+        event_data: Event-specific data
+        
+    Returns:
+        True if logged successfully
+    """
+    try:
+        structured_data = {
+            'event_name': event_name,
+            'user_hash_prefix': user_id_hash[:8] + '...',
+            'event_data': event_data
+        }
+        
+        return log_structured_event('ANALYTICS_BLOCK4', structured_data, user_id_hash)
+        
+    except Exception as e:
+        logger.error(f"Failed to log analytics event {event_name}: {e}")
+        return False
+
+def log_milestone_event(milestone_type: str, user_id_hash: str, event_data: Dict[str, Any]) -> bool:
+    """
+    Log milestone gamification events (streak-3, 10-logs)
+    
+    Args:
+        milestone_type: Type of milestone (streak-3, 10-logs)
+        user_id_hash: User identifier hash
+        event_data: Event-specific data
+        
+    Returns:
+        True if logged successfully
+    """
+    try:
+        structured_data = {
+            'milestone_type': milestone_type,
+            'user_hash_prefix': user_id_hash[:8] + '...',
+            'event_data': event_data
+        }
+        
+        return log_structured_event('MILESTONE_FIRED', structured_data, user_id_hash)
+        
+    except Exception as e:
+        logger.error(f"Failed to log milestone event {milestone_type}: {e}")
+        return False
+
+def log_growth_metrics_summary(user_id_hash: str, analytics_state: Dict[str, Any], 
+                              milestone_state: Dict[str, Any]) -> bool:
+    """
+    Log combined growth metrics summary for monitoring
+    
+    Args:
+        user_id_hash: User identifier hash
+        analytics_state: Current analytics state
+        milestone_state: Current milestone state
+        
+    Returns:
+        True if logged successfully
+    """
+    try:
+        structured_data = {
+            'user_hash_prefix': user_id_hash[:8] + '...',
+            'analytics': analytics_state,
+            'milestones': milestone_state,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+        return log_structured_event('GROWTH_METRICS_SUMMARY', structured_data, user_id_hash)
+        
+    except Exception as e:
+        logger.error(f"Failed to log growth metrics summary: {e}")
+        return False

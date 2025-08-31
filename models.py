@@ -81,6 +81,17 @@ class User(db.Model):
     terms_accepted = db.Column(db.Boolean, default=False)  # Terms of service acceptance
     terms_accepted_at = db.Column(db.DateTime, nullable=True)  # When ToS was accepted
     
+    # Growth Metrics - Block 4 Analytics (Silent Data Collection)
+    signup_source = db.Column(db.String(20), default='other')  # fb-ad|organic|referral|other
+    d1_logged = db.Column(db.Boolean, default=False)  # First expense within 24h of signup
+    d3_completed = db.Column(db.Boolean, default=False)  # 3+ expenses within 72h of signup
+    reports_requested = db.Column(db.Integer, default=0)  # Count of REPORT generations
+    
+    # Growth Metrics - Milestone Tracking (User-Visible Nudges)
+    last_milestone_date = db.Column(db.Date, nullable=True)  # Last day milestone was fired (daily cap)
+    consecutive_days = db.Column(db.Integer, default=0)  # Current streak of consecutive days with logs
+    last_log_date = db.Column(db.Date, nullable=True)  # Last day user logged expense (for streak calc)
+    
     def to_dict(self):
         """Convert user to dictionary for AI processing"""
         return {
