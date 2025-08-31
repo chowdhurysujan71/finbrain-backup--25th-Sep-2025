@@ -1,0 +1,75 @@
+BLOCK 2 — Rule-based Milestone Inserts (Prompt Version)
+🎯 Goal
+
+Introduce simple milestone messages (streaks, logging count, spending spikes/wins) to increase user motivation and create moments of recognition.
+
+✅ What the Agent Must Do
+
+Milestones to Implement
+
+Streak-3: When user logs 3 days in a row → message: “🔥 3-day streak! You’re building a habit.”
+
+10 Logs: When user reaches 10 total logs → message: “🎉 10th log! That’s consistency.”
+
+Category Spike: If a category’s spending jumps ≥25% compared to last period → message: “⚠️ Food spend spiked 25%—notice anything?”
+
+Small Win: If a category’s spending drops ≥10% → message: “👏 Transport down 15%—nice restraint.”
+
+Trigger Points
+
+Immediately after a log is saved → check for streak and total logs.
+
+Once per day (end-of-day) → check for category spikes/wins.
+
+User Experience
+
+Only one milestone message per trigger (to avoid spam).
+
+Messages appear inline in the chat like a coach speaking up.
+
+If no milestone, no extra message.
+
+Telemetry
+
+Each fired milestone must log a signal:
+
+Example: { "milestone": "streak-3", "user": "<id>", "source": "post-log" }
+
+⚠️ Risks (for stakeholder review before build)
+
+Race Conditions
+
+If user logs many expenses very quickly, they might trigger duplicate milestones.
+
+Mitigation: Ensure each milestone fires only once per user.
+
+Performance
+
+Checking categories after every log may slow things down.
+
+Mitigation: Run simple checks immediately (streak, log count). Run heavier comparisons (spike/win) once per day only.
+
+User Confusion
+
+Spending “spikes” or “wins” based on too little data can feel random.
+
+Mitigation: Only trigger when at least 3 expenses exist in that category.
+
+Message Fatigue
+
+Too many milestone messages could annoy users.
+
+Mitigation: Cap at 1 milestone message per day.
+
+🛠 Prompt to the AI Agent
+You are responsible for milestone coaching messages in FinBrain. 
+Implement 4 rules: streak-3, 10-logs, category-spike, small-win. 
+
+- Trigger streak-3 and 10-logs immediately after expense logging. 
+- Trigger category-spike and small-win once daily, based on category comparisons. 
+- Insert exactly one milestone message per trigger, max 1 per day. 
+- Ensure each milestone fires only once per user lifetime. 
+- Log telemetry with milestone name, user ID, and trigger source. 
+- Skip if conditions are not met (e.g., too few data points). 
+
+Output: a short motivational system message injected into chat. 
