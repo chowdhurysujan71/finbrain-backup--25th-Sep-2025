@@ -1314,6 +1314,41 @@ def version():
             "security_hardening": "complete"
         }), 500
 
+@app.route('/api/preview/report', methods=['GET'])
+def preview_report():
+    """
+    BLOCK 5: Static preview JSON for marketing (no live data)
+    Returns exact demo report payload for marketing/demo purposes
+    Publicly cacheable, no database access, no user context
+    """
+    try:
+        # Static demo JSON - exact byte-for-byte match required
+        demo_report = {
+            "user": "demo",
+            "report_date": "2025-08-31",
+            "summary": "You logged 7 expenses in 3 days. Food ≈ 40%. Transport spend fell ~15% vs the prior window. 🔥 Streak-3 achieved. Next: try a 7-day streak with a 10% cap on Food.",
+            "milestones": ["streak-3", "small win"],
+            "feedback_options": ["👍","👎","💬"]
+        }
+        
+        # Create response with proper cache headers
+        response = make_response(jsonify(demo_report))
+        
+        # Set cache headers for 1+ hour public caching
+        response.headers['Cache-Control'] = 'public, max-age=3600'  # 1 hour
+        response.headers['Content-Type'] = 'application/json'
+        
+        # Optional: ETag for better caching
+        response.headers['ETag'] = '"demo-report-v1"'
+        
+        return response
+        
+    except Exception as e:
+        # Even errors should be cacheable for marketing endpoint
+        error_response = make_response(jsonify({"error": "preview_unavailable"}), 500)
+        error_response.headers['Cache-Control'] = 'public, max-age=300'  # 5 min cache for errors
+        return error_response
+
 @app.route('/ops/telemetry', methods=['GET'])
 @require_basic_auth
 def ops_telemetry():
