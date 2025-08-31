@@ -26,6 +26,10 @@ def detect_intent(text: str) -> str:
     if text_lower == "report":
         return "REPORT"
     
+    # 3-Day Challenge start command (Block 6)
+    if text_lower in ["start 3d", "start3d", "3d challenge", "start challenge"]:
+        return "CHALLENGE_START"
+    
     # Diagnostic commands
     if text_lower in ["diag", "diagnostic", "status", "health"]:
         return "DIAGNOSTIC"

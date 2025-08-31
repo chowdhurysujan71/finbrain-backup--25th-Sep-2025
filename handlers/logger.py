@@ -79,6 +79,20 @@ def handle_log(user_id: str, text: str) -> Dict[str, str]:
             logger.warning(f"Milestone check failed: {e}")
             # Don't break expense logging if milestone check fails
         
+        # Check for challenge progress after successful logging (Block 6)
+        try:
+            from handlers.challenge import check_challenge_progress
+            user_hash = hash_psid(user_id) if user_id.isdigit() else user_id
+            challenge_message = check_challenge_progress(user_hash, text)
+            
+            if challenge_message:
+                msg += f"\n\n{challenge_message}"
+                logger.info(f"Challenge message added for user {user_hash[:8]}...")
+            
+        except Exception as e:
+            logger.warning(f"Challenge check failed: {e}")
+            # Don't break expense logging if challenge check fails
+        
         msg += "\n\nTip: type 'summary' for your spending overview."
         
         return {"text": msg}

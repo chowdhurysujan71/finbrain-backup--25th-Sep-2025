@@ -2,7 +2,7 @@
 Message dispatcher: Routes messages to appropriate handlers based on intent
 """
 import logging
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 from utils.intent_router import detect_intent
 from handlers.summary import handle_summary
 from handlers.insight import handle_insight
@@ -27,6 +27,12 @@ def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
             result = handle_report(user_id)
             return result.get('text', 'Report unavailable'), intent
             
+        elif intent == "CHALLENGE_START":
+            # Handle 3-Day Challenge start command (Block 6)
+            from handlers.challenge import handle_challenge_start
+            result = handle_challenge_start(user_id)
+            return result.get('text', 'Challenge unavailable'), intent
+            
         elif intent == "DIAGNOSTIC":
             # Handle diagnostic command
             diag_text = f"diag | type={type(user_id).__name__} | psid_hash={user_id[:8]}... | mode=STD"
@@ -42,7 +48,14 @@ def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
             
         elif intent == "LOG_EXPENSE":
             result = handle_log(user_id, text)
-            return result.get('text', 'Unable to log expense'), intent
+            primary_response = result.get('text', 'Unable to log expense')
+            
+            # Check for challenge progress after expense logging (Block 6)
+            challenge_nudge = _check_and_append_challenge_progress(user_id, text)
+            if challenge_nudge:
+                primary_response += f"\n\n{challenge_nudge}"
+                
+            return primary_response, intent
             
         elif intent == "UNDO":
             # Simple undo handler
@@ -73,7 +86,14 @@ def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
                 "Ready to assist with your money! How about checking your spending patterns or logging a purchase?",
                 "I'm your financial companion! Try asking for insights, summaries, or expense logging"
             ]
-            return random.choice(help_responses), "HELP"
+            primary_response = random.choice(help_responses)
+            
+            # Check for challenge progress and append nudge if needed (Block 6)
+            challenge_nudge = _check_and_append_challenge_progress(user_id, text)
+            if challenge_nudge:
+                primary_response += f"\n\n{challenge_nudge}"
+            
+            return primary_response, "HELP"
             
     except Exception as e:
         logger.error(f"Dispatcher error: {e}")
@@ -102,3 +122,22 @@ def handle_undo(user_id: str) -> str:
     except Exception as e:
         logger.error(f"Undo error: {e}")
         return "Unable to undo. Please try again."
+
+def _check_and_append_challenge_progress(user_id_hash: str, current_message: str) -> Optional[str]:
+    """
+    Check challenge progress during user interaction and return nudge if appropriate
+    Policy-compliant: only called during user interactions, never scheduled
+    
+    Args:
+        user_id_hash: SHA-256 hashed user identifier
+        current_message: Current user message
+        
+    Returns:
+        Challenge nudge text if appropriate, None otherwise
+    """
+    try:
+        from handlers.challenge import check_challenge_progress
+        return check_challenge_progress(user_id_hash, current_message)
+    except Exception as e:
+        logger.error(f"Challenge progress check error: {e}")
+        return None

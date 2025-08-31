@@ -92,6 +92,13 @@ class User(db.Model):
     consecutive_days = db.Column(db.Integer, default=0)  # Current streak of consecutive days with logs
     last_log_date = db.Column(db.Date, nullable=True)  # Last day user logged expense (for streak calc)
     
+    # Block 6 - 3-Day Challenge Tracking
+    challenge_active = db.Column(db.Boolean, default=False)  # Active challenge state
+    challenge_start_date = db.Column(db.Date, nullable=True)  # Challenge start date
+    challenge_end_date = db.Column(db.Date, nullable=True)  # Challenge end date (start + 2 days)
+    challenge_completed = db.Column(db.Boolean, default=False)  # Successfully completed challenge
+    challenge_report_sent = db.Column(db.Boolean, default=False)  # Auto-report completion flag
+    
     def to_dict(self):
         """Convert user to dictionary for AI processing"""
         return {
