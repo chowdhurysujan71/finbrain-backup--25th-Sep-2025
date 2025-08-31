@@ -14,7 +14,14 @@ def handle_report(user_id: str) -> Dict[str, str]:
     """
     Generate Money Story report for user with feedback collection
     Returns dict with 'text' key containing the narrative report + feedback prompt
+    
+    This function implements robust error handling and always returns a consistent dict format
     """
+    # Input validation
+    if not user_id or not isinstance(user_id, str):
+        logger.error(f"Invalid user_id provided: {user_id}")
+        return {"text": "Unable to generate report due to invalid user identifier."}
+    
     try:
         from models import Expense
         from app import db
@@ -88,6 +95,7 @@ def handle_report(user_id: str) -> Dict[str, str]:
         
     except Exception as e:
         logger.error(f"Report handler error: {e}")
+        # Always return dict format with error message
         return {"text": "Unable to generate your money story right now. Please try again later."}
 
 
@@ -109,10 +117,33 @@ def _generate_money_story(expenses, days_window: int, user_id: str) -> str:
     """
     Generate narrative Money Story from expense data
     Maximum 500 characters, 4-6 sentences
+    Enhanced with new user onboarding and empty state handling
     """
     try:
         if not expenses:
-            return f"No expenses logged in the last {days_window} days. Start tracking to see your money story unfold!"
+            # Enhanced empty state with user context
+            try:
+                from models import User
+                from app import db
+                
+                user = db.session.query(User).filter_by(user_id_hash=user_id).first()
+                if user and user.is_new and user.expense_count == 0:
+                    # First-time user experience
+                    return (
+                        f"🌟 Welcome to FinBrain! You haven't logged any expenses yet. "
+                        f"Start by telling me about your spending - like 'bought coffee for ৳50' - "
+                        f"and I'll help you track your money story!"
+                    )
+                else:
+                    # Returning user with no recent activity
+                    return (
+                        f"No expenses logged in the last {days_window} days. "
+                        f"Ready to start tracking again? Just tell me what you spent!"
+                    )
+            except Exception as e:
+                logger.warning(f"Could not fetch user context for empty state: {e}")
+                # Safe fallback
+                return f"No expenses logged in the last {days_window} days. Start tracking to see your money story unfold!"
         
         # Ultra-fast aggregation using pre-computed cache
         from utils.aggregation_cache import aggregation_cache

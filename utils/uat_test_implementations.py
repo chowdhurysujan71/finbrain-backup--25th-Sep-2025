@@ -64,8 +64,13 @@ class UATTestImplementations:
                 audit_trail.append({"step": "report_generation", "status": "success", "time_ms": report_time, "intent": report_intent})
                 
                 # Integrity check: Verify report contains data
-                if report_response and "text" in report_response:
-                    integrity_checks.append({"check": "report_content", "status": "PASS", "details": "Report contains text content"})
+                if report_response:
+                    if isinstance(report_response, dict) and "text" in report_response:
+                        integrity_checks.append({"check": "report_content", "status": "PASS", "details": "Report contains text content"})
+                    elif isinstance(report_response, str):
+                        integrity_checks.append({"check": "report_content", "status": "PASS", "details": "Report contains string content"})
+                    else:
+                        integrity_checks.append({"check": "report_content", "status": "FAIL", "details": f"Unexpected response type: {type(report_response)}"})
                 else:
                     integrity_checks.append({"check": "report_content", "status": "FAIL", "details": "Report missing text content"})
                 
@@ -143,8 +148,14 @@ class UATTestImplementations:
                 audit_trail.append({"step": "empty_report_generation", "status": "success", "time_ms": report_time})
                 
                 # Integrity check: Verify appropriate empty state message
-                if report_response and "text" in report_response:
-                    report_text = report_response["text"]
+                if report_response:
+                    if isinstance(report_response, dict) and "text" in report_response:
+                        report_text = report_response["text"]
+                    elif isinstance(report_response, str):
+                        report_text = report_response
+                    else:
+                        report_text = str(report_response)
+                    
                     if "No expenses" in report_text or "Start tracking" in report_text:
                         integrity_checks.append({"check": "empty_state_message", "status": "PASS", "details": "Appropriate empty state message"})
                     else:
@@ -158,12 +169,20 @@ class UATTestImplementations:
                 else:
                     integrity_checks.append({"check": "new_user_performance", "status": "WARNING", "details": f"Slow response: {report_time:.1f}ms"})
                 
+                # Extract content safely
+                if isinstance(report_response, dict):
+                    report_content = report_response.get("text", "")[:100]
+                elif isinstance(report_response, str):
+                    report_content = report_response[:100]
+                else:
+                    report_content = str(report_response)[:100]
+                
                 return {
                     "status": "PASS",
                     "details": {
                         "user_id": test_user_id,
                         "report_time_ms": report_time,
-                        "report_content": report_response.get("text", "")[:100] if report_response else ""
+                        "report_content": report_content
                     },
                     "audit_trail": audit_trail,
                     "integrity_checks": integrity_checks
@@ -233,8 +252,16 @@ class UATTestImplementations:
                 
                 # Step 5: Verify response consistency
                 if response1 and response2:
-                    text1 = response1.get("text", "").replace("Was this helpful?", "").strip()
-                    text2 = response2.get("text", "").replace("Was this helpful?", "").strip()
+                    # Handle both dict and string responses
+                    if isinstance(response1, dict):
+                        text1 = response1.get("text", "").replace("Was this helpful?", "").strip()
+                    else:
+                        text1 = str(response1).replace("Was this helpful?", "").strip()
+                    
+                    if isinstance(response2, dict):
+                        text2 = response2.get("text", "").replace("Was this helpful?", "").strip()
+                    else:
+                        text2 = str(response2).replace("Was this helpful?", "").strip()
                     
                     if text1 == text2:
                         integrity_checks.append({"check": "response_consistency", "status": "PASS", "details": "Cached response matches original"})

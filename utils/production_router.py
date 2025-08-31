@@ -384,13 +384,32 @@ class ProductionRouter:
                 logger.info(f"[ROUTER] REPORT command detected: '{text[:50]}...'")
                 try:
                     from handlers.report import handle_report
+                    
+                    # Validate user_hash before calling handler
+                    if not user_hash or not isinstance(user_hash, str):
+                        logger.error(f"Invalid user_hash for report: {user_hash}")
+                        return normalize("Unable to generate report - invalid user identifier."), "report", None, None
+                    
                     report_response = handle_report(user_hash)
                     self._log_routing_decision(rid, user_hash, "report", "money_story_generated")
                     self._record_processing_time(time.time() - start_time)
-                    return normalize(report_response['text']), "report", None, None
+                    
+                    # Defensive handling of response format with comprehensive validation
+                    if isinstance(report_response, dict) and 'text' in report_response and report_response['text']:
+                        return normalize(report_response['text']), "report", None, None
+                    elif isinstance(report_response, str) and report_response.strip():
+                        return normalize(report_response), "report", None, None
+                    elif isinstance(report_response, dict):
+                        # Dictionary but missing/empty text
+                        logger.warning(f"Report response missing text content: {report_response}")
+                        return normalize("Your money story is being prepared. Please try again in a moment."), "report", None, None
+                    else:
+                        logger.error(f"Unexpected report response format: {type(report_response)} - {report_response}")
+                        return normalize("Unable to generate your money story right now. Please try again later."), "report", None, None
                 except Exception as e:
-                    logger.error(f"Report handler error: {e}")
-                    # Fall through to other handlers if report fails
+                    logger.error(f"Report handler critical error: {e}")
+                    # Graceful fallback with user-friendly message
+                    return normalize("Your money story is temporarily unavailable. Please try again in a few moments."), "report", None, None
             
             # Step 1.4: SUMMARY/ANALYSIS DETECTION (AFTER REPORT)
             # Skip summary detection for category-specific queries - let deterministic router handle them  
@@ -416,10 +435,18 @@ class ProductionRouter:
                     
                     feedback_result = handle_report_feedback(user_hash, text)
                     if feedback_result:
-                        logger.info(f"[ROUTER] Report feedback processed: {feedback_result.get('signal')} from user {user_hash[:8]}...")
-                        self._log_routing_decision(rid, user_hash, "report_feedback", feedback_result.get('signal', 'unknown'))
+                        # Defensive handling of feedback response format
+                        if isinstance(feedback_result, dict):
+                            signal = feedback_result.get('signal', 'unknown')
+                            text_content = feedback_result.get('text', 'Thanks for your feedback!')
+                        else:
+                            signal = 'unknown'
+                            text_content = str(feedback_result) if feedback_result else 'Thanks for your feedback!'
+                            
+                        logger.info(f"[ROUTER] Report feedback processed: {signal} from user {user_hash[:8]}...")
+                        self._log_routing_decision(rid, user_hash, "report_feedback", signal)
                         self._record_processing_time(time.time() - start_time)
-                        return normalize(feedback_result['text']), "report_feedback", None, None
+                        return normalize(text_content), "report_feedback", None, None
                     else:
                         logger.debug(f"[ROUTER] Not a valid feedback response, continuing routing")
                         

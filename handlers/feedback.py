@@ -19,7 +19,18 @@ def handle_report_feedback(user_id_hash: str, text: str) -> Optional[Dict[str, A
         
     Returns:
         Dict with response if feedback processed, None if not feedback
+        
+    This function implements robust error handling and input validation
     """
+    # Input validation
+    if not user_id_hash or not isinstance(user_id_hash, str):
+        logger.warning(f"Invalid user_id_hash provided: {user_id_hash}")
+        return None
+    
+    if not text or not isinstance(text, str):
+        logger.debug(f"Invalid text provided for feedback: {text}")
+        return None
+    
     try:
         from utils.feedback_context import get_feedback_context, clear_feedback_context
         from utils.structured import log_report_feedback
@@ -116,6 +127,7 @@ def handle_report_feedback(user_id_hash: str, text: str) -> Optional[Dict[str, A
         
     except Exception as e:
         logger.error(f"Feedback handler error: {e}")
+        # Return None to indicate no feedback processed (not an error response)
         return None
 
 def is_feedback_response(text: str) -> bool:
