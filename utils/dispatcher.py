@@ -25,7 +25,14 @@ def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
         if intent == "REPORT":
             # Handle REPORT command - generate Money Story
             result = handle_report(user_id)
-            return result.get('text', 'Report unavailable'), intent
+            primary_response = result.get('text', 'Report unavailable')
+            
+            # Check for challenge progress and append nudge if needed (Block 6)
+            challenge_nudge = _check_and_append_challenge_progress(user_id, text)
+            if challenge_nudge:
+                primary_response += f"\n\n{challenge_nudge}"
+                
+            return primary_response, intent
             
         elif intent == "CHALLENGE_START":
             # Handle 3-Day Challenge start command (Block 6)
@@ -40,11 +47,25 @@ def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
             
         elif intent == "SUMMARY":
             result = handle_summary(user_id, text)  # Pass text for timeframe detection
-            return result.get('text', 'Summary unavailable'), intent
+            primary_response = result.get('text', 'Summary unavailable')
+            
+            # Check for challenge progress and append nudge if needed (Block 6)
+            challenge_nudge = _check_and_append_challenge_progress(user_id, text)
+            if challenge_nudge:
+                primary_response += f"\n\n{challenge_nudge}"
+                
+            return primary_response, intent
             
         elif intent == "INSIGHT":
             result = handle_insight(user_id)
-            return result.get('text', 'Insights unavailable'), intent
+            primary_response = result.get('text', 'Insights unavailable')
+            
+            # Check for challenge progress and append nudge if needed (Block 6)
+            challenge_nudge = _check_and_append_challenge_progress(user_id, text)
+            if challenge_nudge:
+                primary_response += f"\n\n{challenge_nudge}"
+                
+            return primary_response, intent
             
         elif intent == "LOG_EXPENSE":
             result = handle_log(user_id, text)
@@ -59,11 +80,25 @@ def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
             
         elif intent == "UNDO":
             # Simple undo handler
-            return handle_undo(user_id), intent
+            primary_response = handle_undo(user_id)
+            
+            # Check for challenge progress and append nudge if needed (Block 6)
+            challenge_nudge = _check_and_append_challenge_progress(user_id, text)
+            if challenge_nudge:
+                primary_response += f"\n\n{challenge_nudge}"
+                
+            return primary_response, intent
             
         elif intent == "CLARIFY_SPENDING_INTENT":
             # Handle spending contradiction clarification with coach-tone
-            return "🤔 I want to make sure I help you the right way! Are you looking for tips to spend *less* and save more money, or do you actually want to increase your spending? Just want to point my advice in the right direction! 💡", intent
+            primary_response = "🤔 I want to make sure I help you the right way! Are you looking for tips to spend *less* and save more money, or do you actually want to increase your spending? Just want to point my advice in the right direction! 💡"
+            
+            # Check for challenge progress and append nudge if needed (Block 6)
+            challenge_nudge = _check_and_append_challenge_progress(user_id, text)
+            if challenge_nudge:
+                primary_response += f"\n\n{challenge_nudge}"
+                
+            return primary_response, intent
             
         elif intent == "UNKNOWN":
             # Ask for clarification when we don't understand something
@@ -74,7 +109,14 @@ def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
                 "I don't quite understand that term. Mind clarifying? I'm great with tracking spending and giving money advice! 💡",
                 "Not sure I follow - could you rephrase that? I specialize in expense tracking and financial guidance! 🎯"
             ]
-            return random.choice(clarification_responses), "CLARIFICATION"
+            primary_response = random.choice(clarification_responses)
+            
+            # Check for challenge progress and append nudge if needed (Block 6)
+            challenge_nudge = _check_and_append_challenge_progress(user_id, text)
+            if challenge_nudge:
+                primary_response += f"\n\n{challenge_nudge}"
+                
+            return primary_response, "CLARIFICATION"
             
         else:
             # Engaging help responses with variety

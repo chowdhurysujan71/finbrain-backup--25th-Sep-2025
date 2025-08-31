@@ -1,0 +1,97 @@
+Block 6 – Acceptance Criteria (Non-Tech)
+1. Challenge Start
+
+When a user types “START 3D”, the challenge begins.
+
+The system confirms clearly:
+“Welcome to the 3-Day Money Story Challenge. Log daily expenses for the next 3 days to complete it.”
+
+Challenge start date is saved, and only one challenge can be active per user at a time.
+
+Analytics logs: challenge_started.
+
+✅ Pass if: User receives one clear welcome message, challenge state is active, and analytics shows one start event.
+
+2. Daily Progress (Policy-Compliant)
+
+On Day 2 and Day 3, when the user sends any message:
+
+System checks their challenge status.
+
+If eligible, it appends a motivational nudge to the normal response:
+“Day 2/3 — keep logging, you’re on track!”
+
+No proactive messages are sent outside user interactions.
+
+✅ Pass if: Users see progress nudges only during interactions, never as unsolicited pushes.
+
+3. Expense Logging During Challenge
+
+Every logged expense during the challenge counts toward progress.
+
+Logging continues to work as normal, with no delays or errors.
+
+Analytics continues to capture each log.
+
+✅ Pass if: Expenses are saved normally, and challenge progress reflects logs accurately.
+
+4. Challenge Completion
+
+At the end of Day 3, the system automatically checks progress.
+
+If completed (≥1 log each day), user receives a single completion report:
+“✅ Challenge Complete! Here’s your 3-Day Money Story: …”
+
+Report is generated once, and cannot duplicate.
+
+Analytics logs: challenge_completed + report_requested.
+
+✅ Pass if: Exactly one completion report is delivered, and both analytics events are captured once.
+
+5. Idempotency & Reliability
+
+If a user tries to start multiple challenges, only the first one is active.
+
+If a user logs multiple expenses rapidly, progress updates correctly with no duplicates.
+
+If a user reopens Messenger on Day 4+, challenge is marked complete and no more nudges are shown.
+
+✅ Pass if: No duplicate challenges, no duplicate reports, no nudges after completion.
+
+6. Analytics & Tracking
+
+Events recorded:
+
+challenge_started (once at start)
+
+challenge_completed (once at finish)
+
+report_requested (when final report is delivered)
+
+All analytics events follow existing naming conventions and appear in the same dashboards as milestones.
+
+✅ Pass if: Each event appears once in telemetry, cleanly separated from D1/D3/milestones.
+
+7. User Experience
+
+Language is simple, encouraging, and consistent with other system messages.
+
+Users never feel spammed (nudges only show up when they message first).
+
+If users abandon the challenge midway, system stops nudging after end date.
+
+✅ Pass if: Experience feels smooth and natural, without unexpected or repeated messages.
+
+🏆 Success Criteria Summary
+
+Start → Challenge begins with one clear welcome message.
+
+Progress → Nudges shown only when users interact (policy-safe).
+
+Completion → Exactly one final report, no duplicates.
+
+Analytics → Clean events for start, progress, completion.
+
+Reliability → No crashes, no double counting, no spam.
+
+Experience → Encouraging but not intrusive.
