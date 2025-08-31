@@ -15,15 +15,15 @@ def handle_log(user_id: str, text: str) -> Dict[str, str]:
     Log expense(s) from user message
     Returns dict with 'text' key containing confirmation
     """
+    from models import Expense
+    from app import db
+    
     try:
         # Extract expenses from text
         expenses = extract_expenses(text)
         
         if not expenses:
             return {"text": "I couldn't find an amount to log. Try: 'spent 100 on lunch'"}
-        
-        from models import Expense
-        from app import db
         
         logged = []
         total = 0
@@ -64,6 +64,20 @@ def handle_log(user_id: str, text: str) -> Dict[str, str]:
         else:
             msg = f"✅ Logged {len(logged)} expenses totaling {total:.0f} BDT:\n"
             msg += "\n".join(f"• {item}" for item in logged)
+        
+        # Check for milestone achievements after successful logging
+        try:
+            from handlers.milestones import check_milestones_after_log
+            user_hash = hash_psid(user_id) if user_id.isdigit() else user_id
+            milestone_message = check_milestones_after_log(user_hash)
+            
+            if milestone_message:
+                msg += f"\n\n{milestone_message}"
+                logger.info(f"Milestone message added for user {user_hash[:8]}...")
+            
+        except Exception as e:
+            logger.warning(f"Milestone check failed: {e}")
+            # Don't break expense logging if milestone check fails
         
         msg += "\n\nTip: type 'summary' for your spending overview."
         

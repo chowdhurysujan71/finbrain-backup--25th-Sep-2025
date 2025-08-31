@@ -143,3 +143,21 @@ class RateLimit(db.Model):
     
     def __repr__(self):
         return f'<RateLimit {self.user_id_hash}: {self.platform}>'
+
+class UserMilestone(db.Model):
+    """User milestone achievement tracking"""
+    __tablename__ = 'user_milestones'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id_hash = db.Column(db.String(255), nullable=False, index=True)  # SHA-256 hashed user ID
+    milestone_type = db.Column(db.String(20), nullable=False)  # 'streak-3' or '10-logs'
+    fired_at = db.Column(db.DateTime, default=datetime.utcnow)  # When milestone was achieved
+    daily_count_date = db.Column(db.Date, default=date.today)  # For daily cap enforcement
+    
+    # Unique constraint: each milestone can only fire once per user
+    __table_args__ = (
+        db.UniqueConstraint('user_id_hash', 'milestone_type', name='ux_user_milestone_type'),
+    )
+    
+    def __repr__(self):
+        return f'<UserMilestone {self.user_id_hash[:8]}...: {self.milestone_type}>'
