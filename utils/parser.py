@@ -9,7 +9,9 @@ AMOUNT_PATTERN = r'(\d+(?:\.\d{1,2})?)\s*(?:bdt|tk|taka|usd)?'
 
 # Category keywords mapping
 CATEGORY_KEYWORDS = {
-    'food': ['food', 'lunch', 'dinner', 'breakfast', 'meal', 'snack', 'coffee', 'tea', 'restaurant'],
+    'food': ['food', 'lunch', 'dinner', 'breakfast', 'brunch', 'meal', 'snack', 'coffee', 'tea', 'restaurant', 
+             'omelette', 'omelet', 'steak', 'beef', 'chicken', 'fish', 'pizza', 'burger', 'sandwich', 
+             'soup', 'salad', 'pasta', 'noodles', 'bread', 'cake', 'dessert', 'juice', 'milk'],
     'groceries': ['grocery', 'groceries', 'market', 'vegetables', 'fruits'],
     'transport': ['uber', 'ride', 'transport', 'taxi', 'bus', 'train', 'gas', 'fuel'],
     'shopping': ['shopping', 'clothes', 'shoe', 'shoes', 'dress', 'shirt', 'pants'],

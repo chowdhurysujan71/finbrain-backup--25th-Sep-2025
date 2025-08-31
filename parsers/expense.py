@@ -77,6 +77,21 @@ CATEGORY_ALIASES = {
     'fish': ('food', 9),
     'vegetable': ('food', 8),
     'egg': ('food', 8),
+    'omelette': ('food', 9),
+    'omelet': ('food', 9),
+    'steak': ('food', 9),
+    'brunch': ('food', 9),
+    'snack': ('food', 8),
+    'pizza': ('food', 9),
+    'burger': ('food', 9),
+    'sandwich': ('food', 9),
+    'soup': ('food', 8),
+    'salad': ('food', 8),
+    'pasta': ('food', 8),
+    'noodles': ('food', 8),
+    'bread': ('food', 8),
+    'cake': ('food', 8),
+    'dessert': ('food', 8),
     
     # Transport (strength: 9)
     'transport': ('transport', 9),
@@ -561,10 +576,11 @@ def _infer_category_from_context(context_text: str, user_hash: str = None) -> st
         'transport': ['uber', 'taxi', 'cng', 'bus', 'ride', 'lyft', 'grab', 'pathao', 'fuel', 'petrol', 'gas station', 'gas pump', 'paid gas', 'gas tank', 'fill gas', 'filled gas'],
         # Pets & Animals - MOVED BEFORE FOOD FOR PRIORITY IN CAT FOOD ISSUE
         'pets': ['cat', 'dog', 'pet', 'pets', 'animal', 'vet', 'veterinary', 'cat food', 'dog food', 'pet food', 'pet supplies', 'pet store'],
-        # Food (strong indicators) - ADDED BENGALI FOODS + DRINKS FOR JUICE ISSUE
-        'food': ['breakfast', 'lunch', 'dinner', 'coffee', 'tea', 'restaurant', 'meal', 'pizza', 'burger', 'food', 
+        # Food (strong indicators) - ADDED BENGALI FOODS + DRINKS FOR JUICE ISSUE + BRUNCH/OMELETTE FIX
+        'food': ['breakfast', 'lunch', 'dinner', 'brunch', 'coffee', 'tea', 'restaurant', 'meal', 'pizza', 'burger', 'food', 
                  'juice', 'fruit', 'water', 'milk', 'drink', 'beverage', 'soda', 'smoothie', 'shake', 'lassi', 'borhani', 
-                 'drank', 'drinking', 'khichuri', 'rice', 'dal', 'curry', 'biriyani', 'chicken', 'beef', 'fish', 'vegetable', 'egg'],
+                 'drank', 'drinking', 'khichuri', 'rice', 'dal', 'curry', 'biriyani', 'chicken', 'beef', 'fish', 'vegetable', 'egg',
+                 'omelette', 'omelet', 'steak', 'snack', 'sandwich', 'soup', 'salad', 'pasta', 'noodles', 'bread', 'cake', 'dessert'],
         # Shopping
         'shopping': ['shopping', 'clothes', 'grocery', 'groceries', 'market', 'store', 'buy', 'bought'],
         # Health
