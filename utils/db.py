@@ -22,12 +22,11 @@ def get_or_create_user(user_identifier, platform, db_session=None):
         user = User.query.filter_by(user_id_hash=user_hash).first()
         
         if not user:
-            user = User(
-                user_id_hash=user_hash,
-                platform=platform,
-                total_expenses=0,
-                expense_count=0
-            )
+            user = User()
+            user.user_id_hash = user_hash
+            user.platform = platform
+            user.total_expenses = 0
+            user.expense_count = 0
             db_session.session.add(user)
             db_session.session.commit()
             logger.info(f"Created new user for platform {platform}")
@@ -77,20 +76,19 @@ def save_expense(user_identifier, description, amount, category, platform, origi
         current_month = current_date.strftime('%Y-%m')
         
         # Create expense record
-        expense = Expense(
-            user_id=user_hash,
-            user_id_hash=user_hash,  # Ensure both fields are set for data integrity
-            description=description,
-            amount=amount,
-            category=category,
-            date=current_date,
-            time=current_time,
-            month=current_month,
-            unique_id=unique_id,
-            platform=platform,
-            original_message=original_message,
-            mid=mid
-        )
+        expense = Expense()
+        expense.user_id = user_hash
+        expense.user_id_hash = user_hash  # Ensure both fields are set for data integrity
+        expense.description = description
+        expense.amount = amount
+        expense.category = category
+        expense.date = current_date
+        expense.time = current_time
+        expense.month = current_month
+        expense.unique_id = unique_id
+        expense.platform = platform
+        expense.original_message = original_message
+        expense.mid = mid
         
         db_session.session.add(expense)
         
@@ -108,13 +106,12 @@ def save_expense(user_identifier, description, amount, category, platform, origi
         ).first()
         
         if not monthly_summary:
-            monthly_summary = MonthlySummary(
-                user_id_hash=user_hash,
-                month=current_month,
-                total_amount=amount,
-                expense_count=1,
-                categories={category: float(amount)}
-            )
+            monthly_summary = MonthlySummary()
+            monthly_summary.user_id_hash = user_hash
+            monthly_summary.month = current_month
+            monthly_summary.total_amount = amount
+            monthly_summary.expense_count = 1
+            monthly_summary.categories = {category: float(amount)}
             db_session.session.add(monthly_summary)
         else:
             monthly_summary.total_amount = float(monthly_summary.total_amount) + float(amount)
@@ -147,14 +144,15 @@ def save_expense(user_identifier, description, amount, category, platform, origi
             expense_datetime = datetime.combine(current_date, current_time)
             expense_local_date = local_date_from_datetime(expense_datetime)
             
-            # Track D1/D3 analytics (silent data collection)
-            track_d1_activation(user, expense_datetime)
-            track_d3_completion(user)
-            
-            # Update user streak and check milestones (user-visible nudges)
-            if expense_local_date:
-                update_user_streak(user, expense_local_date)
-                milestone_message = check_milestone_nudges(user)
+            # Track D1/D3 analytics (silent data collection) - with null check
+            if user:
+                track_d1_activation(user, expense_datetime)
+                track_d3_completion(user)
+                
+                # Update user streak and check milestones (user-visible nudges)
+                if expense_local_date:
+                    update_user_streak(user, expense_local_date)
+                    milestone_message = check_milestone_nudges(user)
                 
         except Exception as e:
             # Fail-safe: growth metrics errors never break expense logging
@@ -303,20 +301,19 @@ def upsert_expense_idempotent(psid_hash: str, mid: str, payload: Dict[str, Any])
                    mid=mid, merchant=merchant)
         
         # Create expense record
-        expense = Expense(
-            user_id=psid_hash,
-            description=description,
-            amount=amount,
-            category=category,
-            currency=currency,
-            date=current_date,
-            time=current_time,
-            month=current_month,
-            unique_id=unique_id,
-            mid=mid,  # Store Facebook message ID
-            platform='facebook',
-            original_message=payload.get('original_message', description)
-        )
+        expense = Expense()
+        expense.user_id = psid_hash
+        expense.description = description
+        expense.amount = amount
+        expense.category = category
+        expense.currency = currency
+        expense.date = current_date
+        expense.time = current_time
+        expense.month = current_month
+        expense.unique_id = unique_id
+        expense.mid = mid  # Store Facebook message ID
+        expense.platform = 'facebook'
+        expense.original_message = payload.get('original_message', description)
         
         db.session.add(expense)
         
@@ -334,13 +331,12 @@ def upsert_expense_idempotent(psid_hash: str, mid: str, payload: Dict[str, Any])
         ).first()
         
         if not monthly_summary:
-            monthly_summary = MonthlySummary(
-                user_id_hash=psid_hash,
-                month=current_month,
-                total_amount=amount,
-                expense_count=1,
-                categories={category: float(amount)}
-            )
+            monthly_summary = MonthlySummary()
+            monthly_summary.user_id_hash = psid_hash
+            monthly_summary.month = current_month
+            monthly_summary.total_amount = amount
+            monthly_summary.expense_count = 1
+            monthly_summary.categories = {category: float(amount)}
             db.session.add(monthly_summary)
         else:
             monthly_summary.total_amount = float(monthly_summary.total_amount or 0) + float(amount)
@@ -394,7 +390,8 @@ def ensure_idempotency_index():
         WHERE mid IS NOT NULL AND mid != '';
         """
         
-        db.session.execute(index_sql)
+        from sqlalchemy import text
+        db.session.execute(text(index_sql))
         db.session.commit()
         
         logger.info("Idempotency index ensured: ux_expenses_psid_mid")

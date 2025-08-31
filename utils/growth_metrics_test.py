@@ -182,7 +182,8 @@ class GrowthMetricsTestSuite:
             
             # Test database connection and schema
             try:
-                with db.app.app_context():
+                from app import app
+                with app.app_context():
                     # Simple query to verify schema
                     result = db.session.execute(db.text("SELECT COUNT(*) FROM users")).scalar()
                     self._add_result("Database Schema", "Connection Test", result is not None)
