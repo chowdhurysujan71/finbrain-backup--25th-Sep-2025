@@ -178,6 +178,20 @@ def detect_reminder_intent(psid_hash_val: str, text: str) -> Optional[Dict[str, 
     Returns:
         Response dict if any reminder intent detected, None otherwise
     """
+    # CRITICAL FIX: Check for active feedback context FIRST
+    # If user has pending feedback on a Money Story report, don't intercept YES/NO responses
+    try:
+        from utils.feedback_context import FeedbackContextManager
+        context_manager = FeedbackContextManager()
+        
+        # If there's active feedback context, let feedback handler process YES/NO responses
+        if context_manager.has_active_context(psid_hash_val):
+            logger.debug(f"Skipping reminder detection for {psid_hash_val[:8]}... - active feedback context detected")
+            return None
+    except Exception as e:
+        # Fail-open: if feedback context check fails, continue with reminder processing
+        logger.warning(f"Feedback context check failed in reminder detection: {e}")
+    
     # Check for consent (highest priority - user responding to our prompt)
     consent_response = handle_reminder_consent(psid_hash_val, text)
     if consent_response:

@@ -11,12 +11,15 @@ from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
+# CRITICAL FIX: Global context storage to persist across router instances
+# In production, this should be Redis-backed for scalability
+_GLOBAL_FEEDBACK_CONTEXTS: Dict[str, Dict] = {}
+
 class FeedbackContextManager:
     """Manages temporary feedback contexts for report responses"""
     
     def __init__(self, context_timeout_hours: int = 24):
         """Initialize context manager with configurable timeout"""
-        self.contexts: Dict[str, Dict] = {}  # In-memory storage
         self.timeout_hours = context_timeout_hours
         logger.info(f"Feedback context manager initialized: timeout={context_timeout_hours}h")
     
@@ -48,8 +51,8 @@ class FeedbackContextManager:
             # Clean expired contexts first
             self._cleanup_expired_contexts()
             
-            # Store context
-            self.contexts[user_id_hash] = {
+            # Store context in global storage
+            _GLOBAL_FEEDBACK_CONTEXTS[user_id_hash] = {
                 'report_context_id': report_context_id,
                 'created_at': datetime.utcnow(),
                 'expires_at': datetime.utcnow() + timedelta(hours=self.timeout_hours)
@@ -68,7 +71,7 @@ class FeedbackContextManager:
         Returns context_id if active, None if expired or not found
         """
         try:
-            context = self.contexts.get(user_id_hash)
+            context = _GLOBAL_FEEDBACK_CONTEXTS.get(user_id_hash)
             
             if not context:
                 logger.debug(f"No feedback context found for user {user_id_hash[:8]}...")
@@ -94,8 +97,8 @@ class FeedbackContextManager:
         Returns True if context was cleared, False if not found
         """
         try:
-            if user_id_hash in self.contexts:
-                context_id = self.contexts[user_id_hash].get('report_context_id', 'unknown')
+            if user_id_hash in _GLOBAL_FEEDBACK_CONTEXTS:
+                context_id = _GLOBAL_FEEDBACK_CONTEXTS[user_id_hash].get('report_context_id', 'unknown')
                 self._remove_context(user_id_hash)
                 logger.debug(f"Cleared feedback context for user {user_id_hash[:8]}...: {context_id}")
                 return True
@@ -115,7 +118,7 @@ class FeedbackContextManager:
     
     def _remove_context(self, user_id_hash: str):
         """Internal method to remove context"""
-        self.contexts.pop(user_id_hash, None)
+        _GLOBAL_FEEDBACK_CONTEXTS.pop(user_id_hash, None)
     
     def _cleanup_expired_contexts(self):
         """Clean up expired contexts to prevent memory growth"""
@@ -123,7 +126,7 @@ class FeedbackContextManager:
             current_time = datetime.utcnow()
             expired_users = []
             
-            for user_id_hash, context in self.contexts.items():
+            for user_id_hash, context in _GLOBAL_FEEDBACK_CONTEXTS.items():
                 if current_time > context['expires_at']:
                     expired_users.append(user_id_hash)
             
@@ -141,10 +144,10 @@ class FeedbackContextManager:
         try:
             self._cleanup_expired_contexts()
             return {
-                'active_contexts': len(self.contexts),
+                'active_contexts': len(_GLOBAL_FEEDBACK_CONTEXTS),
                 'timeout_hours': self.timeout_hours,
                 'oldest_context': min(
-                    (ctx['created_at'] for ctx in self.contexts.values()),
+                    (ctx['created_at'] for ctx in _GLOBAL_FEEDBACK_CONTEXTS.values()),
                     default=None
                 )
             }

@@ -378,9 +378,23 @@ class ProductionRouter:
                 except Exception as e:
                     logger.warning(f"Learning intent handling failed: {e}")
             
-            # Step 1.3: SUMMARY/ANALYSIS DETECTION (BEFORE AI processing)
-            # Skip summary detection for category-specific queries - let deterministic router handle them
-            if _is_summary_command(text) and not self._is_category_specific_query(text):
+            # Step 1.3: DEDICATED REPORT DETECTION (BEFORE SUMMARY)
+            # Handle explicit REPORT commands for Money Story generation
+            if self._is_report_command(text):
+                logger.info(f"[ROUTER] REPORT command detected: '{text[:50]}...'")
+                try:
+                    from handlers.report import handle_report
+                    report_response = handle_report(user_hash)
+                    self._log_routing_decision(rid, user_hash, "report", "money_story_generated")
+                    self._record_processing_time(time.time() - start_time)
+                    return normalize(report_response['text']), "report", None, None
+                except Exception as e:
+                    logger.error(f"Report handler error: {e}")
+                    # Fall through to other handlers if report fails
+            
+            # Step 1.4: SUMMARY/ANALYSIS DETECTION (AFTER REPORT)
+            # Skip summary detection for category-specific queries - let deterministic router handle them  
+            if _is_summary_command(text) and not self._is_category_specific_query(text) and not self._is_report_command(text):
                 logger.info(f"[ROUTER] Summary command detected: '{text[:50]}...'")
                 try:
                     summary_response = handle_summary(user_hash, text)
@@ -391,7 +405,7 @@ class ProductionRouter:
                     logger.error(f"Summary handler error: {e}")
                     # Fall through to other handlers if summary fails
             
-            # Step 1.4: REPORT FEEDBACK DETECTION (BEFORE DETERMINISTIC ROUTING)
+            # Step 1.5: REPORT FEEDBACK DETECTION (BEFORE DETERMINISTIC ROUTING)
             # Check for YES/NO responses to Money Story reports
             try:
                 from handlers.feedback import handle_report_feedback, is_feedback_response
@@ -412,7 +426,7 @@ class ProductionRouter:
             except Exception as e:
                 logger.warning(f"Report feedback handler error: {e}, continuing routing")
             
-            # Step 1.5: DETERMINISTIC ROUTING (PoR v1.1 - EXPENSE_LOG and CLARIFY_EXPENSE intents)
+            # Step 1.6: DETERMINISTIC ROUTING (PoR v1.1 - EXPENSE_LOG and CLARIFY_EXPENSE intents)
             try:
                 from utils.routing_policy import deterministic_router
                 
@@ -978,6 +992,34 @@ class ProductionRouter:
             # Fail-open: never break message flow due to guardrail errors
             logger.warning(f"[GUARDRAIL] Check failed (user={user_hash[:8]}): {e}")
             return None
+
+    def _is_report_command(self, text: str) -> bool:
+        """Check if text is an explicit REPORT command for Money Story generation"""
+        if not text:
+            return False
+        
+        text_normalized = text.strip().upper()
+        
+        # Exact REPORT command patterns
+        report_patterns = ["REPORT", "MONEY STORY", "MY STORY", "GENERATE REPORT"]
+        
+        # Bengali equivalent
+        bengali_report_patterns = ["রিপোর্ট", "আমার গল্প", "টাকার গল্প"]
+        
+        # Check exact matches or "report" as standalone word
+        if text_normalized in report_patterns:
+            return True
+        
+        # Check Bengali patterns
+        if any(pattern in text for pattern in bengali_report_patterns):
+            return True
+        
+        # Check if "report" appears as standalone word (not part of other words)
+        import re
+        if re.search(r'\breport\b', text.lower()):
+            return True
+        
+        return False
 
     def _is_category_specific_query(self, text: str) -> bool:
         """Check if query is asking for category-specific breakdown"""
