@@ -88,10 +88,25 @@ def handle_multi_expense_logging(psid_hash_val: str, mid: str, text: str, now: d
                 'amount': None
             }
         
-        # Update user totals
-        _update_user_totals(psid_hash_val, total_amount)
+        # Update user totals using concurrent-safe UPSERT
+        from sqlalchemy import text as sql_text
         
-        # Commit transaction
+        db.session.execute(sql_text("""
+            INSERT INTO users (user_id_hash, platform, total_expenses, expense_count, last_interaction, last_user_message_at)
+            VALUES (:user_hash, 'messenger', :total, :count, :now_ts, :now_ts)
+            ON CONFLICT (user_id_hash) DO UPDATE SET
+                total_expenses = COALESCE(users.total_expenses, 0) + :total,
+                expense_count = COALESCE(users.expense_count, 0) + :count,
+                last_interaction = :now_ts,
+                last_user_message_at = :now_ts
+        """), {
+            'user_hash': psid_hash_val,
+            'total': total_amount,
+            'count': len(logged_expenses),
+            'now_ts': now
+        })
+        
+        # Single atomic commit for both expenses and user totals
         db.session.commit()
         
         # Cache context for Q&A (2-minute TTL)
@@ -191,16 +206,43 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: Dict[str,
             'amount': float(existing.amount)
         }
     
-    # Create new expense
-    expense = _create_expense_from_data(psid_hash_val, mid, expense_data, original_text, now, mid)
-    db.session.add(expense)
-    
-    # Update user totals
-    amount = float(expense_data['amount'])
-    _update_user_totals(psid_hash_val, amount)
-    
-    # Commit transaction
-    db.session.commit()
+    # Atomic transaction: Create expense AND update user totals together
+    try:
+        # Create new expense
+        expense = _create_expense_from_data(psid_hash_val, mid, expense_data, original_text, now, mid)
+        db.session.add(expense)
+        
+        # Update user totals using concurrent-safe UPSERT
+        amount = float(expense_data['amount'])
+        from sqlalchemy import text as sql_text
+        
+        db.session.execute(sql_text("""
+            INSERT INTO users (user_id_hash, platform, total_expenses, expense_count, last_interaction, last_user_message_at)
+            VALUES (:user_hash, 'messenger', :amount, 1, :now_ts, :now_ts)
+            ON CONFLICT (user_id_hash) DO UPDATE SET
+                total_expenses = COALESCE(users.total_expenses, 0) + :amount,
+                expense_count = COALESCE(users.expense_count, 0) + 1,
+                last_interaction = :now_ts,
+                last_user_message_at = :now_ts
+        """), {
+            'user_hash': psid_hash_val,
+            'amount': amount,
+            'now_ts': now
+        })
+        
+        # Single atomic commit for both expense and user totals
+        db.session.commit()
+        
+    except Exception as e:
+        # Rollback entire transaction on any failure
+        db.session.rollback()
+        logger.error(f"Atomic single expense logging failed: {e}")
+        return {
+            'text': "Unable to log expense. Please try again.",
+            'intent': 'log_error',
+            'category': None,
+            'amount': None
+        }
     
     # Cache context for Q&A
     _cache_expense_context(psid_hash_val, [mid], [expense_data], now)
@@ -311,7 +353,7 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
                 'amount': None
             }
         
-        log_correction_detected(psid_hash_val, mid, "CORRECTION", "parsed_target", "SMART_CORRECTIONS", "smart_corrections_v1")
+        log_correction_detected(psid_hash_val, text, target_expense)
         
         # Step 2: Find candidate expense to correct within 10-minute window
         correction_window = timedelta(minutes=10)
@@ -364,7 +406,7 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
         ).first()
         
         if existing_correction:
-            log_correction_duplicate(psid_hash_val, mid)
+            log_correction_duplicate(psid_hash_val, mid, existing_correction.id)
             response = format_correction_duplicate_reply()
             return {
                 'text': response,
@@ -413,7 +455,7 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
         # Log successful correction
         log_correction_applied(
             psid_hash_val, mid, best_candidate.id, new_expense.id, 
-            old_amount, new_amount, "smart_corrections_v1"
+            {"old_amount": old_amount, "new_amount": new_amount}
         )
         
         # Generate coach-style confirmation

@@ -25,6 +25,16 @@ COACH_SESSION_TTL_SEC = int(os.getenv('COACH_SESSION_TTL_SEC', '300'))  # 5 min
 COACH_COOLDOWN_SEC = int(os.getenv('COACH_COOLDOWN_SEC', '900'))  # 15 min
 COACH_PER_DAY_MAX = int(os.getenv('COACH_PER_DAY_MAX', '6'))
 
+# Application Constants
+MSG_MAX_CHARS = int(os.getenv('MSG_MAX_CHARS', '280'))  
+TIMEZONE = os.getenv('TIMEZONE', 'Asia/Dhaka')
+CURRENCY_SYMBOL = os.getenv('CURRENCY_SYMBOL', '৳')
+
+# AI Rate Limiting Configuration
+AI_RL_USER_LIMIT = int(os.getenv('AI_RL_USER_LIMIT', '4'))
+AI_RL_WINDOW_SEC = int(os.getenv('AI_RL_WINDOW_SEC', '60'))  
+AI_RL_GLOBAL_LIMIT = int(os.getenv('AI_RL_GLOBAL_LIMIT', '120'))
+
 def get_config_summary():
     """Get current configuration summary"""
     # Import here to avoid circular imports

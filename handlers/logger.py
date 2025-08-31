@@ -27,36 +27,67 @@ def handle_log(user_id: str, text: str) -> Dict[str, str]:
         
         logged = []
         total = 0
+        user_hash = hash_psid(user_id) if user_id.isdigit() else user_id
         
-        # Log each expense
-        for exp in expenses:
-            expense = Expense()
-            expense.user_id = user_id
-            expense.user_id_hash = hash_psid(user_id) if user_id.isdigit() else user_id  # Ensure proper hash
-            expense.amount = exp['amount']
-            expense.category = exp['category']
-            expense.description = exp.get('description', '')
-            expense.original_message = text
-            expense.date = datetime.now().date()
-            expense.time = datetime.now().time()
-            expense.month = datetime.now().strftime("%Y-%m")
-            expense.platform = "messenger"
+        # Atomic transaction with concurrent-safe user updates
+        try:
+            from models import User
+            from decimal import Decimal
+            from sqlalchemy import text as sql_text
             
-            # Generate unique ID for idempotency
-            try:
-                import uuid
-                expense.unique_id = uuid.uuid4().hex
-            except Exception:
-                expense.unique_id = f"fallback_{datetime.now().isoformat()}"
+            # Log each expense first
+            for exp in expenses:
+                expense = Expense()
+                expense.user_id = user_id
+                expense.user_id_hash = user_hash
+                expense.amount = exp['amount']
+                expense.category = exp['category']
+                expense.description = exp.get('description', '')
+                expense.original_message = text
+                expense.date = datetime.now().date()
+                expense.time = datetime.now().time()
+                expense.month = datetime.now().strftime("%Y-%m")
+                expense.platform = "messenger"
+                
+                # Generate unique ID for idempotency
+                try:
+                    import uuid
+                    expense.unique_id = uuid.uuid4().hex
+                except Exception:
+                    expense.unique_id = f"fallback_{datetime.now().isoformat()}"
+                
+                # Set message ID if available - ensure uniqueness for rapid requests
+                expense.mid = locals().get("mid") or exp.get("mid") or f"dispatch_{int(time.time() * 1000000)}"
+                
+                db.session.add(expense)
+                logged.append(f"{exp['amount']:.0f} for {exp['category']}")
+                total += exp['amount']
             
-            # Set message ID if available - ensure uniqueness for rapid requests
-            expense.mid = locals().get("mid") or exp.get("mid") or f"dispatch_{int(time.time() * 1000000)}"
+            # Use PostgreSQL UPSERT for concurrent-safe user totals update
+            now_ts = datetime.utcnow()
+            db.session.execute(sql_text("""
+                INSERT INTO users (user_id_hash, platform, total_expenses, expense_count, last_interaction, last_user_message_at)
+                VALUES (:user_hash, 'messenger', :total, :count, :now_ts, :now_ts)
+                ON CONFLICT (user_id_hash) DO UPDATE SET
+                    total_expenses = COALESCE(users.total_expenses, 0) + :total,
+                    expense_count = COALESCE(users.expense_count, 0) + :count,
+                    last_interaction = :now_ts,
+                    last_user_message_at = :now_ts
+            """), {
+                'user_hash': user_hash,
+                'total': total,
+                'count': len(logged),
+                'now_ts': now_ts
+            })
             
-            db.session.add(expense)
-            logged.append(f"{exp['amount']:.0f} for {exp['category']}")
-            total += exp['amount']
-        
-        db.session.commit()
+            # Single atomic commit for both expenses and user totals
+            db.session.commit()
+            
+        except Exception as e:
+            # Rollback entire transaction on any failure
+            db.session.rollback()
+            logger.error(f"Atomic expense logging failed: {e}")
+            return {"text": "Unable to log expense. Please try again."}
         
         # Format confirmation
         if len(logged) == 1:

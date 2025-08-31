@@ -27,7 +27,8 @@ def detect_intent(text: str) -> str:
         return "REPORT"
     
     # 3-Day Challenge start command (Block 6)
-    if text_lower in ["start 3d", "start3d", "3d challenge", "start challenge"]:
+    challenge_patterns = ["start 3d", "start3d", "3d challenge", "start challenge", "start 3d challenge"]
+    if text_lower in challenge_patterns or any(pattern in text_lower for pattern in ["start 3d", "3d challenge"]):
         return "CHALLENGE_START"
     
     # Diagnostic commands
