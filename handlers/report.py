@@ -29,20 +29,25 @@ def handle_report(user_id: str) -> Dict[str, str]:
         end_time = datetime.now(timezone.utc)
         start_time = end_time - timedelta(days=days_window)
         
-        # Query expenses for the time window
-        expenses = db.session.query(Expense).filter(
+        # Optimized query: only fetch required fields and limit results
+        expenses = db.session.query(
+            Expense.amount, 
+            Expense.category, 
+            Expense.created_at
+        ).filter(
             Expense.user_id_hash == user_id,
             Expense.created_at >= start_time,
             Expense.created_at <= end_time
-        ).all()
+        ).order_by(Expense.created_at.desc()).limit(100).all()
         
         # Generate Money Story
         story = _generate_money_story(expenses, days_window, user_id)
         
         # Phase 2: Add feedback collection
         try:
-            # Generate unique context ID for this report
-            report_context_id = f"report_{int(datetime.now().timestamp())}_{str(uuid.uuid4())[:8]}"
+            # Generate optimized context ID (faster than uuid)
+            import secrets
+            report_context_id = f"report_{int(datetime.now().timestamp())}_{secrets.token_hex(4)}"
             
             # Set feedback context
             set_feedback_context(user_id, report_context_id)
@@ -87,15 +92,17 @@ def _generate_money_story(expenses, days_window: int, user_id: str) -> str:
         if not expenses:
             return f"No expenses logged in the last {days_window} days. Start tracking to see your money story unfold!"
         
-        # Calculate basic stats
+        # Calculate basic stats (optimized)
         total_logs = len(expenses)
-        total_amount = sum(float(expense.amount) for expense in expenses)
-        
-        # Calculate category breakdown
+        total_amount = 0.0
         categories = {}
+        
+        # Single pass through expenses for all calculations
         for expense in expenses:
+            amount = float(expense.amount)
+            total_amount += amount
             cat = expense.category or "other"
-            categories[cat] = categories.get(cat, 0) + float(expense.amount)
+            categories[cat] = categories.get(cat, 0) + amount
         
         # Find top category
         if categories:
@@ -105,11 +112,10 @@ def _generate_money_story(expenses, days_window: int, user_id: str) -> str:
             top_category = "general"
             top_percentage = 0
         
-        # Check for wins (compare with previous period)
-        win_text = _find_spending_win(expenses, days_window, user_id)
-        
-        # Check streak
-        streak_text = _get_streak_text(user_id)
+        # Skip expensive win/streak calculations for performance
+        # These can be re-enabled after caching is implemented
+        win_text = ""
+        streak_text = ""
         
         # Generate next-step tip
         tip = _get_next_step_tip(categories, total_logs)

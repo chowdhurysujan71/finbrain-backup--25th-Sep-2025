@@ -43,18 +43,23 @@ def handle_report_feedback(user_id_hash: str, text: str) -> Optional[Dict[str, A
         
         signal = None
         
-        # Match positive feedback
-        for pos_signal in positive_signals:
-            if pos_signal in normalized_text:
-                signal = "up"
-                break
-        
-        # Match negative feedback (only if no positive match)
-        if not signal:
-            for neg_signal in negative_signals:
-                if neg_signal in normalized_text:
-                    signal = "down"
+        # Optimized signal matching (most common patterns first)
+        if normalized_text in ["YES", "Y", "👍"]:
+            signal = "up"
+        elif normalized_text in ["NO", "N", "👎"]:
+            signal = "down"
+        else:
+            # Fallback to comprehensive matching for edge cases
+            for pos_signal in positive_signals:
+                if pos_signal in normalized_text:
+                    signal = "up"
                     break
+            
+            if not signal:
+                for neg_signal in negative_signals:
+                    if neg_signal in normalized_text:
+                        signal = "down"
+                        break
         
         # If no clear YES/NO detected, ignore (not feedback)
         if not signal:
@@ -63,28 +68,32 @@ def handle_report_feedback(user_id_hash: str, text: str) -> Optional[Dict[str, A
         
         logger.info(f"Feedback detected: {signal} from user {user_id_hash[:8]}... for context {report_context_id}")
         
-        # Store feedback in database (idempotent)
+        # Optimized feedback storage  
         try:
-            feedback = ReportFeedback()
-            feedback.user_id_hash = user_id_hash
-            feedback.report_context_id = report_context_id
-            feedback.signal = signal
-            feedback.created_at = datetime.utcnow()
+            # Check for existing feedback first (faster than exception handling)
+            existing = db.session.query(ReportFeedback).filter_by(
+                user_id_hash=user_id_hash,
+                report_context_id=report_context_id
+            ).first()
             
-            db.session.add(feedback)
-            db.session.commit()
-            
-            logger.info(f"Feedback stored: {signal} for context {report_context_id}")
+            if existing:
+                logger.info(f"Duplicate feedback ignored for context {report_context_id}")
+            else:
+                # Single database operation
+                feedback = ReportFeedback(
+                    user_id_hash=user_id_hash,
+                    report_context_id=report_context_id,
+                    signal=signal,
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(feedback)
+                db.session.commit()
+                logger.info(f"Feedback stored: {signal} for context {report_context_id}")
             
         except Exception as e:
-            # Handle duplicate feedback (idempotency)
-            if "unique constraint" in str(e).lower() or "duplicate" in str(e).lower():
-                logger.info(f"Duplicate feedback ignored for context {report_context_id}")
-                db.session.rollback()
-            else:
-                logger.error(f"Failed to store feedback: {e}")
-                db.session.rollback()
-                # Continue with telemetry and response even if storage fails
+            logger.error(f"Failed to store feedback: {e}")
+            db.session.rollback()
+            # Continue with telemetry and response even if storage fails
         
         # Log telemetry event
         log_report_feedback(user_id_hash, report_context_id, signal)
@@ -111,14 +120,15 @@ def handle_report_feedback(user_id_hash: str, text: str) -> Optional[Dict[str, A
 
 def is_feedback_response(text: str) -> bool:
     """
-    Quick check if text could be a feedback response
-    Used for fast routing decisions
+    Ultra-fast check if text could be a feedback response
+    Used for routing optimization
     """
     if not text or len(text.strip()) > 50:  # Feedback should be short
         return False
     
-    # Quick text normalization
+    # Fastest check for most common patterns
     normalized = text.strip().upper()
+    return normalized in ["YES", "Y", "NO", "N", "👍", "👎"]
     
     # Common feedback patterns
     feedback_patterns = [

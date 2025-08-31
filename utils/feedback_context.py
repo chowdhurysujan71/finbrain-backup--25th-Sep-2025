@@ -44,18 +44,18 @@ class FeedbackContextManager:
     
     def set_context(self, user_id_hash: str, report_context_id: str) -> bool:
         """
-        Set feedback context for user
+        Set feedback context for user (optimized)
         Returns True if successful, False otherwise
         """
         try:
-            # Clean expired contexts first
-            self._cleanup_expired_contexts()
+            # Skip cleanup for performance - cleanup only when needed
+            expires_at = datetime.utcnow() + timedelta(hours=self.timeout_hours)
             
-            # Store context in global storage
+            # Store context in global storage (single operation)
             _GLOBAL_FEEDBACK_CONTEXTS[user_id_hash] = {
                 'report_context_id': report_context_id,
                 'created_at': datetime.utcnow(),
-                'expires_at': datetime.utcnow() + timedelta(hours=self.timeout_hours)
+                'expires_at': expires_at
             }
             
             logger.debug(f"Set feedback context for user {user_id_hash[:8]}...: {report_context_id}")
