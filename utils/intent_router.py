@@ -62,15 +62,32 @@ def detect_intent(text: str) -> str:
         if any(timeframe in text_lower for timeframe in ["this month", "this week", "last week", "last month", "today", "yesterday"]):
             return "CATEGORY_BREAKDOWN"
 
+    # Expense logging detection - moved up for priority
+    # Look for numbers and expense-related keywords first
+    has_number = bool(re.search(r'\d+', text))
+    expense_keywords = [
+        'paid', 'bought', 'cost', 'price', 'coffee', 'lunch', 'dinner', 
+        'food', 'gas', 'fuel', 'uber', 'taxi', 'restaurant', 'store', 'shop',
+        'bill', 'meal', 'snack', 'drink', 'groceries', 'parking', 'transport',
+        'taka', 'tk', 'rupees', 'dollars', 'euro', 'pound'
+    ]
+    
+    has_expense_keyword = any(keyword in text_lower for keyword in expense_keywords)
+    
+    # Strong expense indicators with amounts - prioritize over summary
+    if has_number and has_expense_keyword:
+        return "LOG_EXPENSE"
+    
     # Summary commands - Enhanced to catch natural questions
     summary_patterns = [
-        "summary", "total", "spent", "spending", "recap", "report", 
-        "show me", "expenses", "overview", "costs", "spend",
+        "summary", "total", "recap", "report", 
+        "show me", "expenses", "overview", "costs",
         # Natural questions that should be summaries (excluding specific category queries)
         "what did i spend", "what have i spent", "how much did i spend",
         "my expenses", "expenses this", "expenses last", "expenses for",
         "yesterday", "today", "this week", "last week", "this month"
     ]
+    # Remove generic "spent" and "spend" to avoid conflicts with expense logging
     if any(pattern in text_lower for pattern in summary_patterns):
         return "SUMMARY"
     
@@ -93,24 +110,37 @@ def detect_intent(text: str) -> str:
     if any(pattern in text_lower for pattern in insight_patterns):
         return "INSIGHT"
     
+    # Correction/clarification patterns - detect when user is correcting previous expense
+    correction_patterns = [
+        "wait", "actually", "correction", "i meant", "make that", "change to", "it was",
+        "sorry", "no wait", "hold on", "let me correct", "i said", "i bought", "i got",
+        "it should be", "change that", "update that", "fix that", "that was wrong"
+    ]
+    
+    quantity_correction_patterns = [
+        "it was two", "it was three", "it was four", "it was five", "make it two", "make it three",
+        "actually two", "actually three", "two of", "three of", "multiple", "several"
+    ]
+    
+    # Check for correction intent
+    if any(pattern in text_lower for pattern in correction_patterns):
+        return "LOG_EXPENSE"  # Treat corrections as new expense entries for now
+    
+    if any(pattern in text_lower for pattern in quantity_correction_patterns):
+        return "LOG_EXPENSE"
+    
+    # Natural clarification like "I bought two beef steak omelettes"
+    if text_lower.startswith("i bought") or text_lower.startswith("i got") or text_lower.startswith("i had"):
+        return "LOG_EXPENSE"
+
     # Undo commands
     undo_patterns = ["undo", "delete", "remove", "cancel", "rollback", "mistake"]
     if any(pattern in text_lower for pattern in undo_patterns):
         return "UNDO"
     
-    # Expense logging detection
-    # Look for numbers and expense-related keywords
+    # Fallback expense detection for short messages with numbers
     has_number = bool(re.search(r'\d+', text))
-    expense_keywords = [
-        'spent', 'paid', 'bought', 'cost', 'price', 'coffee', 'lunch', 'dinner', 
-        'food', 'gas', 'fuel', 'uber', 'taxi', 'restaurant', 'store', 'shop',
-        'bill', 'meal', 'snack', 'drink', 'groceries', 'parking', 'transport'
-    ]
-    
-    has_expense_keyword = any(keyword in text_lower for keyword in expense_keywords)
-    
-    # Simple heuristic: if it has a number and expense context, likely an expense
-    if has_number and (has_expense_keyword or len(text.split()) <= 5):
+    if has_number and len(text.split()) <= 5:
         return "LOG_EXPENSE"
     
     # Default to unknown for non-matching text
