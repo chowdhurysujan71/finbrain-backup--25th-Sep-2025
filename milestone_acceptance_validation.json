@@ -1,0 +1,122 @@
+{
+  "validation_meta": {
+    "timestamp": "2025-08-31T07:02:55.627235",
+    "test_type": "acceptance_criteria_validation",
+    "timezone": "Asia/Dhaka"
+  },
+  "functional_tests": {
+    "milestone_types": {
+      "expected": [
+        "streak-3",
+        "10-logs"
+      ],
+      "available": [
+        "streak-3",
+        "10-logs"
+      ],
+      "status": "PASS"
+    },
+    "trigger_timing": {
+      "post_expense_log": true,
+      "milestone_triggered": true,
+      "status": "PASS"
+    },
+    "streak_3_timing": {
+      "consecutive_days": 3,
+      "calculated_streak": 3,
+      "milestone_fired": true,
+      "status": "PASS"
+    },
+    "logs_10_timing": {
+      "total_logs": 10,
+      "expected_logs": 10,
+      "milestone_fired": true,
+      "status": "PASS"
+    },
+    "once_per_lifetime": {
+      "first_trigger": true,
+      "second_attempt": false,
+      "no_repeat": true,
+      "status": "PASS"
+    },
+    "daily_cap": {
+      "first_milestone_fired": true,
+      "second_milestone_blocked": true,
+      "daily_cap_working": true,
+      "status": "PASS"
+    },
+    "priority_by_occurrence": {
+      "first_milestone_delivered": true,
+      "subsequent_suppressed": true,
+      "status": "PASS"
+    }
+  },
+  "messaging_ux_tests": {
+    "exact_content": {
+      "streak_3_expected": "\ud83d\udd25 3-day streak! You're building a habit.",
+      "streak_3_actual": "\ud83d\udd25 3-day streak! You're building a habit.",
+      "streak_3_correct": true,
+      "logs_10_expected": "\ud83c\udf89 10th log! That's consistency.",
+      "logs_10_actual": "\ud83c\udf89 10th log! That's consistency.",
+      "logs_10_correct": true,
+      "status": "PASS"
+    },
+    "inline_insertion": {
+      "milestone_in_response": true,
+      "immediate_delivery": true,
+      "status": "PASS"
+    }
+  },
+  "telemetry_tests": {
+    "event_structure": {
+      "event_type": "milestone_fired",
+      "required_fields": [
+        "type",
+        "source",
+        "user_id"
+      ],
+      "type_values": [
+        "streak-3",
+        "10-logs"
+      ],
+      "source_value": "post-log",
+      "status": "PASS"
+    },
+    "no_telemetry_when_nothing_fires": {
+      "verified": true,
+      "status": "PASS"
+    },
+    "no_duplicates": {
+      "lifetime_uniqueness": true,
+      "status": "PASS"
+    }
+  },
+  "correctness_tests": {
+    "timezone_safety": {
+      "timezone_used": "Asia/Dhaka",
+      "day_boundary_respected": true,
+      "streak_calculation_timezone_aware": true,
+      "status": "PASS"
+    },
+    "idempotency": {
+      "rapid_calls": 5,
+      "milestone_count": 1,
+      "idempotent": true,
+      "status": "PASS"
+    },
+    "latency": {
+      "latency_ms": 1086.9197845458984,
+      "acceptable": false,
+      "threshold_ms": 100,
+      "status": "FAIL"
+    }
+  },
+  "summary": {
+    "total_criteria": 15,
+    "passed_criteria": 14,
+    "pass_rate": 93.33333333333333,
+    "acceptance_status": "REJECTED",
+    "deployment_approved": false,
+    "timestamp": "2025-08-31T07:03:28.899180"
+  }
+}

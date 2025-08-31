@@ -20,3 +20,4 @@ pytest
 ruff
 openai
 google-genai
+pytz
