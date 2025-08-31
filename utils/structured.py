@@ -80,6 +80,22 @@ def log_correction_no_candidate(user_hash: str, mid: str, reason: str):
     except Exception as e:
         logger.warning(f"Failed to log correction no candidate: {e}")
 
+def log_report_feedback(user_id_hash: str, report_context_id: str, signal: str):
+    """Log report feedback event for analytics"""
+    try:
+        event_data = {
+            "user_id": user_id_hash[:8] + "...",  # Match acceptance criteria format
+            "report_context_id": report_context_id,
+            "signal": signal,  # 'up' or 'down'
+            "has_text": False  # Always false for YES/NO demo version
+        }
+        
+        log_structured_event("report_feedback", event_data, user_id_hash)
+        logger.info(f"Report feedback logged: {signal} for context {report_context_id}")
+        
+    except Exception as e:
+        logger.warning(f"Failed to log report feedback: {e}")
+
 def log_correction_duplicate(user_hash: str, mid: str, expense_id: str):
     """Log when correction is a duplicate"""
     try:

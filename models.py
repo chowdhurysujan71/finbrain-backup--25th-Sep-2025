@@ -161,3 +161,22 @@ class UserMilestone(db.Model):
     
     def __repr__(self):
         return f'<UserMilestone {self.user_id_hash[:8]}...: {self.milestone_type}>'
+
+class ReportFeedback(db.Model):
+    """Report feedback tracking for Money Stories"""
+    __tablename__ = 'report_feedback'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id_hash = db.Column(db.String(255), nullable=False, index=True)  # SHA-256 hashed user ID
+    report_context_id = db.Column(db.String(100), nullable=False)  # Unique report identifier
+    signal = db.Column(db.String(10), nullable=False)  # 'up' or 'down'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Feedback timestamp
+    
+    # Idempotency constraint: only one feedback per user per report
+    __table_args__ = (
+        db.UniqueConstraint('user_id_hash', 'report_context_id', name='ux_user_report_feedback'),
+        db.CheckConstraint("signal IN ('up', 'down')", name='ck_feedback_signal'),
+    )
+    
+    def __repr__(self):
+        return f'<ReportFeedback {self.user_id_hash[:8]}...: {self.signal}>'
