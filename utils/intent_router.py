@@ -22,6 +22,10 @@ def detect_intent(text: str) -> str:
     if _has_spending_increase_intent(text_lower):
         return "CLARIFY_SPENDING_INTENT"
     
+    # REPORT command - exact match (case-insensitive)  
+    if text_lower == "report":
+        return "REPORT"
+    
     # Diagnostic commands
     if text_lower in ["diag", "diagnostic", "status", "health"]:
         return "DIAGNOSTIC"

@@ -7,6 +7,7 @@ from utils.intent_router import detect_intent
 from handlers.summary import handle_summary
 from handlers.insight import handle_insight
 from handlers.logger import handle_log
+from handlers.report import handle_report
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,12 @@ def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
         logger.info(f"Detected intent: {intent} for message: {text[:50]}")
         
         # Route to appropriate handler
-        if intent == "DIAGNOSTIC":
+        if intent == "REPORT":
+            # Handle REPORT command - generate Money Story
+            result = handle_report(user_id)
+            return result.get('text', 'Report unavailable'), intent
+            
+        elif intent == "DIAGNOSTIC":
             # Handle diagnostic command
             diag_text = f"diag | type={type(user_id).__name__} | psid_hash={user_id[:8]}... | mode=STD"
             return diag_text, intent
