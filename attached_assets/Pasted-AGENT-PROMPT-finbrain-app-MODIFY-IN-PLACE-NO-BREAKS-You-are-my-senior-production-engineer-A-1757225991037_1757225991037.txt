@@ -1,0 +1,146 @@
+AGENT PROMPT — finbrain-app (MODIFY IN-PLACE, NO BREAKS)
+
+You are my senior production engineer. Apply Phase A: Observability with MINIMAL, NON-BREAKING edits to this existing Flask codebase. DO NOT remove routes, DO NOT replace the project logger, DO NOT change app init order (PCA/background processor, etc.). Make atomic diffs only.
+
+Repo facts (from my analysis):
+- app.py contains an existing /health route (lines ~390–526) with comprehensive DB/token/env checks.
+- utils/logger.py exists and already emits JSON with request tracking.
+- Sentry is referenced as optional around line ~437.
+- utils/background_processor.py exists (threaded worker). DO NOT touch in this task.
+
+GOALS (must deliver):
+1) Keep /health route but make it **lightweight** (<100ms, no dependencies). Return 200 {"status":"ok"}.
+2) Add **/readyz** new route:
+   - 200 only if DB check AND AI key present succeed; Redis is informational.
+   - JSON: {"db": bool, "redis": bool, "ai_key_present": bool}.
+   - Total timeout budget ≤2s (DB connect_timeout=2s, Redis socket timeouts=1s, protect with try/except).
+3) **Sentry enforcement**:
+   - Initialize Sentry only when ENV=prod.
+   - If ENV=prod and SENTRY_DSN is missing, fail fast on boot with a clear error.
+   - Otherwise (dev), do not require DSN.
+4) **Logging middleware**:
+   - Use utils/logger.py (do NOT create a new logger).
+   - Add request middleware that logs ONE JSON line per request with fields:
+     ts, level, request_id, method, path, status, latency_ms, user_id (from X-User-ID header if present).
+   - Echo X-Request-ID in responses.
+5) **Dependencies**:
+   - Clean up requirements.txt: dedupe lines and pin versions:
+     flask>=2.3
+     psycopg[binary]>=3.1
+     redis>=5.0
+     sentry-sdk>=2.0
+     requests>=2.31
+     pytest>=8.0
+   - Keep any other project deps intact.
+6) **Tests** (pytest):
+   - tests/test_health_readyz.py:
+     • Assert /health → 200 {"status":"ok"} and no dependency access.
+     • Monkeypatch DB check and set/unset AI_API_KEY:
+         a) DB True + AI True → 200
+         b) DB False OR AI False → 503
+7) **Docs**:
+   - /docs/health-spec.md (contract, checks, timeouts, runbook, acceptance).
+   - /docs/logging-proof.md (fields, headers, how to verify).
+8) **Acceptance evidence** (print in agent output):
+   - `pytest -q` showing passing tests.
+   - Run server and show:
+     • `curl -i /health` (200, X-Request-ID header present)
+     • `curl -s /readyz` (200 only when DB+AI ok; 503 otherwise)
+   - Trigger Sentry test endpoint once ONLY if ENV=prod + SENTRY_DSN set.
+9) **Do not touch** utils/background_processor.py in this task.
+
+IMPLEMENTATION DETAILS (make these exact changes):
+A) In app.py
+   - Locate the existing /health route. Preserve its function name but CHANGE its implementation to:
+     return jsonify({"status":"ok"}), 200
+     (No DB/Redis/token/env checks. Keep name/route so callers aren’t broken.)
+   - Duplicate the old /health comprehensive logic into a NEW route:
+     @app.get("/readyz")
+     def readyz(): 
+        - db_ok = run SELECT 1 using psycopg.connect(DATABASE_URL, connect_timeout=2). Wrap in try/except.
+        - redis_ok = best-effort ping to REDIS_URL with 1s timeouts. Wrap in try/except. This is informational.
+        - ai_ok = bool(os.getenv("AI_API_KEY"))
+        - code = 200 if (db_ok and ai_ok) else 503
+        - return {"db": db_ok, "redis": redis_ok, "ai_key_present": ai_ok}, code
+     Ensure total execution ≤2s and function never raises.
+   - Add a `/__test_error` route that raises RuntimeError("Sentry test error") for verification.
+
+B) Sentry enforcement
+   - In the same place Sentry is currently referenced (around line ~437 or existing init), modify:
+     • If ENV == "prod":
+         - If SENTRY_DSN is missing/empty → raise RuntimeError("SENTRY_DSN required when ENV=prod")
+         - Else initialize sentry_sdk with FlaskIntegration; traces_sample_rate=0.1 (or existing).
+     • If ENV != "prod": keep current optional behavior; do not require DSN.
+   - Do not alter any other boot validations.
+
+C) Logging middleware (use utils/logger.py)
+   - Add before_request to capture start time and generate/propagate a request_id (from header X-Request-ID or uuid4).
+   - After_request: emit ONE JSON log using utils/logger (not print) with:
+     ts (epoch ms), level="info", request_id, method, path, status, latency_ms, user_id (from header X-User-ID if present).
+     Also set response header X-Request-ID to the propagated value.
+   - Ensure this does not duplicate existing logs (guard if logger already logs per-request).
+
+D) requirements.txt
+   - Remove duplicates, pin versions listed above, keep others intact.
+
+E) tests/test_health_readyz.py
+   - Build Flask test client from the app factory/instance used in this repo.
+   - Test /health → 200 {"status":"ok"}.
+   - For /readyz, monkeypatch the DB check function to return True/False and set/unset AI_API_KEY in environ to assert 200 vs 503 as specified.
+
+F) /docs
+   - /docs/health-spec.md content:
+     ---
+     # Health & Readiness Spec (finbrain-app)
+
+     Endpoints
+     - GET /health → 200 {"status":"ok"} (no dependencies, <100ms)
+     - GET /readyz → 200 iff DB OK AND AI key present; else 503
+       Body: {"db":bool,"redis":bool,"ai_key_present":bool}
+
+     Checks
+     - DB: psycopg3 connect_timeout=2s; SELECT 1
+     - Redis: ping with 1s socket timeout (informational)
+     - AI: presence of AI_API_KEY (no outbound call)
+
+     Timeout Budget
+     - /readyz total ≤ 2s
+
+     Runbook
+     - 503 causes:
+       • Missing AI_API_KEY → set secret and redeploy
+       • DB outage/misconfig → verify DATABASE_URL / DB health
+
+     Acceptance
+     - /health returns 200 in <100ms
+     - /readyz returns 200 only when DB OK and AI key present
+     - /__test_error triggers a Sentry event (when ENV=prod + SENTRY_DSN set)
+     ---
+
+   - /docs/logging-proof.md content:
+     ---
+     # Logging Proof (finbrain-app)
+
+     Logger: utils/logger.py (existing)
+     Format: JSON lines
+     Fields: ts, level, request_id, method, path, status, latency_ms, user_id
+
+     Verify
+     1) curl -i /health
+        - 200 + X-Request-ID header
+        - One JSON log line with latency_ms in console
+     2) curl -s /readyz (with AI_API_KEY set & DB reachable) → 200; otherwise 503
+     3) Hit /__test_error once (prod only) → Sentry event visible with request_id
+     ---
+
+G) Output & commit
+   - Run: pytest -q (show passing).
+   - Start server and show curl outputs and one JSON log per request.
+   - If ENV=prod and SENTRY_DSN set, GET /__test_error once and confirm event.
+   - Commit: feat(observability): lightweight /health, new /readyz, Sentry enforcement, JSON request logs, docs, tests
+
+IMPORTANT:
+- Do NOT modify utils/background_processor.py in this task.
+- Do NOT replace utils/logger.py; only add the per-request middleware that calls it.
+- Keep all existing env/boot validation logic, besides adding Sentry enforcement.
+- Keep route names/paths stable; only change /health internals and add /readyz.
