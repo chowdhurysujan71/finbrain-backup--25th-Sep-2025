@@ -1566,6 +1566,41 @@ def ops_hash():
     from utils.identity import psid_hash
     return {"psid": psid, "psid_hash": psid_hash(psid)}, 200
 
+@app.get("/supabase-test")
+def supabase_test():
+    """Supabase connectivity smoke test - lists objects in configured bucket"""
+    import requests
+    import os
+    
+    # Get Supabase configuration
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_KEY") 
+    supabase_bucket = os.environ.get("SUPABASE_BUCKET", "user-assets")
+    
+    if not supabase_url or not supabase_key:
+        return {"error": "SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables required"}, 503
+    
+    # Call Supabase Storage API to list objects
+    list_url = f"{supabase_url}/storage/v1/object/list/{supabase_bucket}"
+    headers = {
+        "Authorization": f"Bearer {supabase_key}",
+        "apikey": supabase_key
+    }
+    
+    try:
+        response = requests.get(list_url, headers=headers, timeout=3)
+        response.raise_for_status()
+        
+        # Return the list of objects (may be empty array)
+        return response.json(), 200
+        
+    except requests.exceptions.Timeout:
+        return {"error": "Supabase request timeout (3s exceeded)"}, 503
+    except requests.exceptions.RequestException as e:
+        return {"error": f"Supabase connection failed: {str(e)}"}, 503
+    except Exception as e:
+        return {"error": f"Unexpected error: {str(e)}"}, 503
+
 # REMOVED: Legacy /webhook endpoint - redundant with /webhook/messenger
 # Only canonical /webhook/messenger endpoint remains for production use
 
