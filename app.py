@@ -2,6 +2,8 @@ import os
 import logging
 import sys
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for, make_response, g
+import uuid
+import time
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -44,6 +46,34 @@ def validate_required_environment():
 # Validate environment before any Flask initialization
 validate_required_environment()
 
+# Sentry enforcement for production
+env = os.environ.get('ENV', 'development')
+if env == 'prod':
+    sentry_dsn = os.environ.get('SENTRY_DSN')
+    if not sentry_dsn:
+        logger.critical("BOOT FAILURE: SENTRY_DSN required when ENV=prod")
+        logger.critical("Set SENTRY_DSN environment variable for production deployment")
+        sys.exit(1)
+    
+    # Initialize Sentry for production
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+        
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            integrations=[FlaskIntegration()],
+            traces_sample_rate=0.1,
+            environment=env
+        )
+        logger.info("✓ Sentry initialized for production environment")
+    except ImportError:
+        logger.critical("BOOT FAILURE: sentry-sdk not installed but required for ENV=prod")
+        sys.exit(1)
+    except Exception as e:
+        logger.critical(f"BOOT FAILURE: Sentry initialization failed: {str(e)}")
+        sys.exit(1)
+
 class Base(DeclarativeBase):
     pass
 
@@ -53,6 +83,56 @@ db = SQLAlchemy(model_class=Base)
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.environ.get("SESSION_SECRET") or os.urandom(32).hex()
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+# Request logging middleware using existing structured logger
+from utils.logger import structured_logger
+
+@app.before_request
+def before_request():
+    """Capture request start time and generate/propagate request_id"""
+    g.start_time = time.time()
+    # Get request_id from header or generate new one
+    g.request_id = request.headers.get('X-Request-ID') or str(uuid.uuid4())
+    
+    # Check if existing logger already handles this to avoid duplication
+    if not hasattr(g, 'logging_handled'):
+        g.logging_handled = True
+
+@app.after_request
+def after_request(response):
+    """Log request completion with structured JSON format"""
+    if hasattr(g, 'start_time') and hasattr(g, 'request_id') and hasattr(g, 'logging_handled'):
+        try:
+            duration_ms = (time.time() - g.start_time) * 1000
+            user_id = request.headers.get('X-User-ID')
+            
+            # Use existing structured logger format
+            import json
+            log_data = {
+                "ts": int(time.time() * 1000),  # epoch milliseconds
+                "level": "info",
+                "request_id": g.request_id,
+                "method": request.method,
+                "path": request.path,
+                "status": response.status_code,
+                "latency_ms": round(duration_ms, 2)
+            }
+            
+            if user_id:
+                log_data["user_id"] = user_id
+            
+            # Log using existing logger infrastructure
+            structured_logger.logger.info(json.dumps(log_data))
+            
+        except Exception as e:
+            # Don't let logging errors break the response
+            logger.debug(f"Request logging error: {str(e)}")
+    
+    # Add X-Request-ID header to response
+    if hasattr(g, 'request_id'):
+        response.headers['X-Request-ID'] = g.request_id
+    
+    return response
 
 # Add startup self-check for canonical router
 try:
@@ -389,142 +469,66 @@ def admin_dashboard():
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Enhanced health check endpoint for deployment verification with comprehensive startup checks"""
-    # Check for emergency mode first
-    from utils.panic_toggle import is_emergency_mode, get_emergency_status
-    if is_emergency_mode():
-        # In emergency mode, return minimal safe health response
-        emergency_health = {
-            "status": "emergency_mode",
-            "service": "finbrain-expense-tracker",
-            "timestamp": datetime.utcnow().isoformat(),
-            "emergency_details": get_emergency_status(),
-            "message": "Service in emergency mode - limited functionality"
-        }
-        logger.warning("EMERGENCY_MODE: Health check - serving emergency response")
-        return jsonify(emergency_health), 503
+    """Lightweight health check endpoint - no dependencies, <100ms response"""
+    return jsonify({"status": "ok"}), 200
+
+@app.route('/readyz', methods=['GET'])
+def readiness_check():
+    """Readiness check with dependency validation - returns 200 only if DB + AI key OK"""
+    import psycopg
+    import redis
+    import time
     
-    health_status = "healthy"
-    issues = []
+    start_time = time.time()
     
-    # Check database connection
+    # Initialize check results
+    db_ok = False
+    redis_ok = False
+    ai_ok = bool(os.environ.get("AI_API_KEY") or os.environ.get("GEMINI_API_KEY"))
+    
+    # Database check with 2s timeout
     try:
-        db.session.execute(db.text('SELECT 1'))
-        database_status = "connected"
+        db_url = os.environ.get("DATABASE_URL")
+        if db_url:
+            with psycopg.connect(db_url, connect_timeout=2) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1")
+                    result = cur.fetchone()
+                    db_ok = result is not None
     except Exception as e:
-        logger.error(f"Database health check failed: {str(e)}")
-        database_status = "disconnected"
-        health_status = "degraded"
-        issues.append("database_unreachable")
+        logger.debug(f"DB readiness check failed: {str(e)}")
+        db_ok = False
     
-    # Enhanced security: Check Facebook token health
+    # Redis check with 1s timeout (informational only)
     try:
-        from utils.token_manager import check_token_health
-        token_healthy, token_message = check_token_health()
-        if not token_healthy:
-            health_status = "degraded"
-            issues.append(f"token_issue")
+        redis_url = os.environ.get("REDIS_URL")
+        if redis_url:
+            r = redis.from_url(redis_url, socket_timeout=1, socket_connect_timeout=1)
+            redis_ok = r.ping()
     except Exception as e:
-        logger.error(f"Token health check failed: {str(e)}")
-        health_status = "degraded"
-        issues.append("token_check_failed")
+        logger.debug(f"Redis readiness check failed: {str(e)}")
+        redis_ok = False
     
-    # Production security: All required envs guaranteed to exist (validated at boot)
-    required_envs = ["DATABASE_URL", "ADMIN_USER", "ADMIN_PASS", "FACEBOOK_PAGE_ACCESS_TOKEN", 
-                    "FACEBOOK_VERIFY_TOKEN", "FACEBOOK_APP_SECRET", "FACEBOOK_APP_ID"]
+    # Ensure total execution ≤2s
+    elapsed = time.time() - start_time
+    if elapsed > 2.0:
+        logger.warning(f"Readiness check exceeded 2s budget: {elapsed:.3f}s")
     
-    # Check optional environment variables
-    optional_envs = ["SENTRY_DSN"]
-    present_optional = [env for env in optional_envs if os.environ.get(env)]
-    
-    # Get enhanced system metrics
-    from utils.cold_start_mitigation import cold_start_mitigator
-    from utils.background_processor import background_processor
-    
-    uptime_seconds = cold_start_mitigator.get_uptime_seconds()
-    queue_depth = background_processor.get_stats().get("queue_size", 0)
-    ai_status = cold_start_mitigator.get_ai_status()
-    
-    # Adjust overall status based on cold-start completion
-    if health_status == "healthy" and not cold_start_mitigator.warm_up_completed:
-        health_status = "warming"
-    
-    # Additional deployment readiness checks
-    deployment_ready = True
-    deployment_issues = []
-    
-    # Check if Flask app is properly configured
-    try:
-        app_name = app.name
-        debug_mode = app.debug
-    except Exception as e:
-        deployment_ready = False
-        deployment_issues.append("app_configuration_error")
-        logger.error(f"App configuration check failed: {str(e)}")
-    
-    # Check if essential routes are registered
-    try:
-        essential_routes = ['/health', '/webhook/messenger']
-        registered_routes = [str(rule) for rule in app.url_map.iter_rules()]
-        for route in essential_routes:
-            if route not in registered_routes:
-                deployment_ready = False
-                deployment_issues.append(f"missing_route_{route.replace('/', '_')}")
-    except Exception as e:
-        deployment_ready = False
-        deployment_issues.append("route_registration_error")
-        logger.error(f"Route registration check failed: {str(e)}")
-    
-    # Check if blueprints are properly loaded
-    try:
-        blueprint_count = len(app.blueprints)
-        if blueprint_count == 0:
-            deployment_issues.append("no_blueprints_registered")
-    except Exception as e:
-        deployment_ready = False
-        deployment_issues.append("blueprint_check_error")
-        logger.error(f"Blueprint check failed: {str(e)}")
+    # Return 200 only if DB and AI key are OK
+    status_code = 200 if (db_ok and ai_ok) else 503
     
     response = {
-        "status": health_status,
-        "service": "finbrain-expense-tracker",
-        "database": database_status,
-        "platform_support": ["facebook_messenger"],
-        "required_envs": {
-            "all_present": True,
-            "count": len(required_envs)
-        },
-        "deployment_readiness": {
-            "ready": deployment_ready,
-            "app_configured": app_name is not None,
-            "routes_registered": len([r for r in app.url_map.iter_rules()]),
-            "blueprints_loaded": len(app.blueprints)
-        },
-        "boot_validation": "strict_enforcement_enabled",
-        "uptime_s": round(uptime_seconds, 2),
-        "queue_depth": queue_depth,
-        "ai_status": ai_status,
-        "cold_start_mitigation": {
-            "completed": cold_start_mitigator.warm_up_completed,
-            "ai_enabled": cold_start_mitigator.ai_enabled
-        },
-        "security": {
-            "https_enforced": True,
-            "signature_verification": "mandatory",
-            "token_monitoring": "enabled"
-        }
+        "db": db_ok,
+        "redis": redis_ok,
+        "ai_key_present": ai_ok
     }
     
-    if deployment_issues:
-        response["deployment_issues"] = deployment_issues
-    
-    if present_optional:
-        response["optional_envs_present"] = present_optional
-    
-    if issues:
-        response["issues"] = issues
-    
-    return jsonify(response)
+    return jsonify(response), status_code
+
+@app.route('/__test_error', methods=['GET'])
+def test_error():
+    """Test endpoint to trigger Sentry error for verification"""
+    raise RuntimeError("Sentry test error")
 
 @app.route('/health/deployment', methods=['GET'])
 def deployment_readiness_check():
