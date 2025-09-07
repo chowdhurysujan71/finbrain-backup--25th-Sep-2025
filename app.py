@@ -1776,6 +1776,39 @@ try:
             logger.error(f"Job cancellation failed: {e}")
             return jsonify({"error": "Internal server error"}), 500
     
+    @app.route('/jobs/status', methods=['GET'])
+    def get_job_queue_status():
+        """Get job queue system status"""
+        try:
+            # Basic queue health
+            redis_healthy = job_queue.health_check() if job_queue else False
+            circuit_open = circuit_breaker.is_open() if circuit_breaker else False
+            
+            # Get queue stats if Redis available
+            stats = {}
+            if job_queue and job_queue.redis_available:
+                try:
+                    stats = job_queue.get_queue_stats()
+                except Exception as e:
+                    logger.debug(f"Failed to get queue stats: {e}")
+                    stats = {"error": "Stats unavailable"}
+            
+            response = {
+                "redis_connected": redis_healthy,
+                "circuit_breaker_open": circuit_open,
+                "queue_stats": stats,
+                "timestamp": int(time.time())
+            }
+            
+            # Return 503 if Redis unhealthy or circuit open
+            status_code = 503 if not redis_healthy or circuit_open else 200
+            
+            return jsonify(response), status_code
+            
+        except Exception as e:
+            logger.error(f"Job queue status check failed: {e}")
+            return jsonify({"error": "Status check failed"}), 500
+
     logger.info("✓ Job queue API endpoints registered")
 
 except ImportError as e:
