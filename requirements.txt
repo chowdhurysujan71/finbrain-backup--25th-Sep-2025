@@ -25,3 +25,4 @@ pytz
 psycopg[binary]
 redis
 sentry-sdk
+requests-mock

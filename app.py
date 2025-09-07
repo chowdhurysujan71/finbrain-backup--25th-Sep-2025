@@ -199,6 +199,17 @@ with app.app_context():
     except Exception as e:
         logger.warning(f"Audit API registration failed: {e}")
     
+    # Register Assets API (Phase B - Supabase Storage)
+    try:
+        from app.routes_assets import assets_bp
+        if 'assets' not in app.blueprints:
+            app.register_blueprint(assets_bp)
+            logger.info("✓ Assets API routes registered")
+    except ImportError as e:
+        logger.info(f"Assets API not loaded: {e}")
+    except Exception as e:
+        logger.warning(f"Assets API registration failed: {e}")
+    
     # Initialize scheduler for automated reports (optional for production)
     if os.getenv("ENABLE_REPORTS", "false").lower() == "true":
         from utils.scheduler import init_scheduler

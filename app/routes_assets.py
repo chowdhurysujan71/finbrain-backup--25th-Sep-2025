@@ -119,8 +119,9 @@ def upload_url():
         
     except Exception as e:
         latency_ms = (time.time() - start_time) * 1000
-        log_operation("upload_url", user_id if 'user_id' in locals() else "unknown", 
-                     path if 'path' in locals() else "unknown", 500, latency_ms)
+        safe_user_id = user_id if 'user_id' in locals() and user_id else "unknown"
+        safe_path = path if 'path' in locals() and path else "unknown"
+        log_operation("upload_url", safe_user_id, safe_path, 500, latency_ms)
         
         return jsonify({"error": "Internal server error"}), 500
 
@@ -155,8 +156,9 @@ def download_url():
         
     except Exception as e:
         latency_ms = (time.time() - start_time) * 1000
-        log_operation("download_url", user_id if 'user_id' in locals() else "unknown",
-                     path if 'path' in locals() else "unknown", 500, latency_ms)
+        safe_user_id = user_id if 'user_id' in locals() and user_id else "unknown"
+        safe_path = path if 'path' in locals() and path else "unknown"
+        log_operation("download_url", safe_user_id, safe_path, 500, latency_ms)
         
         return jsonify({"error": "Internal server error"}), 500
 
@@ -194,7 +196,8 @@ def delete_asset():
         
     except Exception as e:
         latency_ms = (time.time() - start_time) * 1000
-        log_operation("delete", user_id if 'user_id' in locals() else "unknown",
-                     path if 'path' in locals() else "unknown", 500, latency_ms)
+        safe_user_id = user_id if 'user_id' in locals() and user_id else "unknown"
+        safe_path = path if 'path' in locals() and path else "unknown"
+        log_operation("delete", safe_user_id, safe_path, 500, latency_ms)
         
         return jsonify({"error": "Internal server error"}), 500
