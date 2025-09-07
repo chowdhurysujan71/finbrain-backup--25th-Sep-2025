@@ -3,8 +3,7 @@ Tests for Supabase Storage asset management endpoints
 """
 import pytest
 import json
-from unittest.mock import patch, MagicMock
-import requests_mock
+from unittest.mock import patch
 import os
 
 from app import app, db
@@ -89,11 +88,10 @@ class TestUploadURL:
         assert response.status_code == 400
         assert "exceeds maximum" in response.get_json()["error"]
     
-    @requests_mock.Mocker()
-    def test_successful_upload_url(self, mock_requests, client, mock_env):
+    def test_successful_upload_url(self, client, mock_env, requests_mock):
         """Test successful upload URL generation"""
         # Mock Supabase API response
-        mock_requests.post(
+        requests_mock.post(
             'https://test.supabase.co/storage/v1/object/sign/test-bucket/user123/test.jpg',
             json={"signedURL": "/storage/v1/object/sign/test-bucket/user123/test.jpg?token=abc123"}
         )
@@ -110,11 +108,10 @@ class TestUploadURL:
         assert data["path"] == "user123/test.jpg"
         assert data["expires_in"] == 60
     
-    @requests_mock.Mocker()
-    def test_supabase_api_error(self, mock_requests, client, mock_env):
+    def test_supabase_api_error(self, client, mock_env, requests_mock):
         """Test handling of Supabase API errors"""
         # Mock Supabase API error
-        mock_requests.post(
+        requests_mock.post(
             'https://test.supabase.co/storage/v1/object/sign/test-bucket/user123/test.jpg',
             status_code=500,
             text="Internal Server Error"
@@ -154,11 +151,10 @@ class TestDownloadURL:
         assert response.status_code == 403
         assert "Path must start with 'user123/'" in response.get_json()["error"]
     
-    @requests_mock.Mocker()
-    def test_successful_download_url(self, mock_requests, client, mock_env):
+    def test_successful_download_url(self, client, mock_env, requests_mock):
         """Test successful download URL generation"""
         # Mock Supabase API response
-        mock_requests.post(
+        requests_mock.post(
             'https://test.supabase.co/storage/v1/object/sign/test-bucket/user123/test.jpg',
             json={"signedURL": "/storage/v1/object/test-bucket/user123/test.jpg?token=xyz789"}
         )
@@ -213,11 +209,10 @@ class TestDeleteAsset:
         assert "Path must start with 'user123/'" in response.get_json()["error"]
     
     @patch.dict(os.environ, {'ASSETS_ALLOW_DELETE': 'true'})
-    @requests_mock.Mocker()
-    def test_successful_delete(self, mock_requests, client, mock_env):
+    def test_successful_delete(self, client, mock_env, requests_mock):
         """Test successful asset deletion"""
         # Mock Supabase delete API response
-        mock_requests.delete(
+        requests_mock.delete(
             'https://test.supabase.co/storage/v1/object/test-bucket/user123/test.jpg',
             status_code=200
         )
@@ -234,10 +229,9 @@ class TestDeleteAsset:
 class TestRequestIDPropagation:
     """Test X-Request-ID header propagation in asset endpoints"""
     
-    @requests_mock.Mocker()
-    def test_request_id_in_response_headers(self, mock_requests, client, mock_env):
+    def test_request_id_in_response_headers(self, client, mock_env, requests_mock):
         """Test that X-Request-ID header is included in responses"""
-        mock_requests.post(
+        requests_mock.post(
             'https://test.supabase.co/storage/v1/object/sign/test-bucket/user123/test.jpg',
             json={"signedURL": "/storage/v1/object/sign/test-bucket/user123/test.jpg?token=abc123"}
         )
@@ -256,22 +250,22 @@ class TestRequestIDPropagation:
 class TestContentTypeValidation:
     """Test content type allowlist validation"""
     
-    def test_allowed_content_types(self, client, mock_env):
+    def test_allowed_content_types(self, client, mock_env, requests_mock):
         """Test that all allowed content types are accepted"""
         allowed_types = [
             'image/png', 'image/jpeg', 'application/pdf',
             'text/plain', 'application/json'
         ]
         
+        # Set up a single mock that will be used for all requests
+        requests_mock.post(
+            'https://test.supabase.co/storage/v1/object/sign/test-bucket/user123/test.txt',
+            json={"signedURL": "/signed/url"}
+        )
+        
         for content_type in allowed_types:
-            with requests_mock.Mocker() as mock_requests:
-                mock_requests.post(
-                    'https://test.supabase.co/storage/v1/object/sign/test-bucket/user123/test.txt',
-                    json={"signedURL": "/signed/url"}
-                )
-                
-                response = client.post('/assets/upload-url',
-                                     headers={'X-User-ID': 'user123'},
-                                     json={"path": "user123/test.txt", "content_type": content_type, "size": 1024})
-                
-                assert response.status_code == 200, f"Content type {content_type} should be allowed"
+            response = client.post('/assets/upload-url',
+                                 headers={'X-User-ID': 'user123'},
+                                 json={"path": "user123/test.txt", "content_type": content_type, "size": 1024})
+            
+            assert response.status_code == 200, f"Content type {content_type} should be allowed"

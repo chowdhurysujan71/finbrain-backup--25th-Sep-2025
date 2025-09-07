@@ -27,7 +27,9 @@ ALLOWED_CONTENT_TYPES = {
     'text/plain', 'application/json'
 }
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
-ASSETS_ALLOW_DELETE = os.environ.get('ASSETS_ALLOW_DELETE', 'false').lower() == 'true'
+# Read delete flag dynamically for testing
+def is_delete_enabled():
+    return os.environ.get('ASSETS_ALLOW_DELETE', 'false').lower() == 'true'
 
 def validate_user_context():
     """Validate X-User-ID header is present"""
