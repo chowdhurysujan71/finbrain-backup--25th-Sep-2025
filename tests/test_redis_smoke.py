@@ -4,7 +4,12 @@ import json
 import os
 from unittest.mock import Mock, patch, MagicMock
 from flask import Flask
-from app.routes_redis_smoke import redis_smoke_bp
+import sys
+import os
+
+# Add parent directory to path to import from app directory
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'app'))
+from routes_redis_smoke import redis_smoke_bp
 
 @pytest.fixture
 def app():
@@ -25,7 +30,9 @@ class TestRedisSmokeEndpoint:
     @patch.dict(os.environ, {}, clear=True)
     def test_missing_redis_url(self, client):
         """Test response when REDIS_URL environment variable is missing"""
-        with patch('app.routes_redis_smoke.structured_logger') as mock_logger:
+        with patch('routes_redis_smoke.logging.getLogger') as mock_get_logger:
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
             response = client.get('/redis-smoke')
             
             # Check HTTP response
@@ -35,8 +42,8 @@ class TestRedisSmokeEndpoint:
             assert data['error'] == "missing REDIS_URL"
             
             # Check structured logging
-            mock_logger.logger.info.assert_called_once()
-            log_call = mock_logger.logger.info.call_args[0][0]
+            mock_logger.info.assert_called_once()
+            log_call = mock_logger.info.call_args[0][0]
             log_data = json.loads(log_call)
             assert log_data['event'] == "redis_smoke"
             assert log_data['connected'] is False
@@ -50,7 +57,9 @@ class TestRedisSmokeEndpoint:
         # Mock ImportError when importing redis
         mock_redis_module.side_effect = ImportError("No module named 'redis'")
         
-        with patch('app.routes_redis_smoke.structured_logger') as mock_logger:
+        with patch('routes_redis_smoke.logging.getLogger') as mock_get_logger:
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
             # Need to manually trigger the import error
             with patch('builtins.__import__') as mock_import:
                 def import_side_effect(name, *args, **kwargs):
@@ -78,7 +87,9 @@ class TestRedisSmokeEndpoint:
         mock_client.set.return_value = True
         mock_client.get.return_value = "ok"
         
-        with patch('app.routes_redis_smoke.structured_logger') as mock_logger:
+        with patch('routes_redis_smoke.logging.getLogger') as mock_get_logger:
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
             response = client.get('/redis-smoke')
             
             # Check Redis operations were called correctly
@@ -98,8 +109,8 @@ class TestRedisSmokeEndpoint:
             assert data['value'] == "ok"
             
             # Check structured logging
-            mock_logger.logger.info.assert_called_once()
-            log_call = mock_logger.logger.info.call_args[0][0]
+            mock_logger.info.assert_called_once()
+            log_call = mock_logger.info.call_args[0][0]
             log_data = json.loads(log_call)
             assert log_data['event'] == "redis_smoke"
             assert log_data['connected'] is True
@@ -116,7 +127,9 @@ class TestRedisSmokeEndpoint:
         mock_redis_module.from_url.return_value = mock_client
         mock_client.set.side_effect = mock_redis_module.ConnectionError("Connection refused")
         
-        with patch('app.routes_redis_smoke.structured_logger') as mock_logger:
+        with patch('routes_redis_smoke.logging.getLogger') as mock_get_logger:
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
             response = client.get('/redis-smoke')
             
             # Check HTTP response
@@ -127,8 +140,8 @@ class TestRedisSmokeEndpoint:
             assert "Connection refused" in data['error']
             
             # Check structured logging
-            mock_logger.logger.info.assert_called_once()
-            log_call = mock_logger.logger.info.call_args[0][0]
+            mock_logger.info.assert_called_once()
+            log_call = mock_logger.info.call_args[0][0]
             log_data = json.loads(log_call)
             assert log_data['event'] == "redis_smoke"
             assert log_data['connected'] is False
@@ -143,7 +156,9 @@ class TestRedisSmokeEndpoint:
         mock_redis_module.from_url.return_value = mock_client
         mock_client.set.side_effect = mock_redis_module.TimeoutError("Timeout")
         
-        with patch('app.routes_redis_smoke.structured_logger') as mock_logger:
+        with patch('routes_redis_smoke.logging.getLogger') as mock_get_logger:
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
             response = client.get('/redis-smoke')
             
             # Check HTTP response
@@ -161,7 +176,9 @@ class TestRedisSmokeEndpoint:
         mock_redis_module.from_url.return_value = mock_client
         mock_client.set.side_effect = mock_redis_module.AuthenticationError("Authentication failed")
         
-        with patch('app.routes_redis_smoke.structured_logger') as mock_logger:
+        with patch('routes_redis_smoke.logging.getLogger') as mock_get_logger:
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
             response = client.get('/redis-smoke')
             
             # Check HTTP response
@@ -179,7 +196,9 @@ class TestRedisSmokeEndpoint:
         mock_redis_module.from_url.return_value = mock_client
         mock_client.set.side_effect = mock_redis_module.RedisError("Generic Redis error")
         
-        with patch('app.routes_redis_smoke.structured_logger') as mock_logger:
+        with patch('routes_redis_smoke.logging.getLogger') as mock_get_logger:
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
             response = client.get('/redis-smoke')
             
             # Check HTTP response
@@ -197,7 +216,9 @@ class TestRedisSmokeEndpoint:
         mock_redis_module.from_url.return_value = mock_client
         mock_client.set.side_effect = ValueError("Unexpected error")
         
-        with patch('app.routes_redis_smoke.structured_logger') as mock_logger:
+        with patch('routes_redis_smoke.logging.getLogger') as mock_get_logger:
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
             response = client.get('/redis-smoke')
             
             # Check HTTP response
@@ -217,7 +238,9 @@ class TestRedisSmokeEndpoint:
         mock_client.set.return_value = True
         mock_client.get.return_value = "ok"
         
-        with patch('app.routes_redis_smoke.structured_logger') as mock_logger:
+        with patch('routes_redis_smoke.logging.getLogger') as mock_get_logger:
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
             response = client.get('/redis-smoke')
             
             # Check that redis:// was prepended
@@ -243,7 +266,9 @@ class TestRedisSmokeEndpoint:
         mock_client.set.return_value = True
         mock_client.get.return_value = "different_value"
         
-        with patch('app.routes_redis_smoke.structured_logger') as mock_logger:
+        with patch('routes_redis_smoke.logging.getLogger') as mock_get_logger:
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
             response = client.get('/redis-smoke')
             
             # Should still be successful
@@ -262,7 +287,9 @@ class TestRedisSmokeEndpoint:
         mock_client.set.return_value = True
         mock_client.get.return_value = None
         
-        with patch('app.routes_redis_smoke.structured_logger') as mock_logger:
+        with patch('routes_redis_smoke.logging.getLogger') as mock_get_logger:
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
             response = client.get('/redis-smoke')
             
             # Should still be successful
@@ -296,7 +323,9 @@ class TestRedisSmokeEndpoint:
         mock_client.set.return_value = True
         mock_client.get.return_value = "ok"
         
-        with patch('app.routes_redis_smoke.structured_logger') as mock_logger:
+        with patch('routes_redis_smoke.logging.getLogger') as mock_get_logger:
+            mock_logger = Mock()
+            mock_get_logger.return_value = mock_logger
             response = client.get('/redis-smoke')
             
             # Check that rediss:// URL was used as-is
