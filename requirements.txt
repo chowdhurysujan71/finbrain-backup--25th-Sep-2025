@@ -22,3 +22,6 @@ openai
 google-genai
 pytz
 pytz
+psycopg[binary]
+redis
+sentry-sdk
