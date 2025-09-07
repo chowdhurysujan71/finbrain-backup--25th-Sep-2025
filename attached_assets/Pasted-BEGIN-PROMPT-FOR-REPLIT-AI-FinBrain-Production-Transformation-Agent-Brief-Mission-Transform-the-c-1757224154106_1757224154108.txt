@@ -1,0 +1,389 @@
+BEGIN PROMPT FOR REPLIT AI
+FinBrain — Production Transformation Agent Brief
+Mission
+
+Transform the current FinBrain prototype into a production-aligned service on Replit with:
+
+Stable infra (health checks, logging, error tracking)
+
+Storage out of repo via signed URLs
+
+AI off the request path (async + circuit breaker + fallback)
+
+A light PWA shell (HTMX or comparable) for credibility
+
+Telemetry for DAU/D1/D3
+
+UAT + E2E testing completed with a written report
+
+Release gate: zero known errors, no critical/architectural risks outstanding
+
+Do not write sample code in this task. Perform planning, configuration, verification, and documentation actions only. Where implementation is implied, produce checklists, file inventories, environment plans, and acceptance evidences.
+
+Operating Constraints
+
+Environment: Replit (two repls)
+
+finbrain-app (HTTP API + PWA)
+
+finbrain-worker (background workers for AI/analysis)
+
+Databases/Services (already used or selected):
+
+Postgres (managed; connection pooling enabled)
+
+Redis (Upstash) for queue/circuit state
+
+Object storage (Supabase Storage or Cloudflare R2) via signed URLs
+
+Sentry for error tracking
+
+No user files committed to repository.
+
+No heavy AI calls in request path.
+
+Health endpoints must be public and fast.
+
+All secrets configured via Replit Secrets (not .env in repo).
+
+Environment Variables (declare & verify presence)
+
+Record the final values (masked) in /docs/env-inventory.md.
+
+POSTGRES_URL
+
+REDIS_URL
+
+SUPABASE_URL
+
+SUPABASE_SERVICE_ROLE_KEY (or R2 credentials if using R2: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET)
+
+SENTRY_DSN
+
+GEMINI_API_KEY
+
+APP_ENV = staging or prod
+
+SIGNED_URL_TTL_SECONDS = 86400 (24h)
+
+CIRCUIT_BREAKER_OPEN_SECONDS = 60
+
+AI_TIMEOUT_MS = 5000
+
+Acceptance evidence to capture in /docs/env-inventory.md: each var present, source, purpose, last updated date, owner.
+
+Phase A — Observability Foundations (Block 1 + Block 4)
+A1. Health & Readiness plan
+
+Define /health (liveness) and /readyz (DB + AI dependency readiness).
+
+Ensure no auth middleware blocks these routes.
+
+Readiness checks must not starve the DB pool.
+
+Acceptance
+
+/health consistently <100ms, HTTP 200 with {"status":"alive"}.
+
+/readyz returns 200 only if DB query and AI provider ping succeed within budget; otherwise 503 with a machine-readable reason.
+
+Document SLA and a sample response in /docs/health-spec.md.
+
+A2. Error tracking and structured logging
+
+Enforce SENTRY_DSN as required at startup for prod.
+
+Log format: JSON to stdout. Include request_id, user_id (when available), timestamp, route, status, latency.
+
+Mirror warnings/errors to Sentry with environment tags.
+
+Acceptance
+
+One intentionally raised test error appears in Sentry, tagged with APP_ENV, route, and request_id.
+
+Example JSON log lines captured in /docs/logging-proof.md.
+
+Artifacts to produce
+
+/docs/health-spec.md
+
+/docs/logging-proof.md (screenshots or copied examples)
+
+Phase B — Storage Migration (Block 2)
+B1. Storage readiness
+
+Choose provider (Supabase Storage recommended on Replit).
+
+Create bucket user-assets with public read disabled.
+
+Define signed URL TTL from SIGNED_URL_TTL_SECONDS.
+
+B2. Inventory + migration plan
+
+Inventory all files in attached_assets/ and any other user-uploaded paths; list in /docs/storage-migration-plan.md.
+
+Plan blue-green migration:
+
+Parallel writes (repo + storage)
+
+Switch reads to storage
+
+Integrity check (size, checksum)
+
+Delete repo copies
+
+B3. Post-migration guardrails
+
+Access via signed URLs only; expired links return 403.
+
+Periodic scan for orphaned files (files not referenced in DB after N days).
+
+Acceptance
+
+/docs/storage-migration-plan.md includes inventory, checksums approach, and cutover schedule.
+
+Verification screenshots: retrieving a signed URL, then confirming expiry returns 403. Put in /docs/storage-proof.md.
+
+Repo contains no user assets; repo size reduction noted.
+
+Phase C — AI Execution Stabilization (Block 3)
+C1. Request path contract
+
+All heavy AI calls must enqueue to Redis. The request path returns within budget.
+
+Set AI_TIMEOUT_MS = 5000 for any quick parse attempt; on timeout, immediately return a friendly fallback.
+
+C2. Circuit breaker policy
+
+Open on 3 consecutive AI failures; route to regex/rule fallback while open.
+
+Auto-close after CIRCUIT_BREAKER_OPEN_SECONDS if a probe succeeds.
+
+C3. Worker repl plan
+
+finbrain-worker processes AI/analysis queue.
+
+Health metric targets for workers: queue depth, job age, fail count.
+
+Acceptance
+
+p95 request latency <3s during simulated load while AI is slow/unavailable.
+
+Circuit breaker open/close events visible in logs and summarized in /docs/ai-stability-report.md.
+
+Queue health panel: snapshot of queue depth and job age during test.
+
+Artifacts
+
+/docs/ai-stability-report.md
+
+Phase D — Light PWA Shell (Block 9, light)
+D1. PWA surface (HTMX or equivalent)
+
+Pages must exist and render: /chat, /report, /profile, /challenge.
+
+Installable PWA with manifest + service worker.
+
+Offline behavior: show a simple “offline” notice (no complex caching required yet).
+
+D2. Minimal, credible UX
+
+/chat: log expense, show confirmation, show “edit last” action.
+
+/report: show “Money Story” with current demo/preview data if needed.
+
+/profile: counters: total expenses, reports, challenges.
+
+Acceptance
+
+PWA install works on Android and iOS; screenshots in /docs/pwa-proof.md.
+
+Basic flows work end-to-end without Messenger dependency.
+
+Phase E — NL Logging & Corrections (Blocks 5–8, scoped)
+E1. Parsing & confidence
+
+Intent detection for EXPENSE_LOG, EXPENSE_EDIT.
+
+Confidence score; if <0.6, ask for category clarification.
+
+Bangla digit normalization (e.g., ৫০ → 50) and bilingual verb dictionary.
+
+E2. Corrections & audit
+
+“Edit last expense” must update the existing record, not duplicate.
+
+Create audit trail conceptually (record changes) and list its fields in /docs/data-integrity-spec.md.
+
+Acceptance
+
+Prepare a 100-sentence bilingual test set and a result table (pass/fail, confidence, notes) in /docs/nl-test-results.md.
+
+≥90% accuracy in controlled set; <10% fallbacks in a small pilot.
+
+Audit trail behavior described and verified with sample records (no PII).
+
+Phase F — Growth Telemetry (Block 10, essentials)
+F1. Metrics contract
+
+Define how to compute DAU, D1, D3 and where to persist (conceptually; align to existing schema).
+
+Add counters: total expenses, reports generated, challenges started.
+
+F2. Exposure
+
+Expose a /metrics endpoint (Prometheus style naming is fine conceptually; avoid implementation detail here).
+
+Prepare a simple admin view spec for these numbers.
+
+Acceptance
+
+/docs/metrics-spec.md explains definitions, query logic, and retention windows.
+
+Sample data screenshots + label meanings in /docs/metrics-proof.md.
+
+UAT Plan — Acceptance by Real Users (50–100 testers later)
+Scope
+
+Who: 10–20 internal or friendly testers first; later 50–100 closed beta users.
+
+Devices: Android Chrome, iOS Safari, desktop Chrome/Edge.
+
+Languages: English + Bangla mixed inputs.
+
+UAT Scenarios (must all pass)
+
+Log a simple expense in Bangla numerals.
+
+Log a mixed English/Bangla sentence with amount + category.
+
+Trigger low confidence and resolve via category prompt.
+
+Edit last expense; verify audit trail.
+
+Generate Money Story; review confirmation.
+
+Test offline PWA message; re-open online.
+
+Confirm signed URL access works, then expires.
+
+UAT Acceptance
+
+0 blocker issues, 0 major issues.
+
+≥90% NL accuracy; <10% fallbacks.
+
+Positive subjective feedback on credibility (“feels like a real app”).
+
+Evidence recorded in /docs/uat-report.md (tester list, device matrix, results, screenshots, issues log, fixes).
+
+End-to-End (E2E) System Tests — Reliability & Scale
+E2E Functional
+
+Cold-start and warm-path tests from home to /chat to /report.
+
+Multi-user parallel logging (simulate 10 users × 10 logs each).
+
+AI outage drill (temporarily fail AI) → confirm circuit breaker + fallback keep UX responsive.
+
+Storage expiry drill: verify 403 on expired signed URL.
+
+E2E Performance
+
+Target: p50 < 800ms, p95 < 3000ms for key endpoints under 100 concurrent requests.
+
+Queue: no job age > 30s; failure rate < 1%.
+
+E2E Security/Safety
+
+Confirm no secrets in repo.
+
+Confirm no user assets in repo.
+
+Health endpoints public but non-sensitive.
+
+Acceptance Evidence
+
+/docs/e2e-report.md with:
+
+Test matrix (functional, performance, safety)
+
+Latency tables (p50/p95), error rates, queue stats
+
+Screenshots/log excerpts (Sentry, logs, health, metrics)
+
+Pass/Fail summary
+
+Release Gate — “Zero Known Errors / No Core Architecture Risk”
+
+Blockers (release must NOT proceed if any occur):
+
+Any Sentry error from critical paths within the last 24h soak test.
+
+Any asset located in the repository after migration.
+
+AI calls observed on the request path for heavy tasks.
+
+/readyz instability (>0.1% failures over 1h).
+
+p95 latency > 3s during 100-concurrency test.
+
+Queue backlog (job age > 30s) under steady, realistic load.
+
+Missing environment variables from the inventory.
+
+Go/No-Go Checklist (create /docs/release-checklist.md and tick):
+
+Health & readiness ✅
+
+Sentry error-free 24h ✅
+
+Storage signed URLs + expiry ✅
+
+Circuit breaker + fallback proven ✅
+
+PWA install + offline message ✅
+
+NL logging accuracy ≥90% on test set ✅
+
+E2E perf targets met ✅
+
+UAT report signed off (CPO + CTO) ✅
+
+Reporting — What to Hand to Execs
+
+Produce a concise executive packet in /docs/release-packet/:
+
+00-summary.md — one-page outcome: readiness, risks (none critical), next steps.
+
+01-env-inventory.md — masked env var list with owners.
+
+02-health-spec.md & 03-logging-proof.md — observability proof.
+
+04-storage-proof.md — signed URL + repo clean slate proof.
+
+05-ai-stability-report.md — circuit breaker/queue results.
+
+06-nl-test-results.md — bilingual accuracy table.
+
+07-metrics-spec.md & 08-metrics-proof.md — growth telemetry.
+
+09-pwa-proof.md — install/offline screenshots.
+
+10-uat-report.md — testers, device matrix, results.
+
+11-e2e-report.md — functional/perf/safety summary.
+
+12-release-checklist.md — final go/no-go ticks and sign-offs.
+
+Definition of Done
+
+All documents present.
+
+All acceptance criteria marked PASS.
+
+No outstanding “critical” or “high” risks in packet.
+
+Exec sign-off recorded by CTO + CPO on 12-release-checklist.md.
+
+END PROMPT FOR REPLIT AI
