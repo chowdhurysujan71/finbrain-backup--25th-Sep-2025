@@ -33,7 +33,7 @@ class JobQueue:
     
     def __init__(self):
         self.redis_client = None
-        self._init_redis()
+        self.redis_available = False
         
         # Configuration
         self.job_ttl = 24 * 60 * 60  # 24 hours
@@ -41,21 +41,29 @@ class JobQueue:
         self.max_attempts = 3
         self.retry_delays = [1, 5, 30]  # seconds
         
+        # Try to initialize Redis, but don't fail if unavailable
+        try:
+            self._init_redis()
+        except Exception as e:
+            logger.warning(f"Redis not available for job queue: {e}")
+            self.redis_available = False
+        
     def _init_redis(self):
         """Initialize Redis connection"""
-        try:
-            import redis
-            redis_url = os.getenv('REDIS_URL')
-            if redis_url:
-                self.redis_client = redis.from_url(redis_url, decode_responses=True)
-                self.redis_client.ping()
-                logger.info("Job queue initialized with Redis backend")
-            else:
-                logger.error("REDIS_URL not found - job queue requires Redis")
-                raise ValueError("REDIS_URL environment variable required")
-        except Exception as e:
-            logger.error(f"Redis connection failed: {e}")
-            raise
+        import redis
+        redis_url = os.getenv('REDIS_URL')
+        if not redis_url:
+            raise ValueError("REDIS_URL environment variable required")
+        
+        # Handle different Redis URL formats
+        if not redis_url.startswith(('redis://', 'rediss://', 'unix://')):
+            # Assume it's a plain connection string, prepend redis://
+            redis_url = f"redis://{redis_url}"
+        
+        self.redis_client = redis.from_url(redis_url, decode_responses=True)
+        self.redis_client.ping()
+        self.redis_available = True
+        logger.info("Job queue initialized with Redis backend")
     
     def enqueue(self, job_type: str, payload: Dict[str, Any], user_id: str, 
                 idempotency_key: str) -> str:
@@ -65,6 +73,9 @@ class JobQueue:
         Returns:
             job_id: Unique job identifier
         """
+        if not self.redis_available:
+            raise RuntimeError("Redis job queue not available")
+        
         # Check for existing job with same idempotency key
         existing_job_id = self._get_job_by_idempotency_key(idempotency_key)
         if existing_job_id:
@@ -301,6 +312,8 @@ class JobQueue:
     
     def health_check(self) -> bool:
         """Check Redis connectivity"""
+        if not self.redis_available or not self.redis_client:
+            return False
         try:
             self.redis_client.ping()
             return True

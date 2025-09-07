@@ -1660,8 +1660,126 @@ try:
 except ImportError:
     logger.warning("Could not register quickscan blueprint")
 
-# Legacy handler - now replaced by fast webhook processor
-# Keeping for reference but no longer used
+# Phase C: Job Queue API endpoints
+try:
+    from utils.job_queue import job_queue
+    from utils.rate_limiter_jobs import get_job_rate_limiter
+    from utils.circuit_breaker import circuit_breaker
+    
+    # Initialize job rate limiter with Redis client
+    if hasattr(job_queue, 'redis_client') and job_queue.redis_client:
+        job_rate_limiter = get_job_rate_limiter(job_queue.redis_client)
+    else:
+        job_rate_limiter = get_job_rate_limiter()
+    
+    @app.route('/jobs', methods=['POST'])
+    def enqueue_job():
+        """Enqueue a job with validation and rate limiting"""
+        start_time = time.time()
+        
+        # Get user ID from header
+        user_id = request.headers.get('X-User-ID')
+        if not user_id:
+            return jsonify({"error": "X-User-ID header required"}), 400
+        
+        # Validate request body
+        if not request.is_json:
+            return jsonify({"error": "Content-Type must be application/json"}), 400
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Request body required"}), 400
+        
+        # Validate required fields
+        job_type = data.get('type')
+        payload = data.get('payload', {})
+        idempotency_key = data.get('idempotency_key')
+        
+        if not job_type:
+            return jsonify({"error": "Field 'type' is required"}), 400
+        
+        if not idempotency_key:
+            return jsonify({"error": "Field 'idempotency_key' is required"}), 400
+        
+        # Validate payload size (1MB limit)
+        payload_json = json.dumps(payload)
+        if len(payload_json.encode('utf-8')) > 1024 * 1024:
+            return jsonify({"error": "Payload exceeds 1MB limit"}), 413
+        
+        # Check circuit breaker
+        if circuit_breaker.is_open():
+            return jsonify({"error": "temporarily unavailable"}), 429
+        
+        # Check rate limit
+        rate_limit_result = job_rate_limiter.check_rate_limit(user_id)
+        if not rate_limit_result.allowed:
+            return jsonify({
+                "error": "Rate limit exceeded", 
+                "retry_after": int(rate_limit_result.reset_time - time.time())
+            }), 429
+        
+        try:
+            # Enqueue job
+            job_id = job_queue.enqueue(job_type, payload, user_id, idempotency_key)
+            
+            latency_ms = (time.time() - start_time) * 1000
+            logger.info(f"Job {job_id} enqueued successfully in {latency_ms:.2f}ms")
+            
+            return jsonify({
+                "job_id": job_id,
+                "status": "queued"
+            }), 201
+            
+        except RuntimeError as e:
+            if "Redis job queue not available" in str(e):
+                return jsonify({"error": "Job queue service unavailable"}), 503
+            raise
+        except Exception as e:
+            logger.error(f"Job enqueue failed: {e}")
+            return jsonify({"error": "Internal server error"}), 500
+    
+    @app.route('/jobs/<job_id>/status', methods=['GET'])
+    def get_job_status(job_id):
+        """Get job status and metadata"""
+        # Get user ID from header
+        user_id = request.headers.get('X-User-ID')
+        if not user_id:
+            return jsonify({"error": "X-User-ID header required"}), 400
+        
+        try:
+            status = job_queue.get_job_status(job_id)
+            if not status:
+                return jsonify({"error": "Job not found"}), 404
+            
+            return jsonify(status), 200
+            
+        except Exception as e:
+            logger.error(f"Job status retrieval failed: {e}")
+            return jsonify({"error": "Internal server error"}), 500
+    
+    @app.route('/jobs/<job_id>/cancel', methods=['POST'])
+    def cancel_job(job_id):
+        """Cancel a job (best effort)"""
+        # Get user ID from header
+        user_id = request.headers.get('X-User-ID')
+        if not user_id:
+            return jsonify({"error": "X-User-ID header required"}), 400
+        
+        try:
+            success = job_queue.cancel_job(job_id)
+            if success:
+                return jsonify({"message": "Job cancelled successfully"}), 200
+            else:
+                return jsonify({"error": "Job not found or cannot be cancelled"}), 404
+                
+        except Exception as e:
+            logger.error(f"Job cancellation failed: {e}")
+            return jsonify({"error": "Internal server error"}), 500
+    
+    logger.info("✓ Job queue API endpoints registered")
+
+except ImportError as e:
+    logger.warning(f"Job queue API endpoints not available: {e}")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

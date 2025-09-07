@@ -24,17 +24,19 @@ from .ai_rate_limiter import ai_rate_limiter
 from .background_processor_rl2 import rl2_processor
 from utils.production_router import production_router
 
+logger = logging.getLogger(__name__)
+
 # Phase C: Import job queue components
 try:
     from .job_queue import job_queue
     from .job_processor import job_processor
     JOB_QUEUE_ENABLED = True
     logger.info("Job queue integration enabled")
-except ImportError:
+except ImportError as e:
     JOB_QUEUE_ENABLED = False
-    logger.warning("Job queue components not available")
-
-logger = logging.getLogger(__name__)
+    job_queue = None
+    job_processor = None
+    logger.warning(f"Job queue components not available: {e}")
 
 @dataclass
 class MessageJob:
