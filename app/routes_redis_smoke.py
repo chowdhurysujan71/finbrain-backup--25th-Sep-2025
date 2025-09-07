@@ -2,8 +2,8 @@
 import os
 import time
 import json
+import logging
 from flask import Blueprint, jsonify
-from utils.logger import structured_logger
 
 # Create blueprint
 redis_smoke_bp = Blueprint('redis_smoke', __name__)
@@ -86,7 +86,9 @@ def _log_and_respond(start_time, connected, error_msg, value):
     if error_msg:
         log_data["error"] = error_msg
     
-    structured_logger.logger.info(json.dumps(log_data))
+    # Use basic logging to avoid app initialization issues
+    logger = logging.getLogger(__name__)
+    logger.info(json.dumps(log_data))
     
     # Build response
     response_data = {

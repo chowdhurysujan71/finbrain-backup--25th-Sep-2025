@@ -211,11 +211,14 @@ with app.app_context():
         logger.warning(f"Assets API registration failed: {e}")
     
     # Register Redis Smoke Test endpoint
+    logger.info("Attempting to register Redis smoke test endpoint...")
     try:
         from app.routes_redis_smoke import redis_smoke_bp
         if 'redis_smoke' not in app.blueprints:
             app.register_blueprint(redis_smoke_bp)
             logger.info("✓ Redis smoke test endpoint registered")
+        else:
+            logger.info("Redis smoke test endpoint already registered")
     except ImportError as e:
         logger.info(f"Redis smoke test endpoint not loaded: {e}")
     except Exception as e:
