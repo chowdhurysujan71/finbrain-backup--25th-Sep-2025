@@ -76,7 +76,7 @@ def test_readyz_db_fail(client):
 def test_readyz_ai_key_missing(client):
     """Test /readyz returns 503 when AI key is missing"""
     with patch('psycopg.connect') as mock_connect, \
-         patch.dict(os.environ, {}, clear=True):  # Clear AI keys
+         patch.dict(os.environ, {'DATABASE_URL': 'test-db-url'}, clear=True):  # Only DATABASE_URL
         
         # Mock successful DB connection
         mock_conn = MagicMock()
