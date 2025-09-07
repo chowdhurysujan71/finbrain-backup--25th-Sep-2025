@@ -201,7 +201,7 @@ with app.app_context():
     
     # Register Assets API (Phase B - Supabase Storage)
     try:
-        from app.routes_assets import assets_bp
+        from routes_assets import assets_bp
         if 'assets' not in app.blueprints:
             app.register_blueprint(assets_bp)
             logger.info("✓ Assets API routes registered")

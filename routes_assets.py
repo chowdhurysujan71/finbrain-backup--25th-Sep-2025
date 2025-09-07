@@ -8,8 +8,15 @@ import time
 from flask import Blueprint, request, jsonify, g
 from utils.logger import structured_logger
 
-# Import storage client
-from app.storage_supabase import storage_client
+# Import storage client  
+try:
+    from app.storage_supabase import storage_client
+except ImportError:
+    # Handle case where app is not a package
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
+    from storage_supabase import storage_client
 
 # Create blueprint
 assets_bp = Blueprint('assets', __name__, url_prefix='/assets')
