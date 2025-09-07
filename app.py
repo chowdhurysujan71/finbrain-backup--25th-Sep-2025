@@ -210,6 +210,17 @@ with app.app_context():
     except Exception as e:
         logger.warning(f"Assets API registration failed: {e}")
     
+    # Register Redis Smoke Test endpoint
+    try:
+        from app.routes_redis_smoke import redis_smoke_bp
+        if 'redis_smoke' not in app.blueprints:
+            app.register_blueprint(redis_smoke_bp)
+            logger.info("✓ Redis smoke test endpoint registered")
+    except ImportError as e:
+        logger.info(f"Redis smoke test endpoint not loaded: {e}")
+    except Exception as e:
+        logger.warning(f"Redis smoke test endpoint registration failed: {e}")
+    
     # Initialize scheduler for automated reports (optional for production)
     if os.getenv("ENABLE_REPORTS", "false").lower() == "true":
         from utils.scheduler import init_scheduler
