@@ -24,6 +24,16 @@ from .ai_rate_limiter import ai_rate_limiter
 from .background_processor_rl2 import rl2_processor
 from utils.production_router import production_router
 
+# Phase C: Import job queue components
+try:
+    from .job_queue import job_queue
+    from .job_processor import job_processor
+    JOB_QUEUE_ENABLED = True
+    logger.info("Job queue integration enabled")
+except ImportError:
+    JOB_QUEUE_ENABLED = False
+    logger.warning("Job queue components not available")
+
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -36,12 +46,12 @@ class MessageJob:
     timestamp: float
 
 class BackgroundProcessor:
-    """Thread pool-based background message processor with RL-2 support"""
+    """Thread pool-based background message processor with RL-2 support and Redis job queue"""
     
     def __init__(self, max_workers: int = 3):
         self.max_workers = max_workers
         self.executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="bg-msg-")
-        self.job_queue = Queue()
+        self.job_queue = Queue()  # Legacy message queue
         self.processing_timeout = 5.0
         self.fallback_reply = "Got it. I'll track that for you."
         
@@ -52,6 +62,15 @@ class BackgroundProcessor:
         # Initialize reminder system
         self._last_reminder_check = datetime.utcnow()
         self._reminder_check_interval = 300  # 5 minutes
+        
+        # Phase C: Redis job queue integration
+        self.job_queue_enabled = JOB_QUEUE_ENABLED
+        self.job_polling_active = False
+        
+        if self.job_queue_enabled:
+            # Start job queue polling worker
+            self.executor.submit(self._job_queue_worker)
+            logger.info("Redis job queue worker started")
         
         # Context-driven processing now handled by production router
         
@@ -309,12 +328,28 @@ class BackgroundProcessor:
     def get_stats(self) -> Dict[str, Any]:
         """Get background processor statistics"""
         ai_status = self.ai_adapter.get_status() if hasattr(self.ai_adapter, 'get_status') else {"enabled": False}
-        return {
+        stats = {
             "max_workers": self.max_workers,
             "ai_enabled": ai_status.get("enabled", False),
             "processing_timeout": self.processing_timeout,
-            "queue_size": self.job_queue.qsize() if hasattr(self.job_queue, 'qsize') else 0
+            "message_queue_size": self.job_queue.qsize() if hasattr(self.job_queue, 'qsize') else 0,
+            "job_queue_enabled": self.job_queue_enabled,
+            "job_polling_active": self.job_polling_active
         }
+        
+        # Add Redis job queue stats if available
+        if self.job_queue_enabled:
+            try:
+                queue_stats = job_queue.get_queue_stats()
+                stats.update({
+                    "redis_jobs_queued": queue_stats.get("queued", 0),
+                    "redis_jobs_retry": queue_stats.get("retry", 0),
+                    "redis_jobs_dlq": queue_stats.get("dlq", 0)
+                })
+            except Exception as e:
+                logger.warning(f"Failed to get Redis job stats: {e}")
+                
+        return stats
     
     def _check_reminders_if_due(self) -> None:
         """Check and send reminders if enough time has passed since last check"""
@@ -327,9 +362,50 @@ class BackgroundProcessor:
             logger.debug("Reminder system disabled for policy compliance")
             self._last_reminder_check = now
 
+    def _job_queue_worker(self) -> None:
+        """Worker thread for processing Redis job queue"""
+        self.job_polling_active = True
+        logger.info("Job queue worker started")
+        
+        while True:
+            try:
+                # Process retry queue first
+                if self.job_queue_enabled:
+                    retry_jobs = job_queue.process_retry_queue()
+                    if retry_jobs:
+                        logger.info(f"Moved {len(retry_jobs)} jobs from retry to main queue")
+                
+                # Dequeue and process next job
+                if self.job_queue_enabled:
+                    job = job_queue.dequeue()
+                    if job:
+                        # Process job in dedicated thread to avoid blocking
+                        self.executor.submit(self._process_redis_job, job)
+                
+                # Small sleep to prevent busy waiting
+                time.sleep(0.1)
+                
+            except Exception as e:
+                logger.error(f"Job queue worker error: {e}")
+                time.sleep(1)  # Backoff on error
+    
+    def _process_redis_job(self, job) -> None:
+        """Process a single Redis job"""
+        try:
+            from app import app
+            with app.app_context():
+                success = job_processor.process_job(job)
+                if success:
+                    logger.info(f"Redis job {job.job_id} processed successfully")
+                else:
+                    logger.warning(f"Redis job {job.job_id} processing failed")
+        except Exception as e:
+            logger.error(f"Redis job {job.job_id} processing exception: {e}")
+
     def shutdown(self) -> None:
         """Gracefully shutdown the background processor"""
         logger.info("Shutting down background processor...")
+        self.job_polling_active = False
         self.executor.shutdown(wait=True)
         if hasattr(self.ai_adapter, 'cleanup'):
             self.ai_adapter.cleanup()
