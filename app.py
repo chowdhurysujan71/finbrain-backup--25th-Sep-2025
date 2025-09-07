@@ -1601,6 +1601,48 @@ def supabase_test():
     except Exception as e:
         return {"error": f"Unexpected error: {str(e)}"}, 503
 
+@app.get("/supabase-smoke")
+def supabase_smoke():
+    """Supabase connectivity smoke test - validates Storage API connection"""
+    import requests
+    import os
+    
+    # Get Supabase configuration
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_KEY") 
+    supabase_bucket = os.environ.get("SUPABASE_BUCKET", "user-assets")
+    
+    if not supabase_url or not supabase_key:
+        return {"connected": False, "error": "SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables required"}, 503
+    
+    # Call Supabase Storage list API with POST request
+    list_url = f"{supabase_url}/storage/v1/object/list/{supabase_bucket}"
+    headers = {
+        "Authorization": f"Bearer {supabase_key}",
+        "apikey": supabase_key,
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "prefix": "",
+        "limit": 1,
+        "offset": 0
+    }
+    
+    try:
+        response = requests.post(list_url, json=payload, headers=headers, timeout=3)
+        response.raise_for_status()
+        
+        # Return success with object list (may be empty)
+        objects = response.json()
+        return {"connected": True, "objects": objects}, 200
+        
+    except requests.exceptions.Timeout:
+        return {"connected": False, "error": "Supabase request timeout (3s exceeded)"}, 503
+    except requests.exceptions.RequestException as e:
+        return {"connected": False, "error": f"Supabase connection failed: {str(e)}"}, 503
+    except Exception as e:
+        return {"connected": False, "error": f"Unexpected error: {str(e)}"}, 503
+
 # REMOVED: Legacy /webhook endpoint - redundant with /webhook/messenger
 # Only canonical /webhook/messenger endpoint remains for production use
 
