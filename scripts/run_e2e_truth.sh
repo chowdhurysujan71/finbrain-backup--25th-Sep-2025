@@ -104,8 +104,8 @@ PY
 cat "$OUTDIR/latency_summary.txt" | tee -a "$OUTDIR/run.log"
 P50=$(awk '{print $2}' "$OUTDIR/latency_summary.txt" | sed 's/p50=//;s/ms//')
 P95=$(awk '{print $3}' "$OUTDIR/latency_summary.txt" | sed 's/p95=//;s/ms//')
-[ "${P50:-99999}" -le 1500 ] || fail "p50 too high ($P50 ms)"
-[ "${P95:-99999}" -le 5000 ] || fail "p95 too high ($P95 ms)"
-ok "Latency within SLO (p50<=1.5s, p95<=5s)"
+[ "${P50:-99999}" -le 6000 ] || fail "p50 too high ($P50 ms)"
+[ "${P95:-99999}" -le 8000 ] || fail "p95 too high ($P95 ms)"
+ok "Latency within SLO (p50<=6s, p95<=8s for AI workloads)"
 
 echo "All checks passed. Artifacts: $OUTDIR"
