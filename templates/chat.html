@@ -14,8 +14,13 @@
     <section class="card expense-form-card" aria-labelledby="expense-form-title">
         <h2 id="expense-form-title" class="card-title">Add Expense</h2>
         
+        <!-- Success/Error Messages -->
+        <div id="form-messages" class="form-messages" style="display: none;"></div>
+        
         <form id="expense-form" class="expense-form" hx-post="/expense" 
-              hx-trigger="submit" hx-target="#entries-section" hx-swap="innerHTML">
+              hx-trigger="submit" hx-target="#form-messages" hx-swap="innerHTML"
+              hx-on::after-request="handleFormResponse(event)"
+              hx-headers='{"Content-Type": "application/x-www-form-urlencoded"}'>
             
             <div class="form-group">
                 <label for="amount" class="form-label">Amount</label>
@@ -52,11 +57,65 @@
                 <small id="description-help" class="form-help">Brief description (optional)</small>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-full">
+            <button type="submit" class="btn btn-primary btn-full" id="submit-btn">
                 Add Expense
             </button>
         </form>
     </section>
+    
+    <script>
+    function handleFormResponse(event) {
+        const xhr = event.detail.xhr;
+        const response = JSON.parse(xhr.responseText);
+        const messagesDiv = document.getElementById('form-messages');
+        const form = document.getElementById('expense-form');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        // Show messages div
+        messagesDiv.style.display = 'block';
+        
+        if (response.success) {
+            // Success message
+            messagesDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <span class="alert-icon">✅</span>
+                    <span class="alert-message">${response.message}</span>
+                </div>
+            `;
+            
+            // Clear the form
+            form.reset();
+            
+            // Refresh entries list
+            htmx.trigger('#entries-section', 'expense-added');
+            
+            // Auto-hide success message after 3 seconds
+            setTimeout(() => {
+                messagesDiv.style.display = 'none';
+            }, 3000);
+            
+        } else {
+            // Error message
+            messagesDiv.innerHTML = `
+                <div class="alert alert-error">
+                    <span class="alert-icon">❌</span>
+                    <span class="alert-message">${response.message}</span>
+                </div>
+            `;
+        }
+        
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Add Expense';
+    }
+    
+    // Disable submit button during submission
+    document.getElementById('expense-form').addEventListener('submit', function() {
+        const submitBtn = document.getElementById('submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Adding...';
+    });
+    </script>
 
     <!-- Recent Entries Section -->
     <section class="entries-section" aria-labelledby="recent-entries-title">

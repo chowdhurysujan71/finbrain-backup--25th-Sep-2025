@@ -70,64 +70,118 @@ def offline():
 @pwa_ui.route('/partials/entries')
 def entries_partial():
     """
-    Recent entries partial for HTMX
-    Shows demo data or fetches from existing APIs if available
+    Recent entries partial for HTMX - shows real user expenses
     """
-    user_id = get_user_id()
+    from models import Expense
+    from utils.identity import psid_hash
+    from app import db
     
-    # Demo entries for UI development
-    # In production, this would fetch from existing expense endpoints
-    demo_entries = [
-        {
-            'id': 1,
-            'amount': 45.50,
-            'category': 'Food',
-            'description': 'Lunch at cafe',
-            'date': '2025-09-08',
-            'time': '12:30'
-        },
-        {
-            'id': 2,
-            'amount': 12.99,
-            'category': 'Transport',
-            'description': 'Bus fare',
-            'date': '2025-09-08',
-            'time': '09:15'
-        }
-    ]
+    try:
+        # Get user ID and hash
+        user_id = get_user_id()
+        if user_id:
+            user_hash = psid_hash(user_id) if user_id.startswith('pwa_') else user_id
+            
+            # Query recent expenses for this user
+            recent_expenses = db.session.query(Expense)\
+                .filter_by(user_id_hash=user_hash)\
+                .order_by(Expense.created_at.desc())\
+                .limit(10)\
+                .all()
+            
+            # Convert to template-friendly format
+            entries = []
+            for exp in recent_expenses:
+                entries.append({
+                    'id': exp.id,
+                    'amount': float(exp.amount),
+                    'category': exp.category.title(),
+                    'description': exp.description or f"{exp.category.title()} expense",
+                    'date': exp.date.strftime('%Y-%m-%d'),
+                    'time': exp.time.strftime('%H:%M') if exp.time else '00:00'
+                })
+            
+            return render_template('partials/entries.html', entries=entries)
+        
+    except Exception as e:
+        logger.error(f"Error fetching entries: {e}")
     
-    return render_template('partials/entries.html', entries=demo_entries)
+    # Fallback to empty state
+    return render_template('partials/entries.html', entries=[])
 
 @pwa_ui.route('/expense', methods=['POST'])
 def add_expense():
     """
-    Safe expense submission that shows success without breaking anything
-    Returns demo response until backend endpoints are wired
+    Real expense submission using existing FinBrain expense logging system
     """
-    user_id = get_user_id()
-    data = request.get_json() or {}
+    from utils.db import save_expense
+    from utils.identity import psid_hash
+    import uuid
     
-    # Log the expense attempt
-    logger.info(f"PWA expense submission by user {user_id}: {data}")
-    
-    # Demo response - in production this would integrate with existing expense logging
-    demo_mode = os.environ.get('PWA_DEMO_MODE', '1') == '1'
-    
-    if demo_mode:
+    try:
+        # Get form data (not JSON since it's a regular HTML form)
+        amount = request.form.get('amount')
+        category = request.form.get('category')
+        description = request.form.get('description', '')
+        
+        # Validate required fields
+        if not amount or not category:
+            return jsonify({
+                'success': False,
+                'message': 'Amount and category are required'
+            }), 400
+        
+        # Convert amount to float and validate
+        try:
+            amount_float = float(amount)
+            if amount_float <= 0:
+                raise ValueError("Amount must be positive")
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'message': 'Please enter a valid amount'
+            }), 400
+        
+        # Generate user ID for anonymous PWA users
+        user_id = get_user_id() or f"pwa_user_{int(time.time())}"
+        user_hash = psid_hash(user_id) if user_id.startswith('pwa_') else user_id
+        
+        # Generate unique identifiers
+        unique_id = str(uuid.uuid4())
+        mid = f"pwa_{int(time.time() * 1000000)}"
+        
+        # Create original message for logging
+        original_message = f"PWA: {amount} BDT for {category}"
+        if description:
+            original_message += f" - {description}"
+        
+        # Use existing expense logging system
+        result = save_expense(
+            user_identifier=user_hash,
+            description=description or f"{category} expense",
+            amount=amount_float,
+            category=category.lower(),
+            platform="pwa",
+            original_message=original_message,
+            unique_id=unique_id,
+            mid=mid
+        )
+        
+        logger.info(f"PWA expense logged successfully for user {user_hash[:8]}...")
+        
+        # Return success message as plain text for HTMX to display
         return jsonify({
             'success': True,
-            'message': 'Expense logged (demo mode)',
-            'expense_id': f'demo_{int(time.time())}'
-        }), 201
-    else:
-        # When ready to integrate with existing backend:
-        # - Import existing expense handlers
-        # - Route to existing business logic  
-        # - Return real response
+            'message': f'Expense of ৳{amount_float:.2f} logged successfully!',
+            'expense_id': result.get('expense_id') if result else unique_id
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"PWA expense logging error: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'message': 'Expense logging not yet connected to backend'
-        }), 503
+            'message': 'Failed to log expense. Please try again.'
+        }), 500
 
 # Manifest route
 @pwa_ui.route('/manifest.webmanifest')
@@ -156,7 +210,10 @@ def manifest():
                 "type": "image/png",
                 "purpose": "any maskable"
             }
-        ]
+        ],
+        "categories": ["finance", "productivity"],
+        "lang": "en",
+        "prefer_related_applications": False
     }
     
     response = jsonify(manifest_data)
