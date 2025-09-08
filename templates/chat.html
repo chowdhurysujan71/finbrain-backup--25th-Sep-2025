@@ -10,9 +10,58 @@
         <p class="hero-subtitle">Quick logging with AI-powered insights</p>
     </header>
 
-    <!-- Expense Input Card -->
-    <section class="card expense-form-card" aria-labelledby="expense-form-title">
-        <h2 id="expense-form-title" class="card-title">Add Expense</h2>
+    <!-- AI Chat Interface -->
+    <section class="card chat-card" aria-labelledby="chat-title">
+        <h2 id="chat-title" class="card-title">💬 Chat with FinBrain AI</h2>
+        
+        <!-- Chat Messages -->
+        <div id="chat-messages" class="chat-messages">
+            <div class="message ai-message">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <p>Hi! I'm your AI expense assistant. You can:</p>
+                    <ul>
+                        <li>📝 Say "I spent 500 taka on lunch" to log expenses</li>
+                        <li>📊 Ask "Show my spending summary"</li>
+                        <li>💡 Get insights: "How's my spending this month?"</li>
+                        <li>🎯 Ask for financial advice and tips</li>
+                    </ul>
+                    <p>Just type naturally - I'll understand! 😊</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat Input -->
+        <div class="chat-input-container">
+            <form id="chat-form" class="chat-form">
+                <div class="chat-input-group">
+                    <textarea id="chat-input" name="message" class="chat-input" 
+                              placeholder="Type your message... (e.g., 'I spent 200 taka on groceries')"
+                              rows="2" maxlength="500"></textarea>
+                    <button type="submit" class="btn btn-primary chat-send-btn" id="chat-send-btn">
+                        <span class="btn-text">Send</span>
+                        <span class="btn-loading" style="display: none;">...</span>
+                    </button>
+                </div>
+                <div class="chat-suggestions">
+                    <button type="button" class="suggestion-btn" onclick="fillChatInput('Show my expenses this week')">
+                        📊 Weekly summary
+                    </button>
+                    <button type="button" class="suggestion-btn" onclick="fillChatInput('I spent 300 taka on dinner')">
+                        💰 Log expense
+                    </button>
+                    <button type="button" class="suggestion-btn" onclick="fillChatInput('Give me some budgeting tips')">
+                        💡 Get tips
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- Quick Form (Alternative) -->
+    <section class="card expense-form-card" aria-labelledby="quick-form-title">
+        <h2 id="quick-form-title" class="card-title">⚡ Quick Add</h2>
+        <p class="card-subtitle">Prefer forms? Use this quick expense entry</p>
         
         <!-- Success/Error Messages -->
         <div id="form-messages" class="form-messages" style="display: none;"></div>
@@ -22,39 +71,38 @@
               hx-on::after-request="handleFormResponse(event)"
               hx-headers='{"Content-Type": "application/x-www-form-urlencoded"}'>
             
-            <div class="form-group">
-                <label for="amount" class="form-label">Amount</label>
-                <div class="input-group">
-                    <span class="input-prefix">৳</span>
-                    <input type="number" id="amount" name="amount" 
-                           class="form-input" placeholder="0.00" 
-                           step="0.01" min="0" required 
-                           aria-describedby="amount-help">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="amount" class="form-label">Amount</label>
+                    <div class="input-group">
+                        <span class="input-prefix">৳</span>
+                        <input type="number" id="amount" name="amount" 
+                               class="form-input" placeholder="0.00" 
+                               step="0.01" min="0" required>
+                    </div>
                 </div>
-                <small id="amount-help" class="form-help">Enter the expense amount</small>
-            </div>
-
-            <div class="form-group">
-                <label for="category" class="form-label">Category</label>
-                <select id="category" name="category" class="form-select" required>
-                    <option value="">Choose category</option>
-                    <option value="food">🍽️ Food & Dining</option>
-                    <option value="transport">🚗 Transport</option>
-                    <option value="shopping">🛍️ Shopping</option>
-                    <option value="bills">💡 Bills & Utilities</option>
-                    <option value="entertainment">🎬 Entertainment</option>
-                    <option value="health">🏥 Health & Medical</option>
-                    <option value="education">📚 Education</option>
-                    <option value="other">📝 Other</option>
-                </select>
+                
+                <div class="form-group">
+                    <label for="category" class="form-label">Category</label>
+                    <select id="category" name="category" class="form-select" required>
+                        <option value="">Choose</option>
+                        <option value="food">🍽️ Food</option>
+                        <option value="transport">🚗 Transport</option>
+                        <option value="shopping">🛍️ Shopping</option>
+                        <option value="bills">💡 Bills</option>
+                        <option value="entertainment">🎬 Fun</option>
+                        <option value="health">🏥 Health</option>
+                        <option value="education">📚 Education</option>
+                        <option value="other">📝 Other</option>
+                    </select>
+                </div>
             </div>
 
             <div class="form-group">
                 <label for="description" class="form-label">Description</label>
                 <input type="text" id="description" name="description" 
                        class="form-input" placeholder="What did you buy?"
-                       maxlength="100" aria-describedby="description-help">
-                <small id="description-help" class="form-help">Brief description (optional)</small>
+                       maxlength="100">
             </div>
 
             <button type="submit" class="btn btn-primary btn-full" id="submit-btn">
@@ -64,6 +112,123 @@
     </section>
     
     <script>
+    // Chat functionality
+    function fillChatInput(suggestion) {
+        document.getElementById('chat-input').value = suggestion;
+        document.getElementById('chat-input').focus();
+    }
+    
+    function appendMessage(content, isAi = false, isLoading = false) {
+        const messagesContainer = document.getElementById('chat-messages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isAi ? 'ai-message' : 'user-message'}`;
+        
+        if (isLoading) {
+            messageDiv.innerHTML = `
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            `;
+        } else {
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${isAi ? '🤖' : '👤'}</div>
+                <div class="message-content">
+                    <p>${content}</p>
+                </div>
+            `;
+        }
+        
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        return messageDiv;
+    }
+    
+    function handleChatSubmit(event) {
+        event.preventDefault();
+        
+        const input = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('chat-send-btn');
+        const message = input.value.trim();
+        
+        if (!message) return;
+        
+        // Show user message
+        appendMessage(message, false);
+        
+        // Clear input and disable button
+        input.value = '';
+        sendBtn.disabled = true;
+        sendBtn.querySelector('.btn-text').style.display = 'none';
+        sendBtn.querySelector('.btn-loading').style.display = 'inline';
+        
+        // Show loading indicator
+        const loadingMessage = appendMessage('', true, true);
+        
+        // Send to AI endpoint
+        fetch('/ai-chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-ID': getUserId()
+            },
+            body: JSON.stringify({ message: message })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Remove loading indicator
+            loadingMessage.remove();
+            
+            // Show AI response
+            if (data.success) {
+                appendMessage(data.response, true);
+                
+                // If expense was logged, refresh entries
+                if (data.expense_logged) {
+                    htmx.trigger('#entries-section', 'expense-added');
+                }
+            } else {
+                appendMessage(data.error || 'Sorry, I encountered an error. Please try again.', true);
+            }
+        })
+        .catch(error => {
+            // Remove loading indicator
+            loadingMessage.remove();
+            appendMessage('Connection error. Please check your internet and try again.', true);
+            console.error('Chat error:', error);
+        })
+        .finally(() => {
+            // Re-enable button
+            sendBtn.disabled = false;
+            sendBtn.querySelector('.btn-text').style.display = 'inline';
+            sendBtn.querySelector('.btn-loading').style.display = 'none';
+            input.focus();
+        });
+    }
+    
+    function getUserId() {
+        // Get user ID from session or generate one for PWA
+        let userId = sessionStorage.getItem('pwa-user-id');
+        if (!userId) {
+            userId = 'pwa-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            sessionStorage.setItem('pwa-user-id', userId);
+        }
+        return userId;
+    }
+    
+    // Attach chat form handler
+    document.getElementById('chat-form').addEventListener('submit', handleChatSubmit);
+    
+    // Auto-resize textarea
+    document.getElementById('chat-input').addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+    });
+    
+    // Form handling for quick add
     function handleFormResponse(event) {
         const xhr = event.detail.xhr;
         const response = JSON.parse(xhr.responseText);

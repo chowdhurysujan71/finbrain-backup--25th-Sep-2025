@@ -110,6 +110,71 @@ def entries_partial():
     # Fallback to empty state
     return render_template('partials/entries.html', entries=[])
 
+@pwa_ui.route('/ai-chat', methods=['POST'])
+def ai_chat():
+    """AI chat endpoint that processes natural language and connects to main FinBrain AI system"""
+    from utils.production_router import route_message
+    from utils.identity import psid_hash
+    import json
+    
+    user_id = get_user_id()
+    
+    if not user_id:
+        return jsonify({
+            'success': False,
+            'error': 'User identification required'
+        }), 400
+    
+    try:
+        # Get message from request
+        data = request.get_json()
+        if not data or not data.get('message'):
+            return jsonify({
+                'success': False,
+                'error': 'Message is required'
+            }), 400
+        
+        user_message = data.get('message', '').strip()
+        if not user_message:
+            return jsonify({
+                'success': False,
+                'error': 'Please enter a message'
+            }), 400
+        
+        # Hash user ID for processing (consistent with main system)
+        user_id_hash = psid_hash(user_id)
+        
+        logger.info(f"AI chat request from user {user_id_hash[:8]}...: '{user_message[:50]}...'")
+        
+        # Use the main FinBrain AI routing system
+        response_data = route_message(user_id_hash, user_message)
+        
+        # Check if an expense was logged
+        expense_logged = 'expense' in response_data.get('actions', []) if isinstance(response_data, dict) else False
+        
+        # Format response for PWA interface
+        if isinstance(response_data, dict):
+            ai_response = response_data.get('message', response_data.get('response', str(response_data)))
+        else:
+            ai_response = str(response_data)
+        
+        # Clean up the response for chat interface
+        if ai_response.startswith('✅'):
+            ai_response = ai_response.replace('✅', '✅')
+        
+        return jsonify({
+            'success': True,
+            'response': ai_response,
+            'expense_logged': expense_logged
+        })
+        
+    except Exception as e:
+        logger.error(f"AI chat error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Sorry, I encountered an error processing your request. Please try again.'
+        }), 500
+
 @pwa_ui.route('/expense', methods=['POST'])
 def add_expense():
     """
