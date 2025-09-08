@@ -14,7 +14,7 @@ echo "✓ Environment variables present"
 
 echo ""
 echo "== Health & Readiness Checks =="
-curl -fsS "$APP_ORIGIN/health" | tee /dev/stderr | grep -q '"status": "ok"' && echo "✓ Health endpoint OK" || { echo "✗ Health failed"; exit 1; }
+curl -fsS "$APP_ORIGIN/health" | tee /dev/stderr | grep -q '"status":"ok"' && echo "✓ Health endpoint OK" || { echo "✗ Health failed"; exit 1; }
 
 curl -fsS "$APP_ORIGIN/readyz" | tee /dev/stderr | grep -q '"ready": true' && echo "✓ Readiness OK" || echo "• Readiness not fully ready (some deps may be down)"
 
