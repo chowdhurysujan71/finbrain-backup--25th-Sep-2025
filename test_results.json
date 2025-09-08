@@ -1,0 +1,2999 @@
+{
+  "timestamp": "2025-09-08T07:54:31.739284",
+  "summary": {
+    "total_tests": 110,
+    "passed_tests": 98,
+    "overall_accuracy": 89.0909090909091,
+    "amount_accuracy": 98.18181818181819,
+    "category_accuracy": 27.27272727272727,
+    "language_accuracy": 99.0909090909091,
+    "confidence_accuracy": 96.72727272727269,
+    "fallback_rate": 8.181818181818182
+  },
+  "language_performance": {
+    "bangla_accuracy": 86.36363636363636,
+    "english_accuracy": 90.9090909090909,
+    "mixed_accuracy": 90.9090909090909
+  },
+  "target_achievement": {
+    "overall_target_met": false,
+    "amount_target_met": true,
+    "category_target_met": false,
+    "language_target_met": true,
+    "confidence_target_met": true,
+    "fallback_target_met": true
+  },
+  "failed_cases": 12,
+  "detailed_results": [
+    {
+      "test_id": "1",
+      "input_text": "দুপুরের খাবারে ৫০০ টাকা খরচ করেছি",
+      "expected": {
+        "amount": 500.0,
+        "category": "food",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 500.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "basic_bangla",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "2",
+      "input_text": "আজ ভোরবেলা রিকশায় ৮০ টাকা দিয়েছি",
+      "expected": {
+        "amount": 80.0,
+        "category": "transport",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 80.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "time_reference",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "3",
+      "input_text": "গতকাল কিনেছি শাড়ি ২৫০০ টাকায়",
+      "expected": {
+        "amount": 2500.0,
+        "category": "shopping",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 2500.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "yesterday_reference",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "4",
+      "input_text": "মায়ের ওষুধ কিনলাম ৬৮৫ টাকায়",
+      "expected": {
+        "amount": 685.0,
+        "category": "health",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 685.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "relative_reference",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "5",
+      "input_text": "মার্কেট থেকে সবজি ১২০ টাকার",
+      "expected": {
+        "amount": 120.0,
+        "category": "food",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 120.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "market_shopping",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "6",
+      "input_text": "বাসভাড়া ৩৫ টাকা দিয়েছি আজ সকালে",
+      "expected": {
+        "amount": 35.0,
+        "category": "transport",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 35.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "morning_reference",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "7",
+      "input_text": "নতুন জুতা কিনেছি ১৮০০ টাকা",
+      "expected": {
+        "amount": 1800.0,
+        "category": "shopping",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 1800.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "clothing_purchase",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "8",
+      "input_text": "ফোনের রিচার্জ করেছি ১০০ টাকা",
+      "expected": {
+        "amount": 100.0,
+        "category": "bills",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 100.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "phone_recharge",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "9",
+      "input_text": "কফিশপে চা ৪৫ টাকা",
+      "expected": {
+        "amount": 45.0,
+        "category": "food",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 45.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "beverage",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "10",
+      "input_text": "ডাক্তার দেখাতে ৭০০ টাকা",
+      "expected": {
+        "amount": 700.0,
+        "category": "health",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 700.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "medical_visit",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "11",
+      "input_text": "বই কিনেছি ৩৫০ টাকায়",
+      "expected": {
+        "amount": 350.0,
+        "category": "education",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 350.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "book_purchase",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "12",
+      "input_text": "গ্রোসারি শপিং ৮৫০ টাকা",
+      "expected": {
+        "amount": 850.0,
+        "category": "food",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 850.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "grocery_shopping",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "13",
+      "input_text": "অটো রিকশা ১২০ + বাস ৪০ = ১৬০ টাকা",
+      "expected": {
+        "amount": 160.0,
+        "category": "transport",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 120.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 0.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.6,
+      "passed": false,
+      "notes": "multiple_amounts",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "14",
+      "input_text": "বিদ্যুৎ বিল পরিশোধ ২২০০ টাকা",
+      "expected": {
+        "amount": 2200.0,
+        "category": "bills",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 2200.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "electricity_bill",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "15",
+      "input_text": "সিনেমা টিকিট ৪০০ টাকা",
+      "expected": {
+        "amount": 400.0,
+        "category": "entertainment",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 400.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "movie_ticket",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "16",
+      "input_text": "ব্যাংকে ৫০০০ টাকা জমা দিয়েছি",
+      "expected": {
+        "amount": 5000.0,
+        "category": "other",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 5000.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "bank_deposit",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "17",
+      "input_text": "পার্লারে চুল কাটিয়েছি ৩০০ টাকা",
+      "expected": {
+        "amount": 300.0,
+        "category": "other",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 300.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "haircut",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "18",
+      "input_text": "ট্যাক্সি ভাড়া ২৫০ টাকা রাতে",
+      "expected": {
+        "amount": 250.0,
+        "category": "transport",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 250.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "night_taxi",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "19",
+      "input_text": "মোবাইল ডাটা প্যাক ১৯৯ টাকা",
+      "expected": {
+        "amount": 199.0,
+        "category": "bills",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 199.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "data_pack",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "20",
+      "input_text": "আইসক্রিম কিনেছি ৮০ টাকার",
+      "expected": {
+        "amount": 80.0,
+        "category": "food",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 80.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "ice_cream",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "21",
+      "input_text": "গ্যাস সিলিন্ডার ভরতি ১১০০ টাকা",
+      "expected": {
+        "amount": 1100.0,
+        "category": "bills",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 1100.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "gas_cylinder",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "22",
+      "input_text": "নতুন গামছা ২০০ টাকা দিয়ে কিনেছি",
+      "expected": {
+        "amount": 200.0,
+        "category": "shopping",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 200.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "towel_purchase",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "23",
+      "input_text": "দোকানে চিনি কিনেছি ৬৫ টাকা",
+      "expected": {
+        "amount": 65.0,
+        "category": "food",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 65.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "sugar_purchase",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "24",
+      "input_text": "স্কুলের ফি জমা দিলাম ৩৫০০ টাকা",
+      "expected": {
+        "amount": 3500.0,
+        "category": "education",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 3500.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "school_fee",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "25",
+      "input_text": "ফার্মেসী থেকে ঔষধ ৪৮৫ টাকা",
+      "expected": {
+        "amount": 485.0,
+        "category": "health",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 485.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "pharmacy_purchase",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "26",
+      "input_text": "চায়ের দোকানে নাস্তা ৪৫ টাকা",
+      "expected": {
+        "amount": 45.0,
+        "category": "food",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 45.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "tea_shop_snack",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "27",
+      "input_text": "পেট্রোল পাম্পে ৫০০ টাকার তেল",
+      "expected": {
+        "amount": 500.0,
+        "category": "transport",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 500.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "fuel_purchase",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "28",
+      "input_text": "নতুন প্যান্ট কিনেছি ১৯৫০ টাকায়",
+      "expected": {
+        "amount": 1950.0,
+        "category": "shopping",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 1950.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "pants_purchase",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "29",
+      "input_text": "ইন্টারনেট বিল দিয়েছি ৯৮০ টাকা",
+      "expected": {
+        "amount": 980.0,
+        "category": "bills",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 980.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "internet_bill",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "30",
+      "input_text": "বাজার থেকে মাছ কিনেছি ৩২০ টাকা",
+      "expected": {
+        "amount": 320.0,
+        "category": "food",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 320.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "fish_purchase",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "31",
+      "input_text": "রিকশা ভাড়া ৬০ টাকা + চা ২৫ টাকা",
+      "expected": {
+        "amount": 85.0,
+        "category": "mixed",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 60.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 0.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.6,
+      "passed": false,
+      "notes": "mixed_expenses",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "32",
+      "input_text": "হোটেলে খেয়েছি ৭৮০ টাকার খাবার",
+      "expected": {
+        "amount": 780.0,
+        "category": "food",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 780.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "restaurant_meal",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "33",
+      "input_text": "মোবাইল কভার কিনেছি ১৫০ টাকা",
+      "expected": {
+        "amount": 150.0,
+        "category": "shopping",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 150.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "phone_cover",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "34",
+      "input_text": "সন্ধ্যায় স্ন্যাক্স কিনেছি ৯৫ টাকা",
+      "expected": {
+        "amount": 95.0,
+        "category": "food",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 95.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "evening_snacks",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "35",
+      "input_text": "প্রিন্ট করতে ৩৫ টাকা লেগেছে",
+      "expected": {
+        "amount": 35.0,
+        "category": "other",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 35.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "printing_cost",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "36",
+      "input_text": "দাদুর ওষুধ কিনেছি ৮৯০ টাকায়",
+      "expected": {
+        "amount": 890.0,
+        "category": "health",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 890.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "grandfather_medicine",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "37",
+      "input_text": "বাসে যেতে ৪৫ টাকা খরচ হয়েছে",
+      "expected": {
+        "amount": 45.0,
+        "category": "transport",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 45.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "bus_fare",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "38",
+      "input_text": "নতুন চশমা কিনেছি ২৮০০ টাকা",
+      "expected": {
+        "amount": 2800.0,
+        "category": "health",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 2800.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "glasses_purchase",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "39",
+      "input_text": "কাপড় ধোলাই ১৮০ টাকা দিয়েছি",
+      "expected": {
+        "amount": 180.0,
+        "category": "other",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 180.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "laundry_cost",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "40",
+      "input_text": "মামার বাড়িতে গিফট কিনেছি ৬৫০ টাকা",
+      "expected": {
+        "amount": 650.0,
+        "category": "other",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 650.0,
+        "category": "general",
+        "language": "bangla",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "gift_purchase",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "41",
+      "input_text": "Lunch at restaurant cost me 450 taka",
+      "expected": {
+        "amount": 450.0,
+        "category": "food",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 450.0,
+        "category": "food",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "basic_english",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "42",
+      "input_text": "Took an Uber today for 320 taka",
+      "expected": {
+        "amount": 320.0,
+        "category": "transport",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 320.0,
+        "category": "transport",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "rideshare",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "43",
+      "input_text": "Yesterday bought groceries worth 850 taka",
+      "expected": {
+        "amount": 850.0,
+        "category": "food",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 850.0,
+        "category": "shopping",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "yesterday_reference",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "44",
+      "input_text": "Coffee and sandwich this morning 180 taka",
+      "expected": {
+        "amount": 180.0,
+        "category": "food",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 180.0,
+        "category": "food",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "morning_meal",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "45",
+      "input_text": "Phone bill payment 1200 taka",
+      "expected": {
+        "amount": 1200.0,
+        "category": "bills",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 1200.0,
+        "category": "bills",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "phone_bill",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "46",
+      "input_text": "Movie tickets for two people 600 taka",
+      "expected": {
+        "amount": 600.0,
+        "category": "entertainment",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 600.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "movie_tickets",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "47",
+      "input_text": "Gas refill at home 1100 taka",
+      "expected": {
+        "amount": 1100.0,
+        "category": "bills",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 1100.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "gas_refill",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "48",
+      "input_text": "Bought new headphones for 2500 taka",
+      "expected": {
+        "amount": 2500.0,
+        "category": "shopping",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 2500.0,
+        "category": "bills",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "electronics",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "49",
+      "input_text": "Taxi fare to airport 850 taka",
+      "expected": {
+        "amount": 850.0,
+        "category": "transport",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 850.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "airport_taxi",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "50",
+      "input_text": "Doctor visit fee 700 taka",
+      "expected": {
+        "amount": 700.0,
+        "category": "health",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 700.0,
+        "category": "health",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "medical_consultation",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "51",
+      "input_text": "Electricity bill paid 2400 taka",
+      "expected": {
+        "amount": 2400.0,
+        "category": "bills",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 2400.0,
+        "category": "bills",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "electricity_payment",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "52",
+      "input_text": "Shopping at mall spent 1800 taka",
+      "expected": {
+        "amount": 1800.0,
+        "category": "shopping",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 1800.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "mall_shopping",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "53",
+      "input_text": "Breakfast at hotel 300 taka",
+      "expected": {
+        "amount": 300.0,
+        "category": "food",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 300.0,
+        "category": "food",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "hotel_breakfast",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "54",
+      "input_text": "Book purchase from store 420 taka",
+      "expected": {
+        "amount": 420.0,
+        "category": "education",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 420.0,
+        "category": "shopping",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "book_buying",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "55",
+      "input_text": "Ice cream for kids 150 taka",
+      "expected": {
+        "amount": 150.0,
+        "category": "food",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 150.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "children_treat",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "56",
+      "input_text": "Parking fee at office 100 taka",
+      "expected": {
+        "amount": 100.0,
+        "category": "transport",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 100.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "parking_cost",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "57",
+      "input_text": "Medicine from pharmacy 680 taka",
+      "expected": {
+        "amount": 680.0,
+        "category": "health",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 680.0,
+        "category": "health",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "pharmacy_medicine",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "58",
+      "input_text": "Dinner with friends 950 taka",
+      "expected": {
+        "amount": 950.0,
+        "category": "food",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 950.0,
+        "category": "food",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "dinner_friends",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "59",
+      "input_text": "Bus fare 40 + snacks 60 = 100 taka",
+      "expected": {
+        "amount": 100.0,
+        "category": "mixed",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 100.0,
+        "category": "food",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "multiple_items",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "60",
+      "input_text": "Internet recharge 500 taka",
+      "expected": {
+        "amount": 500.0,
+        "category": "bills",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 500.0,
+        "category": "bills",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "internet_recharge",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "61",
+      "input_text": "Haircut at salon 250 taka",
+      "expected": {
+        "amount": 250.0,
+        "category": "other",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 250.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "haircut_salon",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "62",
+      "input_text": "Bought vegetables 180 taka",
+      "expected": {
+        "amount": 180.0,
+        "category": "food",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 180.0,
+        "category": "food",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "vegetable_purchase",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "63",
+      "input_text": "Train ticket booking 1200 taka",
+      "expected": {
+        "amount": 1200.0,
+        "category": "transport",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 1200.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "train_booking",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "64",
+      "input_text": "Gym membership fee 3000 taka",
+      "expected": {
+        "amount": 3000.0,
+        "category": "health",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 3000.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "gym_membership",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "65",
+      "input_text": "Pizza delivery order 720 taka",
+      "expected": {
+        "amount": 720.0,
+        "category": "food",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 720.0,
+        "category": "food",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "pizza_order",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "66",
+      "input_text": "Stationery items 320 taka",
+      "expected": {
+        "amount": 320.0,
+        "category": "education",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 320.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "stationery_purchase",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "67",
+      "input_text": "Fuel for car 800 taka",
+      "expected": {
+        "amount": 800.0,
+        "category": "transport",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 800.0,
+        "category": "transport",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "car_fuel",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "68",
+      "input_text": "Water bill payment 450 taka",
+      "expected": {
+        "amount": 450.0,
+        "category": "bills",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 450.0,
+        "category": "bills",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "water_bill",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "69",
+      "input_text": "Gift for birthday 650 taka",
+      "expected": {
+        "amount": 650.0,
+        "category": "other",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 650.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "birthday_gift",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "70",
+      "input_text": "Bought shirt 1500 taka",
+      "expected": {
+        "amount": 1500.0,
+        "category": "shopping",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 1500.0,
+        "category": "shopping",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "shirt_purchase",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "71",
+      "input_text": "Tea at roadside stall 25 taka",
+      "expected": {
+        "amount": 25.0,
+        "category": "food",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 25.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "roadside_tea",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "72",
+      "input_text": "Printing documents 80 taka",
+      "expected": {
+        "amount": 80.0,
+        "category": "other",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 80.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "document_printing",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "73",
+      "input_text": "Auto rickshaw fare 120 taka",
+      "expected": {
+        "amount": 120.0,
+        "category": "transport",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 120.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "auto_fare",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "74",
+      "input_text": "Bought milk 85 taka",
+      "expected": {
+        "amount": 85.0,
+        "category": "food",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 85.0,
+        "category": "food",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "milk_purchase",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "75",
+      "input_text": "Tuition fee payment 4500 taka",
+      "expected": {
+        "amount": 4500.0,
+        "category": "education",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 4500.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "tuition_payment",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "76",
+      "input_text": "Medicine for fever 280 taka",
+      "expected": {
+        "amount": 280.0,
+        "category": "health",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 280.0,
+        "category": "health",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "fever_medicine",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "77",
+      "input_text": "Snacks from shop 95 taka",
+      "expected": {
+        "amount": 95.0,
+        "category": "food",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 95.0,
+        "category": "food",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "shop_snacks",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "78",
+      "input_text": "Mobile screen repair 1200 taka",
+      "expected": {
+        "amount": 1200.0,
+        "category": "other",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 1200.0,
+        "category": "general",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "phone_repair",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "79",
+      "input_text": "Bought flowers 120 taka",
+      "expected": {
+        "amount": 120.0,
+        "category": "other",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 120.0,
+        "category": "shopping",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "flower_purchase",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "80",
+      "input_text": "Late night food delivery 480 taka",
+      "expected": {
+        "amount": 480.0,
+        "category": "food",
+        "language": "english"
+      },
+      "actual": {
+        "amount": 480.0,
+        "category": "food",
+        "language": "english",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "late_delivery",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "81",
+      "input_text": "কিনেছি new shoes for ১৮০০ taka",
+      "expected": {
+        "amount": 1800.0,
+        "category": "shopping",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 1800.0,
+        "category": "general",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "mixed_shopping",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "82",
+      "input_text": "আজ bus fare ছিল ৪৫ টাকা",
+      "expected": {
+        "amount": 45.0,
+        "category": "transport",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 45.0,
+        "category": "transport",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "mixed_transport",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "83",
+      "input_text": "Yesterday গিয়েছিলাম restaurant এ ৬৫০ taka খরচ",
+      "expected": {
+        "amount": 650.0,
+        "category": "food",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 650.0,
+        "category": "food",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "mixed_dining",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "84",
+      "input_text": "Mobile recharge করেছি ২০০ taka",
+      "expected": {
+        "amount": 200.0,
+        "category": "bills",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 200.0,
+        "category": "general",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "mixed_recharge",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "85",
+      "input_text": "Doctor visit এর জন্য ৭০০ টাকা দিয়েছি",
+      "expected": {
+        "amount": 700.0,
+        "category": "health",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 700.0,
+        "category": "general",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "mixed_medical",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "86",
+      "input_text": "Shopping mall থেকে কিনেছি ১৫০০ taka worth জিনিস",
+      "expected": {
+        "amount": 1500.0,
+        "category": "shopping",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 1500.0,
+        "category": "general",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "mixed_mall",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "87",
+      "input_text": "Coffee shop এ ১২০ টাকার coffee খেয়েছি",
+      "expected": {
+        "amount": 120.0,
+        "category": "food",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 120.0,
+        "category": "food",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "mixed_coffee",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "88",
+      "input_text": "Taxi ভাড়া ২৫০ taka দিয়েছি",
+      "expected": {
+        "amount": 250.0,
+        "category": "transport",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 250.0,
+        "category": "transport",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "mixed_taxi",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "89",
+      "input_text": "Book কিনেছি ৪০০ taka তে",
+      "expected": {
+        "amount": 400.0,
+        "category": "education",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 400.0,
+        "category": "general",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "mixed_book",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "90",
+      "input_text": "Gas bill pay করেছি ১১০০ টাকা",
+      "expected": {
+        "amount": 1100.0,
+        "category": "bills",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 1100.0,
+        "category": "bills",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "mixed_gas_bill",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "91",
+      "input_text": "Market থেকে vegetables কিনেছি ১৮০ taka",
+      "expected": {
+        "amount": 180.0,
+        "category": "food",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 180.0,
+        "category": "food",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "mixed_vegetables",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "92",
+      "input_text": "Phone repair এ লাগলো ৯০০ টাকা",
+      "expected": {
+        "amount": 900.0,
+        "category": "other",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 900.0,
+        "category": "general",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "mixed_repair",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "93",
+      "input_text": "Cinema hall এ ticket কিনেছি ৩৫০ taka",
+      "expected": {
+        "amount": 350.0,
+        "category": "entertainment",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 350.0,
+        "category": "general",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "mixed_cinema",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "94",
+      "input_text": "Internet bill ৮৫০ টাকা pay করেছি",
+      "expected": {
+        "amount": 850.0,
+        "category": "bills",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 850.0,
+        "category": "bills",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "mixed_internet",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "95",
+      "input_text": "Pharmacy থেকে medicine ৪৮০ taka",
+      "expected": {
+        "amount": 480.0,
+        "category": "health",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 480.0,
+        "category": "health",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "mixed_pharmacy",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "96",
+      "input_text": "Auto rickshaw + bus total ১৪০ টাকা",
+      "expected": {
+        "amount": 140.0,
+        "category": "transport",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 140.0,
+        "category": "transport",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "mixed_multiple_transport",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "97",
+      "input_text": "Breakfast + coffee মিলিয়ে ২২০ taka",
+      "expected": {
+        "amount": 220.0,
+        "category": "food",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 220.0,
+        "category": "food",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "mixed_multiple_food",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "98",
+      "input_text": "Gift কিনেছি for friend ৫৫০ টাকা",
+      "expected": {
+        "amount": 550.0,
+        "category": "other",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 550.0,
+        "category": "general",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "mixed_gift",
+      "is_edge_case": false
+    },
+    {
+      "test_id": "99",
+      "input_text": "Parking + toll মিলে ১৮০ taka",
+      "expected": {
+        "amount": 180.0,
+        "category": "transport",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 180.0,
+        "category": "general",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.8,
+      "passed": true,
+      "notes": "mixed_parking_toll",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "100",
+      "input_text": "Grocery + snacks total ৩৮০ টাকা খরচ",
+      "expected": {
+        "amount": 380.0,
+        "category": "food",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": 380.0,
+        "category": "food",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 1.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 1.0,
+      "passed": true,
+      "notes": "mixed_grocery_snacks",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "101",
+      "input_text": "মাকে ১k দিয়েছি",
+      "expected": {
+        "amount": 1000.0,
+        "category": "other",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": 1000.0,
+        "category": "general",
+        "language": "mixed",
+        "confidence": 0.9,
+        "needs_clarification": false
+      },
+      "scores": {
+        "intent_recognition": 1.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 0.0,
+        "confidence_calibration": 1.0
+      },
+      "overall_score": 0.6,
+      "passed": false,
+      "notes": "informal_amount_low_conf",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "102",
+      "input_text": "spent some money on food",
+      "expected": {
+        "amount": 0.0,
+        "category": "food",
+        "language": "english"
+      },
+      "actual": {
+        "amount": null,
+        "category": null,
+        "language": "english",
+        "confidence": 0.3,
+        "needs_clarification": true
+      },
+      "scores": {
+        "intent_recognition": 0.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 0.6
+      },
+      "overall_score": 0.52,
+      "passed": false,
+      "notes": "no_amount_low_conf",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "103",
+      "input_text": "কিছু টাকা খরচ করেছি",
+      "expected": {
+        "amount": 0.0,
+        "category": "other",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": null,
+        "category": null,
+        "language": "bangla",
+        "confidence": 0.3,
+        "needs_clarification": true
+      },
+      "scores": {
+        "intent_recognition": 0.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 0.6
+      },
+      "overall_score": 0.52,
+      "passed": false,
+      "notes": "vague_expense_low_conf",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "104",
+      "input_text": "bought stuff",
+      "expected": {
+        "amount": 0.0,
+        "category": "other",
+        "language": "english"
+      },
+      "actual": {
+        "amount": null,
+        "category": null,
+        "language": "english",
+        "confidence": 0.3,
+        "needs_clarification": true
+      },
+      "scores": {
+        "intent_recognition": 0.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 0.6
+      },
+      "overall_score": 0.52,
+      "passed": false,
+      "notes": "no_details_low_conf",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "105",
+      "input_text": "পেমেন্ট করেছি কিন্তু amount ভুলে গেছি",
+      "expected": {
+        "amount": 0.0,
+        "category": "other",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": null,
+        "category": null,
+        "language": "mixed",
+        "confidence": 0.3,
+        "needs_clarification": true
+      },
+      "scores": {
+        "intent_recognition": 0.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 0.6
+      },
+      "overall_score": 0.52,
+      "passed": false,
+      "notes": "forgotten_amount_low_conf",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "106",
+      "input_text": "অনেক টাকা গেছে আজ",
+      "expected": {
+        "amount": 0.0,
+        "category": "other",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": null,
+        "category": null,
+        "language": "bangla",
+        "confidence": 0.3,
+        "needs_clarification": true
+      },
+      "scores": {
+        "intent_recognition": 0.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 0.6
+      },
+      "overall_score": 0.52,
+      "passed": false,
+      "notes": "vague_amount_low_conf",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "107",
+      "input_text": "paid money but forgot how much",
+      "expected": {
+        "amount": 0.0,
+        "category": "other",
+        "language": "english"
+      },
+      "actual": {
+        "amount": null,
+        "category": null,
+        "language": "english",
+        "confidence": 0.3,
+        "needs_clarification": true
+      },
+      "scores": {
+        "intent_recognition": 0.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 0.6
+      },
+      "overall_score": 0.52,
+      "passed": false,
+      "notes": "forgotten_payment_low_conf",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "108",
+      "input_text": "খরচ হয়েছে but exact amount মনে নেই",
+      "expected": {
+        "amount": 0.0,
+        "category": "other",
+        "language": "mixed"
+      },
+      "actual": {
+        "amount": null,
+        "category": null,
+        "language": "mixed",
+        "confidence": 0.3,
+        "needs_clarification": true
+      },
+      "scores": {
+        "intent_recognition": 0.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 0.6
+      },
+      "overall_score": 0.52,
+      "passed": false,
+      "notes": "mixed_forgotten_low_conf",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "109",
+      "input_text": "দোকান থেকে কিছু একটা কিনেছি",
+      "expected": {
+        "amount": 0.0,
+        "category": "shopping",
+        "language": "bangla"
+      },
+      "actual": {
+        "amount": null,
+        "category": null,
+        "language": "bangla",
+        "confidence": 0.3,
+        "needs_clarification": true
+      },
+      "scores": {
+        "intent_recognition": 0.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 0.6
+      },
+      "overall_score": 0.52,
+      "passed": false,
+      "notes": "vague_purchase_low_conf",
+      "is_edge_case": true
+    },
+    {
+      "test_id": "110",
+      "input_text": "gave money to someone",
+      "expected": {
+        "amount": 0.0,
+        "category": "other",
+        "language": "english"
+      },
+      "actual": {
+        "amount": null,
+        "category": null,
+        "language": "english",
+        "confidence": 0.3,
+        "needs_clarification": true
+      },
+      "scores": {
+        "intent_recognition": 0.0,
+        "amount_accuracy": 1.0,
+        "category_accuracy": 0.0,
+        "language_detection": 1.0,
+        "confidence_calibration": 0.6
+      },
+      "overall_score": 0.52,
+      "passed": false,
+      "notes": "vague_transfer_low_conf",
+      "is_edge_case": true
+    }
+  ]
+}

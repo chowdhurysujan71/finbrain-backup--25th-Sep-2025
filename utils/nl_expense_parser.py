@@ -117,14 +117,21 @@ class NLExpenseParser:
             # Use existing parsers/expense.py logic
             result = parse_amount_currency_category(text)
             
-            if result.get('amount') and result.get('category'):
+            if result.get('amount'):
+                # Enhanced category detection using existing CATEGORY_ALIASES
+                detected_category = result.get('category', 'other')
+                
+                # If category is 'other', try enhanced keyword matching
+                if detected_category == 'other':
+                    detected_category = self._enhanced_category_detection(text)
+                
                 # High confidence for deterministic parsing
-                confidence = 0.9 if result.get('category') != 'other' else 0.7
+                confidence = 0.9 if detected_category != 'other' else 0.7
                 
                 return ExpenseParseResult(
                     success=True,
                     amount=float(result['amount']),
-                    category=result['category'],
+                    category=detected_category,
                     description=result.get('description', text),
                     confidence=confidence,
                     needs_clarification=confidence < self.confidence_threshold
@@ -133,6 +140,49 @@ class NLExpenseParser:
             logger.debug(f"Deterministic parsing failed: {e}")
         
         return ExpenseParseResult(success=False, confidence=0.0)
+    
+    def _enhanced_category_detection(self, text: str) -> str:
+        """Enhanced category detection using comprehensive keyword matching"""
+        text_lower = text.lower()
+        
+        # Enhanced category keywords (Bangla + English)
+        category_keywords = {
+            'food': ['খাবার', 'খাওয়া', 'লাঞ্চ', 'নাস্তা', 'ডিনার', 'চা', 'কফি', 'রেস্টুরেন্ট', 'হোটেল', 'খেয়েছি', 'মাছ', 'সবজি', 'চিনি', 'গ্রোসারি', 'বাজার', 'আইসক্রিম', 'স্ন্যাক্স',
+                     'food', 'lunch', 'dinner', 'breakfast', 'tea', 'coffee', 'restaurant', 'snack', 'grocery', 'market', 'ate', 'meal'],
+            'transport': ['রিকশা', 'বাস', 'ট্যাক্সি', 'অটো', 'ভাড়া', 'যাতায়াত', 'গাড়ি', 'পেট্রোল', 'তেল', 'সিএনজি',
+                         'rickshaw', 'bus', 'taxi', 'auto', 'uber', 'transport', 'fare', 'fuel', 'petrol', 'gas', 'cng', 'metro'],
+            'shopping': ['কিনেছি', 'কেনাকাটা', 'শপিং', 'কাপড়', 'শার্ট', 'প্যান্ট', 'জুতা', 'গামছা', 'চশমা', 'হেডফোন', 'মোবাইল কভার', 'গিফট',
+                        'shopping', 'bought', 'purchase', 'shirt', 'pants', 'shoes', 'headphones', 'gift', 'stuff', 'buy'],
+            'bills': ['বিল', 'পরিশোধ', 'বিদ্যুৎ', 'গ্যাস', 'ইন্টারনেট', 'ফোন', 'রিচার্জ', 'ডাটা প্যাক', 'সিলিন্ডার',
+                     'bill', 'payment', 'electricity', 'gas', 'internet', 'phone', 'recharge', 'data'],
+            'health': ['ডাক্তার', 'ওষুধ', 'ঔষধ', 'চিকিৎসা', 'ফার্মেসী', 'স্বাস্থ্য', 'দাঁতের', 'মায়ের', 'দাদুর',
+                      'doctor', 'medicine', 'medical', 'health', 'pharmacy', 'treatment', 'clinic'],
+            'education': ['বই', 'স্কুল', 'ফি', 'শিক্ষা', 'টিউশন', 'প্রিন্ট',
+                         'book', 'school', 'education', 'tuition', 'fee', 'print', 'study'],
+            'entertainment': ['সিনেমা', 'টিকিট', 'বিনোদন', 'মুভি', 'থিয়েটার',
+                             'movie', 'cinema', 'ticket', 'entertainment', 'theater'],
+            'other': ['পার্লার', 'চুল', 'ব্যাংক', 'জমা', 'কাপড় ধোলাই', 'paid', 'money', 'amount']
+        }
+        
+        # Score each category
+        category_scores = {}
+        for category, keywords in category_keywords.items():
+            score = 0
+            for keyword in keywords:
+                if keyword in text_lower:
+                    score += 1
+            category_scores[category] = score
+        
+        # Return highest scoring category (excluding 'other' unless no other matches)
+        if max(category_scores.values()) == 0:
+            return 'other'
+        
+        # Get best category (prefer specific categories over 'other')
+        sorted_categories = sorted(category_scores.items(), 
+                                 key=lambda x: (x[1], 0 if x[0] == 'other' else 1), 
+                                 reverse=True)
+        
+        return sorted_categories[0][0] if sorted_categories[0][1] > 0 else 'other'
     
     def _try_ai_parse(self, text: str, language: str, user_id_hash: str = None) -> ExpenseParseResult:
         """Use AI parsing for complex natural language"""
@@ -200,14 +250,24 @@ Respond in JSON format:
             # Use the existing generate_insights method as a base for AI calls
             # This is a workaround since the AI adapter doesn't have a generic generate_content method
             
-            # For now, return a simple structured response based on deterministic parsing
-            # This ensures the system works while we build out the full AI integration
+            # Enhanced fallback with basic NLP parsing
+            text = prompt.split('"')[1] if '"' in prompt else ''
+            
+            # Try to extract amount from text
+            import re
+            amount_match = re.search(r'(\d+(?:\.\d+)?)', text)
+            amount = float(amount_match.group(1)) if amount_match else 0
+            
+            # Use enhanced category detection
+            category = self._enhanced_category_detection(text) if text else 'other'
+            confidence = 0.8 if amount > 0 and category != 'other' else 0.4
+            
             return {
-                'amount': 0,
-                'category': 'other',
-                'description': prompt.split('"')[1] if '"' in prompt else '',
-                'confidence': 0.4,
-                'reasoning': 'Fallback parsing - AI integration pending'
+                'amount': amount,
+                'category': category,
+                'description': text,
+                'confidence': confidence,
+                'reasoning': 'Enhanced fallback parsing with keyword detection'
             }
             
         except Exception as e:
