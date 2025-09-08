@@ -45,7 +45,7 @@
         if (typeof htmx !== 'undefined') {
             document.body.addEventListener('htmx:configRequest', (event) => {
                 event.detail.headers['X-User-ID'] = userId;
-                console.log('[PWA] HTMX request with user ID:', userId);
+                // User ID successfully attached to all requests
             });
         }
         
