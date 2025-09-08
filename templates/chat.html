@@ -121,7 +121,28 @@
     </section>
     
     <script>
-    // Chat functionality - ACTIVE
+    // Unified User ID System - localStorage + X-User-ID header
+    function getOrCreateUserId() {
+        const KEY = 'finbrain_uid';
+        let id = localStorage.getItem(KEY);
+        if (!id) {
+            // UUIDv4-lite
+            id = ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+                (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+            );
+            localStorage.setItem(KEY, id);
+        }
+        return id;
+    }
+    
+    // HTML escape utility
+    function escapeHtml(s) {
+        return s.replace(/[&<>"']/g, m => ({
+            '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+        }[m]));
+    }
+    
+    // Chat suggestion functionality
     function fillChatInput(suggestion) {
         const input = document.getElementById('chat-input');
         if (input) {
@@ -130,115 +151,124 @@
         }
     }
     
-    function appendMessage(content, isAi = false, isLoading = false) {
-        const messagesContainer = document.getElementById('chat-messages');
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isAi ? 'ai-message' : 'user-message'}`;
+    // Bulletproof chat message sender
+    async function sendChatMessage() {
+        const input = document.querySelector('#chat-input');
+        const btn = document.querySelector('#chat-send-btn');
+        const out = document.querySelector('#chat-messages');
         
-        if (isLoading) {
-            messageDiv.innerHTML = `
-                <div class="message-avatar">🤖</div>
-                <div class="message-content">
-                    <div class="typing-indicator">
-                        <span></span><span></span><span></span>
-                    </div>
-                </div>
-            `;
-        } else {
-            messageDiv.innerHTML = `
-                <div class="message-avatar">${isAi ? '🤖' : '👤'}</div>
-                <div class="message-content">
-                    <p>${content}</p>
-                </div>
-            `;
-        }
+        const text = (input.value || '').trim();
+        if (!text) return;
         
-        messagesContainer.appendChild(messageDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        const uid = getOrCreateUserId();
+        const btnText = btn.querySelector('.btn-text');
+        const btnLoading = btn.querySelector('.btn-loading');
         
-        return messageDiv;
-    }
-    
-    // handleChatSubmit - ACTIVE
-    async function handleChatSubmit(event) {
-        event.preventDefault();
-        
-        const input = document.getElementById('chat-input');
-        const sendBtn = document.getElementById('chat-send-btn');
-        const btnText = sendBtn.querySelector('.btn-text');
-        const btnLoading = sendBtn.querySelector('.btn-loading');
-        
-        if (!input || !input.value.trim()) {
-            return;
-        }
-        
-        const userMessage = input.value.trim();
-        input.value = '';
-        
-        // Add user message to chat
-        appendMessage(userMessage, false);
-        
-        // Show loading state
+        btn.disabled = true;
         btnText.style.display = 'none';
         btnLoading.style.display = 'inline';
-        sendBtn.disabled = true;
         
-        // Add AI loading message
-        const loadingMsg = appendMessage('', true, true);
+        // Optimistic user message display
+        out.insertAdjacentHTML('beforeend', `
+            <div class="message user-message">
+                <div class="message-avatar">👤</div>
+                <div class="message-content">
+                    <p>${escapeHtml(text)}</p>
+                </div>
+            </div>
+        `);
         
         try {
-            const response = await fetch('/ai-chat', {
+            const res = await fetch('/ai-chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-User-ID': getUserId()
+                    'X-User-ID': uid
                 },
-                body: JSON.stringify({ message: userMessage })
+                body: JSON.stringify({ message: text })
             });
             
-            const data = await response.json();
-            
-            // Remove loading message
-            loadingMsg.remove();
-            
-            if (data.success && data.response) {
-                appendMessage(data.response, true);
-            } else {
-                appendMessage('Sorry, I had trouble processing your message. Please try again or use the Quick Add form below.', true);
+            if (!res.ok) {
+                const body = await res.text();
+                throw new Error(`HTTP ${res.status}: ${body.slice(0, 500)}`);
             }
             
-        } catch (error) {
-            console.error('Chat error:', error);
-            loadingMsg.remove();
-            appendMessage('Sorry, I\'m having connection issues. Please try again or use the Quick Add form below.', true);
+            let data;
+            try {
+                data = await res.json();
+            } catch (e) {
+                const raw = await res.text();
+                throw new Error(`JSON parse failed. Raw: ${raw.slice(0, 500)}`);
+            }
+            
+            const reply = data?.reply ?? data?.response ?? data?.message ?? '[empty reply]';
+            out.insertAdjacentHTML('beforeend', `
+                <div class="message ai-message">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        <p>${escapeHtml(reply)}</p>
+                    </div>
+                </div>
+            `);
+        } catch (err) {
+            console.error('Chat error:', err);
+            out.insertAdjacentHTML('beforeend', `
+                <div class="message ai-message error">
+                    <div class="message-avatar">⚠️</div>
+                    <div class="message-content">
+                        <p>Chat failed: ${escapeHtml(String(err.message || err))}</p>
+                        <p><small>Please try the Quick Add form below or refresh and try again.</small></p>
+                    </div>
+                </div>
+            `);
         } finally {
-            // Reset button state
+            btn.disabled = false;
             btnText.style.display = 'inline';
             btnLoading.style.display = 'none';
-            sendBtn.disabled = false;
+            input.value = '';
+            out.scrollTop = out.scrollHeight;
         }
     }
     
-    function getUserId() {
-        // Get user ID from session or generate one for PWA
-        let userId = sessionStorage.getItem('pwa-user-id');
-        if (!userId) {
-            userId = 'pwa-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-            sessionStorage.setItem('pwa-user-id', userId);
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+        const sendBtn = document.querySelector('#chat-send-btn');
+        const input = document.querySelector('#chat-input');
+        const form = document.querySelector('#chat-form');
+        
+        if (sendBtn) {
+            sendBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                sendChatMessage();
+            });
         }
-        return userId;
-    }
+        
+        if (input) {
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendChatMessage();
+                }
+            });
+        }
+        
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                sendChatMessage();
+            });
+        }
+    });
     
-    // Chat form handler - ACTIVE
-    const chatForm = document.getElementById('chat-form');
-    if (chatForm) {
-        chatForm.addEventListener('submit', handleChatSubmit);
-    }
-    
-    // Auto-resize textarea
-    document.getElementById('chat-input').addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+    // Auto-resize textarea (with safety check)
+    document.addEventListener('DOMContentLoaded', () => {
+        const chatInput = document.getElementById('chat-input');
+        if (chatInput) {
+            chatInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+            });
+        }
     });
     
     // Form handling for quick add
