@@ -28,7 +28,15 @@ self.addEventListener('install', event => {
         caches.open(STATIC_CACHE_NAME)
             .then(cache => {
                 console.log('[SW] Precaching static resources');
-                return cache.addAll(PRECACHE_URLS);
+                // Cache resources one by one, skip failures
+                return Promise.allSettled(
+                    PRECACHE_URLS.map(url => 
+                        cache.add(url).catch(error => {
+                            console.warn('[SW] Failed to cache:', url, error);
+                            return null;
+                        })
+                    )
+                );
             })
             .then(() => {
                 console.log('[SW] Skip waiting to activate immediately');
@@ -36,6 +44,8 @@ self.addEventListener('install', event => {
             })
             .catch(error => {
                 console.error('[SW] Precache failed:', error);
+                // Don't fail installation if precaching fails
+                return self.skipWaiting();
             })
     );
 });
