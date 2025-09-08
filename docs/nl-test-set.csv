@@ -1,0 +1,111 @@
+id,language,input_text,expected_amount,expected_category,expected_confidence,notes,is_edge_case
+1,bangla,দুপুরের খাবারে ৫০০ টাকা খরচ করেছি,500,food,high,basic_bangla,false
+2,bangla,আজ ভোরবেলা রিকশায় ৮০ টাকা দিয়েছি,80,transport,high,time_reference,false
+3,bangla,গতকাল কিনেছি শাড়ি ২৫০০ টাকায়,2500,shopping,high,yesterday_reference,true
+4,bangla,মায়ের ওষুধ কিনলাম ৬৮৫ টাকায়,685,health,high,relative_reference,false
+5,bangla,মার্কেট থেকে সবজি ১২০ টাকার,120,food,high,market_shopping,false
+6,bangla,বাসভাড়া ৩৫ টাকা দিয়েছি আজ সকালে,35,transport,high,morning_reference,false
+7,bangla,নতুন জুতা কিনেছি ১৮০০ টাকা,1800,shopping,high,clothing_purchase,false
+8,bangla,ফোনের রিচার্জ করেছি ১০০ টাকা,100,bills,high,phone_recharge,false
+9,bangla,কফিশপে চা ৪৫ টাকা,45,food,high,beverage,false
+10,bangla,ডাক্তার দেখাতে ৭০০ টাকা,700,health,high,medical_visit,false
+11,bangla,বই কিনেছি ৩৫০ টাকায়,350,education,high,book_purchase,false
+12,bangla,গ্রোসারি শপিং ৮৫০ টাকা,850,food,high,grocery_shopping,false
+13,bangla,অটো রিকশা ১২০ + বাস ৪০ = ১৬০ টাকা,160,transport,medium,multiple_amounts,true
+14,bangla,বিদ্যুৎ বিল পরিশোধ ২২০০ টাকা,2200,bills,high,electricity_bill,false
+15,bangla,সিনেমা টিকিট ৪০০ টাকা,400,entertainment,high,movie_ticket,false
+16,bangla,ব্যাংকে ৫০০০ টাকা জমা দিয়েছি,5000,other,medium,bank_deposit,false
+17,bangla,পার্লারে চুল কাটিয়েছি ৩০০ টাকা,300,other,high,haircut,false
+18,bangla,ট্যাক্সি ভাড়া ২৫০ টাকা রাতে,250,transport,high,night_taxi,false
+19,bangla,মোবাইল ডাটা প্যাক ১৯৯ টাকা,199,bills,high,data_pack,false
+20,bangla,আইসক্রিম কিনেছি ৮০ টাকার,80,food,high,ice_cream,false
+21,bangla,গ্যাস সিলিন্ডার ভরতি ১১০০ টাকা,1100,bills,high,gas_cylinder,false
+22,bangla,নতুন গামছা ২০০ টাকা দিয়ে কিনেছি,200,shopping,high,towel_purchase,false
+23,bangla,দোকানে চিনি কিনেছি ৬৫ টাকা,65,food,high,sugar_purchase,false
+24,bangla,স্কুলের ফি জমা দিলাম ৩৫০০ টাকা,3500,education,high,school_fee,false
+25,bangla,ফার্মেসী থেকে ঔষধ ৪৮৫ টাকা,485,health,high,pharmacy_purchase,false
+26,bangla,চায়ের দোকানে নাস্তা ৪৫ টাকা,45,food,high,tea_shop_snack,false
+27,bangla,পেট্রোল পাম্পে ৫০০ টাকার তেল,500,transport,high,fuel_purchase,false
+28,bangla,নতুন প্যান্ট কিনেছি ১৯৫০ টাকায়,1950,shopping,high,pants_purchase,false
+29,bangla,ইন্টারনেট বিল দিয়েছি ৯৮০ টাকা,980,bills,high,internet_bill,false
+30,bangla,বাজার থেকে মাছ কিনেছি ৩২০ টাকা,320,food,high,fish_purchase,false
+31,bangla,রিকশা ভাড়া ৬০ টাকা + চা ২৫ টাকা,85,mixed,medium,mixed_expenses,true
+32,bangla,হোটেলে খেয়েছি ৭৮০ টাকার খাবার,780,food,high,restaurant_meal,false
+33,bangla,মোবাইল কভার কিনেছি ১৫০ টাকা,150,shopping,high,phone_cover,false
+34,bangla,সন্ধ্যায় স্ন্যাক্স কিনেছি ৯৫ টাকা,95,food,high,evening_snacks,false
+35,bangla,প্রিন্ট করতে ৩৫ টাকা লেগেছে,35,other,high,printing_cost,false
+36,bangla,দাদুর ওষুধ কিনেছি ৮৯০ টাকায়,890,health,high,grandfather_medicine,false
+37,bangla,বাসে যেতে ৪৫ টাকা খরচ হয়েছে,45,transport,high,bus_fare,false
+38,bangla,নতুন চশমা কিনেছি ২৮০০ টাকা,2800,health,high,glasses_purchase,false
+39,bangla,কাপড় ধোলাই ১৮০ টাকা দিয়েছি,180,other,high,laundry_cost,false
+40,bangla,মামার বাড়িতে গিফট কিনেছি ৬৫০ টাকা,650,other,high,gift_purchase,false
+41,english,Lunch at restaurant cost me 450 taka,450,food,high,basic_english,false
+42,english,Took an Uber today for 320 taka,320,transport,high,rideshare,false
+43,english,Yesterday bought groceries worth 850 taka,850,food,high,yesterday_reference,true
+44,english,Coffee and sandwich this morning 180 taka,180,food,high,morning_meal,false
+45,english,Phone bill payment 1200 taka,1200,bills,high,phone_bill,false
+46,english,Movie tickets for two people 600 taka,600,entertainment,high,movie_tickets,false
+47,english,Gas refill at home 1100 taka,1100,bills,high,gas_refill,false
+48,english,Bought new headphones for 2500 taka,2500,shopping,high,electronics,false
+49,english,Taxi fare to airport 850 taka,850,transport,high,airport_taxi,false
+50,english,Doctor visit fee 700 taka,700,health,high,medical_consultation,false
+51,english,Electricity bill paid 2400 taka,2400,bills,high,electricity_payment,false
+52,english,Shopping at mall spent 1800 taka,1800,shopping,high,mall_shopping,false
+53,english,Breakfast at hotel 300 taka,300,food,high,hotel_breakfast,false
+54,english,Book purchase from store 420 taka,420,education,high,book_buying,false
+55,english,Ice cream for kids 150 taka,150,food,high,children_treat,false
+56,english,Parking fee at office 100 taka,100,transport,high,parking_cost,false
+57,english,Medicine from pharmacy 680 taka,680,health,high,pharmacy_medicine,false
+58,english,Dinner with friends 950 taka,950,food,high,dinner_friends,false
+59,english,Bus fare 40 + snacks 60 = 100 taka,100,mixed,medium,multiple_items,true
+60,english,Internet recharge 500 taka,500,bills,high,internet_recharge,false
+61,english,Haircut at salon 250 taka,250,other,high,haircut_salon,false
+62,english,Bought vegetables 180 taka,180,food,high,vegetable_purchase,false
+63,english,Train ticket booking 1200 taka,1200,transport,high,train_booking,false
+64,english,Gym membership fee 3000 taka,3000,health,high,gym_membership,false
+65,english,Pizza delivery order 720 taka,720,food,high,pizza_order,false
+66,english,Stationery items 320 taka,320,education,high,stationery_purchase,false
+67,english,Fuel for car 800 taka,800,transport,high,car_fuel,false
+68,english,Water bill payment 450 taka,450,bills,high,water_bill,false
+69,english,Gift for birthday 650 taka,650,other,high,birthday_gift,false
+70,english,Bought shirt 1500 taka,1500,shopping,high,shirt_purchase,false
+71,english,Tea at roadside stall 25 taka,25,food,high,roadside_tea,false
+72,english,Printing documents 80 taka,80,other,high,document_printing,false
+73,english,Auto rickshaw fare 120 taka,120,transport,high,auto_fare,false
+74,english,Bought milk 85 taka,85,food,high,milk_purchase,false
+75,english,Tuition fee payment 4500 taka,4500,education,high,tuition_payment,false
+76,english,Medicine for fever 280 taka,280,health,high,fever_medicine,false
+77,english,Snacks from shop 95 taka,95,food,high,shop_snacks,false
+78,english,Mobile screen repair 1200 taka,1200,other,high,phone_repair,false
+79,english,Bought flowers 120 taka,120,other,high,flower_purchase,false
+80,english,Late night food delivery 480 taka,480,food,high,late_delivery,false
+81,mixed,কিনেছি new shoes for ১৮০০ taka,1800,shopping,high,mixed_shopping,false
+82,mixed,আজ bus fare ছিল ৪৫ টাকা,45,transport,high,mixed_transport,false
+83,mixed,Yesterday গিয়েছিলাম restaurant এ ৬৫০ taka খরচ,650,food,high,mixed_dining,false
+84,mixed,Mobile recharge করেছি ২০০ taka,200,bills,high,mixed_recharge,false
+85,mixed,Doctor visit এর জন্য ৭০০ টাকা দিয়েছি,700,health,high,mixed_medical,false
+86,mixed,Shopping mall থেকে কিনেছি ১৫০০ taka worth জিনিস,1500,shopping,high,mixed_mall,false
+87,mixed,Coffee shop এ ১২০ টাকার coffee খেয়েছি,120,food,high,mixed_coffee,false
+88,mixed,Taxi ভাড়া ২৫০ taka দিয়েছি,250,transport,high,mixed_taxi,false
+89,mixed,Book কিনেছি ৪০০ taka তে,400,education,high,mixed_book,false
+90,mixed,Gas bill pay করেছি ১১০০ টাকা,1100,bills,high,mixed_gas_bill,false
+91,mixed,Market থেকে vegetables কিনেছি ১৮০ taka,180,food,high,mixed_vegetables,false
+92,mixed,Phone repair এ লাগলো ৯০০ টাকা,900,other,high,mixed_repair,false
+93,mixed,Cinema hall এ ticket কিনেছি ৩৫০ taka,350,entertainment,high,mixed_cinema,false
+94,mixed,Internet bill ৮৫০ টাকা pay করেছি,850,bills,high,mixed_internet,false
+95,mixed,Pharmacy থেকে medicine ৪৮০ taka,480,health,high,mixed_pharmacy,false
+96,mixed,Auto rickshaw + bus total ১৪০ টাকা,140,transport,medium,mixed_multiple_transport,true
+97,mixed,Breakfast + coffee মিলিয়ে ২২০ taka,220,food,medium,mixed_multiple_food,true
+98,mixed,Gift কিনেছি for friend ৫৫০ টাকা,550,other,high,mixed_gift,false
+99,mixed,Parking + toll মিলে ১৮০ taka,180,transport,medium,mixed_parking_toll,true
+100,mixed,Grocery + snacks total ৩৮০ টাকা খরচ,380,food,medium,mixed_grocery_snacks,true
+101,bangla,মাকে ১k দিয়েছি,1000,other,low,informal_amount_low_conf,true
+102,english,spent some money on food,0,food,low,no_amount_low_conf,true
+103,bangla,কিছু টাকা খরচ করেছি,0,other,low,vague_expense_low_conf,true
+104,english,bought stuff,0,other,low,no_details_low_conf,true
+105,mixed,পেমেন্ট করেছি কিন্তু amount ভুলে গেছি,0,other,low,forgotten_amount_low_conf,true
+106,bangla,অনেক টাকা গেছে আজ,0,other,low,vague_amount_low_conf,true
+107,english,paid money but forgot how much,0,other,low,forgotten_payment_low_conf,true
+108,mixed,খরচ হয়েছে but exact amount মনে নেই,0,other,low,mixed_forgotten_low_conf,true
+109,bangla,দোকান থেকে কিছু একটা কিনেছি,0,shopping,low,vague_purchase_low_conf,true
+110,english,gave money to someone,0,other,low,vague_transfer_low_conf,true
