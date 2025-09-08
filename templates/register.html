@@ -111,6 +111,10 @@ document.getElementById('register-form').addEventListener('submit', async functi
                 </div>
             `;
             
+            // Save session data
+            sessionStorage.setItem('is_registered', 'true');
+            sessionStorage.setItem('user_email', formData.get('email'));
+            
             // Redirect after short delay
             setTimeout(() => {
                 window.location.href = data.redirect || '/chat';
