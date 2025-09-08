@@ -24,42 +24,67 @@ def get_user_id():
 def handle_with_fallback_ai(user_message, user_id_hash, conversational_ai):
     """Handle chat message using fallback AI when main router is unavailable"""
     try:
+        logger.info(f"Fallback handler processing: '{user_message[:30]}...'")
+        
         # Check if message is about expenses
         if any(word in user_message.lower() for word in ['spent', 'taka', '৳', 'cost', 'paid', 'bought', 'expense']):
+            logger.info("Detected expense-related message, attempting to parse")
             # Try to parse expense from message
             try:
-                from ai.expense_parse import parse_expense
-                parsed = parse_expense(user_message)
+                # Simple regex-based parsing for basic expenses
+                import re
                 
-                # Save expense using existing system
-                from utils.db import save_expense
-                import uuid
-                result = save_expense(
-                    user_identifier=user_id_hash,
-                    description=parsed.get('note', 'PWA expense'),
-                    amount=float(parsed.get('amount', 0)),
-                    category=parsed.get('category', 'other'),
-                    platform="pwa",
-                    original_message=user_message,
-                    unique_id=str(uuid.uuid4()),
-                    mid=f"pwa_chat_{int(time.time())}"
-                )
-                return f"✅ Logged expense: ৳{parsed.get('amount')} for {parsed.get('category')}"
+                # Look for amount patterns
+                amount_match = re.search(r'(\d+(?:\.\d{1,2})?)', user_message)
+                if amount_match:
+                    amount = float(amount_match.group(1))
+                    
+                    # Simple category detection
+                    category = 'other'
+                    if any(word in user_message.lower() for word in ['food', 'lunch', 'dinner', 'eat', 'restaurant']):
+                        category = 'food'
+                    elif any(word in user_message.lower() for word in ['transport', 'bus', 'taxi', 'uber', 'rickshaw']):
+                        category = 'transport'
+                    elif any(word in user_message.lower() for word in ['shop', 'buy', 'purchase', 'store']):
+                        category = 'shopping'
+                    
+                    # Save expense using existing system (with timeout protection)
+                    from utils.db import save_expense
+                    import uuid
+                    
+                    logger.info(f"Attempting to save expense: {amount} taka for {category}")
+                    result = save_expense(
+                        user_identifier=user_id_hash,
+                        description=user_message,
+                        amount=amount,
+                        category=category,
+                        platform="pwa",
+                        original_message=user_message,
+                        unique_id=str(uuid.uuid4()),
+                        mid=f"pwa_chat_{int(time.time())}"
+                    )
+                    logger.info(f"Expense saved successfully: {result}")
+                    return f"✅ Logged expense: ৳{amount} for {category}"
+                else:
+                    logger.info("No amount found in expense message")
+                    return "I understand you want to log an expense. Please include the amount, like: 'I spent 100 taka on food'"
+                    
             except Exception as e:
-                logger.warning(f"Expense parsing failed: {e}")
+                logger.warning(f"Simple expense parsing failed: {e}")
                 return "I understand you want to log an expense. Please use the format: 'I spent 100 taka on food'"
         else:
-            # General conversation using conversational AI if available
-            if conversational_ai:
-                try:
-                    context = conversational_ai.get_user_expense_context(user_id_hash, 30)
-                    response = conversational_ai.generate_response(user_message, context)
-                    return response
-                except Exception as e:
-                    logger.warning(f"Conversational AI failed: {e}")
+            logger.info("Processing general conversation message")
+            # Skip potentially hanging conversational AI, use simple responses
+            responses = [
+                "I'm your AI expense assistant! Try saying things like 'I spent 200 taka on lunch'",
+                "Hi! I can help you track expenses. Just tell me what you spent money on!",
+                "Hello! I'm here to help with your expenses. Try: 'I bought groceries for 150 taka'",
+                "I can log your expenses! Try telling me: 'I spent 50 taka on transport'"
+            ]
+            # Use hash of user message to pick consistent response
+            response_index = hash(user_message) % len(responses)
+            return responses[response_index]
             
-            # Final fallback
-            return "I'm your AI expense assistant! Try saying things like 'I spent 200 taka on lunch' or 'Show my spending summary'"
     except Exception as e:
         logger.error(f"Fallback AI handler error: {e}")
         return "I'm here to help with your expenses! Try telling me about something you spent money on."
@@ -361,22 +386,45 @@ def ai_chat():
         
         logger.info(f"AI chat request from user {user_id_hash[:8]}...: '{user_message[:50]}...'")
         
-        # Use the main FinBrain AI routing system with robust fallbacks
+        # Use the main FinBrain AI routing system with robust fallbacks and timeout
         response_data = None
+        logger.info(f"Processing message for user {user_id_hash[:8]}: '{user_message[:50]}...'")
         
         if route_message:
             try:
-                logger.info(f"Using production router for user {user_id_hash[:8]}")
-                response_data = route_message(user_id_hash, user_message)
-                logger.info(f"Production router response: {str(response_data)[:100]}...")
-            except Exception as e:
-                logger.warning(f"Production router failed: {e}")
+                logger.info(f"Attempting production router for user {user_id_hash[:8]}")
+                
+                # Add timeout protection for production router
+                import signal
+                
+                def timeout_handler(signum, frame):
+                    raise TimeoutError("Production router timed out")
+                
+                # Set 10 second timeout
+                signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(10)
+                
+                try:
+                    response_data = route_message(user_id_hash, user_message)
+                    logger.info(f"Production router success: {str(response_data)[:100]}...")
+                finally:
+                    signal.alarm(0)  # Clear timeout
+                    
+            except (TimeoutError, Exception) as e:
+                logger.warning(f"Production router failed/timeout: {e}")
                 response_data = None
+        else:
+            logger.info(f"Production router not available, using fallback")
         
         # If production router failed or unavailable, use fallback
         if response_data is None:
             logger.info(f"Using fallback AI for user {user_id_hash[:8]}")
-            response_data = handle_with_fallback_ai(user_message, user_id_hash, conversational_ai)
+            try:
+                response_data = handle_with_fallback_ai(user_message, user_id_hash, conversational_ai)
+                logger.info(f"Fallback AI response: {str(response_data)[:50]}...")
+            except Exception as e:
+                logger.error(f"Fallback AI also failed: {e}")
+                response_data = "I'm having trouble right now. Please try again! 🤖"
         
         # Check if an expense was logged
         expense_logged = ('✅' in str(response_data) or 
