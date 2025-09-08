@@ -35,8 +35,47 @@ class Expense(db.Model):
     corrected_at = db.Column(db.DateTime(timezone=True), nullable=True)  # When this expense was corrected
     corrected_reason = db.Column(db.Text, nullable=True)  # Short reason for correction
     
+    # Natural Language Processing metadata
+    nl_confidence = db.Column(db.Float, nullable=True)  # AI confidence score (0.0-1.0)
+    nl_language = db.Column(db.String(20), nullable=True)  # 'bangla', 'english', 'mixed'
+    needed_clarification = db.Column(db.Boolean, default=False)  # Whether this expense needed clarification
+    
     def __repr__(self):
         return f'<Expense {self.id}: {self.description} - {self.amount}>'
+
+class ExpenseEdit(db.Model):
+    """Audit trail for expense corrections and edits"""
+    __tablename__ = 'expense_edits'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    expense_id = db.Column(db.Integer, db.ForeignKey('expenses.id'), nullable=False)
+    editor_user_id = db.Column(db.String(255), nullable=False)  # User who made the edit
+    edited_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Before state
+    old_amount = db.Column(db.Numeric(10, 2), nullable=True)
+    old_category = db.Column(db.String(50), nullable=True)
+    old_memo = db.Column(db.Text, nullable=True)
+    
+    # After state  
+    new_amount = db.Column(db.Numeric(10, 2), nullable=True)
+    new_category = db.Column(db.String(50), nullable=True)
+    new_memo = db.Column(db.Text, nullable=True)
+    
+    # Edit metadata
+    reason = db.Column(db.Text, nullable=True)
+    edit_type = db.Column(db.String(20), nullable=False)  # 'amount', 'category', 'description', 'full_edit'
+    checksum_before = db.Column(db.String(64), nullable=True)  # Hash of record state before edit
+    checksum_after = db.Column(db.String(64), nullable=True)  # Hash of record state after edit
+    
+    # Session info for idempotency
+    audit_session_id = db.Column(db.String(36), nullable=True)  # UUID for grouping related edits
+    client_info = db.Column(JSON, default=dict)  # Browser, IP (hashed), timestamp
+    confidence_score = db.Column(db.Float, nullable=True)  # AI confidence when edit was made
+    source = db.Column(db.String(20), default='manual_form')  # 'manual_form', 'nl_correction', 'bulk_import'
+    
+    def __repr__(self):
+        return f'<ExpenseEdit {self.id}: Expense {self.expense_id} edited by {self.editor_user_id[:8]}...>'
 
 class User(db.Model):
     """User tracking table"""
