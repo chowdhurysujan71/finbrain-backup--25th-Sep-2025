@@ -399,34 +399,77 @@ def ai_chat():
 def add_expense():
     """
     Real expense submission using existing FinBrain expense logging system
+    Now supports natural language input via unified brain
     """
     from utils.db import save_expense
     from utils.identity import psid_hash
     import uuid
     
     try:
-        # Get form data (not JSON since it's a regular HTML form)
-        amount = request.form.get('amount')
-        category = request.form.get('category')
-        description = request.form.get('description', '')
+        # Get user ID for both structured and natural language processing
+        uid = request.headers.get('X-User-ID') or request.cookies.get('user_id') or 'anon'
         
-        # Validate required fields
-        if not amount or not category:
-            return jsonify({
-                'success': False,
-                'message': 'Amount and category are required'
-            }), 400
+        # Check if user submitted natural language instead of form fields
+        nl_message = request.form.get('nl_message')
         
-        # Convert amount to float and validate
-        try:
-            amount_float = float(amount)
-            if amount_float <= 0:
-                raise ValueError("Amount must be positive")
-        except ValueError:
-            return jsonify({
-                'success': False,
-                'message': 'Please enter a valid amount'
-            }), 400
+        if nl_message and nl_message.strip():
+            # Process natural language expense using unified brain
+            logger.info(f"Processing natural language expense from {uid[:8]}: '{nl_message[:50]}...'")
+            
+            try:
+                from core.brain import process_expense_message
+                
+                brain_result = process_expense_message(uid, nl_message.strip())
+                
+                if brain_result.get("structured", {}).get("ready_to_save"):
+                    # Extract expense data and save automatically
+                    structured = brain_result["structured"]
+                    amount_float = structured["amount"]
+                    category = structured["category"]
+                    description = brain_result["reply"]
+                    
+                    logger.info(f"Auto-saving NL expense: ${amount_float} {category}")
+                    # Continue with existing save logic using structured data
+                else:
+                    # Return response for user confirmation or interaction
+                    return jsonify({
+                        'success': True,
+                        'needs_confirmation': brain_result.get("structured", {}).get("amount") is not None,
+                        'message': brain_result["reply"],
+                        'suggested_data': brain_result.get("structured", {}),
+                        'metadata': brain_result.get("metadata", {})
+                    })
+                    
+            except Exception as e:
+                logger.error(f"Natural language expense processing failed: {e}")
+                return jsonify({
+                    'success': False,
+                    'message': 'Could not process your expense message. Please try using the form instead.',
+                    'nl_error': True
+                }), 400
+        else:
+            # Traditional form-based expense entry
+            amount = request.form.get('amount')
+            category = request.form.get('category')
+            description = request.form.get('description', '')
+            
+            # Validate required fields
+            if not amount or not category:
+                return jsonify({
+                    'success': False,
+                    'message': 'Amount and category are required'
+                }), 400
+            
+            # Convert amount to float and validate
+            try:
+                amount_float = float(amount)
+                if amount_float <= 0:
+                    raise ValueError("Amount must be positive")
+            except ValueError:
+                return jsonify({
+                    'success': False,
+                    'message': 'Please enter a valid positive amount'
+                }), 400
         
         # Get user ID from header or form data (set by PWA JavaScript)
         user_id = get_user_id() or request.form.get('user_id') or f"pwa_user_{int(time.time())}"
