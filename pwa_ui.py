@@ -1,7 +1,7 @@
 """
 PWA UI Blueprint - Modern, installable expense tracking interface
 """
-from flask import Blueprint, render_template, request, jsonify, g
+from flask import Blueprint, render_template, request, jsonify, g, current_app
 import logging
 import time
 import os
@@ -9,6 +9,14 @@ import os
 logger = logging.getLogger(__name__)
 
 pwa_ui = Blueprint('pwa_ui', __name__)
+
+# Safe JSON helper function
+def _json():
+    """Safely get JSON from request, return empty dict if parsing fails"""
+    try:
+        return request.get_json(force=False, silent=True) or {}
+    except Exception:
+        return {}
 
 def get_user_id():
     """Get user ID from session, X-User-ID header, or return None"""
@@ -21,7 +29,16 @@ def get_user_id():
     # Then check header for PWA/anonymous users
     return request.headers.get('X-User-ID')
 
-def handle_with_fallback_ai(user_message, user_id_hash, conversational_ai):
+# Request logging for chat debugging
+@pwa_ui.before_app_request
+def _debug_chat_requests():
+    """Log chat requests for frontend-backend correlation"""
+    if request.path == '/ai-chat' and request.method == 'POST':
+        current_app.logger.info('ai-chat start uid=%s ctype=%s', 
+                              request.headers.get('X-User-ID'),
+                              request.headers.get('Content-Type'))
+
+def handle_with_fallback_ai(user_id_hash, user_message, conversational_ai=None):
     """Handle chat message using fallback AI when main router is unavailable"""
     try:
         logger.info(f"Fallback handler processing: '{user_message[:30]}...'")
@@ -346,124 +363,57 @@ def ai_chat_test():
 
 @pwa_ui.route('/ai-chat', methods=['POST'])
 def ai_chat():
-    """AI chat endpoint that processes natural language and connects to main FinBrain AI system"""
-    # Import dependencies
-    from utils.identity import psid_hash
-    import json
+    """AI chat endpoint - hardened with consistent JSON responses and X-User-ID support"""
+    # Get user ID from X-User-ID header (primary) or cookies (fallback)
+    user_id = request.headers.get('X-User-ID') or request.cookies.get('user_id') or 'anon'
+    payload = _json()
+    message = (payload.get('message') or '').strip()
     
-    # Initialize production router with fallback
-    route_message = None
-    try:
-        from utils.production_router import route_message as imported_route_message
-        route_message = imported_route_message
-    except (ImportError, AttributeError) as e:
-        logger.info("Production router not available, using fallback AI only")
-        route_message = None
+    if not message:
+        return jsonify(error='Empty message', user_id=user_id), 400
     
-    # Always initialize fallback AI
-    conversational_ai = None
-    try:
-        from utils.conversational_ai import ConversationalAI
-        conversational_ai = ConversationalAI()
-    except ImportError:
-        logger.warning("Conversational AI not available")
-    
-    user_id = get_user_id()
-    
-    if not user_id:
-        return jsonify({
-            'success': False,
-            'error': 'User identification required'
-        }), 400
+    logger.info(f"Chat request from {user_id[:12]}...: '{message[:50]}...'")
     
     try:
-        # Get message from request
-        data = request.get_json()
-        if not data or not data.get('message'):
-            return jsonify({
-                'success': False,
-                'error': 'Message is required'
-            }), 400
-        
-        user_message = data.get('message', '').strip()
-        if not user_message:
-            return jsonify({
-                'success': False,
-                'error': 'Please enter a message'
-            }), 400
+        # Import dependencies
+        from utils.identity import psid_hash
         
         # Hash user ID for processing (consistent with main system)
         user_id_hash = psid_hash(user_id)
         
-        logger.info(f"AI chat request from user {user_id_hash[:8]}...: '{user_message[:50]}...'")
+        # Initialize production router with fallback
+        route_message = None
+        try:
+            from utils.production_router import route_message as imported_route_message
+            route_message = imported_route_message
+        except (ImportError, AttributeError) as e:
+            logger.info("Production router not available, using fallback only")
+            route_message = None
         
-        # Use the main FinBrain AI routing system with robust fallbacks and timeout
-        response_data = None
-        logger.info(f"Processing message for user {user_id_hash[:8]}: '{user_message[:50]}...'")
-        
+        # Process message through production router or fallback
         if route_message:
             try:
-                logger.info(f"Attempting production router for user {user_id_hash[:8]}")
-                
-                # Add timeout protection for production router
-                import signal
-                
-                def timeout_handler(signum, frame):
-                    raise TimeoutError("Production router timed out")
-                
-                # Set 10 second timeout
-                signal.signal(signal.SIGALRM, timeout_handler)
-                signal.alarm(10)
-                
-                try:
-                    response_data = route_message(user_id_hash, user_message)
-                    logger.info(f"Production router success: {str(response_data)[:100]}...")
-                finally:
-                    signal.alarm(0)  # Clear timeout
-                    
-            except (TimeoutError, Exception) as e:
-                logger.warning(f"Production router failed/timeout: {e}")
-                response_data = None
-        else:
-            logger.info(f"Production router not available, using fallback")
-        
-        # If production router failed or unavailable, use fallback
-        if response_data is None:
-            logger.info(f"Using fallback AI for user {user_id_hash[:8]}")
-            try:
-                response_data = handle_with_fallback_ai(user_message, user_id_hash, conversational_ai)
-                logger.info(f"Fallback AI response: {str(response_data)[:50]}...")
+                logger.info(f"Using production router for {user_id_hash[:8]}")
+                response_data = route_message(user_id_hash, message)
+                logger.info(f"Production router success: {str(response_data)[:100]}...")
             except Exception as e:
-                logger.error(f"Fallback AI also failed: {e}")
-                response_data = "I'm having trouble right now. Please try again! 🤖"
-        
-        # Check if an expense was logged
-        expense_logged = ('✅' in str(response_data) or 
-                         ('expense' in response_data.get('actions', []) if isinstance(response_data, dict) else False))
-        
-        # Format response for PWA interface
-        if isinstance(response_data, dict):
-            ai_response = response_data.get('message', response_data.get('response', str(response_data)))
+                logger.warning(f"Production router failed: {e}")
+                response_data = handle_with_fallback_ai(user_id_hash, message)
         else:
-            ai_response = str(response_data)
+            logger.info(f"Using fallback for {user_id_hash[:8]}")
+            response_data = handle_with_fallback_ai(user_id_hash, message)
         
-        # Clean up the response for chat interface
-        if ai_response.startswith('✅'):
-            ai_response = ai_response.replace('✅', '✅')
+        # Format consistent JSON response that frontend expects
+        if isinstance(response_data, dict):
+            reply = response_data.get('message', response_data.get('response', str(response_data)))
+        else:
+            reply = str(response_data)
         
-        return jsonify({
-            'success': True,
-            'response': ai_response,
-            'expense_logged': expense_logged
-        })
+        return jsonify(reply=reply, user_id=user_id)
         
     except Exception as e:
-        logger.error(f"AI chat error: {e}")
-        return jsonify({
-            'success': True,  # Don't fail the UI
-            'response': 'I had a brief connection issue. Please try again! 🤖',
-            'expense_logged': False
-        })
+        current_app.logger.exception('ai-chat failed')
+        return jsonify(error='internal_error', detail=str(e)[:300], user_id=user_id), 500
 
 @pwa_ui.route('/expense', methods=['POST'])
 def add_expense():
