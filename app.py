@@ -1830,7 +1830,7 @@ except ImportError as e:
 
 # Register PWA UI Blueprint
 try:
-    from app.pwa_ui import pwa_ui
+    from pwa_ui import pwa_ui
     if 'pwa_ui' not in app.blueprints:
         app.register_blueprint(pwa_ui)
         logger.info("✓ PWA UI routes registered (/chat, /report, /profile, /challenge, /offline)")

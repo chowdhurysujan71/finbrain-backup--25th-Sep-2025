@@ -1,0 +1,19 @@
+{
+  "name": "workspace",
+  "version": "1.0.0",
+  "description": "A secure, AI-powered expense tracking application that processes expense messages through Facebook Messenger. Users can send expense messages in natural language, and the system automatically categorizes expenses, extracts amounts, and provides real-time confirmations with monthly totals.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}
