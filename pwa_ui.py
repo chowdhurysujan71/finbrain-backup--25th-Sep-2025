@@ -209,16 +209,15 @@ def auth_register():
         user_hash = psid_hash(user_id)
         
         # Create new user (store email/password in additional_info JSON field)
-        user = User(
-            user_id_hash=user_hash,
-            first_name=name,
-            platform='pwa',
-            additional_info={
-                'email': email,
-                'password_hash': generate_password_hash(password),
-                'registration_type': 'pwa'
-            }
-        )
+        user = User()
+        user.user_id_hash = user_hash
+        user.first_name = name
+        user.platform = 'pwa'
+        user.additional_info = {
+            'email': email,
+            'password_hash': generate_password_hash(password),
+            'registration_type': 'pwa'
+        }
         
         db.session.add(user)
         db.session.commit()
