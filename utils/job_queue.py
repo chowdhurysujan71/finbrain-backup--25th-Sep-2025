@@ -129,6 +129,9 @@ class JobQueue:
         Returns:
             Job or None if queue is empty
         """
+        if not self.redis_client:
+            return None
+            
         try:
             # Block for up to 1 second waiting for jobs
             result = self.redis_client.blpop("jobs:queue", timeout=1)
@@ -270,12 +273,20 @@ class JobQueue:
     
     def _schedule_retry(self, job_id: str, delay: int) -> None:
         """Schedule job retry after delay"""
+        if not self.redis_client:
+            logger.warning(f"Cannot schedule retry for job {job_id}: Redis unavailable")
+            return
+            
         # Use Redis sorted set for delayed jobs
         retry_time = time.time() + delay
         self.redis_client.zadd("jobs:retry", {job_id: retry_time})
     
     def _send_to_dlq(self, job: Job) -> None:
         """Send failed job to dead letter queue"""
+        if not self.redis_client:
+            logger.warning(f"Cannot send job {job.job_id} to DLQ: Redis unavailable")
+            return
+            
         dlq_data = {
             "job_id": job.job_id,
             "type": job.type,
@@ -295,11 +306,17 @@ class JobQueue:
     
     def _store_idempotency_key(self, idempotency_key: str, job_id: str) -> None:
         """Store idempotency key mapping"""
+        if not self.redis_client:
+            return
+            
         key = f"jobs:idem:{idempotency_key}"
         self.redis_client.setex(key, self.job_ttl, job_id)
     
     def _get_job_by_idempotency_key(self, idempotency_key: str) -> Optional[str]:
         """Get job ID by idempotency key"""
+        if not self.redis_client:
+            return None
+            
         key = f"jobs:idem:{idempotency_key}"
         return self.redis_client.get(key)
     
@@ -310,6 +327,9 @@ class JobQueue:
         Returns:
             List of job IDs that were moved to main queue
         """
+        if not self.redis_client:
+            return []
+            
         now = time.time()
         
         # Get jobs ready for retry
@@ -326,10 +346,19 @@ class JobQueue:
     
     def get_queue_stats(self) -> Dict[str, int]:
         """Get queue statistics"""
+        if not self.redis_client:
+            return {
+                "queued": 0,
+                "retry": 0,
+                "dlq": 0,
+                "redis_available": False
+            }
+            
         return {
             "queued": self.redis_client.llen("jobs:queue"),
             "retry": self.redis_client.zcard("jobs:retry"),
-            "dlq": self.redis_client.llen("jobs:dlq:list")
+            "dlq": self.redis_client.llen("jobs:dlq:list"),
+            "redis_available": True
         }
     
     def health_check(self) -> bool:
