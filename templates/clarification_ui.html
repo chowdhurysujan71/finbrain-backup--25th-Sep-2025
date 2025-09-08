@@ -1,0 +1,126 @@
+<!-- Enhanced Clarification UI for Natural Language Expense Processing -->
+<div class="clarification-container" style="max-width: 500px; margin: 20px auto; padding: 20px; border-radius: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; box-shadow: 0 8px 32px rgba(0,0,0,0.1);">
+    
+    <!-- Header -->
+    <div class="clarify-header" style="text-align: center; margin-bottom: 25px;">
+        <div style="font-size: 48px; margin-bottom: 10px;">🤔</div>
+        <h3 style="margin: 0; font-weight: 600;">Just need to clarify...</h3>
+        <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 14px;">Your input: "<span style="font-style: italic;">{{ original_text }}</span>"</p>
+    </div>
+
+    <form id="clarificationForm" method="POST" style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- Amount Clarification -->
+        <div class="amount-section" style="background: rgba(255,255,255,0.1); padding: 18px; border-radius: 10px; backdrop-filter: blur(10px);">
+            <label style="display: block; font-weight: 600; margin-bottom: 12px; color: #fff;">
+                💰 Amount
+            </label>
+            <div style="position: relative;">
+                <input type="number" 
+                       name="confirmed_amount" 
+                       step="0.01" 
+                       min="0"
+                       value="{{ detected_amount or '' }}"
+                       placeholder="Enter amount..."
+                       style="width: 100%; padding: 12px 45px 12px 12px; border: none; border-radius: 8px; font-size: 16px; background: rgba(255,255,255,0.95); color: #333;"
+                       required>
+                <span style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #666; font-weight: bold;">৳</span>
+            </div>
+        </div>
+
+        <!-- Category Selection -->
+        <div class="category-section" style="background: rgba(255,255,255,0.1); padding: 18px; border-radius: 10px; backdrop-filter: blur(10px);">
+            <label style="display: block; font-weight: 600; margin-bottom: 12px; color: #fff;">
+                🏷️ Category
+            </label>
+            <div class="category-chips" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
+                {% for category in categories %}
+                <label class="category-chip" style="display: flex; align-items: center; padding: 12px; border: 2px solid rgba(255,255,255,0.3); border-radius: 8px; cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.05);" 
+                       onmouseover="this.style.background='rgba(255,255,255,0.2)'" 
+                       onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+                    <input type="radio" 
+                           name="confirmed_category" 
+                           value="{{ category.id }}" 
+                           style="display: none;"
+                           onchange="document.querySelectorAll('.category-chip').forEach(c => c.style.borderColor='rgba(255,255,255,0.3)'); this.parentElement.style.borderColor='#4CAF50';">
+                    <span style="margin-right: 8px; font-size: 18px;">{{ category.icon }}</span>
+                    <span style="font-size: 13px; font-weight: 500;">{{ category.name.split(' ', 1)[1] }}</span>
+                </label>
+                {% endfor %}
+            </div>
+            
+            {% if suggested_categories %}
+            <div style="margin-top: 10px; padding: 8px; background: rgba(76, 175, 80, 0.2); border-radius: 6px; font-size: 12px;">
+                💡 Suggestions: 
+                {% for suggestion in suggested_categories[:3] %}
+                <span style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; margin-left: 4px;">{{ suggestion.category }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Description (Optional) -->
+        <div class="description-section" style="background: rgba(255,255,255,0.1); padding: 18px; border-radius: 10px; backdrop-filter: blur(10px);">
+            <label style="display: block; font-weight: 600; margin-bottom: 12px; color: #fff;">
+                📝 Description (Optional)
+            </label>
+            <input type="text" 
+                   name="confirmed_description" 
+                   value="{{ original_text }}"
+                   placeholder="What was this expense for?"
+                   style="width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; background: rgba(255,255,255,0.95); color: #333;">
+        </div>
+
+        <!-- Hidden field for original text -->
+        <input type="hidden" name="original_text" value="{{ original_text }}">
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 12px; margin-top: 10px;">
+            <button type="submit" 
+                    style="flex: 1; padding: 14px; background: linear-gradient(135deg, #4CAF50, #45a049); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s;"
+                    onmouseover="this.style.transform='translateY(-2px)'"
+                    onmouseout="this.style.transform='translateY(0)'">
+                ✅ Save Expense
+            </button>
+            <button type="button" 
+                    onclick="window.history.back()"
+                    style="padding: 14px 20px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: background 0.2s;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                    onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                Cancel
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Auto-select suggested category if available
+document.addEventListener('DOMContentLoaded', function() {
+    {% if suggested_categories and suggested_categories[0] %}
+    const suggestedCategory = '{{ suggested_categories[0].category }}';
+    const radio = document.querySelector(`input[value="${suggestedCategory}"]`);
+    if (radio) {
+        radio.checked = true;
+        radio.dispatchEvent(new Event('change'));
+    }
+    {% endif %}
+});
+
+// Form validation
+document.getElementById('clarificationForm').addEventListener('submit', function(e) {
+    const amount = document.querySelector('input[name="confirmed_amount"]').value;
+    const category = document.querySelector('input[name="confirmed_category"]:checked');
+    
+    if (!amount || amount <= 0) {
+        e.preventDefault();
+        alert('Please enter a valid amount');
+        return;
+    }
+    
+    if (!category) {
+        e.preventDefault();
+        alert('Please select a category');
+        return;
+    }
+});
+</script>
