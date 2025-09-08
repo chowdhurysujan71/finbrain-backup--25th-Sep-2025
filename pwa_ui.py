@@ -11,7 +11,14 @@ logger = logging.getLogger(__name__)
 pwa_ui = Blueprint('pwa_ui', __name__)
 
 def get_user_id():
-    """Get user ID from X-User-ID header or return None"""
+    """Get user ID from session, X-User-ID header, or return None"""
+    from flask import session
+    
+    # First check session for registered users
+    if 'user_id' in session:
+        return session['user_id']
+    
+    # Then check header for PWA/anonymous users
     return request.headers.get('X-User-ID')
 
 @pwa_ui.route('/chat')
@@ -57,6 +64,153 @@ def challenge():
     logger.info(f"PWA challenge route accessed by user: {user_id or 'anonymous'}")
     
     return render_template('challenge.html', user_id=user_id)
+
+@pwa_ui.route('/login')
+def login():
+    """
+    Login page for user registration system
+    """
+    return render_template('login.html')
+
+@pwa_ui.route('/register')
+def register():
+    """
+    Registration page for new users
+    """
+    return render_template('register.html')
+
+@pwa_ui.route('/auth/login', methods=['POST'])
+def auth_login():
+    """
+    Process user login
+    """
+    from models import User
+    from app import db
+    from werkzeug.security import check_password_hash
+    from flask import session
+    from utils.identity import psid_hash
+    
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not email or not password:
+            return jsonify({
+                'success': False,
+                'error': 'Email and password are required'
+            }), 400
+        
+        # Find user by email
+        user = User.query.filter_by(email=email).first()
+        if not user or not check_password_hash(user.password_hash, password):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid email or password'
+            }), 401
+        
+        # Create session
+        session['user_id'] = user.user_id_hash
+        session['email'] = user.email
+        session['is_registered'] = True
+        
+        logger.info(f"User logged in successfully: {email}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Login successful',
+            'redirect': '/chat'
+        })
+        
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Login failed. Please try again.'
+        }), 500
+
+@pwa_ui.route('/auth/register', methods=['POST'])
+def auth_register():
+    """
+    Process user registration
+    """
+    from models import User
+    from app import db
+    from werkzeug.security import generate_password_hash
+    from flask import session
+    from utils.identity import psid_hash
+    import uuid
+    
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+        name = data.get('name', '')
+        
+        if not email or not password:
+            return jsonify({
+                'success': False,
+                'error': 'Email and password are required'
+            }), 400
+        
+        # Check if user already exists
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            return jsonify({
+                'success': False,
+                'error': 'An account with this email already exists'
+            }), 409
+        
+        # Generate user hash
+        user_id = f"pwa_reg_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+        user_hash = psid_hash(user_id)
+        
+        # Create new user
+        user = User(
+            user_id_hash=user_hash,
+            email=email,
+            password_hash=generate_password_hash(password),
+            first_name=name,
+            platform='pwa'
+        )
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        # Create session
+        session['user_id'] = user_hash
+        session['email'] = email
+        session['is_registered'] = True
+        
+        logger.info(f"User registered successfully: {email}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Registration successful',
+            'redirect': '/chat'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Registration error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Registration failed. Please try again.'
+        }), 500
+
+@pwa_ui.route('/auth/logout', methods=['POST'])
+def auth_logout():
+    """
+    Process user logout
+    """
+    from flask import session
+    
+    session.clear()
+    return jsonify({
+        'success': True,
+        'message': 'Logged out successfully',
+        'redirect': '/login'
+    })
 
 @pwa_ui.route('/offline')
 def offline():

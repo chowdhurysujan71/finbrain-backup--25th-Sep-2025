@@ -43,6 +43,11 @@
                     <label class="info-label">App Version</label>
                     <span class="info-value">Phase D - PWA Shell</span>
                 </div>
+
+                <div class="info-item" id="auth-status">
+                    <label class="info-label">Account Status</label>
+                    <span class="info-value" id="account-status">Loading...</span>
+                </div>
             </div>
         </div>
     </section>
@@ -151,6 +156,24 @@
                 Help & Support
             </button>
         </div>
+
+        <!-- Authentication Section -->
+        <div class="app-auth" id="auth-section">
+            <div class="guest-auth" id="guest-auth" style="display: none;">
+                <h3>Get More Features</h3>
+                <p>Create an account to sync your data and get personalized insights</p>
+                <div class="auth-buttons">
+                    <a href="/login" class="link-button primary">Sign In</a>
+                    <a href="/register" class="link-button">Sign Up</a>
+                </div>
+            </div>
+            
+            <div class="user-auth" id="user-auth" style="display: none;">
+                <button class="link-button danger" onclick="logoutUser()">
+                    Sign Out
+                </button>
+            </div>
+        </div>
     </section>
 
     <!-- PWA Install Status -->
@@ -217,5 +240,103 @@ function showToast(message, type = 'info') {
         }
     }, 5000);
 }
+
+// Authentication functions
+function checkAuthStatus() {
+    // Check if user is logged in from session/localStorage  
+    const isRegistered = sessionStorage.getItem('is_registered') === 'true';
+    const userEmail = sessionStorage.getItem('user_email');
+    
+    const accountStatus = document.getElementById('account-status');
+    const guestAuth = document.getElementById('guest-auth');
+    const userAuth = document.getElementById('user-auth');
+    
+    if (isRegistered && userEmail) {
+        // Registered user
+        accountStatus.textContent = `Signed in as ${userEmail}`;
+        guestAuth.style.display = 'none';
+        userAuth.style.display = 'block';
+    } else {
+        // Guest user
+        accountStatus.textContent = 'Anonymous Guest';
+        guestAuth.style.display = 'block';
+        userAuth.style.display = 'none';
+    }
+}
+
+async function logoutUser() {
+    try {
+        const response = await fetch('/auth/logout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Clear session data
+            sessionStorage.removeItem('is_registered');
+            sessionStorage.removeItem('user_email');
+            
+            showToast('Logged out successfully', 'success');
+            
+            // Refresh auth status
+            setTimeout(() => {
+                checkAuthStatus();
+            }, 1000);
+        } else {
+            showToast('Logout failed. Please try again.', 'error');
+        }
+    } catch (error) {
+        showToast('Connection error during logout', 'error');
+        console.error('Logout error:', error);
+    }
+}
+
+// Initialize auth status on page load
+document.addEventListener('DOMContentLoaded', function() {
+    checkAuthStatus();
+});
 </script>
+
+<style>
+.app-auth {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.guest-auth h3 {
+    color: var(--color-fg);
+    font-size: 1.125rem;
+    margin-bottom: 0.5rem;
+}
+
+.guest-auth p {
+    color: var(--color-muted);
+    margin-bottom: 1rem;
+}
+
+.auth-buttons {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.link-button.primary {
+    background: var(--color-primary);
+    color: white;
+}
+
+.link-button.danger {
+    background: var(--color-error);
+    color: white;
+}
+
+.link-button.primary:hover,
+.link-button.danger:hover {
+    opacity: 0.9;
+}
+</style>
 {% endblock %}

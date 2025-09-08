@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Login - FinBrain{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1 class="auth-title">Welcome back</h1>
+            <p class="auth-subtitle">Sign in to your FinBrain account</p>
+        </div>
+
+        <!-- Success/Error Messages -->
+        <div id="auth-messages" class="form-messages" style="display: none;"></div>
+
+        <form id="login-form" class="auth-form">
+            <div class="form-group">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" id="email" name="email" 
+                       class="form-input" placeholder="Enter your email"
+                       required autocomplete="email">
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" id="password" name="password" 
+                       class="form-input" placeholder="Enter your password"
+                       required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+                <span class="btn-text">Sign In</span>
+                <span class="btn-loading" style="display: none;">Signing in...</span>
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p>Don't have an account? <a href="/register" class="auth-link">Sign up</a></p>
+            <p>Or <a href="/chat" class="auth-link">continue as guest</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('login-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const loginBtn = document.getElementById('login-btn');
+    const messagesDiv = document.getElementById('auth-messages');
+    
+    // Show loading state
+    loginBtn.disabled = true;
+    loginBtn.querySelector('.btn-text').style.display = 'none';
+    loginBtn.querySelector('.btn-loading').style.display = 'inline';
+    
+    try {
+        const response = await fetch('/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: formData.get('email'),
+                password: formData.get('password')
+            })
+        });
+        
+        const data = await response.json();
+        
+        // Show messages
+        messagesDiv.style.display = 'block';
+        
+        if (data.success) {
+            messagesDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <span class="alert-icon">✅</span>
+                    <span class="alert-message">${data.message}</span>
+                </div>
+            `;
+            
+            // Redirect after short delay
+            setTimeout(() => {
+                window.location.href = data.redirect || '/chat';
+            }, 1000);
+            
+        } else {
+            messagesDiv.innerHTML = `
+                <div class="alert alert-error">
+                    <span class="alert-icon">❌</span>
+                    <span class="alert-message">${data.error}</span>
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        messagesDiv.style.display = 'block';
+        messagesDiv.innerHTML = `
+            <div class="alert alert-error">
+                <span class="alert-icon">❌</span>
+                <span class="alert-message">Connection error. Please try again.</span>
+            </div>
+        `;
+        console.error('Login error:', error);
+    } finally {
+        // Reset button state
+        loginBtn.disabled = false;
+        loginBtn.querySelector('.btn-text').style.display = 'inline';
+        loginBtn.querySelector('.btn-loading').style.display = 'none';
+    }
+});
+</script>
+
+<style>
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.auth-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: var(--color-fg);
+    margin-bottom: 0.5rem;
+}
+
+.auth-subtitle {
+    color: var(--color-muted);
+    font-size: 1rem;
+}
+
+.auth-form {
+    margin-bottom: 1.5rem;
+}
+
+.auth-footer {
+    text-align: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.auth-footer p {
+    margin: 0.5rem 0;
+    color: var(--color-muted);
+    font-size: 0.875rem;
+}
+
+.auth-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-link:hover {
+    text-decoration: underline;
+}
+</style>
+{% endblock %}
