@@ -179,14 +179,21 @@
         `);
         
         try {
+            // Add 15 second timeout to prevent hanging
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            
             const res = await fetch('/ai-chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-User-ID': uid
                 },
-                body: JSON.stringify({ message: text })
+                body: JSON.stringify({ message: text }),
+                signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
             
             if (!res.ok) {
                 const body = await res.text();
