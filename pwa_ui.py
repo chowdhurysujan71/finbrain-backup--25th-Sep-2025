@@ -354,9 +354,10 @@ def ai_chat():
     # Initialize production router with fallback
     route_message = None
     try:
-        from utils.production_router import route_message
-    except ImportError:
-        logger.warning("Production router not available, using fallback")
+        from utils.production_router import route_message as imported_route_message
+        route_message = imported_route_message
+    except (ImportError, AttributeError) as e:
+        logger.info("Production router not available, using fallback AI only")
         route_message = None
     
     # Always initialize fallback AI
