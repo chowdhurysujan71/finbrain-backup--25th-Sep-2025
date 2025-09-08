@@ -113,7 +113,12 @@ def entries_partial():
 @pwa_ui.route('/ai-chat', methods=['POST'])
 def ai_chat():
     """AI chat endpoint that processes natural language and connects to main FinBrain AI system"""
-    from utils.production_router import route_message
+    try:
+        from utils.production_router import route_message
+    except ImportError:
+        # Fallback to a simple AI processing function
+        from utils.conversational_ai import ConversationalAI
+        conversational_ai = ConversationalAI()
     from utils.identity import psid_hash
     import json
     
@@ -147,10 +152,41 @@ def ai_chat():
         logger.info(f"AI chat request from user {user_id_hash[:8]}...: '{user_message[:50]}...'")
         
         # Use the main FinBrain AI routing system
-        response_data = route_message(user_id_hash, user_message)
+        try:
+            response_data = route_message(user_id_hash, user_message)
+        except NameError:
+            # Use fallback conversational AI
+            context = conversational_ai.get_user_expense_context(user_id_hash, 30)
+            if 'spent' in user_message.lower() or 'taka' in user_message.lower() or '৳' in user_message:
+                # Try to parse expense from message
+                try:
+                    from ai.expense_parse import parse_expense
+                    parsed = parse_expense(user_message)
+                    
+                    # Save expense using existing system
+                    from utils.db import save_expense
+                    import uuid
+                    result = save_expense(
+                        user_identifier=user_id_hash,
+                        description=parsed.get('note', 'PWA expense'),
+                        amount=float(parsed.get('amount', 0)),
+                        category=parsed.get('category', 'other'),
+                        platform="pwa",
+                        original_message=user_message,
+                        unique_id=str(uuid.uuid4()),
+                        mid=f"pwa_chat_{int(time.time())}"
+                    )
+                    response_data = f"✅ Logged expense: ৳{parsed.get('amount')} for {parsed.get('category')}"
+                except Exception as e:
+                    logger.warning(f"Expense parsing failed: {e}")
+                    response_data = "I understand you want to log an expense. Please use the format: 'I spent 100 taka on food'"
+            else:
+                # General conversation
+                response_data = "I'm your AI expense assistant! Try saying things like 'I spent 200 taka on lunch' or 'Show my spending summary'"
         
         # Check if an expense was logged
-        expense_logged = 'expense' in response_data.get('actions', []) if isinstance(response_data, dict) else False
+        expense_logged = ('✅' in str(response_data) or 
+                         ('expense' in response_data.get('actions', []) if isinstance(response_data, dict) else False))
         
         # Format response for PWA interface
         if isinstance(response_data, dict):
