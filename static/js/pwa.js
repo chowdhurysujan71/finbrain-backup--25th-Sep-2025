@@ -160,6 +160,14 @@
         setTimeout(() => {
             if (!deferredPrompt && !isAppInstalled()) {
                 console.log('[PWA] No install prompt detected - likely development mode');
+                
+                // Check if user dismissed banner recently
+                const dismissedUntil = localStorage.getItem('install-dismissed');
+                if (dismissedUntil && Date.now() < parseInt(dismissedUntil)) {
+                    console.log('[PWA] Install banner dismissed until:', new Date(parseInt(dismissedUntil)));
+                    return;
+                }
+                
                 if (installBanner) {
                     installBanner.classList.remove('hidden');
                 }
@@ -190,6 +198,19 @@
                     if (installBanner) {
                         installBanner.classList.add('hidden');
                     }
+                } else {
+                    // No browser prompt available - show manual instructions
+                    console.log('[PWA] Showing manual install instructions');
+                    showToast(`To install FinBrain:
+• Chrome: Click ⋮ menu → "Install FinBrain..."
+• Safari: Share → "Add to Home Screen"  
+• Edge: Click ⋯ menu → "Apps" → "Install FinBrain"
+• Firefox: Address bar install icon`, 'info', { duration: 10000 });
+                    
+                    // Hide the banner after showing instructions
+                    if (installBanner) {
+                        installBanner.classList.add('hidden');
+                    }
                 }
             });
         }
@@ -201,8 +222,9 @@
                     installBanner.classList.add('hidden');
                 }
                 
-                // Remember dismissal for this session
-                sessionStorage.setItem('install-dismissed', 'true');
+                // Remember dismissal for longer (7 days)
+                localStorage.setItem('install-dismissed', Date.now() + (7 * 24 * 60 * 60 * 1000));
+                console.log('[PWA] Install banner dismissed for 7 days');
             });
         }
         
