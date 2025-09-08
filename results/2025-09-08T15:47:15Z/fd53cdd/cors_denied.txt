@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+Server: gunicorn
+Date: Mon, 08 Sep 2025 15:47:17 GMT
+Connection: close
+Content-Type: text/html; charset=utf-8
+Allow: POST, OPTIONS
+X-Request-ID: b89e53dd-6dc2-4f52-a7b6-b8cd173054a1
+Content-Length: 0
+
