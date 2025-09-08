@@ -10,18 +10,17 @@
         <p class="hero-subtitle">Quick logging with AI-powered insights</p>
     </header>
 
-    <!-- Chat Limited Preview Banner -->
+    <!-- Chat Now Active -->
     <section class="card chat-preview-banner">
-        <div class="alert alert-info">
-            <h2>💬 Chat Feature - Limited Preview</h2>
-            <p><strong>Chat is currently in limited preview mode.</strong></p>
-            <p>Please use the Quick Add form below to log your expenses reliably.</p>
-            <p>We're working on making the chat experience even better!</p>
+        <div class="alert alert-success">
+            <h2>💬 Chat Feature - Now Live!</h2>
+            <p><strong>Chat with FinBrain AI is now active.</strong></p>
+            <p>Try saying "I spent 200 taka on lunch" or ask for spending insights!</p>
         </div>
     </section>
 
-    <!-- Disabled Chat Interface (Hidden) -->
-    <section class="card chat-card" aria-labelledby="chat-title" style="display: none;">
+    <!-- Active Chat Interface -->
+    <section class="card chat-card" aria-labelledby="chat-title">
         <h2 id="chat-title" class="card-title">💬 Chat with FinBrain AI</h2>
         
         <!-- Chat Messages -->
@@ -122,10 +121,13 @@
     </section>
     
     <script>
-    // Chat functionality - DISABLED (Limited Preview Mode)
+    // Chat functionality - ACTIVE
     function fillChatInput(suggestion) {
-        // Disabled during preview mode
-        console.log('Chat functionality disabled during limited preview');
+        const input = document.getElementById('chat-input');
+        if (input) {
+            input.value = suggestion;
+            input.focus();
+        }
     }
     
     function appendMessage(content, isAi = false, isLoading = false) {
@@ -157,16 +159,63 @@
         return messageDiv;
     }
     
-    // handleChatSubmit - DISABLED (Limited Preview Mode)
-    function handleChatSubmit(event) {
+    // handleChatSubmit - ACTIVE
+    async function handleChatSubmit(event) {
         event.preventDefault();
-        console.log('Chat submit disabled during limited preview mode');
         
-        // Show preview message instead of processing
         const input = document.getElementById('chat-input');
-        if (input) {
-            input.value = '';
-            appendMessage('💬 Chat is in limited preview. Please use the Quick Add form below for reliable expense logging.', true);
+        const sendBtn = document.getElementById('chat-send-btn');
+        const btnText = sendBtn.querySelector('.btn-text');
+        const btnLoading = sendBtn.querySelector('.btn-loading');
+        
+        if (!input || !input.value.trim()) {
+            return;
+        }
+        
+        const userMessage = input.value.trim();
+        input.value = '';
+        
+        // Add user message to chat
+        appendMessage(userMessage, false);
+        
+        // Show loading state
+        btnText.style.display = 'none';
+        btnLoading.style.display = 'inline';
+        sendBtn.disabled = true;
+        
+        // Add AI loading message
+        const loadingMsg = appendMessage('', true, true);
+        
+        try {
+            const response = await fetch('/ai-chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-ID': getUserId()
+                },
+                body: JSON.stringify({ message: userMessage })
+            });
+            
+            const data = await response.json();
+            
+            // Remove loading message
+            loadingMsg.remove();
+            
+            if (data.success && data.response) {
+                appendMessage(data.response, true);
+            } else {
+                appendMessage('Sorry, I had trouble processing your message. Please try again or use the Quick Add form below.', true);
+            }
+            
+        } catch (error) {
+            console.error('Chat error:', error);
+            loadingMsg.remove();
+            appendMessage('Sorry, I\'m having connection issues. Please try again or use the Quick Add form below.', true);
+        } finally {
+            // Reset button state
+            btnText.style.display = 'inline';
+            btnLoading.style.display = 'none';
+            sendBtn.disabled = false;
         }
     }
     
@@ -180,14 +229,10 @@
         return userId;
     }
     
-    // Chat form handler - DISABLED (Limited Preview Mode)
+    // Chat form handler - ACTIVE
     const chatForm = document.getElementById('chat-form');
     if (chatForm) {
-        // Disable chat form during preview mode
-        chatForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            console.log('Chat form disabled during limited preview mode');
-        });
+        chatForm.addEventListener('submit', handleChatSubmit);
     }
     
     // Auto-resize textarea
