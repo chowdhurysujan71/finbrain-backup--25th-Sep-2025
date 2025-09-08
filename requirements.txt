@@ -26,3 +26,8 @@ psycopg[binary]
 redis
 sentry-sdk
 requests-mock
+openai
+flask-dance
+flask-login
+oauthlib
+pyjwt
