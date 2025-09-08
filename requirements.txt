@@ -21,3 +21,5 @@ flask-dance
 flask-login
 oauthlib
 pyjwt
+flask-cors
+flask-limiter

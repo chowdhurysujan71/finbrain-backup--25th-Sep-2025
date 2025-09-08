@@ -7,6 +7,9 @@ import time
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
+from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from functools import wraps
 import json
 import base64
@@ -83,6 +86,14 @@ db = SQLAlchemy(model_class=Base)
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.environ.get("SESSION_SECRET") or os.urandom(32).hex()
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+# Configure CORS and rate limiting
+CORS(app, resources={r"/ai-chat": {"origins": [os.getenv("APP_ORIGIN", "http://localhost:5000")]}})
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app, 
+    default_limits=["120 per minute"]
+)
 
 # Request logging middleware using existing structured logger
 from utils.logger import structured_logger

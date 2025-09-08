@@ -6,6 +6,9 @@ import logging
 import time
 import os
 
+# Import rate limiter from main app
+from app import limiter
+
 logger = logging.getLogger(__name__)
 
 pwa_ui = Blueprint('pwa_ui', __name__)
@@ -362,6 +365,7 @@ def ai_chat_test():
     })
 
 @pwa_ui.route('/ai-chat', methods=['POST'])
+@limiter.limit("4 per minute")
 def ai_chat():
     """AI chat endpoint - unified brain with consistent JSON responses"""
     uid = request.headers.get('X-User-ID') or request.cookies.get('user_id') or 'anon'

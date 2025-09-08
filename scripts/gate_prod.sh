@@ -11,7 +11,7 @@ opt_warn(){ echo "• $*"; }
 
 # 1) Health
 curl -fsS "$APP/health"  >/dev/null || req_fail "/health failed"
-curl -fsS "$APP/readyz" | grep -q '"ready": true' || req_fail "/readyz not ready"
+curl -fsS "$APP/readyz" | grep -q '"db":true' || req_fail "/readyz not ready"
 
 # 2) Chat contract + metadata
 RESP=$(curl -fsS -X POST "$APP/ai-chat" \
