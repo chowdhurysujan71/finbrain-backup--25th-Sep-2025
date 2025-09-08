@@ -7,8 +7,14 @@ import time
 import uuid
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List, Tuple, Union
 from dataclasses import dataclass, asdict
+
+try:
+    import redis
+    Redis = redis.Redis
+except ImportError:
+    Redis = None
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +38,7 @@ class JobQueue:
     """Redis-backed job queue with retries and DLQ"""
     
     def __init__(self):
-        self.redis_client = None
+        self.redis_client: Optional[Redis] = None
         self.redis_available = False
         
         # Configuration
@@ -238,22 +244,28 @@ class JobQueue:
     
     def _store_job(self, job: Job) -> None:
         """Store job metadata in Redis"""
+        if not self.redis_client:
+            raise RuntimeError("Redis client not available")
         key = f"jobs:meta:{job.job_id}"
         data = json.dumps(asdict(job))
         self.redis_client.setex(key, self.job_ttl, data)
     
     def _get_job(self, job_id: str) -> Optional[Job]:
         """Get job metadata from Redis"""
+        if not self.redis_client:
+            return None
         key = f"jobs:meta:{job_id}"
         data = self.redis_client.get(key)
         if not data:
             return None
         
-        job_dict = json.loads(data)
+        job_dict = json.loads(str(data))
         return Job(**job_dict)
     
     def _add_to_queue(self, job_id: str) -> None:
         """Add job to Redis queue"""
+        if not self.redis_client:
+            raise RuntimeError("Redis client not available")
         self.redis_client.rpush("jobs:queue", job_id)
     
     def _schedule_retry(self, job_id: str, delay: int) -> None:

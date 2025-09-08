@@ -1,0 +1,30 @@
+--- a/pwa_ui.py
++++ b/pwa_ui.py
+@@ -364,6 +364,12 @@ def ai_chat_test():
+ @pwa_ui.route('/ai-chat', methods=['POST'])
+ def ai_chat():
+     """Enhanced AI chat endpoint with real processing"""
++    # Security: Validate Content-Type
++    if not request.is_json:
++        return jsonify({"error": "Content-Type must be application/json"}), 400
++    
++    # Security: Get JSON safely with fallback
++    payload = request.get_json(silent=True) or {}
+     
+     # Get user ID from multiple sources for flexibility
+     user_id = request.headers.get('X-User-ID') or request.cookies.get('user_id') or 'anonymous'
+@@ -372,13 +378,13 @@ def ai_chat():
+     logger.info(f"AI chat request from user: {user_id[:8]}...")
+     
+     try:
+-        data = request.get_json() or {}
+-        message = data.get('message', '').strip()
++        message = str(payload.get('message', '')).strip()
+         
+         if not message:
+             return jsonify({"error": "Message is required"}), 400
+         
+-        if len(message) > 1000:
++        # Security: Enforce message length limits
++        if len(message) > 2000:
+             return jsonify({"error": "Message too long"}), 400
