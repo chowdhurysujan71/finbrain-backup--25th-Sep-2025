@@ -1828,5 +1828,14 @@ try:
 except ImportError as e:
     logger.warning(f"Job queue API endpoints not available: {e}")
 
+# Register PWA UI Blueprint
+try:
+    from app.pwa_ui import pwa_ui
+    if 'pwa_ui' not in app.blueprints:
+        app.register_blueprint(pwa_ui)
+        logger.info("✓ PWA UI routes registered (/chat, /report, /profile, /challenge, /offline)")
+except ImportError as e:
+    logger.warning(f"PWA UI routes not available: {e}")
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
