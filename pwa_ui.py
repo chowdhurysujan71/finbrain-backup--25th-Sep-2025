@@ -184,6 +184,17 @@ def add_expense():
             'message': 'Failed to log expense. Please try again.'
         }), 500
 
+# Service Worker route (must be at root for scope)
+@pwa_ui.route('/sw.js')
+def service_worker():
+    """Serve service worker from root for correct scope"""
+    from flask import send_from_directory
+    response = send_from_directory('.', 'sw.js')
+    response.headers['Content-Type'] = 'text/javascript'
+    response.headers['Service-Worker-Allowed'] = '/'
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
+
 # Manifest route
 @pwa_ui.route('/manifest.webmanifest')
 def manifest():

@@ -70,11 +70,12 @@
     async function registerServiceWorker() {
         if ('serviceWorker' in navigator) {
             try {
-                swRegistration = await navigator.serviceWorker.register('/static/js/sw.js', {
+                console.log('[PWA] Attempting to register service worker...');
+                swRegistration = await navigator.serviceWorker.register('/sw.js', {
                     scope: '/'
                 });
                 
-                console.log('[PWA] Service Worker registered:', swRegistration.scope);
+                console.log('[PWA] Service Worker registered successfully:', swRegistration.scope);
                 
                 // Handle updates
                 swRegistration.addEventListener('updatefound', () => {
@@ -88,7 +89,11 @@
                 });
                 
             } catch (error) {
-                console.error('[PWA] Service Worker registration failed:', error);
+                console.error('[PWA] Service Worker registration failed:', error.message || error);
+                console.error('[PWA] Full error details:', error);
+                
+                // Continue without service worker - PWA can still partially work
+                console.log('[PWA] Continuing without service worker...');
             }
         }
     }
@@ -130,9 +135,11 @@
         const installButton = document.getElementById('install-button');
         const dismissButton = document.getElementById('install-dismiss');
         
+        console.log('[PWA] Setting up install prompt...');
+        
         // Listen for the beforeinstallprompt event
         window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('[PWA] Install prompt available');
+            console.log('[PWA] Install prompt available - beforeinstallprompt event fired');
             
             // Prevent the mini-infobar from appearing on mobile
             e.preventDefault();
@@ -145,7 +152,19 @@
             if (installBanner && !isAppInstalled()) {
                 installBanner.classList.remove('hidden');
             }
+            
+            console.log('[PWA] Installation is now available');
         });
+        
+        // For development/testing - show install option even if no prompt
+        setTimeout(() => {
+            if (!deferredPrompt && !isAppInstalled()) {
+                console.log('[PWA] No install prompt detected - likely development mode');
+                if (installBanner) {
+                    installBanner.classList.remove('hidden');
+                }
+            }
+        }, 2000);
         
         // Handle install button click
         if (installButton) {
@@ -416,9 +435,11 @@
         isInstalled: isAppInstalled,
         triggerInstall: () => {
             if (deferredPrompt) {
+                console.log('[PWA] Triggering install prompt...');
                 deferredPrompt.prompt();
             } else {
-                showToast('Install FinBrain from your browser menu for the best experience!', 'info');
+                console.log('[PWA] No deferred prompt available');
+                showToast('To install FinBrain:\n• Chrome: Click ⋮ → "Install FinBrain..."\n• Safari: Share → "Add to Home Screen"\n• Edge: Click ⋯ → "Apps" → "Install FinBrain"', 'info', { duration: 8000 });
             }
         },
         requestNotificationPermission: async () => {
