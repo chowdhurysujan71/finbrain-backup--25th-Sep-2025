@@ -144,9 +144,9 @@ def auth_login():
                 'error': 'Email and password are required'
             }), 400
         
-        # Find user by email
-        user = User.query.filter_by(email=email).first()
-        if not user or not check_password_hash(user.password_hash, password):
+        # Find user by email (stored in additional_info JSON field)
+        user = User.query.filter(User.additional_info.contains({'email': email})).first()
+        if not user or not check_password_hash(user.additional_info.get('password_hash', ''), password):
             return jsonify({
                 'success': False,
                 'error': 'Invalid email or password'
@@ -196,8 +196,8 @@ def auth_register():
                 'error': 'Email and password are required'
             }), 400
         
-        # Check if user already exists
-        existing_user = User.query.filter_by(email=email).first()
+        # Check if user already exists (check additional_info JSON field for email)
+        existing_user = User.query.filter(User.additional_info.contains({'email': email})).first()
         if existing_user:
             return jsonify({
                 'success': False,
@@ -208,13 +208,16 @@ def auth_register():
         user_id = f"pwa_reg_{int(time.time())}_{uuid.uuid4().hex[:8]}"
         user_hash = psid_hash(user_id)
         
-        # Create new user
+        # Create new user (store email/password in additional_info JSON field)
         user = User(
             user_id_hash=user_hash,
-            email=email,
-            password_hash=generate_password_hash(password),
             first_name=name,
-            platform='pwa'
+            platform='pwa',
+            additional_info={
+                'email': email,
+                'password_hash': generate_password_hash(password),
+                'registration_type': 'pwa'
+            }
         )
         
         db.session.add(user)
