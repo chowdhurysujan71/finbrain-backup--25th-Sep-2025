@@ -334,6 +334,16 @@ def entries_partial():
     # Fallback to empty state
     return render_template('partials/entries.html', entries=[])
 
+@pwa_ui.route('/ai-chat-test', methods=['POST'])
+def ai_chat_test():
+    """Simple test endpoint to verify frontend is working"""
+    logger.info("Test endpoint hit!")
+    return jsonify({
+        'success': True,
+        'response': 'Test response working! 🎉',
+        'expense_logged': False
+    })
+
 @pwa_ui.route('/ai-chat', methods=['POST'])
 def ai_chat():
     """AI chat endpoint that processes natural language and connects to main FinBrain AI system"""

@@ -148,12 +148,14 @@
     }
     
     function handleChatSubmit(event) {
+        console.log('Chat submit triggered');
         event.preventDefault();
         
         const input = document.getElementById('chat-input');
         const sendBtn = document.getElementById('chat-send-btn');
         const message = input.value.trim();
         
+        console.log('Message:', message);
         if (!message) return;
         
         // Show user message
@@ -168,22 +170,29 @@
         // Show loading indicator
         const loadingMessage = appendMessage('', true, true);
         
+        console.log('About to send request to /ai-chat');
+        
         // Send to AI endpoint with timeout protection
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
             controller.abort();
         }, 15000); // 15 second timeout
         
+        const userId = getUserId();
+        console.log('User ID:', userId);
+        
+        console.log('Making fetch request...');
         fetch('/ai-chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-User-ID': getUserId()
+                'X-User-ID': userId
             },
             body: JSON.stringify({ message: message }),
             signal: controller.signal
         })
         .then(response => {
+            console.log('Got response:', response.status);
             // Clear timeout since we got a response
             clearTimeout(timeoutId);
             
@@ -195,6 +204,7 @@
             return response.json();
         })
         .then(data => {
+            console.log('Got data:', data);
             // Remove loading indicator
             loadingMessage.remove();
             
@@ -250,7 +260,14 @@
     }
     
     // Attach chat form handler
-    document.getElementById('chat-form').addEventListener('submit', handleChatSubmit);
+    console.log('Attaching chat form handler...');
+    const chatForm = document.getElementById('chat-form');
+    if (chatForm) {
+        chatForm.addEventListener('submit', handleChatSubmit);
+        console.log('Chat form handler attached successfully');
+    } else {
+        console.error('Chat form not found!');
+    }
     
     // Auto-resize textarea
     document.getElementById('chat-input').addEventListener('input', function() {
