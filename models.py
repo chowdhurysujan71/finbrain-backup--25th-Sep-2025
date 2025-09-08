@@ -237,3 +237,29 @@ class ReportFeedback(db.Model):
     
     def __repr__(self):
         return f'<ReportFeedback {self.user_id_hash[:8]}...: {self.signal}>'
+
+class TelemetryEvent(db.Model):
+    """Growth telemetry events tracking"""
+    __tablename__ = 'telemetry_events'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    event_type = db.Column(db.String(50), nullable=False, index=True)  # expense_logged, expense_edited, etc.
+    user_id_hash = db.Column(db.String(64), nullable=True, index=True)  # Hashed user identifier
+    event_data = db.Column(JSON, default=dict)  # Event-specific data as JSON
+    timestamp = db.Column(db.DateTime(timezone=True), nullable=False, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<TelemetryEvent {self.event_type} - {self.user_id_hash[:8] if self.user_id_hash else "anon"}>'
+
+class GrowthCounter(db.Model):
+    """Running totals for growth metrics"""
+    __tablename__ = 'growth_counters'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    counter_name = db.Column(db.String(50), unique=True, nullable=False)  # total_expenses, total_reports, etc.
+    counter_value = db.Column(db.BigInteger, default=0, nullable=False)  # Current counter value
+    last_updated = db.Column(db.DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<GrowthCounter {self.counter_name}: {self.counter_value}>'

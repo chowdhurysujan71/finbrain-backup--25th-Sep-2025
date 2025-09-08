@@ -182,6 +182,17 @@ def handle_summary(user_id: str, text: str = "", timeframe: str = "week") -> Dic
                 logger.error(f"Error adding budget comparison: {e}")
                 msg = base_msg  # Fail-quiet to base summary
             
+            # PHASE F GROWTH TELEMETRY: Track report_requested event (fail-safe)
+            try:
+                from utils.telemetry import TelemetryTracker
+                TelemetryTracker.track_report_requested(
+                    user_id_hash=user_id,
+                    report_type=f"summary_{timeframe}"
+                )
+            except Exception as e:
+                # Fail-safe: telemetry errors never break report generation
+                logger.debug(f"Report telemetry tracking failed: {e}")
+            
             return {"text": msg}
         
     except Exception as e:

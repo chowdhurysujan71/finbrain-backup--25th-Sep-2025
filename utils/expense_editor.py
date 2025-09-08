@@ -134,6 +134,17 @@ class ExpenseEditor:
             db.session.add(audit_entry)
             db.session.commit()
             
+            # PHASE F GROWTH TELEMETRY: Track expense_edited event (fail-safe)
+            try:
+                from utils.telemetry import TelemetryTracker
+                TelemetryTracker.track_expense_edited(
+                    user_id_hash=editor_user_id,
+                    expense_id=expense_id
+                )
+            except Exception as e:
+                # Fail-safe: telemetry errors never break expense editing
+                logger.debug(f"Expense edit telemetry tracking failed: {e}")
+            
             logger.info(f"Expense {expense_id} edited by {editor_user_id[:8]}... - changes: {list(changes.keys())}")
             
             return {

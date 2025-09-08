@@ -43,6 +43,7 @@ def save_expense(user_identifier, description, amount, category, platform, origi
     from models import Expense, User, MonthlySummary
     from utils.tracer import trace_event
     from utils.identity import psid_hash
+    from utils.telemetry import TelemetryTracker
     
     if db_session is None:
         from app import db
@@ -124,6 +125,27 @@ def save_expense(user_identifier, description, amount, category, platform, origi
             monthly_summary.updated_at = datetime.utcnow()
         
         db_session.session.commit()
+        
+        # PHASE F GROWTH TELEMETRY: Track expense_logged event (fail-safe)
+        try:
+            # Determine source based on platform
+            source_mapping = {
+                'messenger': 'messenger',
+                'form': 'form',
+                'web': 'form',
+                'pwa': 'form'
+            }
+            source = source_mapping.get(platform, 'form')
+            
+            TelemetryTracker.track_expense_logged(
+                user_id_hash=user_hash,
+                amount=float(amount),
+                category=category,
+                source=source
+            )
+        except Exception as e:
+            # Fail-safe: telemetry errors never break expense logging
+            logger.debug(f"Growth telemetry tracking failed: {e}")
         
         # ANALYTICS: Track successful expense logging (100% additive, fail-safe)
         try:

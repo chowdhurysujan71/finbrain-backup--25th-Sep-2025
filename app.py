@@ -1837,5 +1837,13 @@ try:
 except ImportError as e:
     logger.warning(f"PWA UI routes not available: {e}")
 
+# Register Growth Telemetry Blueprint
+try:
+    from routes_telemetry import register_telemetry_routes
+    register_telemetry_routes(app)
+    logger.info("✓ Growth telemetry routes registered (/metrics, /admin/metrics)")
+except ImportError as e:
+    logger.warning(f"Growth telemetry routes not available: {e}")
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

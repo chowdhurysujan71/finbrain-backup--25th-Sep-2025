@@ -7,7 +7,7 @@ finbrain is an AI-first expense tracking application delivered via Facebook Mess
 Preferred communication style: Simple, everyday language.
 Zero-surprise deployment requirement: 100% user-visible success demanded with comprehensive validation before any production changes.
 
-## Recent Major Updates (August 27, 2025)
+## Recent Major Updates (September 8, 2025)
 - **🎉 100% SUCCESS RATE ACHIEVED**: System upgraded from 35.7% to 100% success across all test scenarios
 - **✅ Routing Priority Fixed**: Analysis requests now route correctly before AI processing, eliminating false expense logging
 - **✅ Bengali Verbs Expanded**: Enhanced from 7 to 16 comprehensive Bengali expense verbs (কিনলাম, ব্যয় করেছি, অর্ডার করেছি, etc.)
@@ -19,6 +19,7 @@ Zero-surprise deployment requirement: 100% user-visible success demanded with co
 - **✅ Data Integrity Validated**: Complete user isolation, hash consistency, and storage verification passing
 - **🔧 CRITICAL SCHEMA DRIFT FIX (August 27, 2025)**: Resolved platform-wide data retrieval failure caused by handlers using legacy `user_id` column instead of `user_id_hash`. Fixed summary, insight, and expense handlers. Added comprehensive schema validation and auto-fix systems to prevent future drift. All 212 expenses across 46 users now accessible in Messenger.
 - **🚀 MESSENGER DELIVERY FIX (August 27, 2025)**: Resolved critical Messenger delivery failures that prevented users from receiving financial summaries. Fixed dual PSID architecture issue where system was sending messages to hashed user IDs instead of original Facebook PSIDs. Implemented flexible routing that preserves original PSIDs for message delivery while using hashes for data processing. Eliminated text duplication bug in reply templates. System now achieves 100% message delivery success rate with accurate financial data.
+- **📊 PHASE F GROWTH TELEMETRY IMPLEMENTED (September 8, 2025)**: Deployed comprehensive growth metrics tracking system with fail-safe design. Added DAU calculation, D1/D3 retention analysis, and event tracking for expense logging, editing, and report requests. Created `/metrics` endpoint for monitoring systems and `/admin/metrics` dashboard for business analytics. All telemetry wrapped in error handling to ensure zero impact on core functionality. System tracks 4 event types with JSON metadata and provides cohort retention analysis for user engagement optimization.
 
 ## System Architecture
 
