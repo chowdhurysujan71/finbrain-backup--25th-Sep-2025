@@ -168,7 +168,7 @@ def add_expense():
             mid=mid
         )
         
-        logger.info(f"PWA expense logged successfully for user {user_hash[:8]}...")
+        logger.info(f"PWA expense logged successfully for user {user_hash[:8]}... (original_id: {user_id})")
         
         # Return success message as plain text for HTMX to display
         return jsonify({

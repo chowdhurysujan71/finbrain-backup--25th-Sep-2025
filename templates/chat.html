@@ -110,10 +110,15 @@
     }
     
     // Disable submit button during submission
-    document.getElementById('expense-form').addEventListener('submit', function() {
+    document.getElementById('expense-form').addEventListener('submit', function(e) {
         const submitBtn = document.getElementById('submit-btn');
         submitBtn.disabled = true;
         submitBtn.textContent = 'Adding...';
+        
+        // Debug: Log the user ID being sent
+        if (window.finbrainUserId) {
+            console.log('[PWA] Submitting expense for user:', window.finbrainUserId);
+        }
     });
     </script>
 
