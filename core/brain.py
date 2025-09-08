@@ -4,6 +4,7 @@ One brain, two doors - handles all user messages and returns clean text reply + 
 """
 
 import logging
+import time
 from typing import Dict, Any
 from utils.identity import psid_hash
 
@@ -20,12 +21,21 @@ def process_user_message(uid: str, text: str) -> Dict[str, Any]:
     Returns:
         Dict with format: {"reply": str, "structured": {...}, "metadata": {...}}
     """
+    t0 = time.time()
+    
     if not text or not text.strip():
-        return {
+        out = {
             "reply": "I didn't receive your message. Please try again.",
             "structured": {},
             "metadata": {"error": "empty_message"}
         }
+        out.setdefault("metadata", {})
+        out["metadata"].update({
+            "source": out["metadata"].get("source", "validation_error"),
+            "latency_ms": int((time.time() - t0) * 1000),
+            "uid_prefix": "anon"
+        })
+        return out
     
     # Normalize user ID
     user_hash = psid_hash(uid) if uid else "anon"
@@ -36,27 +46,43 @@ def process_user_message(uid: str, text: str) -> Dict[str, Any]:
         # Attempt to use production router (primary brain)
         result = _use_production_router(user_hash, text)
         if result:
-            return result
-            
-        # Fallback to AI adapter if router unavailable
-        result = _use_fallback_ai(user_hash, text)
-        if result:
-            return result
-            
-        # Last resort: simple acknowledgment
-        return {
-            "reply": "I received your message but I'm having trouble processing it right now. Please try again in a moment.",
-            "structured": {},
-            "metadata": {"source": "emergency_fallback"}
-        }
+            out = result
+        else:
+            # Fallback to AI adapter if router unavailable
+            result = _use_fallback_ai(user_hash, text)
+            if result:
+                out = result
+            else:
+                # Last resort: simple acknowledgment
+                out = {
+                    "reply": "I received your message but I'm having trouble processing it right now. Please try again in a moment.",
+                    "structured": {},
+                    "metadata": {"source": "emergency_fallback"}
+                }
+                
+        # Add consistent metadata to all responses
+        out.setdefault("metadata", {})
+        out["metadata"].update({
+            "source": out["metadata"].get("source", "unknown"),
+            "latency_ms": int((time.time() - t0) * 1000),
+            "uid_prefix": user_hash[:8]
+        })
+        return out
         
     except Exception as e:
         logger.exception(f"Brain processing failed for {user_hash[:8]}")
-        return {
+        out = {
             "reply": "I'm experiencing some technical difficulties. Please try again in a moment.",
             "structured": {},
             "metadata": {"error": "brain_exception", "detail": str(e)[:100]}
         }
+        out.setdefault("metadata", {})
+        out["metadata"].update({
+            "source": out["metadata"].get("source", "exception_fallback"),
+            "latency_ms": int((time.time() - t0) * 1000),
+            "uid_prefix": user_hash[:8]
+        })
+        return out
 
 def _use_production_router(user_hash: str, text: str) -> Dict[str, Any]:
     """Use the production router system (primary brain)"""

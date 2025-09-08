@@ -21,7 +21,7 @@ echo "$RESP" | jq . >/dev/null 2>&1 || req_fail "/ai-chat not JSON"
 echo "$RESP" | jq -e '.reply and .data and .user_id and .metadata.source and .metadata.latency_ms' >/dev/null || req_fail "chat envelope/metadata missing"
 
 # 3) CORS policy present (origin restricted)
-curl -is -X OPTIONS "$APP/ai-chat" -H 'Origin: https://yourdomain.example' \
+curl -is -X OPTIONS "$APP/ai-chat" -H "Origin: $APP" \
   -H 'Access-Control-Request-Method: POST' | grep -qi 'access-control-allow-origin' || req_fail "CORS not configured"
 
 # 4) Schema reality (requires $DATABASE_URL)
