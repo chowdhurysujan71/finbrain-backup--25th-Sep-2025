@@ -1,0 +1,48 @@
+{
+  "tables": {
+    "total_count": 16,
+    "core_tables": [
+      "expenses",
+      "users",
+      "monthly_summaries",
+      "rate_limits",
+      "expense_edits",
+      "user_milestones",
+      "report_feedback",
+      "telemetry_events",
+      "growth_counters"
+    ],
+    "pca_tables": [
+      "transactions_effective",
+      "user_corrections",
+      "user_rules",
+      "inference_snapshots"
+    ],
+    "audit_tables": [
+      "ai_request_audit",
+      "real_users_allowlist"
+    ]
+  },
+  "expenses_table": {
+    "indexes": {
+      "count": 14,
+      "primary_key": "expenses_pkey",
+      "user_focused": [
+        "idx_expenses_user_id_hash",
+        "idx_expenses_user_time",
+        "idx_expenses_user_category_time",
+        "idx_expenses_uid_created",
+        "idx_expenses_recent_user"
+      ],
+      "performance": [
+        "ix_expenses_user_created",
+        "ix_expenses_user_created_uncorrected",
+        "idx_expenses_user_insights",
+        "idx_expenses_user_category"
+      ]
+    },
+    "estimated_rows": "unknown",
+    "schema_complete": true
+  },
+  "measurement_timestamp": "2025-09-08T15:09:02Z"
+}

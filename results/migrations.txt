@@ -1,0 +1,6 @@
+MIGRATIONS ANALYSIS
+Timestamp: 2025-09-08T15:09:02Z
+
+COMMAND: rg -n "alembic|migrations" -g "*"
+RESULT: No project-level migration files found.
+DETAILS: References found only in .cache/uv/ dependency files (SQLAlchemy)

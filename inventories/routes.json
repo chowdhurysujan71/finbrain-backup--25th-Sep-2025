@@ -1,0 +1,43 @@
+{
+  "total_routes": 113,
+  "key_endpoints": {
+    "ai_chat": {
+      "path": "/ai-chat",
+      "file": "pwa_ui.py:364",
+      "methods": [
+        "POST"
+      ]
+    },
+    "expense": {
+      "path": "/expense",
+      "file": "pwa_ui.py:398",
+      "methods": [
+        "POST"
+      ]
+    },
+    "webhook": {
+      "path": "/webhook/messenger",
+      "file": "app.py:660",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    "health": {
+      "path": "/health",
+      "file": "app.py:495",
+      "methods": [
+        "GET"
+      ]
+    },
+    "insights": {
+      "path": "/user/<psid_hash>/insights",
+      "file": "app.py:901",
+      "methods": [
+        "GET"
+      ]
+    }
+  },
+  "blueprint_count": 13,
+  "measurement_timestamp": "2025-09-08T15:09:02Z"
+}

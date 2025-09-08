@@ -1,0 +1,12 @@
+FINBRAIN SIZE ANALYSIS
+Timestamp: 2025-09-08T15:07:46Z
+Commit: b35edc513aaf0748a70b781d78291c0deb282044
+
+DISK USAGE:
+579M.
+
+DIRECTORY COUNT (maxdepth 2):
+88
+
+FILE COUNT (excluding venv/node_modules):
+18164
