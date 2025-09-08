@@ -69,10 +69,12 @@ class BackgroundProcessor:
         self.job_queue_enabled = JOB_QUEUE_ENABLED
         self.job_polling_active = False
         
-        if self.job_queue_enabled:
-            # Start job queue polling worker
+        if self.job_queue_enabled and job_queue and hasattr(job_queue, 'redis_available') and job_queue.redis_available:
+            # Start job queue polling worker only if Redis is actually available
             self.executor.submit(self._job_queue_worker)
             logger.info("Redis job queue worker started")
+        else:
+            logger.info("Redis job queue not available, using in-memory processing only")
         
         # Context-driven processing now handled by production router
         
