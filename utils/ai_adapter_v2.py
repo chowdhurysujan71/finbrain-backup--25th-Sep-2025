@@ -269,6 +269,62 @@ Make insights:
         # Similar implementation for OpenAI if needed
         return {"failover": True, "reason": "openai_insights_not_implemented"}
     
+    def generate_structured_response(self, prompt: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate structured AI response for insights and analysis
+        
+        Args:
+            prompt: User request or context description
+            context: Additional context data for the AI
+            
+        Returns:
+            Dict with structured response including insights, tips, etc.
+        """
+        if not self.enabled:
+            return {"ok": False, "reason": "ai_disabled", "data": {"failover": True}}
+        
+        try:
+            # Use existing insights infrastructure with fallback
+            insights_data = self.generate_insights(context, context.get("user_id", "unknown"))
+            
+            if insights_data.get("failover"):
+                # Return structured fallback
+                return {
+                    "ok": False,
+                    "reason": insights_data.get("reason", "ai_unavailable"),
+                    "data": {
+                        "summary": "Financial insights are temporarily unavailable.",
+                        "key_insight": "Your expense tracking is working normally.",
+                        "recommendation": "Continue logging expenses for better insights.",
+                        "smart_tip": "Check back later for personalized analysis."
+                    }
+                }
+            
+            # Transform insights format to match expected structure
+            insights_list = insights_data.get("insights", [])
+            return {
+                "ok": True,
+                "data": {
+                    "summary": insights_list[0] if len(insights_list) > 0 else "Your spending patterns are being analyzed.",
+                    "key_insight": insights_list[1] if len(insights_list) > 1 else "Continue tracking for better insights.",
+                    "recommendation": insights_list[2] if len(insights_list) > 2 else "Regular expense logging helps build good financial habits.",
+                    "smart_tip": insights_data.get("focus_area", "Keep tracking your expenses for personalized tips.")
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Structured response generation failed: {e}")
+            return {
+                "ok": False,
+                "reason": f"exception: {str(e)[:50]}",
+                "data": {
+                    "summary": "Insights are temporarily unavailable.",
+                    "key_insight": "Your expense tracking continues to work normally.",
+                    "recommendation": "Try again in a moment for AI-powered insights.",
+                    "smart_tip": "Manual expense review can also provide valuable insights."
+                }
+            }
+
     def phrase_summary(self, summary: Dict[str, Any]) -> Dict[str, Any]:
         """
         Shim for summary phrasing - maintains compatibility with existing calls
