@@ -168,130 +168,80 @@
         // Show loading indicator
         const loadingMessage = appendMessage('', true, true);
         
-        // Multiple timeout protection layers
-        let requestCompleted = false;
-        let timeoutIds = [];
-        
-        const userId = getUserId();
-        
-        // Emergency UI recovery timeout (5 seconds)
-        const emergencyTimeoutId = setTimeout(() => {
-            if (!requestCompleted) {
-                requestCompleted = true;
-                loadingMessage.remove();
-                appendMessage('⚠️ Request taking too long. Please try again.', true);
-                // Force button recovery
-                sendBtn.disabled = false;
-                sendBtn.querySelector('.btn-text').style.display = 'inline';
-                sendBtn.querySelector('.btn-loading').style.display = 'none';
-                input.focus();
-            }
-        }, 5000);
-        timeoutIds.push(emergencyTimeoutId);
-        
-        // Robust fetch implementation with browser compatibility
-        const makeRequest = () => {
-            // Browser compatibility check for AbortController
-            let controller = null;
-            let signal = null;
-            
-            if (typeof AbortController !== 'undefined') {
-                controller = new AbortController();
-                signal = controller.signal;
-                
-                const abortTimeoutId = setTimeout(() => {
-                    if (!requestCompleted && controller) {
-                        controller.abort();
-                    }
-                }, 10000); // 10 second abort timeout
-                timeoutIds.push(abortTimeoutId);
-            }
-            
-            const fetchPromise = fetch('/ai-chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-User-ID': userId
-                },
-                body: JSON.stringify({ message: message }),
-                signal: signal
-            });
-            
-            // Race between fetch and manual timeout
-            const timeoutPromise = new Promise((_, reject) => {
-                const manualTimeoutId = setTimeout(() => {
-                    reject(new Error('Manual timeout'));
-                }, 8000); // 8 second manual timeout
-                timeoutIds.push(manualTimeoutId);
-            });
-            
-            return Promise.race([fetchPromise, timeoutPromise]);
-        };
-        
-        makeRequest()
-        .then(response => {
-            if (requestCompleted) return null;
-            
-            // Check if response is ok
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status} ${response.statusText}`);
-            }
-            
-            return response.json();
-        })
-        .then(data => {
-            if (requestCompleted || !data) return;
-            requestCompleted = true;
-            
-            // Clear all timeouts
-            timeoutIds.forEach(id => clearTimeout(id));
-            
-            // Remove loading indicator
+        // Simple 3-second hard timeout - force recovery no matter what
+        const forceRecovery = () => {
             loadingMessage.remove();
-            
-            // Show AI response
-            if (data.success) {
-                appendMessage(data.response, true);
-                
-                // If expense was logged, refresh entries
-                if (data.expense_logged) {
-                    htmx.trigger('#entries-section', 'expense-added');
-                }
-            } else {
-                appendMessage(data.error || 'Sorry, I encountered an error. Please try again.', true);
-            }
-        })
-        .catch(error => {
-            if (requestCompleted) return;
-            requestCompleted = true;
-            
-            // Clear all timeouts
-            timeoutIds.forEach(id => clearTimeout(id));
-            
-            // Remove loading indicator
-            loadingMessage.remove();
-            
-            // Handle different types of errors
-            if (error.name === 'AbortError' || error.message === 'Manual timeout') {
-                appendMessage('⏱️ Request timed out. Please try again.', true);
-            } else if (error.message.includes('Server error')) {
-                appendMessage('🔧 Server is having issues. Please try again in a moment.', true);
-            } else if (typeof navigator !== 'undefined' && !navigator.onLine) {
-                appendMessage('📡 No internet connection. Please check your network and try again.', true);
-            } else {
-                appendMessage('❌ Connection error. Please try again.', true);
-            }
-            
-            // Log error for debugging without exposing to user
-            if (typeof console !== 'undefined') console.error('Chat error:', error);
-        })
-        .finally(() => {
-            // Re-enable button
             sendBtn.disabled = false;
             sendBtn.querySelector('.btn-text').style.display = 'inline';
             sendBtn.querySelector('.btn-loading').style.display = 'none';
             input.focus();
-        });
+            appendMessage('⚠️ Taking too long. Please try again.', true);
+        };
+        
+        const hardTimeout = setTimeout(forceRecovery, 3000);
+        
+        // Use XMLHttpRequest for maximum compatibility
+        const xhr = new XMLHttpRequest();
+        const userId = getUserId();
+        
+        xhr.timeout = 2000; // 2 second timeout
+        xhr.open('POST', '/ai-chat', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('X-User-ID', userId);
+        
+        xhr.onload = function() {
+            clearTimeout(hardTimeout);
+            loadingMessage.remove();
+            sendBtn.disabled = false;
+            sendBtn.querySelector('.btn-text').style.display = 'inline';
+            sendBtn.querySelector('.btn-loading').style.display = 'none';
+            input.focus();
+            
+            if (xhr.status === 200) {
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    if (data.success) {
+                        appendMessage(data.response, true);
+                        if (data.expense_logged && typeof htmx !== 'undefined') {
+                            htmx.trigger('#entries-section', 'expense-added');
+                        }
+                    } else {
+                        appendMessage(data.error || 'Sorry, something went wrong.', true);
+                    }
+                } catch (e) {
+                    appendMessage('❌ Invalid response. Please try again.', true);
+                }
+            } else {
+                appendMessage('🔧 Server error. Please try again.', true);
+            }
+        };
+        
+        xhr.onerror = function() {
+            clearTimeout(hardTimeout);
+            loadingMessage.remove();
+            sendBtn.disabled = false;
+            sendBtn.querySelector('.btn-text').style.display = 'inline';
+            sendBtn.querySelector('.btn-loading').style.display = 'none';
+            input.focus();
+            appendMessage('❌ Connection failed. Please try again.', true);
+        };
+        
+        xhr.ontimeout = function() {
+            clearTimeout(hardTimeout);
+            loadingMessage.remove();
+            sendBtn.disabled = false;
+            sendBtn.querySelector('.btn-text').style.display = 'inline';
+            sendBtn.querySelector('.btn-loading').style.display = 'none';
+            input.focus();
+            appendMessage('⏱️ Request timed out. Please try again.', true);
+        };
+        
+        try {
+            xhr.send(JSON.stringify({ message: message }));
+        } catch (e) {
+            clearTimeout(hardTimeout);
+            forceRecovery();
+        }
     }
     
     function getUserId() {
