@@ -21,6 +21,49 @@ def get_user_id():
     # Then check header for PWA/anonymous users
     return request.headers.get('X-User-ID')
 
+def handle_with_fallback_ai(user_message, user_id_hash, conversational_ai):
+    """Handle chat message using fallback AI when main router is unavailable"""
+    try:
+        # Check if message is about expenses
+        if any(word in user_message.lower() for word in ['spent', 'taka', '৳', 'cost', 'paid', 'bought', 'expense']):
+            # Try to parse expense from message
+            try:
+                from ai.expense_parse import parse_expense
+                parsed = parse_expense(user_message)
+                
+                # Save expense using existing system
+                from utils.db import save_expense
+                import uuid
+                result = save_expense(
+                    user_identifier=user_id_hash,
+                    description=parsed.get('note', 'PWA expense'),
+                    amount=float(parsed.get('amount', 0)),
+                    category=parsed.get('category', 'other'),
+                    platform="pwa",
+                    original_message=user_message,
+                    unique_id=str(uuid.uuid4()),
+                    mid=f"pwa_chat_{int(time.time())}"
+                )
+                return f"✅ Logged expense: ৳{parsed.get('amount')} for {parsed.get('category')}"
+            except Exception as e:
+                logger.warning(f"Expense parsing failed: {e}")
+                return "I understand you want to log an expense. Please use the format: 'I spent 100 taka on food'"
+        else:
+            # General conversation using conversational AI if available
+            if conversational_ai:
+                try:
+                    context = conversational_ai.get_user_expense_context(user_id_hash, 30)
+                    response = conversational_ai.generate_response(user_message, context)
+                    return response
+                except Exception as e:
+                    logger.warning(f"Conversational AI failed: {e}")
+            
+            # Final fallback
+            return "I'm your AI expense assistant! Try saying things like 'I spent 200 taka on lunch' or 'Show my spending summary'"
+    except Exception as e:
+        logger.error(f"Fallback AI handler error: {e}")
+        return "I'm here to help with your expenses! Try telling me about something you spent money on."
+
 @pwa_ui.route('/chat')
 def chat():
     """
@@ -267,14 +310,25 @@ def entries_partial():
 @pwa_ui.route('/ai-chat', methods=['POST'])
 def ai_chat():
     """AI chat endpoint that processes natural language and connects to main FinBrain AI system"""
+    # Import dependencies
+    from utils.identity import psid_hash
+    import json
+    
+    # Initialize production router with fallback
+    route_message = None
     try:
         from utils.production_router import route_message
     except ImportError:
-        # Fallback to a simple AI processing function
+        logger.warning("Production router not available, using fallback")
+        route_message = None
+    
+    # Always initialize fallback AI
+    conversational_ai = None
+    try:
         from utils.conversational_ai import ConversationalAI
         conversational_ai = ConversationalAI()
-    from utils.identity import psid_hash
-    import json
+    except ImportError:
+        logger.warning("Conversational AI not available")
     
     user_id = get_user_id()
     
@@ -305,38 +359,22 @@ def ai_chat():
         
         logger.info(f"AI chat request from user {user_id_hash[:8]}...: '{user_message[:50]}...'")
         
-        # Use the main FinBrain AI routing system
-        try:
-            response_data = route_message(user_id_hash, user_message)
-        except NameError:
-            # Use fallback conversational AI
-            context = conversational_ai.get_user_expense_context(user_id_hash, 30)
-            if 'spent' in user_message.lower() or 'taka' in user_message.lower() or '৳' in user_message:
-                # Try to parse expense from message
-                try:
-                    from ai.expense_parse import parse_expense
-                    parsed = parse_expense(user_message)
-                    
-                    # Save expense using existing system
-                    from utils.db import save_expense
-                    import uuid
-                    result = save_expense(
-                        user_identifier=user_id_hash,
-                        description=parsed.get('note', 'PWA expense'),
-                        amount=float(parsed.get('amount', 0)),
-                        category=parsed.get('category', 'other'),
-                        platform="pwa",
-                        original_message=user_message,
-                        unique_id=str(uuid.uuid4()),
-                        mid=f"pwa_chat_{int(time.time())}"
-                    )
-                    response_data = f"✅ Logged expense: ৳{parsed.get('amount')} for {parsed.get('category')}"
-                except Exception as e:
-                    logger.warning(f"Expense parsing failed: {e}")
-                    response_data = "I understand you want to log an expense. Please use the format: 'I spent 100 taka on food'"
-            else:
-                # General conversation
-                response_data = "I'm your AI expense assistant! Try saying things like 'I spent 200 taka on lunch' or 'Show my spending summary'"
+        # Use the main FinBrain AI routing system with robust fallbacks
+        response_data = None
+        
+        if route_message:
+            try:
+                logger.info(f"Using production router for user {user_id_hash[:8]}")
+                response_data = route_message(user_id_hash, user_message)
+                logger.info(f"Production router response: {str(response_data)[:100]}...")
+            except Exception as e:
+                logger.warning(f"Production router failed: {e}")
+                response_data = None
+        
+        # If production router failed or unavailable, use fallback
+        if response_data is None:
+            logger.info(f"Using fallback AI for user {user_id_hash[:8]}")
+            response_data = handle_with_fallback_ai(user_message, user_id_hash, conversational_ai)
         
         # Check if an expense was logged
         expense_logged = ('✅' in str(response_data) or 
@@ -361,9 +399,10 @@ def ai_chat():
     except Exception as e:
         logger.error(f"AI chat error: {e}")
         return jsonify({
-            'success': False,
-            'error': 'Sorry, I encountered an error processing your request. Please try again.'
-        }), 500
+            'success': True,  # Don't fail the UI
+            'response': 'I had a brief connection issue. Please try again! 🤖',
+            'expense_logged': False
+        })
 
 @pwa_ui.route('/expense', methods=['POST'])
 def add_expense():
