@@ -1,0 +1,310 @@
+{
+  "audit_metadata": {
+    "timestamp": "2025-09-08T14:53:38.219663",
+    "duration_seconds": 64.451135,
+    "test_user_id": "uat_audit_1757343153",
+    "system_version": "FinBrain v1.1 + Unified Brain"
+  },
+  "executive_summary": {
+    "overall_score": 62.9,
+    "deployment_decision": "BLOCKED",
+    "total_tests": 19,
+    "passed_tests": 11,
+    "failed_tests": 7,
+    "warnings": 1,
+    "critical_issues_count": 6
+  },
+  "category_results": {
+    "Data Handling": {
+      "score": 90.6,
+      "status": "PASS",
+      "total_tests": 4,
+      "passed_tests": 4,
+      "failed_tests": 0,
+      "warnings": 0,
+      "critical_issues": []
+    },
+    "Routing": {
+      "score": 33.3,
+      "status": "FAIL",
+      "total_tests": 3,
+      "passed_tests": 1,
+      "failed_tests": 2,
+      "warnings": 0,
+      "critical_issues": [
+        "Intent Detection: Production router intent classification",
+        "Rate Limiting: Exception: 'AdvancedAILimiter' object has no attribute 'allow_request'",
+        "'AdvancedAILimiter' object has no attribute 'allow_request'"
+      ]
+    },
+    "Processing": {
+      "score": 100.0,
+      "status": "PASS",
+      "total_tests": 3,
+      "passed_tests": 3,
+      "failed_tests": 0,
+      "warnings": 0,
+      "critical_issues": []
+    },
+    "Storage": {
+      "score": 33.3,
+      "status": "FAIL",
+      "total_tests": 3,
+      "passed_tests": 0,
+      "failed_tests": 3,
+      "warnings": 0,
+      "critical_issues": [
+        "Schema Validation: 0/3 critical tables verified"
+      ]
+    },
+    "Data Integrity": {
+      "score": 65.0,
+      "status": "WARNING",
+      "total_tests": 3,
+      "passed_tests": 2,
+      "failed_tests": 1,
+      "warnings": 0,
+      "critical_issues": [
+        "User Isolation: Exception: (psycopg2.errors.UndefinedColumn) column expenses.nl_confidence does not exist\nLINE 1: ...es.corrected_reason AS expenses_corrected_reason, expenses.n...\n                                                             ^\n\n[SQL: SELECT expenses.id AS expenses_id, expenses.user_id AS expenses_user_id, expenses.user_id_hash AS expenses_user_id_hash, expenses.description AS expenses_description, expenses.amount AS expenses_amount, expenses.category AS expenses_category, expenses.currency AS expenses_currency, expenses.date AS expenses_date, expenses.time AS expenses_time, expenses.month AS expenses_month, expenses.unique_id AS expenses_unique_id, expenses.created_at AS expenses_created_at, expenses.platform AS expenses_platform, expenses.original_message AS expenses_original_message, expenses.ai_insights AS expenses_ai_insights, expenses.mid AS expenses_mid, expenses.superseded_by AS expenses_superseded_by, expenses.corrected_at AS expenses_corrected_at, expenses.corrected_reason AS expenses_corrected_reason, expenses.nl_confidence AS expenses_nl_confidence, expenses.nl_language AS expenses_nl_language, expenses.needed_clarification AS expenses_needed_clarification \nFROM expenses \nWHERE expenses.user_id_hash = %(user_id_hash_1)s]\n[parameters: {'user_id_hash_1': '0dbd93ab7ea770e4bdbd1b650757d015602dbb9d78824437cdcf73b2091c8daf'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+        "(psycopg2.errors.UndefinedColumn) column expenses.nl_confidence does not exist\nLINE 1: ...es.corrected_reason AS expenses_corrected_reason, expenses.n...\n                                                             ^\n\n[SQL: SELECT expenses.id AS expenses_id, expenses.user_id AS expenses_user_id, expenses.user_id_hash AS expenses_user_id_hash, expenses.description AS expenses_description, expenses.amount AS expenses_amount, expenses.category AS expenses_category, expenses.currency AS expenses_currency, expenses.date AS expenses_date, expenses.time AS expenses_time, expenses.month AS expenses_month, expenses.unique_id AS expenses_unique_id, expenses.created_at AS expenses_created_at, expenses.platform AS expenses_platform, expenses.original_message AS expenses_original_message, expenses.ai_insights AS expenses_ai_insights, expenses.mid AS expenses_mid, expenses.superseded_by AS expenses_superseded_by, expenses.corrected_at AS expenses_corrected_at, expenses.corrected_reason AS expenses_corrected_reason, expenses.nl_confidence AS expenses_nl_confidence, expenses.nl_language AS expenses_nl_language, expenses.needed_clarification AS expenses_needed_clarification \nFROM expenses \nWHERE expenses.user_id_hash = %(user_id_hash_1)s]\n[parameters: {'user_id_hash_1': '0dbd93ab7ea770e4bdbd1b650757d015602dbb9d78824437cdcf73b2091c8daf'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+      ]
+    },
+    "User Categories": {
+      "score": 33.3,
+      "status": "FAIL",
+      "total_tests": 3,
+      "passed_tests": 1,
+      "failed_tests": 1,
+      "warnings": 1,
+      "critical_issues": [
+        "Existing Users: Exception: (psycopg2.errors.UndefinedColumn) column expenses.nl_confidence does not exist\nLINE 1: ...es.corrected_reason AS expenses_corrected_reason, expenses.n...\n                                                             ^\n\n[SQL: SELECT expenses.id AS expenses_id, expenses.user_id AS expenses_user_id, expenses.user_id_hash AS expenses_user_id_hash, expenses.description AS expenses_description, expenses.amount AS expenses_amount, expenses.category AS expenses_category, expenses.currency AS expenses_currency, expenses.date AS expenses_date, expenses.time AS expenses_time, expenses.month AS expenses_month, expenses.unique_id AS expenses_unique_id, expenses.created_at AS expenses_created_at, expenses.platform AS expenses_platform, expenses.original_message AS expenses_original_message, expenses.ai_insights AS expenses_ai_insights, expenses.mid AS expenses_mid, expenses.superseded_by AS expenses_superseded_by, expenses.corrected_at AS expenses_corrected_at, expenses.corrected_reason AS expenses_corrected_reason, expenses.nl_confidence AS expenses_nl_confidence, expenses.nl_language AS expenses_nl_language, expenses.needed_clarification AS expenses_needed_clarification \nFROM expenses \nWHERE expenses.user_id_hash IS NULL \n LIMIT %(param_1)s]\n[parameters: {'param_1': 10}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+        "(psycopg2.errors.UndefinedColumn) column expenses.nl_confidence does not exist\nLINE 1: ...es.corrected_reason AS expenses_corrected_reason, expenses.n...\n                                                             ^\n\n[SQL: SELECT expenses.id AS expenses_id, expenses.user_id AS expenses_user_id, expenses.user_id_hash AS expenses_user_id_hash, expenses.description AS expenses_description, expenses.amount AS expenses_amount, expenses.category AS expenses_category, expenses.currency AS expenses_currency, expenses.date AS expenses_date, expenses.time AS expenses_time, expenses.month AS expenses_month, expenses.unique_id AS expenses_unique_id, expenses.created_at AS expenses_created_at, expenses.platform AS expenses_platform, expenses.original_message AS expenses_original_message, expenses.ai_insights AS expenses_ai_insights, expenses.mid AS expenses_mid, expenses.superseded_by AS expenses_superseded_by, expenses.corrected_at AS expenses_corrected_at, expenses.corrected_reason AS expenses_corrected_reason, expenses.nl_confidence AS expenses_nl_confidence, expenses.nl_language AS expenses_nl_language, expenses.needed_clarification AS expenses_needed_clarification \nFROM expenses \nWHERE expenses.user_id_hash IS NULL \n LIMIT %(param_1)s]\n[parameters: {'param_1': 10}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+      ]
+    }
+  },
+  "detailed_results": {
+    "Data Handling": [
+      {
+        "category": "Data Handling",
+        "test_name": "Unified Brain System",
+        "status": "PASS",
+        "score": 100,
+        "execution_time_ms": 12561.677932739258,
+        "details": "Processed 4 test cases",
+        "errors": [],
+        "data": {}
+      },
+      {
+        "category": "Data Handling",
+        "test_name": "Input Sanitization",
+        "status": "PASS",
+        "score": 75,
+        "execution_time_ms": 0.054836273193359375,
+        "details": "Tested 4 malicious inputs",
+        "errors": [],
+        "data": {}
+      },
+      {
+        "category": "Data Handling",
+        "test_name": "Money Detection",
+        "status": "PASS",
+        "score": 87.50000000000001,
+        "execution_time_ms": 0.7333755493164062,
+        "details": "Bengali + English detection accuracy",
+        "errors": [],
+        "data": {}
+      },
+      {
+        "category": "Data Handling",
+        "test_name": "Character Encoding",
+        "status": "PASS",
+        "score": 100.0,
+        "execution_time_ms": 0.010728836059570312,
+        "details": "Unicode normalization and Bengali support",
+        "errors": [],
+        "data": {}
+      }
+    ],
+    "Routing": [
+      {
+        "category": "Routing",
+        "test_name": "Intent Detection",
+        "status": "FAIL",
+        "score": 0,
+        "execution_time_ms": 0.05817413330078125,
+        "details": "Production router intent classification",
+        "errors": [],
+        "data": {}
+      },
+      {
+        "category": "Routing",
+        "test_name": "Fallback Mechanisms",
+        "status": "PASS",
+        "score": 100,
+        "execution_time_ms": 2734.3077659606934,
+        "details": "AI fallback and emergency responses",
+        "errors": [],
+        "data": {}
+      },
+      {
+        "category": "Routing",
+        "test_name": "Rate Limiting",
+        "status": "FAIL",
+        "score": 0,
+        "execution_time_ms": 0.018596649169921875,
+        "details": "Exception: 'AdvancedAILimiter' object has no attribute 'allow_request'",
+        "errors": [
+          "'AdvancedAILimiter' object has no attribute 'allow_request'"
+        ],
+        "data": {}
+      }
+    ],
+    "Processing": [
+      {
+        "category": "Processing",
+        "test_name": "Unified Brain Consistency",
+        "status": "PASS",
+        "score": 100,
+        "execution_time_ms": 5827.4993896484375,
+        "details": "Chat and expense endpoints using same processor",
+        "errors": [],
+        "data": {}
+      },
+      {
+        "category": "Processing",
+        "test_name": "AI Resilience",
+        "status": "PASS",
+        "score": 100,
+        "execution_time_ms": 3405.0190448760986,
+        "details": "AI adapter and fallback systems",
+        "errors": [],
+        "data": {}
+      },
+      {
+        "category": "Processing",
+        "test_name": "Response Consistency",
+        "status": "PASS",
+        "score": 100.0,
+        "execution_time_ms": 15091.127634048462,
+        "details": "4/4 responses consistent",
+        "errors": [],
+        "data": {}
+      }
+    ],
+    "Storage": [
+      {
+        "category": "Storage",
+        "test_name": "Database Operations",
+        "status": "FAIL",
+        "score": 50,
+        "execution_time_ms": 16656.95357322693,
+        "details": "Save and retrieve operations",
+        "errors": [],
+        "data": {}
+      },
+      {
+        "category": "Storage",
+        "test_name": "Transaction Integrity",
+        "status": "FAIL",
+        "score": 50,
+        "execution_time_ms": 0.20575523376464844,
+        "details": "ACID compliance and rollback safety",
+        "errors": [],
+        "data": {}
+      },
+      {
+        "category": "Storage",
+        "test_name": "Schema Validation",
+        "status": "FAIL",
+        "score": 0.0,
+        "execution_time_ms": 0.12087821960449219,
+        "details": "0/3 critical tables verified",
+        "errors": [],
+        "data": {}
+      }
+    ],
+    "Data Integrity": [
+      {
+        "category": "Data Integrity",
+        "test_name": "User Isolation",
+        "status": "FAIL",
+        "score": 0,
+        "execution_time_ms": 1104.2678356170654,
+        "details": "Exception: (psycopg2.errors.UndefinedColumn) column expenses.nl_confidence does not exist\nLINE 1: ...es.corrected_reason AS expenses_corrected_reason, expenses.n...\n                                                             ^\n\n[SQL: SELECT expenses.id AS expenses_id, expenses.user_id AS expenses_user_id, expenses.user_id_hash AS expenses_user_id_hash, expenses.description AS expenses_description, expenses.amount AS expenses_amount, expenses.category AS expenses_category, expenses.currency AS expenses_currency, expenses.date AS expenses_date, expenses.time AS expenses_time, expenses.month AS expenses_month, expenses.unique_id AS expenses_unique_id, expenses.created_at AS expenses_created_at, expenses.platform AS expenses_platform, expenses.original_message AS expenses_original_message, expenses.ai_insights AS expenses_ai_insights, expenses.mid AS expenses_mid, expenses.superseded_by AS expenses_superseded_by, expenses.corrected_at AS expenses_corrected_at, expenses.corrected_reason AS expenses_corrected_reason, expenses.nl_confidence AS expenses_nl_confidence, expenses.nl_language AS expenses_nl_language, expenses.needed_clarification AS expenses_needed_clarification \nFROM expenses \nWHERE expenses.user_id_hash = %(user_id_hash_1)s]\n[parameters: {'user_id_hash_1': '0dbd93ab7ea770e4bdbd1b650757d015602dbb9d78824437cdcf73b2091c8daf'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+        "errors": [
+          "(psycopg2.errors.UndefinedColumn) column expenses.nl_confidence does not exist\nLINE 1: ...es.corrected_reason AS expenses_corrected_reason, expenses.n...\n                                                             ^\n\n[SQL: SELECT expenses.id AS expenses_id, expenses.user_id AS expenses_user_id, expenses.user_id_hash AS expenses_user_id_hash, expenses.description AS expenses_description, expenses.amount AS expenses_amount, expenses.category AS expenses_category, expenses.currency AS expenses_currency, expenses.date AS expenses_date, expenses.time AS expenses_time, expenses.month AS expenses_month, expenses.unique_id AS expenses_unique_id, expenses.created_at AS expenses_created_at, expenses.platform AS expenses_platform, expenses.original_message AS expenses_original_message, expenses.ai_insights AS expenses_ai_insights, expenses.mid AS expenses_mid, expenses.superseded_by AS expenses_superseded_by, expenses.corrected_at AS expenses_corrected_at, expenses.corrected_reason AS expenses_corrected_reason, expenses.nl_confidence AS expenses_nl_confidence, expenses.nl_language AS expenses_nl_language, expenses.needed_clarification AS expenses_needed_clarification \nFROM expenses \nWHERE expenses.user_id_hash = %(user_id_hash_1)s]\n[parameters: {'user_id_hash_1': '0dbd93ab7ea770e4bdbd1b650757d015602dbb9d78824437cdcf73b2091c8daf'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+        ],
+        "data": {}
+      },
+      {
+        "category": "Data Integrity",
+        "test_name": "Hash Consistency",
+        "status": "PASS",
+        "score": 100,
+        "execution_time_ms": 0.03647804260253906,
+        "details": "SHA-256 determinism and idempotency",
+        "errors": [],
+        "data": {}
+      },
+      {
+        "category": "Data Integrity",
+        "test_name": "Cross-Contamination Prevention",
+        "status": "PASS",
+        "score": 95,
+        "execution_time_ms": 6.629705429077148,
+        "details": "Deep user isolation verification",
+        "errors": [],
+        "data": {}
+      }
+    ],
+    "User Categories": [
+      {
+        "category": "User Categories",
+        "test_name": "Existing Users",
+        "status": "FAIL",
+        "score": 0,
+        "execution_time_ms": 1121.450662612915,
+        "details": "Exception: (psycopg2.errors.UndefinedColumn) column expenses.nl_confidence does not exist\nLINE 1: ...es.corrected_reason AS expenses_corrected_reason, expenses.n...\n                                                             ^\n\n[SQL: SELECT expenses.id AS expenses_id, expenses.user_id AS expenses_user_id, expenses.user_id_hash AS expenses_user_id_hash, expenses.description AS expenses_description, expenses.amount AS expenses_amount, expenses.category AS expenses_category, expenses.currency AS expenses_currency, expenses.date AS expenses_date, expenses.time AS expenses_time, expenses.month AS expenses_month, expenses.unique_id AS expenses_unique_id, expenses.created_at AS expenses_created_at, expenses.platform AS expenses_platform, expenses.original_message AS expenses_original_message, expenses.ai_insights AS expenses_ai_insights, expenses.mid AS expenses_mid, expenses.superseded_by AS expenses_superseded_by, expenses.corrected_at AS expenses_corrected_at, expenses.corrected_reason AS expenses_corrected_reason, expenses.nl_confidence AS expenses_nl_confidence, expenses.nl_language AS expenses_nl_language, expenses.needed_clarification AS expenses_needed_clarification \nFROM expenses \nWHERE expenses.user_id_hash IS NULL \n LIMIT %(param_1)s]\n[parameters: {'param_1': 10}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+        "errors": [
+          "(psycopg2.errors.UndefinedColumn) column expenses.nl_confidence does not exist\nLINE 1: ...es.corrected_reason AS expenses_corrected_reason, expenses.n...\n                                                             ^\n\n[SQL: SELECT expenses.id AS expenses_id, expenses.user_id AS expenses_user_id, expenses.user_id_hash AS expenses_user_id_hash, expenses.description AS expenses_description, expenses.amount AS expenses_amount, expenses.category AS expenses_category, expenses.currency AS expenses_currency, expenses.date AS expenses_date, expenses.time AS expenses_time, expenses.month AS expenses_month, expenses.unique_id AS expenses_unique_id, expenses.created_at AS expenses_created_at, expenses.platform AS expenses_platform, expenses.original_message AS expenses_original_message, expenses.ai_insights AS expenses_ai_insights, expenses.mid AS expenses_mid, expenses.superseded_by AS expenses_superseded_by, expenses.corrected_at AS expenses_corrected_at, expenses.corrected_reason AS expenses_corrected_reason, expenses.nl_confidence AS expenses_nl_confidence, expenses.nl_language AS expenses_nl_language, expenses.needed_clarification AS expenses_needed_clarification \nFROM expenses \nWHERE expenses.user_id_hash IS NULL \n LIMIT %(param_1)s]\n[parameters: {'param_1': 10}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+        ],
+        "data": {}
+      },
+      {
+        "category": "User Categories",
+        "test_name": "New Users",
+        "status": "PASS",
+        "score": 100,
+        "execution_time_ms": 5060.399293899536,
+        "details": "Onboarding and first expense flow",
+        "errors": [],
+        "data": {}
+      },
+      {
+        "category": "User Categories",
+        "test_name": "Future Users",
+        "status": "WARNING",
+        "score": 0,
+        "execution_time_ms": 875.8466243743896,
+        "details": "Schema compatibility and extensibility",
+        "errors": [],
+        "data": {}
+      }
+    ]
+  },
+  "critical_issues": [
+    "Database query failed: (psycopg2.errors.UndefinedColumn) column expenses.nl_confidence does not exist\nLINE 1: ...es.corrected_reason AS expenses_corrected_reason, expenses.n...\n                                                             ^\n\n[SQL: SELECT expenses.id AS expenses_id, expenses.user_id AS expenses_user_id, expenses.user_id_hash AS expenses_user_id_hash, expenses.description AS expenses_description, expenses.amount AS expenses_amount, expenses.category AS expenses_category, expenses.currency AS expenses_currency, expenses.date AS expenses_date, expenses.time AS expenses_time, expenses.month AS expenses_month, expenses.unique_id AS expenses_unique_id, expenses.created_at AS expenses_created_at, expenses.platform AS expenses_platform, expenses.original_message AS expenses_original_message, expenses.ai_insights AS expenses_ai_insights, expenses.mid AS expenses_mid, expenses.superseded_by AS expenses_superseded_by, expenses.corrected_at AS expenses_corrected_at, expenses.corrected_reason AS expenses_corrected_reason, expenses.nl_confidence AS expenses_nl_confidence, expenses.nl_language AS expenses_nl_language, expenses.needed_clarification AS expenses_needed_clarification \nFROM expenses \nWHERE expenses.user_id_hash = %(user_id_hash_1)s \n LIMIT %(param_1)s]\n[parameters: {'user_id_hash_1': 'bf64ff54e0f773fd3fd1a5e1cd3227a948784925315d3d597fcb80c49ced4ee5', 'param_1': 1}]\n(Background on this error at: https://sqlalche.me/e/20/f405)",
+    "Database connection failed: Textual SQL expression 'SELECT 1' should be explicitly declared as text('SELECT 1')",
+    "Table users not accessible",
+    "Table expenses not accessible",
+    "Table monthly_summaries not accessible",
+    "Schema compatibility issue: (psycopg2.errors.UndefinedColumn) column expenses.nl_confidence does not exist\nLINE 1: ...es.corrected_reason AS expenses_corrected_reason, expenses.n...\n                                                             ^\n\n[SQL: SELECT expenses.id AS expenses_id, expenses.user_id AS expenses_user_id, expenses.user_id_hash AS expenses_user_id_hash, expenses.description AS expenses_description, expenses.amount AS expenses_amount, expenses.category AS expenses_category, expenses.currency AS expenses_currency, expenses.date AS expenses_date, expenses.time AS expenses_time, expenses.month AS expenses_month, expenses.unique_id AS expenses_unique_id, expenses.created_at AS expenses_created_at, expenses.platform AS expenses_platform, expenses.original_message AS expenses_original_message, expenses.ai_insights AS expenses_ai_insights, expenses.mid AS expenses_mid, expenses.superseded_by AS expenses_superseded_by, expenses.corrected_at AS expenses_corrected_at, expenses.corrected_reason AS expenses_corrected_reason, expenses.nl_confidence AS expenses_nl_confidence, expenses.nl_language AS expenses_nl_language, expenses.needed_clarification AS expenses_needed_clarification \nFROM expenses \n LIMIT %(param_1)s]\n[parameters: {'param_1': 1}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  ],
+  "deployment_readiness": {
+    "recommendation": "BLOCKED",
+    "requirements_met": false,
+    "zero_critical_failures": false,
+    "all_categories_passing": false,
+    "unified_brain_validated": true
+  }
+}
