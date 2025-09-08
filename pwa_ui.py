@@ -77,10 +77,11 @@ def entries_partial():
     from app import db
     
     try:
-        # Get user ID and hash
+        # Get user ID from header (set by PWA JavaScript)
         user_id = get_user_id()
         if user_id:
             user_hash = psid_hash(user_id) if user_id.startswith('pwa_') else user_id
+            logger.info(f"PWA entries lookup for user {user_hash[:8]}...")
             
             # Query recent expenses for this user
             recent_expenses = db.session.query(Expense)\
@@ -142,8 +143,8 @@ def add_expense():
                 'message': 'Please enter a valid amount'
             }), 400
         
-        # Generate user ID for anonymous PWA users
-        user_id = get_user_id() or f"pwa_user_{int(time.time())}"
+        # Get user ID from header or form data (set by PWA JavaScript)
+        user_id = get_user_id() or request.form.get('user_id') or f"pwa_user_{int(time.time())}"
         user_hash = psid_hash(user_id) if user_id.startswith('pwa_') else user_id
         
         # Generate unique identifiers

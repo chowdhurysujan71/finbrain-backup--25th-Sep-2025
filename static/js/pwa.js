@@ -19,6 +19,7 @@
     }
     
     function initPWA() {
+        initializeUserSession();
         registerServiceWorker();
         setupOfflineDetection();
         setupInstallPrompt();
@@ -26,6 +27,42 @@
         setupPerformanceOptimizations();
         
         console.log('[PWA] FinBrain PWA initialized successfully');
+    }
+    
+    // User Session Management for PWA
+    function initializeUserSession() {
+        // Get or create persistent user ID for anonymous PWA users
+        let userId = localStorage.getItem('finbrain_user_id');
+        if (!userId) {
+            userId = `pwa_user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            localStorage.setItem('finbrain_user_id', userId);
+            console.log('[PWA] Created new user ID:', userId);
+        } else {
+            console.log('[PWA] Using existing user ID:', userId);
+        }
+        
+        // Set up HTMX to send user ID with all requests
+        if (typeof htmx !== 'undefined') {
+            document.body.addEventListener('htmx:configRequest', (event) => {
+                event.detail.headers['X-User-ID'] = userId;
+            });
+        }
+        
+        // Also set up for regular form submissions
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            // Add user ID as hidden field
+            if (!form.querySelector('input[name="user_id"]')) {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'user_id';
+                hiddenInput.value = userId;
+                form.appendChild(hiddenInput);
+            }
+        });
+        
+        // Store user ID globally for other functions to use
+        window.finbrainUserId = userId;
     }
     
     // Service Worker Registration
