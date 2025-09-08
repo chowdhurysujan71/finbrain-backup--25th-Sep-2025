@@ -1,0 +1,246 @@
+You are a senior platform+application auditor. Audit this repository end-to-end and produce a precise, actionable report.
+
+Objectives
+
+Map the current architecture: services, frameworks, entry points, routes, background jobs, queues, schedulers, third-party APIs.
+
+Document database: engines, schemas, tables, indexes, FKs, sequences, migrations, ORM models, data volumes, bloat, unsafe queries.
+
+Inventory storage: local folders, upload paths, temp dirs, caching layers, static assets, and any “attached_assets/” or user content.
+
+Identify data flow: request → controller → service → DB/storage → response; note the canonical “data path(s)” to keep and “paths to avoid.”
+
+Detect waste: dead code, duplicate modules, unused assets, oversized binaries, obsolete experiments, sample files, vendored libs.
+
+Assess config & secrets: .env, Replit secrets, hard-coded tokens, unsafe logging of PII, missing CSRF/CORS/HTTPS guards.
+
+Evaluate frontend/PWA: build pipeline, service worker, caching, chat UI JS (fetch/headers), user ID persistence, error handling.
+
+Check operability: health/readiness, logging, rate limits, error tracking, timeouts, retry/backoff, environment separation.
+
+Output a clear, prioritized action plan with red/amber/green risks, quick wins, and a 7-day cleanup plan.
+
+Context hints (bias your search)
+
+Likely Flask app with Blueprints (e.g., pwa_ui.py) and route /ai-chat.
+
+Postgres (Neon) via an ORM or direct SQL.
+
+PWA UI templates with HTMX for forms; chat uses JS fetch with X-User-ID.
+
+Local user assets folder e.g., attached_assets/ (possible waste).
+
+Rate limiter present; background tasks possibly inline (no queue).
+
+Replit environment; repo size may be ~600MB with caches.
+
+What to examine (systematically)
+
+A) Topology & Entry Points
+
+Find Flask app factory, app = Flask(...), and all register_blueprint calls.
+
+List all routes with decorators: @app.route, @bp.route, methods, auth/csrf status.
+
+Note URL prefixes, middleware, request lifecycle hooks (before_request, etc.).
+
+B) Database & Schema
+
+Locate DB config, pool settings, migration tool (Alembic?), ORM models.
+
+Enumerate tables: columns, types, PKs, FKs, indexes, row counts (estimated if offline).
+
+Map model↔table alignment; flag drift (models without tables / tables without models).
+
+Identify hot paths: inserts/updates for expenses, chat logs, users, sessions.
+
+Flag anti-patterns: unindexed filters, N+1 joins, SELECT *, LIKE '%...' on large cols.
+
+C) Storage & Filesystem
+
+List folders that persist data: uploads, exports, cache, temp.
+
+Measure sizes; flag files >10MB in repo (images, models, node_modules, caches, venvs).
+
+Identify any non-essential folders tracked by git (e.g., .cache, .mypy_cache, .pythonlibs, build artifacts).
+
+Call out canonical data path(s) to keep vs paths to avoid in production.
+
+D) Frontend (PWA + Chat)
+
+Inspect templates/chat.html, service worker, manifest, caching strategy.
+
+Trace chat flow: input → fetch('/ai-chat') → headers/body → response parse.
+
+Verify UID creation and persistence (localStorage vs session vs cookie); confirm header X-User-ID in requests.
+
+Surface JS errors: missing Content-Type, JSON parse, silent catches.
+
+Confirm HTMX form endpoints and how they differ from chat.
+
+E) Config, Secrets, Security
+
+Find .env, os.environ usage, default fallbacks.
+
+Spot hard-coded API keys/tokens.
+
+Check CSRF/CORS for JSON endpoints; note if /ai-chat is exempted or needs token.
+
+HTTPS assumptions, cookie flags, PII logging, auth gaps.
+
+F) Ops & Reliability
+
+Health checks (/health, /readyz), structured logging, Sentry integration.
+
+Timeouts for outbound calls (AI providers), retries/backoff, circuit breakers.
+
+Rate limiting semantics (global vs per-user).
+
+Background work: any queues (RQ/Celery) or inline blocking work on request thread.
+
+G) Waste & Dead Code
+
+Orphaned modules, unused blueprints, demo scripts, duplicated helpers.
+
+Large binaries, model files, images, videos that aren’t required.
+
+Redundant dependencies in requirements.txt.
+
+H) Dependencies
+
+Enumerate libs and versions; flag heavy/obsolete packages, and security risks.
+
+Note any AI SDKs and their usage points.
+
+Concrete outputs (use this exact structure)
+
+Produce two artifacts in the response:
+
+Executive Summary (Markdown)
+
+System snapshot diagram (ASCII), 6–10 lines.
+
+Bullet list of top 10 findings with RAG status.
+
+“Keep vs Avoid” data paths.
+
+7-day cleanup plan (by day, with owners as TBD).
+
+Technical Appendix (JSON)
+A single JSON object with these keys (fill comprehensively):
+
+{
+  "architecture": {
+    "framework": "Flask",
+    "entry_points": ["<files>"],
+    "blueprints": [{"name": "", "prefix": "", "routes":[{"path":"","methods":["GET"],"auth":"none/cookie/token","csrf":"enabled/exempt"}]}],
+    "background_jobs": [],
+    "external_apis": []
+  },
+  "database": {
+    "engine": "postgres",
+    "dsn_location": "<file/env>",
+    "pooling": {"enabled": true, "params": {}},
+    "migrations": {"tool": "", "status": "clean/drift"},
+    "tables": [{"name":"","rows_est":0,"columns":[{"name":"","type":"","nullable":true,"default":null}],"primary_key":[""],"foreign_keys":[{"col":"","ref_table":"","ref_col":""}],"indexes":[{"cols":[""],"unique":false}]}],
+    "hot_queries": [{"file":"","line":0,"sql_snippet":"","risk":"unindexed/filter/like"}]
+  },
+  "storage": {
+    "canonical_data_paths": ["uploads/...", "attached_assets/..."],
+    "temp_cache_paths": [".cache", ".mypy_cache", ".pythonlibs"],
+    "static_assets": ["static/..."],
+    "oversized_repo_items": [{"path":"","size_mb":0,"safe_to_remove":true}]
+  },
+  "frontend_pwa": {
+    "manifest": "<path>",
+    "service_worker": {"path":"", "cache_strategy":"", "offline_capabilities":true},
+    "chat_ui": {"file":"templates/chat.html","user_id_source":"localStorage|session|cookie","request_headers":["Content-Type","X-User-ID"],"error_handling":"explicit/implicit"}
+  },
+  "config_security": {
+    "env_files": [".env", ".replit"],
+    "secrets": [{"file":"","line":0,"key":"", "exposed":true}],
+    "cors": {"enabled": false, "origins": []},
+    "csrf": {"json_endpoints_exempt":["/ai-chat"], "risk":"medium"},
+    "logging_pii": {"found": false, "locations":[]}
+  },
+  "ops_reliability": {
+    "health_endpoints": ["/health","/readyz"],
+    "error_tracking": {"sentry_dsn_found": false},
+    "timeouts_retries": [{"lib":"", "timeout_s":0, "retry": "none"}],
+    "rate_limits": {"global":"","per_user":""}
+  },
+  "waste_and_deadcode": {
+    "unused_modules": ["..."],
+    "duplicate_files": ["..."],
+    "nonessential_tracked_dirs": [".cache",".mypy_cache",".pythonlibs"],
+    "actionable_deletions": [{"path":"","reason":"","impact":"low/med/high"}]
+  },
+  "dependencies": {
+    "requirements": [{"name":"","version":"","risk":"obsolete/heavy/vulnerable"}],
+    "notable": ["flask","htmx","psycopg2/asyncpg","openai/gemini sdk?"]
+  },
+  "risks": [{"area":"db/indexing","severity":"red","evidence":"...","fix":"..."}],
+  "action_plan_7d": [{"day":1,"task":"","owner":"TBD","success_criteria":""}]
+}
+
+Methods you should use (inside this repo)
+
+Routes & blueprints: ripgrep @app.route|@bp.route|register_blueprint across *.py.
+
+DB models: scan models/, db.py, ORM Base metadata; parse Alembic versions/.
+
+Queries: grep session.query|execute|text(; extract SQL strings and where clauses.
+
+Storage: list folders at root; check attached_assets/, uploads/, static/, tmp/.
+
+Sizes: report top 50 largest files with paths.
+
+Secrets: look for API_KEY=, Bearer , sk-, AIza, ghp_, etc.
+
+Frontend: inspect templates/, static/js/, service worker, manifest, fetch('/ai-chat') usage.
+
+Config: enumerate .env*, replit.nix, .replit, Procfile, Dockerfile, gunicorn configs.
+
+Logging/health: find /health|/readyz, SENTRY_DSN, logging.basicConfig, custom loggers.
+
+Heuristics & thresholds
+
+Flag files > 10 MB or caches tracked by git as waste unless essential.
+
+Flag JSON endpoints without CSRF exemption or token mechanism as amber.
+
+Flag unindexed columns used in filters on tables with > 50k rows as red.
+
+Flag any hard-coded secrets as red.
+
+Prefer one canonical user ID source (localStorage + X-User-ID) across app.
+
+Prefer one canonical asset path; avoid writing to repo in production.
+
+Deliverable rules
+
+Be specific: include file paths and line numbers where possible.
+
+No hand-waving; if you can’t confirm, say “unknown” and suggest a probe.
+
+Keep the Executive Summary ≤ 2 pages; keep Technical Appendix valid JSON.
+
+Propose exact one-line fixes where possible (e.g., “CREATE INDEX …”).
+
+End with a short checklist of “Run these now” commands.
+
+“Run these now” checklist (fill with repo-specific commands)
+
+Populate with safe commands like:
+
+rg -n "@(app|bp)\\.route|register_blueprint" -g "*.py"
+
+rg -n "(session\\.query|execute\\(|text\\()" -g "*.py"
+
+rg -n "(API_KEY|sk-|AIza|ghp_)"
+
+du -ah . | sort -h | tail -n 50
+
+rg -n "fetch\\('/ai-chat'|X-User-ID|Content-Type" -g "templates/**|static/**|**/*.js"
+
+If Alembic exists: list heads, check for drift.

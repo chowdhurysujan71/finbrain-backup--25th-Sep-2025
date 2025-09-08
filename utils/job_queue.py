@@ -55,15 +55,25 @@ class JobQueue:
         if not redis_url:
             raise ValueError("REDIS_URL environment variable required")
         
-        # Handle different Redis URL formats
-        if not redis_url.startswith(('redis://', 'rediss://', 'unix://')):
+        # Fix malformed Redis URLs
+        if redis_url == "rediss:6379":
+            logger.warning("Fixing malformed REDIS_URL: rediss:6379 -> redis://localhost:6379")
+            redis_url = "redis://localhost:6379"
+        elif redis_url.startswith("rediss:") and "://" not in redis_url:
+            # Fix incomplete rediss URLs
+            redis_url = redis_url.replace("rediss:", "redis://localhost:")
+        elif not redis_url.startswith(('redis://', 'rediss://', 'unix://')):
             # Assume it's a plain connection string, prepend redis://
             redis_url = f"redis://{redis_url}"
         
-        self.redis_client = redis.from_url(redis_url, decode_responses=True)
-        self.redis_client.ping()
-        self.redis_available = True
-        logger.info("Job queue initialized with Redis backend")
+        try:
+            self.redis_client = redis.from_url(redis_url, decode_responses=True, socket_connect_timeout=5)
+            self.redis_client.ping()
+            self.redis_available = True
+            logger.info(f"Job queue initialized with Redis backend at {redis_url.split('@')[-1]}")
+        except Exception as e:
+            logger.error(f"Failed to connect to Redis at {redis_url}: {e}")
+            raise
     
     def enqueue(self, job_type: str, payload: Dict[str, Any], user_id: str, 
                 idempotency_key: str) -> str:
