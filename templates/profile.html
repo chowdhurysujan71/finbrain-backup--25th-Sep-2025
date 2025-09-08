@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - FinBrain{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Hero Section -->
+    <header class="hero-section">
+        <h1 class="hero-title">Your Profile</h1>
+        <p class="hero-subtitle">Account settings and preferences</p>
+    </header>
+
+    <!-- User Info Card -->
+    <section class="card profile-card" aria-labelledby="user-info-title">
+        <h2 id="user-info-title" class="card-title">Account Information</h2>
+        
+        <div class="profile-info">
+            <div class="profile-avatar">
+                <div class="avatar-circle">
+                    <span class="avatar-icon">👤</span>
+                </div>
+            </div>
+            
+            <div class="profile-details">
+                {% if user_id %}
+                    <div class="info-item">
+                        <label class="info-label">User ID</label>
+                        <span class="info-value">{{ user_id[:8] }}...{{ user_id[-4:] }}</span>
+                    </div>
+                {% else %}
+                    <div class="info-item">
+                        <label class="info-label">Status</label>
+                        <span class="info-value">Anonymous User</span>
+                    </div>
+                {% endif %}
+                
+                <div class="info-item">
+                    <label class="info-label">Member Since</label>
+                    <span class="info-value">September 2025</span>
+                </div>
+                
+                <div class="info-item">
+                    <label class="info-label">App Version</label>
+                    <span class="info-value">Phase D - PWA Shell</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Stats -->
+    <section class="card stats-card" aria-labelledby="stats-title">
+        <h2 id="stats-title" class="card-title">Your Activity</h2>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-value">42</div>
+                <div class="stat-label">Expenses Logged</div>
+            </div>
+            
+            <div class="stat-item">
+                <div class="stat-value">7</div>
+                <div class="stat-label">Days Active</div>
+            </div>
+            
+            <div class="stat-item">
+                <div class="stat-value">৳12.5K</div>
+                <div class="stat-label">Total Tracked</div>
+            </div>
+            
+            <div class="stat-item">
+                <div class="stat-value">6</div>
+                <div class="stat-label">Categories Used</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Settings Options -->
+    <section class="settings-section" aria-labelledby="settings-title">
+        <h2 id="settings-title" class="section-title">Settings</h2>
+        
+        <div class="settings-list">
+            <button class="setting-item" onclick="showToast('Notification settings coming soon!', 'info')">
+                <div class="setting-icon">🔔</div>
+                <div class="setting-content">
+                    <span class="setting-title">Notifications</span>
+                    <span class="setting-description">Manage alerts and reminders</span>
+                </div>
+                <div class="setting-action">›</div>
+            </button>
+
+            <button class="setting-item" onclick="showToast('Currency settings coming soon!', 'info')">
+                <div class="setting-icon">💱</div>
+                <div class="setting-content">
+                    <span class="setting-title">Currency</span>
+                    <span class="setting-description">৳ Bangladeshi Taka</span>
+                </div>
+                <div class="setting-action">›</div>
+            </button>
+
+            <button class="setting-item" onclick="showToast('Theme options coming soon!', 'info')">
+                <div class="setting-icon">🎨</div>
+                <div class="setting-content">
+                    <span class="setting-title">Appearance</span>
+                    <span class="setting-description">Light theme</span>
+                </div>
+                <div class="setting-action">›</div>
+            </button>
+
+            <button class="setting-item" onclick="showToast('Data export coming soon!', 'info')">
+                <div class="setting-icon">📊</div>
+                <div class="setting-content">
+                    <span class="setting-title">Export Data</span>
+                    <span class="setting-description">Download your expense history</span>
+                </div>
+                <div class="setting-action">›</div>
+            </button>
+        </div>
+    </section>
+
+    <!-- App Info -->
+    <section class="card app-info-section" aria-labelledby="app-info-title">
+        <h2 id="app-info-title" class="card-title">About FinBrain</h2>
+        
+        <div class="app-info-list">
+            <div class="info-row">
+                <span class="info-label">Version</span>
+                <span class="info-value">PWA v1.0.0</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Last Updated</span>
+                <span class="info-value">September 2025</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Platform</span>
+                <span class="info-value">Progressive Web App</span>
+            </div>
+        </div>
+
+        <div class="app-links">
+            <button class="link-button" onclick="showToast('Privacy policy coming soon!', 'info')">
+                Privacy Policy
+            </button>
+            
+            <button class="link-button" onclick="showToast('Terms of service coming soon!', 'info')">
+                Terms of Service
+            </button>
+            
+            <button class="link-button" onclick="showToast('Help center coming soon!', 'info')">
+                Help & Support
+            </button>
+        </div>
+    </section>
+
+    <!-- PWA Install Status -->
+    <section class="card pwa-status-section" aria-labelledby="pwa-status-title">
+        <h2 id="pwa-status-title" class="card-title">App Status</h2>
+        
+        <div class="pwa-status">
+            <div class="status-indicator">
+                <div class="status-dot status-online"></div>
+                <span class="status-text">Online & Synced</span>
+            </div>
+            
+            <div class="pwa-info">
+                <p class="pwa-description">
+                    FinBrain is running as a Progressive Web App. 
+                    <span id="install-status">Install for better performance.</span>
+                </p>
+                
+                <button id="pwa-install-btn" class="btn btn-primary btn-sm" onclick="triggerPWAInstall()">
+                    Install App
+                </button>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+// Check if app is installed
+if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+    document.getElementById('install-status').textContent = 'App is installed and running standalone.';
+    document.getElementById('pwa-install-btn').style.display = 'none';
+}
+
+function triggerPWAInstall() {
+    if (window.deferredPrompt) {
+        window.deferredPrompt.prompt();
+        window.deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                showToast('App will be installed shortly!', 'success');
+            }
+            window.deferredPrompt = null;
+        });
+    } else {
+        showToast('Install FinBrain from your browser menu for the best experience!', 'info');
+    }
+}
+
+// Toast helper function
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span class="toast-message">${message}</span>
+            <button class="toast-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+        </div>
+    `;
+    
+    document.getElementById('toast-container').appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

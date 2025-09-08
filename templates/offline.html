@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Offline - FinBrain{% endblock %}
+
+{% block content %}
+<div class="page-container offline-page">
+    <!-- Offline Hero -->
+    <header class="offline-hero">
+        <div class="offline-icon">📶</div>
+        <h1 class="offline-title">You're offline</h1>
+        <p class="offline-subtitle">No internet connection detected</p>
+    </header>
+
+    <!-- Offline Features -->
+    <section class="card offline-features" aria-labelledby="features-title">
+        <h2 id="features-title" class="card-title">What you can do offline</h2>
+        
+        <div class="feature-list">
+            <div class="feature-item">
+                <div class="feature-icon">👀</div>
+                <div class="feature-content">
+                    <h3 class="feature-title">View cached data</h3>
+                    <p class="feature-description">Access your recently viewed expenses and reports</p>
+                </div>
+            </div>
+
+            <div class="feature-item">
+                <div class="feature-icon">📝</div>
+                <div class="feature-content">
+                    <h3 class="feature-title">Draft expenses</h3>
+                    <p class="feature-description">Create expense entries that will sync when you're back online</p>
+                </div>
+            </div>
+
+            <div class="feature-item">
+                <div class="feature-icon">📊</div>
+                <div class="feature-content">
+                    <h3 class="feature-title">Review insights</h3>
+                    <p class="feature-description">Browse your cached financial insights and trends</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Offline Actions -->
+    <section class="offline-actions">
+        <button class="btn btn-primary btn-full" onclick="retryConnection()">
+            <span class="btn-icon">🔄</span>
+            Try Again
+        </button>
+        
+        <button class="btn btn-neutral btn-full" onclick="goToCachedChat()">
+            <span class="btn-icon">💬</span>
+            Open Chat (Offline Mode)
+        </button>
+    </section>
+
+    <!-- Connection Status -->
+    <section class="card connection-status" aria-labelledby="status-title">
+        <h2 id="status-title" class="card-title">Connection Status</h2>
+        
+        <div class="status-info">
+            <div class="status-indicator">
+                <div class="status-dot status-offline"></div>
+                <span class="status-text">Offline</span>
+            </div>
+            
+            <p class="status-description">
+                FinBrain will automatically sync your data when your connection is restored.
+                Any expenses you log offline will be saved and uploaded later.
+            </p>
+        </div>
+    </section>
+
+    <!-- Tips for Offline Use -->
+    <section class="card offline-tips" aria-labelledby="tips-title">
+        <h2 id="tips-title" class="card-title">Offline Tips</h2>
+        
+        <div class="tips-list">
+            <div class="tip-item">
+                <div class="tip-icon">💡</div>
+                <span class="tip-text">Use the app normally - we'll sync when you're back online</span>
+            </div>
+            
+            <div class="tip-item">
+                <div class="tip-icon">🔄</div>
+                <span class="tip-text">Your offline changes will be automatically saved</span>
+            </div>
+            
+            <div class="tip-item">
+                <div class="tip-icon">📱</div>
+                <span class="tip-text">Install the app for better offline performance</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Limited Navigation -->
+    <nav class="offline-nav" role="navigation" aria-label="Offline navigation">
+        <a href="/chat" class="offline-nav-item">
+            <div class="nav-icon">💬</div>
+            <span class="nav-label">Chat (Cached)</span>
+        </a>
+        
+        <a href="/report" class="offline-nav-item">
+            <div class="nav-icon">📊</div>
+            <span class="nav-label">Report (Cached)</span>
+        </a>
+        
+        <a href="/profile" class="offline-nav-item">
+            <div class="nav-icon">👤</div>
+            <span class="nav-label">Profile</span>
+        </a>
+    </nav>
+</div>
+
+<script>
+// Auto-retry connection
+let retryAttempts = 0;
+const maxRetries = 3;
+
+function retryConnection() {
+    const button = document.querySelector('.btn-primary');
+    const originalText = button.innerHTML;
+    
+    button.innerHTML = '<span class="btn-icon">⏳</span> Checking connection...';
+    button.disabled = true;
+    
+    // Simple connectivity check
+    fetch('/health', { 
+        method: 'HEAD',
+        cache: 'no-cache'
+    })
+    .then(response => {
+        if (response.ok) {
+            showToast('Connection restored! Redirecting...', 'success');
+            setTimeout(() => {
+                window.location.href = '/chat';
+            }, 1000);
+        } else {
+            throw new Error('Still offline');
+        }
+    })
+    .catch(() => {
+        retryAttempts++;
+        button.innerHTML = originalText;
+        button.disabled = false;
+        
+        if (retryAttempts < maxRetries) {
+            showToast('Still offline. Check your internet connection.', 'warning');
+        } else {
+            showToast('Unable to connect. Try again later.', 'error');
+        }
+    });
+}
+
+function goToCachedChat() {
+    // Navigate to chat in offline mode
+    window.location.href = '/chat';
+}
+
+// Listen for online events
+window.addEventListener('online', function() {
+    showToast('Connection restored! Syncing data...', 'success');
+    setTimeout(() => {
+        window.location.href = '/chat';
+    }, 1500);
+});
+
+// Toast helper function
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span class="toast-message">${message}</span>
+            <button class="toast-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+        </div>
+    `;
+    
+    document.getElementById('toast-container').appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 5000);
+}
+
+// Auto-check connection every 30 seconds
+setInterval(() => {
+    if (navigator.onLine) {
+        fetch('/health', { method: 'HEAD', cache: 'no-cache' })
+        .then(response => {
+            if (response.ok) {
+                window.location.href = '/chat';
+            }
+        })
+        .catch(() => {
+            // Still offline, continue
+        });
+    }
+}, 30000);
+</script>
+{% endblock %}

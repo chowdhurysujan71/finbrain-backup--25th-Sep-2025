@@ -1,0 +1,150 @@
+<!-- Toast Notification Template -->
+<div class="toast toast-{{ type or 'info' }}" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-content">
+        {% if icon %}
+            <span class="toast-icon">{{ icon }}</span>
+        {% endif %}
+        
+        <span class="toast-message">{{ message }}</span>
+        
+        {% if dismissible != false %}
+            <button class="toast-close" 
+                    onclick="this.parentElement.parentElement.remove()"
+                    aria-label="Close notification">
+                &times;
+            </button>
+        {% endif %}
+    </div>
+    
+    {% if progress %}
+        <div class="toast-progress">
+            <div class="toast-progress-bar" style="width: {{ progress }}%"></div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Toast JavaScript Helper (can be included inline or in main JS) -->
+<script>
+// Global toast function for use across all pages
+window.showToast = function(message, type = 'info', options = {}) {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    // Set up ARIA attributes
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    // Build toast content
+    let toastHTML = '<div class="toast-content">';
+    
+    // Add icon if specified
+    if (options.icon) {
+        toastHTML += `<span class="toast-icon">${options.icon}</span>`;
+    } else {
+        // Default icons based on type
+        const defaultIcons = {
+            'success': '✅',
+            'error': '❌',
+            'warning': '⚠️',
+            'info': 'ℹ️'
+        };
+        if (defaultIcons[type]) {
+            toastHTML += `<span class="toast-icon">${defaultIcons[type]}</span>`;
+        }
+    }
+    
+    // Add message
+    toastHTML += `<span class="toast-message">${message}</span>`;
+    
+    // Add close button if dismissible
+    if (options.dismissible !== false) {
+        toastHTML += `
+            <button class="toast-close" 
+                    onclick="this.parentElement.parentElement.remove()"
+                    aria-label="Close notification">
+                &times;
+            </button>
+        `;
+    }
+    
+    toastHTML += '</div>';
+    
+    // Add progress bar if specified
+    if (options.progress !== undefined) {
+        toastHTML += `
+            <div class="toast-progress">
+                <div class="toast-progress-bar" style="width: ${options.progress}%"></div>
+            </div>
+        `;
+    }
+    
+    toast.innerHTML = toastHTML;
+    
+    // Get or create toast container
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        container.setAttribute('aria-live', 'polite');
+        container.setAttribute('aria-atomic', 'true');
+        document.body.appendChild(container);
+    }
+    
+    // Add toast to container
+    container.appendChild(toast);
+    
+    // Auto-remove after specified duration (default 5 seconds)
+    const duration = options.duration !== undefined ? options.duration : 5000;
+    if (duration > 0) {
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }
+        }, duration);
+    }
+    
+    // Add entrance animation
+    setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(0)';
+    }, 10);
+    
+    return toast;
+};
+
+// Toast queue management for multiple toasts
+window.toastQueue = {
+    toasts: [],
+    maxToasts: 3,
+    
+    add: function(message, type, options) {
+        const toast = showToast(message, type, options);
+        this.toasts.push(toast);
+        
+        // Remove oldest toast if we exceed max
+        if (this.toasts.length > this.maxToasts) {
+            const oldestToast = this.toasts.shift();
+            if (oldestToast.parentElement) {
+                oldestToast.remove();
+            }
+        }
+        
+        return toast;
+    },
+    
+    clear: function() {
+        this.toasts.forEach(toast => {
+            if (toast.parentElement) {
+                toast.remove();
+            }
+        });
+        this.toasts = [];
+    }
+};
+</script>

@@ -1,0 +1,152 @@
+<!-- Recent Entries Partial for HTMX -->
+{% if entries and entries|length > 0 %}
+    <div class="entries-list">
+        {% for entry in entries %}
+            <div class="entry-item" data-entry-id="{{ entry.id }}">
+                <div class="entry-main">
+                    <div class="entry-category">
+                        {% if entry.category == 'food' %}🍽️
+                        {% elif entry.category == 'transport' %}🚗
+                        {% elif entry.category == 'shopping' %}🛍️
+                        {% elif entry.category == 'bills' %}💡
+                        {% elif entry.category == 'entertainment' %}🎬
+                        {% elif entry.category == 'health' %}🏥
+                        {% elif entry.category == 'education' %}📚
+                        {% else %}📝
+                        {% endif %}
+                    </div>
+                    
+                    <div class="entry-details">
+                        <div class="entry-description">{{ entry.description or 'Expense' }}</div>
+                        <div class="entry-meta">
+                            <span class="entry-date">{{ entry.date }}</span>
+                            <span class="entry-time">{{ entry.time }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="entry-amount">
+                        <span class="amount-value">৳{{ "%.2f"|format(entry.amount) }}</span>
+                        <span class="amount-category">{{ entry.category|title }}</span>
+                    </div>
+                </div>
+                
+                <!-- Entry Actions (Hidden by default, shown on hover/tap) -->
+                <div class="entry-actions">
+                    <button class="entry-action edit" 
+                            onclick="editEntry({{ entry.id }})"
+                            aria-label="Edit expense">
+                        ✏️
+                    </button>
+                    <button class="entry-action delete" 
+                            onclick="deleteEntry({{ entry.id }})"
+                            aria-label="Delete expense">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Entries Summary -->
+    <div class="entries-summary">
+        <div class="summary-item">
+            <span class="summary-label">Total entries:</span>
+            <span class="summary-value">{{ entries|length }}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">Today's total:</span>
+            <span class="summary-value">৳{{ "%.2f"|format(entries|sum(attribute='amount')) }}</span>
+        </div>
+    </div>
+    
+{% else %}
+    <!-- Empty State -->
+    <div class="entries-empty">
+        <div class="empty-icon">📝</div>
+        <h3 class="empty-title">No expenses yet</h3>
+        <p class="empty-description">
+            Start tracking your spending by adding your first expense above.
+        </p>
+        <button class="btn btn-neutral btn-sm" onclick="focusAmountInput()">
+            Add First Expense
+        </button>
+    </div>
+{% endif %}
+
+<script>
+function editEntry(entryId) {
+    showToast('Edit functionality coming soon!', 'info');
+    // TODO: Implement edit modal or inline editing
+}
+
+function deleteEntry(entryId) {
+    if (confirm('Are you sure you want to delete this expense?')) {
+        // For demo mode, just remove from DOM
+        const entryElement = document.querySelector(`[data-entry-id="${entryId}"]`);
+        if (entryElement) {
+            entryElement.style.opacity = '0.5';
+            showToast('Expense deleted (demo mode)', 'success');
+            
+            setTimeout(() => {
+                entryElement.remove();
+                // Update summary if no entries left
+                const entriesList = document.querySelector('.entries-list');
+                if (entriesList && entriesList.children.length === 0) {
+                    // Replace with empty state
+                    entriesList.parentElement.innerHTML = `
+                        <div class="entries-empty">
+                            <div class="empty-icon">📝</div>
+                            <h3 class="empty-title">No expenses yet</h3>
+                            <p class="empty-description">
+                                Start tracking your spending by adding your first expense above.
+                            </p>
+                            <button class="btn btn-neutral btn-sm" onclick="focusAmountInput()">
+                                Add First Expense
+                            </button>
+                        </div>
+                    `;
+                }
+            }, 300);
+        }
+    }
+}
+
+function focusAmountInput() {
+    const amountInput = document.getElementById('amount');
+    if (amountInput) {
+        amountInput.focus();
+        amountInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+// Touch/hover interactions for entry actions
+document.addEventListener('DOMContentLoaded', function() {
+    const entryItems = document.querySelectorAll('.entry-item');
+    
+    entryItems.forEach(item => {
+        let touchTimer;
+        
+        // Long press for mobile
+        item.addEventListener('touchstart', function(e) {
+            touchTimer = setTimeout(() => {
+                item.classList.add('show-actions');
+            }, 500);
+        });
+        
+        item.addEventListener('touchend', function(e) {
+            clearTimeout(touchTimer);
+        });
+        
+        item.addEventListener('touchmove', function(e) {
+            clearTimeout(touchTimer);
+        });
+        
+        // Click outside to hide actions
+        document.addEventListener('click', function(e) {
+            if (!item.contains(e.target)) {
+                item.classList.remove('show-actions');
+            }
+        });
+    });
+});
+</script>

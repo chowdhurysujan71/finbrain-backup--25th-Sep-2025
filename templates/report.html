@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Report - FinBrain{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Hero Section -->
+    <header class="hero-section">
+        <h1 class="hero-title">Your Money Story</h1>
+        <p class="hero-subtitle">AI-powered insights and spending analysis</p>
+    </header>
+
+    <!-- Summary Cards -->
+    <section class="summary-grid" aria-labelledby="summary-title">
+        <h2 id="summary-title" class="sr-only">Spending Summary</h2>
+        
+        <div class="card summary-card">
+            <div class="summary-header">
+                <h3 class="summary-title">Today</h3>
+                <div class="summary-icon">📅</div>
+            </div>
+            <div class="summary-value">৳450</div>
+            <div class="summary-change positive">+৳50 vs yesterday</div>
+        </div>
+
+        <div class="card summary-card">
+            <div class="summary-header">
+                <h3 class="summary-title">This Week</h3>
+                <div class="summary-icon">📊</div>
+            </div>
+            <div class="summary-value">৳2,340</div>
+            <div class="summary-change negative">-৳120 vs last week</div>
+        </div>
+
+        <div class="card summary-card">
+            <div class="summary-header">
+                <h3 class="summary-title">This Month</h3>
+                <div class="summary-icon">📈</div>
+            </div>
+            <div class="summary-value">৳8,750</div>
+            <div class="summary-change neutral">On track with budget</div>
+        </div>
+    </section>
+
+    <!-- Top Categories -->
+    <section class="card categories-section" aria-labelledby="categories-title">
+        <h2 id="categories-title" class="card-title">Top Categories This Month</h2>
+        
+        <div class="categories-list">
+            <div class="category-item">
+                <div class="category-info">
+                    <span class="category-icon">🍽️</span>
+                    <span class="category-name">Food & Dining</span>
+                </div>
+                <div class="category-amount">৳3,200</div>
+                <div class="category-bar">
+                    <div class="category-progress" style="width: 85%"></div>
+                </div>
+            </div>
+
+            <div class="category-item">
+                <div class="category-info">
+                    <span class="category-icon">🚗</span>
+                    <span class="category-name">Transport</span>
+                </div>
+                <div class="category-amount">৳1,800</div>
+                <div class="category-bar">
+                    <div class="category-progress" style="width: 60%"></div>
+                </div>
+            </div>
+
+            <div class="category-item">
+                <div class="category-info">
+                    <span class="category-icon">🛍️</span>
+                    <span class="category-name">Shopping</span>
+                </div>
+                <div class="category-amount">৳1,200</div>
+                <div class="category-bar">
+                    <div class="category-progress" style="width: 40%"></div>
+                </div>
+            </div>
+
+            <div class="category-item">
+                <div class="category-info">
+                    <span class="category-icon">💡</span>
+                    <span class="category-name">Bills & Utilities</span>
+                </div>
+                <div class="category-amount">৳950</div>
+                <div class="category-bar">
+                    <div class="category-progress" style="width: 30%"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI Insights -->
+    <section class="card insights-section" aria-labelledby="insights-title">
+        <h2 id="insights-title" class="card-title">AI Insights</h2>
+        
+        <div class="insights-list">
+            <div class="insight-item insight-tip">
+                <div class="insight-icon">💡</div>
+                <div class="insight-content">
+                    <h3 class="insight-title">Spending Pattern</h3>
+                    <p class="insight-text">You spend 40% more on weekends. Consider meal planning to save ৳500/month.</p>
+                </div>
+            </div>
+
+            <div class="insight-item insight-warning">
+                <div class="insight-icon">⚠️</div>
+                <div class="insight-content">
+                    <h3 class="insight-title">Budget Alert</h3>
+                    <p class="insight-text">Food spending is 20% above your target. You have ৳300 left in this category.</p>
+                </div>
+            </div>
+
+            <div class="insight-item insight-success">
+                <div class="insight-icon">🎯</div>
+                <div class="insight-content">
+                    <h3 class="insight-title">Good Progress</h3>
+                    <p class="insight-text">Transportation costs are down 15% this month. Great job using public transport!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Actions -->
+    <section class="quick-actions" aria-labelledby="actions-title">
+        <h2 id="actions-title" class="section-title">Quick Actions</h2>
+        
+        <div class="actions-grid">
+            <button class="action-card" onclick="window.location.href='/chat'">
+                <div class="action-icon">➕</div>
+                <span class="action-label">Add Expense</span>
+            </button>
+
+            <button class="action-card" onclick="showExportOptions()">
+                <div class="action-icon">📤</div>
+                <span class="action-label">Export Data</span>
+            </button>
+
+            <button class="action-card" onclick="showBudgetSettings()">
+                <div class="action-icon">🎯</div>
+                <span class="action-label">Set Budget</span>
+            </button>
+
+            <button class="action-card" onclick="showToast('Coming soon! AI will analyze your spending patterns.', 'info')">
+                <div class="action-icon">🤖</div>
+                <span class="action-label">AI Analysis</span>
+            </button>
+        </div>
+    </section>
+</div>
+
+<script>
+function showExportOptions() {
+    showToast('Export feature coming soon! You\'ll be able to download your data as CSV or PDF.', 'info');
+}
+
+function showBudgetSettings() {
+    showToast('Budget management coming soon! Set spending limits for each category.', 'info');
+}
+
+// Toast helper function (same as chat.html)
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span class="toast-message">${message}</span>
+            <button class="toast-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+        </div>
+    `;
+    
+    document.getElementById('toast-container').appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

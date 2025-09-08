@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Chat - FinBrain{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Hero Section -->
+    <header class="hero-section">
+        <h1 class="hero-title">Track your expenses</h1>
+        <p class="hero-subtitle">Quick logging with AI-powered insights</p>
+    </header>
+
+    <!-- Expense Input Card -->
+    <section class="card expense-form-card" aria-labelledby="expense-form-title">
+        <h2 id="expense-form-title" class="card-title">Add Expense</h2>
+        
+        <form id="expense-form" class="expense-form" hx-post="/expense" 
+              hx-trigger="submit" hx-target="#entries-section" hx-swap="innerHTML">
+            
+            <div class="form-group">
+                <label for="amount" class="form-label">Amount</label>
+                <div class="input-group">
+                    <span class="input-prefix">৳</span>
+                    <input type="number" id="amount" name="amount" 
+                           class="form-input" placeholder="0.00" 
+                           step="0.01" min="0" required 
+                           aria-describedby="amount-help">
+                </div>
+                <small id="amount-help" class="form-help">Enter the expense amount</small>
+            </div>
+
+            <div class="form-group">
+                <label for="category" class="form-label">Category</label>
+                <select id="category" name="category" class="form-select" required>
+                    <option value="">Choose category</option>
+                    <option value="food">🍽️ Food & Dining</option>
+                    <option value="transport">🚗 Transport</option>
+                    <option value="shopping">🛍️ Shopping</option>
+                    <option value="bills">💡 Bills & Utilities</option>
+                    <option value="entertainment">🎬 Entertainment</option>
+                    <option value="health">🏥 Health & Medical</option>
+                    <option value="education">📚 Education</option>
+                    <option value="other">📝 Other</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="description" class="form-label">Description</label>
+                <input type="text" id="description" name="description" 
+                       class="form-input" placeholder="What did you buy?"
+                       maxlength="100" aria-describedby="description-help">
+                <small id="description-help" class="form-help">Brief description (optional)</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">
+                Add Expense
+            </button>
+        </form>
+    </section>
+
+    <!-- Recent Entries Section -->
+    <section class="entries-section" aria-labelledby="recent-entries-title">
+        <h2 id="recent-entries-title" class="section-title">Recent Expenses</h2>
+        
+        <div id="entries-section" 
+             hx-get="/partials/entries" 
+             hx-trigger="load, expense-added from:body"
+             hx-target="this"
+             hx-swap="innerHTML">
+            <!-- Recent entries will load here via HTMX -->
+            <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Loading recent expenses...</p>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+// Enhanced form handling
+document.getElementById('expense-form').addEventListener('htmx:afterRequest', function(event) {
+    if (event.detail.successful) {
+        // Reset form
+        this.reset();
+        
+        // Show success toast
+        showToast('Expense added successfully!', 'success');
+        
+        // Trigger entries refresh
+        document.body.dispatchEvent(new CustomEvent('expense-added'));
+    } else {
+        // Show error toast
+        showToast('Failed to add expense. Please try again.', 'error');
+    }
+});
+
+// Toast helper function
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span class="toast-message">${message}</span>
+            <button class="toast-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+        </div>
+    `;
+    
+    document.getElementById('toast-container').appendChild(toast);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

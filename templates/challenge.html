@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Challenge - FinBrain{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Hero Section -->
+    <header class="hero-section">
+        <h1 class="hero-title">3-Day Challenge</h1>
+        <p class="hero-subtitle">Build better spending habits with AI guidance</p>
+    </header>
+
+    <!-- Challenge Progress -->
+    <section class="card challenge-card" aria-labelledby="challenge-title">
+        <h2 id="challenge-title" class="card-title">Your Progress</h2>
+        
+        <div class="challenge-progress">
+            <div class="progress-header">
+                <span class="progress-text">Day 2 of 3</span>
+                <span class="progress-percentage">67%</span>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 67%"></div>
+            </div>
+        </div>
+
+        <div class="challenge-streak">
+            <div class="streak-icon">🔥</div>
+            <span class="streak-text">2 day streak! Keep it going!</span>
+        </div>
+    </section>
+
+    <!-- Daily Goals -->
+    <section class="goals-section" aria-labelledby="goals-title">
+        <h2 id="goals-title" class="section-title">Today's Goals</h2>
+        
+        <div class="goals-list">
+            <div class="goal-item completed">
+                <div class="goal-checkbox">✓</div>
+                <div class="goal-content">
+                    <h3 class="goal-title">Log 3 expenses</h3>
+                    <p class="goal-description">Track all your spending throughout the day</p>
+                    <div class="goal-progress">3/3 completed</div>
+                </div>
+            </div>
+
+            <div class="goal-item completed">
+                <div class="goal-checkbox">✓</div>
+                <div class="goal-content">
+                    <h3 class="goal-title">Stay under ৳500</h3>
+                    <p class="goal-description">Keep daily spending within budget</p>
+                    <div class="goal-progress">৳450/৳500 spent</div>
+                </div>
+            </div>
+
+            <div class="goal-item pending">
+                <div class="goal-checkbox">○</div>
+                <div class="goal-content">
+                    <h3 class="goal-title">Review spending</h3>
+                    <p class="goal-description">Check your expense categories</p>
+                    <div class="goal-progress">Not started</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Challenge Insights -->
+    <section class="card insights-card" aria-labelledby="insights-title">
+        <h2 id="insights-title" class="card-title">Challenge Insights</h2>
+        
+        <div class="insight-stats">
+            <div class="stat-item">
+                <div class="stat-value">৳1,200</div>
+                <div class="stat-label">Total Saved</div>
+            </div>
+            
+            <div class="stat-item">
+                <div class="stat-value">8</div>
+                <div class="stat-label">Goals Completed</div>
+            </div>
+            
+            <div class="stat-item">
+                <div class="stat-value">92%</div>
+                <div class="stat-label">Success Rate</div>
+            </div>
+        </div>
+
+        <div class="challenge-tip">
+            <div class="tip-icon">💡</div>
+            <div class="tip-content">
+                <h3 class="tip-title">Today's Tip</h3>
+                <p class="tip-text">You're doing great! Try using cash for small purchases to be more mindful of spending.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Next Challenge Preview -->
+    <section class="card next-challenge-card" aria-labelledby="next-challenge-title">
+        <h2 id="next-challenge-title" class="card-title">Coming Next</h2>
+        
+        <div class="next-challenge">
+            <div class="challenge-icon">🎯</div>
+            <div class="challenge-info">
+                <h3 class="challenge-name">Weekly Budget Master</h3>
+                <p class="challenge-description">
+                    Set and stick to weekly budgets for different categories. 
+                    Get personalized AI coaching to reach your goals.
+                </p>
+                <div class="challenge-reward">
+                    <span class="reward-icon">🏆</span>
+                    <span class="reward-text">Unlock advanced insights</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Action Buttons -->
+    <section class="challenge-actions">
+        <button class="btn btn-primary btn-full" onclick="completeGoal()">
+            Complete Review Goal
+        </button>
+        
+        <button class="btn btn-neutral btn-full" onclick="window.location.href='/chat'">
+            Log Today's Expenses
+        </button>
+    </section>
+
+    <!-- Challenge History -->
+    <section class="card history-card" aria-labelledby="history-title">
+        <h2 id="history-title" class="card-title">Challenge History</h2>
+        
+        <div class="history-list">
+            <div class="history-item completed">
+                <div class="history-icon">✅</div>
+                <div class="history-content">
+                    <h3 class="history-title">Mindful Spending</h3>
+                    <p class="history-description">3 days • Completed Sep 5</p>
+                </div>
+                <div class="history-score">95%</div>
+            </div>
+
+            <div class="history-item completed">
+                <div class="history-icon">✅</div>
+                <div class="history-content">
+                    <h3 class="history-title">Category Tracker</h3>
+                    <p class="history-description">5 days • Completed Sep 1</p>
+                </div>
+                <div class="history-score">88%</div>
+            </div>
+
+            <div class="history-item upcoming">
+                <div class="history-icon">🔒</div>
+                <div class="history-content">
+                    <h3 class="history-title">Budget Master</h3>
+                    <p class="history-description">Unlocks after current challenge</p>
+                </div>
+                <div class="history-score">—</div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+function completeGoal() {
+    // Mark the review goal as completed
+    const pendingGoal = document.querySelector('.goal-item.pending');
+    if (pendingGoal) {
+        pendingGoal.classList.remove('pending');
+        pendingGoal.classList.add('completed');
+        
+        const checkbox = pendingGoal.querySelector('.goal-checkbox');
+        checkbox.textContent = '✓';
+        
+        const progress = pendingGoal.querySelector('.goal-progress');
+        progress.textContent = 'Completed!';
+        
+        // Update overall progress
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.querySelector('.progress-text');
+        const progressPercentage = document.querySelector('.progress-percentage');
+        
+        progressFill.style.width = '100%';
+        progressText.textContent = 'Day 2 Complete!';
+        progressPercentage.textContent = '100%';
+        
+        // Show success message
+        showToast('🎉 Excellent! You\'ve completed all goals for today!', 'success');
+        
+        // Update button
+        const button = document.querySelector('.challenge-actions .btn-primary');
+        button.textContent = 'All Goals Complete!';
+        button.disabled = true;
+        button.classList.add('disabled');
+    }
+}
+
+// Toast helper function
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span class="toast-message">${message}</span>
+            <button class="toast-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+        </div>
+    `;
+    
+    document.getElementById('toast-container').appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}
