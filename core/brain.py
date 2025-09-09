@@ -7,6 +7,7 @@ import logging
 import time
 from typing import Dict, Any
 from utils.identity import psid_hash
+from utils.timebox import call_with_timeout_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +91,16 @@ def _use_production_router(user_hash: str, text: str) -> Dict[str, Any]:
         from utils.production_router import production_router
         
         logger.info(f"Using production router for {user_hash[:8]}")
-        response_data = production_router.route_message(user_hash, text)
+        
+        # Wrap router call with 12-second timeout
+        def _router_call():
+            return production_router.route_message(user_hash, text)
+        
+        response_data = call_with_timeout_fallback(
+            _router_call, 
+            timeout_s=12.0,
+            fallback_value=None
+        )
         
         logger.info(f"Production router success: {str(response_data)[:100]}...")
         
@@ -155,7 +165,15 @@ def _use_fallback_ai(user_hash: str, text: str) -> Dict[str, Any]:
                 "intent": "general_query"
             }
             
-            ai_response = production_ai_adapter.generate_structured_response(text, context)
+            # Wrap AI call with 10-second timeout
+            def _ai_call():
+                return production_ai_adapter.generate_structured_response(text, context)
+            
+            ai_response = call_with_timeout_fallback(
+                _ai_call,
+                timeout_s=10.0,
+                fallback_value={"ok": False, "reason": "timeout"}
+            )
             
             if ai_response.get("ok"):
                 data = ai_response.get("data", {})

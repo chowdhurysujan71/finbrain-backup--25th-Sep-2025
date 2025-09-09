@@ -82,6 +82,11 @@ self.addEventListener('fetch', event => {
     const { request } = event;
     const url = new URL(request.url);
     
+    // CRITICAL: Never intercept /ai-chat to prevent hanging
+    if (url.pathname === '/ai-chat') {
+        return; // bypass SW completely
+    }
+    
     // Skip non-GET requests and chrome-extension requests
     if (request.method !== 'GET' || url.protocol === 'chrome-extension:') {
         return;

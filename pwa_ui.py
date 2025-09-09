@@ -368,36 +368,50 @@ def ai_chat_test():
 @limiter.limit("4 per minute")
 def ai_chat():
     """AI chat endpoint - unified brain with consistent JSON responses"""
-    uid = request.headers.get('X-User-ID') or request.cookies.get('user_id') or 'anon'
-    payload = _json()
-    message = (payload.get('message') or '').strip()
+    import uuid
+    import time
     
-    if not message:
-        return jsonify(error='empty_message', user_id=uid), 400
-    
-    logger.info(f"Chat request from {uid[:12]}...: '{message[:50]}...'")
+    # Request tracking to detect hangs
+    rid = uuid.uuid4().hex[:8]
+    t0 = time.time()
+    logger.info(f"ai-chat ENTER {rid}")
     
     try:
+        uid = request.headers.get('X-User-ID') or request.cookies.get('user_id') or 'anon'
+        payload = _json()
+        message = (payload.get('message') or '').strip()
+        
+        if not message:
+            return jsonify(error='empty_message', user_id=uid), 400
+        
+        logger.info(f"Chat request {rid} from {uid[:12]}...: '{message[:50]}...'")
+        
         from core.brain import process_user_message
         
         # Use unified brain - same processing as expense form
         brain_result = process_user_message(uid, message)
         
         # Format consistent response that frontend expects
-        return jsonify(
+        response = jsonify(
             reply=brain_result["reply"],
             data=brain_result.get("structured", {}),
             user_id=uid,
             metadata=brain_result.get("metadata", {})
         )
         
+        logger.info(f"ai-chat SUCCESS {rid} {(time.time()-t0)*1000:.1f}ms")
+        return response
+        
     except Exception as e:
-        current_app.logger.exception('ai-chat failed')
+        logger.exception(f"ai-chat FAIL {rid}")
         return jsonify(
             error='internal_error', 
             detail=str(e)[:300], 
-            user_id=uid
+            user_id=uid if 'uid' in locals() else 'unknown'
         ), 500
+        
+    finally:
+        logger.info(f"ai-chat EXIT {rid} {(time.time()-t0)*1000:.1f}ms")
 
 @pwa_ui.route('/expense', methods=['POST'])
 def add_expense():
