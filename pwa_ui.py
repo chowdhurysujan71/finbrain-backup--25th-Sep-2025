@@ -364,6 +364,13 @@ def ai_chat_test():
         'expense_logged': False
     })
 
+def finbrain_route(text, request_obj):
+    """Simple wrapper that returns just the reply string from FinBrain"""
+    from core.brain import process_user_message
+    uid = request_obj.headers.get('X-User-ID') or request_obj.cookies.get('user_id') or 'anon'
+    brain_result = process_user_message(uid, text)
+    return brain_result["reply"]  # Extract just the string reply
+
 @pwa_ui.route('/ai-chat', methods=['POST'])
 @limiter.limit("8 per minute")
 def ai_chat():
@@ -374,8 +381,8 @@ def ai_chat():
         if not text:
             return jsonify({"reply": "Say something and I'll respond."}), 200
 
-        # TODO: plug FinBrain here later; for now echo to prove the loop works
-        reply = f"Echo: {text}"
+        # Use FinBrain AI instead of echo
+        reply = finbrain_route(text, request)
         return jsonify({"reply": reply}), 200
     except Exception as e:
         # Make sure the client always gets *some* JSON so the UI doesn't hang
