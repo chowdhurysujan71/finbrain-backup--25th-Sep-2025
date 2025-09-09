@@ -1,0 +1,25 @@
+finbrain/
+├── ai/
+├── archive/
+├── core/
+│   └── brain.py
+├── handlers/
+├── migrations/
+│   └── versions/
+├── static/
+│   ├── css/
+│   ├── icons/
+│   └── js/
+│       ├── chat-handler.js
+│       ├── pwa.js
+│       └── sw.js
+├── templates/
+│   ├── chat.html
+│   └── base.html
+├── utils/
+│   ├── ai_adapter_v2.py
+│   ├── identity.py
+│   └── timebox.py
+├── app.py
+├── pwa_ui.py
+└── main.py

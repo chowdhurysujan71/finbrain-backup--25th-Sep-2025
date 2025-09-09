@@ -1,0 +1,78 @@
+{
+  "ai_chat_route": {
+    "file": "pwa_ui.py", 
+    "line": 367, 
+    "blueprint": "pwa_ui", 
+    "function": "ai_chat", 
+    "confidence": "high",
+    "source": "grep '@.*\\.route\\('/ai-chat'"
+  },
+  "brain_entry": {
+    "file": "core/brain.py", 
+    "line": 14, 
+    "function": "process_user_message", 
+    "confidence": "high",
+    "source": "grep 'def process_user_message\\('"
+  },
+  "ai_adapter": {
+    "file": "utils/ai_adapter_v2.py", 
+    "class": "ProductionAIAdapter", 
+    "class_line": 34,
+    "method": "generate_structured_response", 
+    "method_line": 272,
+    "confidence": "high",
+    "source": "grep 'class ProductionAIAdapter' + 'def generate_structured_response\\('"
+  },
+  "identity_hash": {
+    "file": "utils/identity.py", 
+    "line": 24,
+    "function": "psid_hash", 
+    "confidence": "high",
+    "source": "grep 'def psid_hash\\('"
+  },
+  "service_worker": {
+    "file": "static/js/sw.js", 
+    "has_fetch_handler": true, 
+    "fetch_handler_line": 81,
+    "ai_chat_bypass_line": 86,
+    "confidence": "high",
+    "source": "grep 'addEventListener\\'fetch'"
+  },
+  "chat_ui": {
+    "files": ["static/js/chat-handler.js"], 
+    "uses_x_user_id": true, 
+    "ai_chat_call_line": 42,
+    "x_user_id_line": 46,
+    "confidence": "high",
+    "source": "grep '/ai-chat' + 'X-User-ID'"
+  },
+  "cors": {
+    "file": "app.py", 
+    "present": true,
+    "import_line": 10,
+    "config_line": 91,
+    "scope": "/ai-chat endpoint only",
+    "confidence": "high",
+    "source": "grep 'CORS' found flask_cors import and configuration"
+  },
+  "limiter": {
+    "file": "app.py", 
+    "present": true, 
+    "import_line": 11,
+    "confidence": "high",
+    "source": "grep 'from flask_limiter'"
+  },
+  "migrations": {
+    "path": "migrations/", 
+    "present": true, 
+    "has_versions": true,
+    "confidence": "high",
+    "source": "ls migrations/"
+  },
+  "timeout_wrapper": {
+    "file": "utils/timebox.py",
+    "functions": ["call_with_timeout", "call_with_timeout_fallback"],
+    "confidence": "high",
+    "source": "Recent implementation for chat hang prevention"
+  }
+}
