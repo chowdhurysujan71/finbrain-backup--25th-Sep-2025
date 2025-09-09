@@ -35,9 +35,15 @@ def detect_intent(text: str) -> str:
     if text_lower in ["diag", "diagnostic", "status", "health"]:
         return "DIAGNOSTIC"
     
-    # Budget status requests (maps to SUMMARY to leverage existing summary functionality)
-    if "budget" in text_lower or "spending status" in text_lower:
+    # Enhanced SUMMARY detection using production router patterns
+    from utils.production_router import _is_summary_command
+    if _is_summary_command(text):
         return "SUMMARY"
+        
+    # Enhanced INSIGHT detection using production router patterns  
+    from utils.production_router import _is_insight_command
+    if _is_insight_command(text):
+        return "INSIGHT"
     
     # Category-specific queries - New intent type for specific category breakdowns
     category_keywords = [
