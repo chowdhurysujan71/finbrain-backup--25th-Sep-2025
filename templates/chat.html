@@ -334,8 +334,6 @@
     });
     </script>
     
-    <!-- Load robust chat handler with timeout protection -->
-    <script src="/static/js/chat-handler.js" defer></script>
 
     <!-- Recent Entries Section -->
     <section class="entries-section" aria-labelledby="recent-entries-title">
@@ -395,4 +393,7 @@ function showToast(message, type = 'info') {
     }, 5000);
 }
 </script>
+
+<!-- Load chat handler at the very end -->
+<script src="/static/js/chat-handler.js" defer></script>
 {% endblock %}
