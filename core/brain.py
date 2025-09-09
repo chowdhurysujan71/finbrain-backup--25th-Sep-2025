@@ -61,6 +61,11 @@ def process_user_message(uid: str, text: str) -> Dict[str, Any]:
                     "metadata": {"source": "emergency_fallback"}
                 }
                 
+        # Normalize user-unfriendly replies before returning
+        reply = out.get("reply")
+        if not reply or str(reply).strip().lower() in ("none", "null", ""):
+            out["reply"] = "Got it — what would you like me to do next?"
+        
         # Add consistent metadata to all responses
         out.setdefault("metadata", {})
         out["metadata"].update({

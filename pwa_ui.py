@@ -365,7 +365,7 @@ def ai_chat_test():
     })
 
 @pwa_ui.route('/ai-chat', methods=['POST'])
-@limiter.limit("4 per minute")
+@limiter.limit("8 per minute")
 def ai_chat():
     """AI chat endpoint - unified brain with consistent JSON responses"""
     import uuid
