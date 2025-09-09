@@ -1,13 +1,25 @@
 """
 FinBrain Router: Enhanced Money Detection and Intent Routing
 Implements comprehensive contains_money() detector with multilingual support
+
+DEPRECATION WARNING: This module is deprecated. New code should use utils.production_router instead.
 """
 
 import re
 import logging
+import warnings
 from typing import Tuple, Optional
 
-logger = logging.getLogger("finbrain.router")
+# Deprecation warning for this module
+warnings.warn(
+    "finbrain.router is deprecated. Use utils.production_router for new code. "
+    "This module will be removed in a future version.",
+    DeprecationWarning,
+    stacklevel=2
+)
+
+logger = logging.getLogger("finbrain.deprecated_router")
+logger.warning("Deprecated finbrain.router module imported. Consider migrating to utils.production_router.")
 
 # Correction message patterns - compiled for performance
 CORRECTION_PATTERNS = re.compile(
