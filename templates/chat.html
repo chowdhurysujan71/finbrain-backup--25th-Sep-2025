@@ -352,6 +352,9 @@
     </section>
 </div>
 
+<!-- Load robust chat handler with timeout protection -->
+<script src="{{ url_for('static', filename='js/chat-handler.js') }}" defer></script>
+
 <script>
 // Enhanced form handling
 document.getElementById('expense-form').addEventListener('htmx:afterRequest', function(event) {
