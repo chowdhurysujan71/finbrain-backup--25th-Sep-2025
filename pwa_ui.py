@@ -367,6 +367,7 @@ def ai_chat_test():
 def finbrain_route(text, request_obj):
     """Simple wrapper that returns just the reply string from FinBrain"""
     from core.brain import process_user_message
+    
     uid = request_obj.headers.get('X-User-ID') or request_obj.cookies.get('user_id') or 'anon'
     brain_result = process_user_message(uid, text)
     return brain_result["reply"]  # Extract just the string reply

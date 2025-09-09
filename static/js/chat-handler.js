@@ -44,22 +44,16 @@
     }
   }
 
-  console.log("✅ Chat handler initialized successfully");
-
   form.addEventListener("submit", async (e) => {
-    console.log("🔥 Form submit triggered!");
     e.preventDefault();
     const text = (input.value || "").trim();
-    console.log("📝 Message text:", text);
     if (!text) return;
 
     addBubble("user", text);
     input.value = "";
     sendBtn && (sendBtn.disabled = true);
 
-    console.log("🚀 Sending message...");
     const { reply } = await sendMessage(text);
-    console.log("📨 Got reply:", reply);
     addBubble("bot", reply || "(no reply)");
 
     sendBtn && (sendBtn.disabled = false);
