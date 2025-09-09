@@ -97,9 +97,13 @@ def _use_production_router(user_hash: str, text: str) -> Dict[str, Any]:
         
         logger.info(f"Using production router for {user_hash[:8]}")
         
-        # Wrap router call with 12-second timeout
+        # Import Flask app for context (same pattern as background processor)
+        from app import app
+        
+        # Wrap router call with Flask context and 12-second timeout
         def _router_call():
-            return production_router.route_message(user_hash, text)
+            with app.app_context():
+                return production_router.route_message(user_hash, text)
         
         response_data = call_with_timeout_fallback(
             _router_call, 
