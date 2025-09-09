@@ -18,6 +18,16 @@
     list.scrollTop = list.scrollHeight;
   }
 
+  // Generate consistent user ID for session
+  function getUserId() {
+    let userId = localStorage.getItem('chat-user-id');
+    if (!userId) {
+      userId = 'pwa_user_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+      localStorage.setItem('chat-user-id', userId);
+    }
+    return userId;
+  }
+
   async function sendMessage(text) {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 30000); // 30s hard timeout
@@ -25,7 +35,10 @@
     try {
       const res = await fetch("/ai-chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" }, // keep headers simple to avoid CORS preflight
+        headers: { 
+          "Content-Type": "application/json",
+          "X-User-ID": getUserId() // Send consistent user ID
+        },
         body: JSON.stringify({ text }),
         signal: ctrl.signal,
       });
