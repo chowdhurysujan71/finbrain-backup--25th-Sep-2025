@@ -367,51 +367,19 @@ def ai_chat_test():
 @pwa_ui.route('/ai-chat', methods=['POST'])
 @limiter.limit("8 per minute")
 def ai_chat():
-    """AI chat endpoint - unified brain with consistent JSON responses"""
-    import uuid
-    import time
-    
-    # Request tracking to detect hangs
-    rid = uuid.uuid4().hex[:8]
-    t0 = time.time()
-    logger.info(f"ai-chat ENTER {rid}")
-    
+    """Minimal AI chat endpoint - always responds quickly for testing"""
     try:
-        uid = request.headers.get('X-User-ID') or request.cookies.get('user_id') or 'anon'
-        payload = _json()
-        message = (payload.get('message') or '').strip()
-        
-        if not message:
-            return jsonify(error='empty_message', user_id=uid), 400
-        
-        logger.info(f"Chat request {rid} from {uid[:12]}...: '{message[:50]}...'")
-        
-        from core.brain import process_user_message
-        
-        # Use unified brain - same processing as expense form
-        brain_result = process_user_message(uid, message)
-        
-        # Format consistent response that frontend expects
-        response = jsonify(
-            reply=brain_result["reply"],
-            data=brain_result.get("structured", {}),
-            user_id=uid,
-            metadata=brain_result.get("metadata", {})
-        )
-        
-        logger.info(f"ai-chat SUCCESS {rid} {(time.time()-t0)*1000:.1f}ms")
-        return response
-        
+        data = request.get_json(force=True) or {}
+        text = (data.get("text") or "").strip()
+        if not text:
+            return jsonify({"reply": "Say something and I'll respond."}), 200
+
+        # TODO: plug FinBrain here later; for now echo to prove the loop works
+        reply = f"Echo: {text}"
+        return jsonify({"reply": reply}), 200
     except Exception as e:
-        logger.exception(f"ai-chat FAIL {rid}")
-        return jsonify(
-            error='internal_error', 
-            detail=str(e)[:300], 
-            user_id=uid if 'uid' in locals() else 'unknown'
-        ), 500
-        
-    finally:
-        logger.info(f"ai-chat EXIT {rid} {(time.time()-t0)*1000:.1f}ms")
+        # Make sure the client always gets *some* JSON so the UI doesn't hang
+        return jsonify({"reply": f"Server error: {type(e).__name__}"}), 200
 
 @pwa_ui.route('/expense', methods=['POST'])
 def add_expense():
