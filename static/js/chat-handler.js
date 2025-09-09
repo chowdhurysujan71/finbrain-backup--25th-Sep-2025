@@ -4,8 +4,9 @@
   const list  = document.querySelector("#chat-list");
   const sendBtn = document.querySelector("#chat-send");
 
-  if (!form || !input || !list) {
+  if (!form || !input || !list || !sendBtn) {
     console.error("Chat elements not found. Check IDs: #chat-form, #chat-input, #chat-list, #chat-send");
+    console.error("Found:", {form: !!form, input: !!input, list: !!list, sendBtn: !!sendBtn});
     return;
   }
 
@@ -43,16 +44,22 @@
     }
   }
 
+  console.log("✅ Chat handler initialized successfully");
+
   form.addEventListener("submit", async (e) => {
+    console.log("🔥 Form submit triggered!");
     e.preventDefault();
     const text = (input.value || "").trim();
+    console.log("📝 Message text:", text);
     if (!text) return;
 
     addBubble("user", text);
     input.value = "";
     sendBtn && (sendBtn.disabled = true);
 
+    console.log("🚀 Sending message...");
     const { reply } = await sendMessage(text);
+    console.log("📨 Got reply:", reply);
     addBubble("bot", reply || "(no reply)");
 
     sendBtn && (sendBtn.disabled = false);
