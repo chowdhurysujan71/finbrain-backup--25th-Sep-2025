@@ -24,7 +24,7 @@
         <h2 id="chat-title" class="card-title">💬 Chat with FinBrain AI</h2>
         
         <!-- Chat Messages -->
-        <div id="chat-messages" class="chat-messages">
+        <ul id="chat-list" class="chat-messages">
             <div class="message ai-message">
                 <div class="message-avatar">🤖</div>
                 <div class="message-content">
@@ -47,7 +47,7 @@
                     <textarea id="chat-input" name="message" class="chat-input" 
                               placeholder="Type your message... (e.g., 'I spent 200 taka on groceries')"
                               rows="2" maxlength="500"></textarea>
-                    <button type="submit" class="btn btn-primary chat-send-btn" id="chat-send-btn">
+                    <button type="submit" class="btn btn-primary chat-send-btn" id="chat-send">
                         <span class="btn-text">Send</span>
                         <span class="btn-loading" style="display: none;">...</span>
                     </button>
