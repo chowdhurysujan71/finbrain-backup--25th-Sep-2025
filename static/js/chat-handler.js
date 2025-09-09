@@ -69,7 +69,7 @@
             
             // Display the response
             bubble.className = 'msg bot success';
-            bubble.innerHTML = data?.reply || 'I received your message but couldn\\'t form a reply.';
+            bubble.innerHTML = data?.reply || 'I received your message but couldn\'t form a reply.';
             
             console.log('[CHAT] Response received successfully');
             
