@@ -60,6 +60,34 @@ _P = pathlib.Path(__file__).resolve()
 logging.warning("PRODUCTION_ROUTER_INIT file=%s sha=%s",
                 _P, hashlib.sha256(_P.read_bytes()).hexdigest()[:12])
 
+# Facade: One Brain, Two Doors  
+def route_message(user_id_hash: str, text: str, channel: str = "web", locale: str = None, meta: dict = None):
+    """
+    Stable entrypoint for ALL channels. Web should call this.
+    FB Messenger calls this through background_processor, Web calls this directly.
+    
+    Args:
+        user_id_hash: Stable hash of user ID (for both FB PSIDs and web user IDs)
+        text: User message text 
+        channel: "web" or "fb" (for logging/telemetry)
+        locale: Optional locale hint
+        meta: Optional metadata dict
+        
+    Returns:
+        Tuple[str, str, Optional[str], Optional[float]]: (response_text, intent, category, amount)
+    """
+    import time
+    
+    # Generate request ID for tracing
+    rid = f"{channel}_{int(time.time() * 1000)}"
+    
+    # Log the unified entrypoint
+    logger = logging.getLogger("finbrain.production")  # Use production logger for unified logs
+    logger.info(f"[FACADE] channel={channel} user_hash={user_id_hash[:8]}... rid={rid} text='{text[:50]}...'")
+    
+    # Call the exact same production path FB uses
+    return production_router.route_message(text, user_id_hash, rid)
+
 logger = logging.getLogger("finbrain.router")
 
 # Performance tracking import
