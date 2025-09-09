@@ -40,6 +40,23 @@ def detect_intent(text: str) -> str:
     if _is_summary_command(text):
         return "SUMMARY"
         
+    # EXPENSE LOGGING DETECTION - MOVED UP FOR PRIORITY
+    # Hot guardrail: if message contains money, prioritize expense logging
+    from finbrain.router import contains_money
+    if contains_money(text):
+        # Double-check with keyword patterns for expense context
+        has_number = bool(re.search(r'\d+', text))
+        expense_keywords = [
+            'spent', 'paid', 'bought', 'cost', 'price', 'coffee', 'lunch', 'dinner', 
+            'food', 'gas', 'fuel', 'uber', 'taxi', 'restaurant', 'store', 'shop',
+            'bill', 'meal', 'snack', 'drink', 'groceries', 'parking', 'transport',
+            'taka', 'tk', 'rupees', 'dollars', 'euro', 'pound'
+        ]
+        has_expense_keyword = any(keyword in text_lower for keyword in expense_keywords)
+        
+        if has_number and has_expense_keyword:
+            return "LOG_EXPENSE"
+        
     # Enhanced INSIGHT detection using production router patterns  
     from utils.production_router import _is_insight_command
     if _is_insight_command(text):
@@ -68,11 +85,11 @@ def detect_intent(text: str) -> str:
         if any(timeframe in text_lower for timeframe in ["this month", "this week", "last week", "last month", "today", "yesterday"]):
             return "CATEGORY_BREAKDOWN"
 
-    # Expense logging detection - moved up for priority
+    # SECONDARY EXPENSE CHECK - Fallback for edge cases not caught above
     # Look for numbers and expense-related keywords first
     has_number = bool(re.search(r'\d+', text))
     expense_keywords = [
-        'paid', 'bought', 'cost', 'price', 'coffee', 'lunch', 'dinner', 
+        'spent', 'paid', 'bought', 'cost', 'price', 'coffee', 'lunch', 'dinner', 
         'food', 'gas', 'fuel', 'uber', 'taxi', 'restaurant', 'store', 'shop',
         'bill', 'meal', 'snack', 'drink', 'groceries', 'parking', 'transport',
         'taka', 'tk', 'rupees', 'dollars', 'euro', 'pound'
