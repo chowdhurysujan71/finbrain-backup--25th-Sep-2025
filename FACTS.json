@@ -1,0 +1,80 @@
+{
+  "report_metadata": {
+    "generated_at": "2025-09-09T05:03:00Z",
+    "evidence_directory": "results/20250909_045905",
+    "probes_executed": 6,
+    "system_under_test": "http://localhost:5000"
+  },
+  "system_counts": {
+    "database_tables": 19,
+    "total_expenses": 562,
+    "total_users": 106,
+    "flask_routes": 16,
+    "background_workers": 3
+  },
+  "performance_metrics": {
+    "chat_response_times_ms": [2300, 4971, 2521],
+    "median_latency_ms": 2521,
+    "max_latency_ms": 4971,
+    "min_latency_ms": 2300,
+    "health_check_latency_ms": 0.14,
+    "rate_limit_response_ms": 43
+  },
+  "api_contract_verification": {
+    "chat_endpoint_exists": true,
+    "returns_json": true,
+    "has_reply_field": true,
+    "has_data_field": true,
+    "has_metadata_field": true,
+    "includes_latency_timing": true,
+    "includes_source_attribution": true
+  },
+  "security_posture": {
+    "cors_restricted": true,
+    "allows_localhost": true,
+    "blocks_external_domains": true,
+    "rate_limiting_active": true,
+    "rate_limit_per_minute": 4,
+    "user_authentication_required": false
+  },
+  "pwa_capabilities": {
+    "manifest_exists": true,
+    "service_worker_exists": true,
+    "installable": true,
+    "offline_fallback": true
+  },
+  "database_structure": {
+    "main_tables": ["expenses", "users", "monthly_summaries", "telemetry_events"],
+    "audit_tables": ["ai_request_audit", "expense_edits", "user_corrections"],
+    "operational_tables": ["rate_limits", "growth_counters", "data_integrity_status"],
+    "has_views": true,
+    "view_names": ["v_expenses_live", "v_users_live"]
+  },
+  "system_health": {
+    "startup_successful": true,
+    "database_connected": true,
+    "ai_provider_warmed": true,
+    "background_jobs_ready": true,
+    "health_endpoint_responsive": true
+  },
+  "known_issues": {
+    "high_latency": true,
+    "no_input_validation": true,
+    "generic_error_messages": true,
+    "no_load_testing": true,
+    "unknown_capacity_limits": true
+  },
+  "bilingual_support": {
+    "english_supported": true,
+    "bengali_supported": true,
+    "handles_mixed_input": true,
+    "currency_symbols": ["৳", "BDT", "taka"]
+  },
+  "ai_integration": {
+    "provider": "gemini",
+    "natural_language_processing": true,
+    "expense_extraction": true,
+    "category_assignment": true,
+    "fallback_handling": true
+  }
+}

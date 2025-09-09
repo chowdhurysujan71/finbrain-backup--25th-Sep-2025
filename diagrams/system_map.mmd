@@ -1,0 +1,23 @@
+graph TB
+    User[👤 User] --> PWA[📱 FinBrain PWA]
+    User --> FB[📱 Facebook Messenger]
+    
+    PWA --> WebServer[🖥️ Flask Web Server<br/>Port 5000]
+    FB --> Webhook[🔗 Facebook Webhook]
+    Webhook --> WebServer
+    
+    WebServer --> Brain[🧠 AI Brain<br/>Natural Language Processing]
+    Brain --> Gemini[🤖 Gemini AI<br/>Google's AI Service]
+    
+    WebServer --> Database[(🗃️ PostgreSQL Database<br/>19 Tables, 562 Expenses)]
+    WebServer --> Background[⚙️ Background Jobs<br/>3 Workers]
+    
+    Database --> Tables{Main Data}
+    Tables --> Expenses[💰 Expenses Table]
+    Tables --> Users[👥 Users Table] 
+    Tables --> Analytics[📊 Analytics & Telemetry]
+    
+    style PWA fill:#e1f5fe
+    style Brain fill:#fff3e0
+    style Database fill:#f3e5f5
+    style Gemini fill:#e8f5e8

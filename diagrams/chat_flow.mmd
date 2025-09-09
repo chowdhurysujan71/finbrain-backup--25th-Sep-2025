@@ -1,0 +1,28 @@
+sequenceDiagram
+    participant User as 👤 User
+    participant PWA as 📱 PWA Frontend
+    participant Server as 🖥️ Flask Server
+    participant Brain as 🧠 AI Brain
+    participant Gemini as 🤖 Gemini AI
+    participant DB as 🗃️ Database
+
+    User->>PWA: Types "I spent 200 on lunch"
+    PWA->>Server: POST /ai-chat<br/>{message: "I spent 200 on lunch"}
+    
+    Note over Server: Rate limit check<br/>(4 requests per minute)
+    
+    Server->>Brain: Process message
+    Brain->>Brain: Language detection<br/>(English/Bengali)
+    Brain->>Brain: Intent routing<br/>(EXPENSE_LOG detected)
+    
+    Brain->>Gemini: Extract amount & category<br/>from natural language
+    Gemini-->>Brain: {amount: 200, category: "food"}
+    
+    Brain->>DB: Save expense record
+    DB-->>Brain: ✓ Saved with ID #563
+    
+    Brain-->>Server: {reply: "✅ Logged...", data: {...}, metadata: {...}}
+    Server-->>PWA: JSON response<br/>latency_ms: 4925
+    PWA-->>User: Shows confirmation message
+    
+    Note over User,DB: Typical flow takes 2-5 seconds

@@ -1,0 +1,41 @@
+erDiagram
+    USERS {
+        int id
+        string user_id_hash "Facebook user identifier (hashed)"
+        string platform "messenger or web"
+        decimal total_expenses "Running total of all expenses"
+        int expense_count "Number of logged expenses"
+        timestamp last_interaction
+    }
+    
+    EXPENSES {
+        int id
+        string user_id_hash "Links to user who logged this"
+        decimal amount "How much was spent"
+        string category "food, transport, entertainment, etc"
+        string description "What was bought"
+        date date "When it happened"
+        timestamp created_at "When it was logged"
+    }
+    
+    MONTHLY_SUMMARIES {
+        int id
+        string user_id_hash "Which user's summary"
+        int year_month "202409 format"
+        decimal total_amount "Monthly spending total"
+        json category_breakdown "Spending by category"
+    }
+    
+    TELEMETRY_EVENTS {
+        int id
+        string event_type "expense_logged, summary_requested, etc"
+        string user_id_hash "Which user triggered this"
+        json event_data "Details about what happened"
+        timestamp timestamp
+    }
+    
+    USERS ||--o{ EXPENSES : "logs many"
+    USERS ||--o{ MONTHLY_SUMMARIES : "has monthly"
+    USERS ||--o{ TELEMETRY_EVENTS : "generates"
+    
+    EXPENSES ||--|| TELEMETRY_EVENTS : "creates tracking events"
