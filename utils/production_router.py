@@ -85,7 +85,13 @@ def _is_audit_ui_enabled() -> bool:
 
 # Summary detection patterns (Enhanced for Bengali + comprehensive English)
 SUMMARY_RE = re.compile(
-    r"\b(summary|recap|overview|report|what did i spend|how much did i spend|show (me )?my (spend|spending|expenses)|how much.*spend.*week|how much.*spend.*month|spending.*week|spending.*month)\b|সারাংশ|খরচের.*সারাংশ|মাসের.*খরচ|আমার.*খরচ|কত.*খরচ.*করেছি",
+    r"\b(summary|recap|overview|report|what did i spend|how much did i spend|show (me )?my (spend|spending|expenses)|expenses.*this|expenses.*week|expenses.*month|how much.*spend.*week|how much.*spend.*month|spending.*week|spending.*month|show.*expenses)\b|সারাংশ|খরচের.*সারাংশ|মাসের.*খরচ|আমার.*খরচ|কত.*খরচ.*করেছি",
+    re.IGNORECASE,
+)
+
+# Insight/Coaching detection patterns  
+INSIGHT_RE = re.compile(
+    r"\b(tip|tips|advice|advise|budgeting|budget|help me save|save money|coaching|insight|insights|analysis|analyze|suggest|suggestion|recommendations|improve|optimize|reduce.*spend|increase.*savings|how am i doing)\b",
     re.IGNORECASE,
 )
 
@@ -105,6 +111,32 @@ def _is_summary_command(text: str) -> bool:
     return (bool(SUMMARY_RE.search(text)) or 
             normalized in english_summary_terms or
             any(term in text for term in bengali_summary_terms))
+
+def _is_insight_command(text: str) -> bool:
+    """Check if text is asking for financial insights/coaching"""
+    if not text:
+        return False
+    
+    # Enhanced insight detection with Bengali support
+    bengali_insight_terms = ["পরামর্শ", "টিপস", "বাজেট", "সাহায্য", "সঞ্চয়"]
+    english_insight_terms = {"tip", "tips", "advice", "budgeting", "budget", "coaching", "insight", "insights"}
+    
+    normalized = _norm_text(text)
+    
+    return (bool(INSIGHT_RE.search(text)) or 
+            any(term in normalized for term in english_insight_terms) or
+            any(term in text for term in bengali_insight_terms))
+
+def handle_insight(user_hash: str, text: str):
+    """Deterministic insight/coaching handler"""
+    try:
+        from handlers.insight import handle_insight as proper_handler
+        result = proper_handler(user_hash)
+        return result.get('text', 'Here are some budgeting tips: Track your daily expenses, set spending limits for categories, and review your spending weekly. Would you like more specific advice?')
+    except Exception as e:
+        logger.info(f"Insight handler not available: {e}")
+        # Fallback coaching response
+        return "Here are some budgeting tips: Track your daily expenses, set spending limits for categories, and review your spending weekly. Would you like more specific advice?"
 
 def handle_summary(user_hash: str, text: str):
     """Deterministic summary handler with timeframe detection"""
@@ -423,6 +455,18 @@ class ProductionRouter:
                 except Exception as e:
                     logger.error(f"Summary handler error: {e}")
                     # Fall through to other handlers if summary fails
+            
+            # Step 1.45: INSIGHT/COACHING DETECTION (AFTER SUMMARY)  
+            if _is_insight_command(text):
+                logger.info(f"[ROUTER] Insight/coaching command detected: '{text[:50]}...'")
+                try:
+                    insight_response = handle_insight(user_hash, text)
+                    self._log_routing_decision(rid, user_hash, "insight", "coaching_provided")
+                    self._record_processing_time(time.time() - start_time)
+                    return normalize(insight_response), "coaching", None, None
+                except Exception as e:
+                    logger.error(f"Insight handler error: {e}")
+                    # Fall through to other handlers if insight fails
             
             # Step 1.5: REPORT FEEDBACK DETECTION (BEFORE DETERMINISTIC ROUTING)
             # Check for YES/NO responses to Money Story reports
