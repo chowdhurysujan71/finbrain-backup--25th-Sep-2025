@@ -119,7 +119,7 @@ SUMMARY_RE = re.compile(
 
 # Insight/Coaching detection patterns  
 INSIGHT_RE = re.compile(
-    r"\b(tip|tips|advice|advise|budgeting|budget|help me save|save money|coaching|insight|insights|analysis|analyze|suggest|suggestion|recommendations|improve|optimize|reduce.*spend|increase.*savings|how am i doing)\b",
+    r"\b(tip|tips|advice|advise|budgeting|budget|help me save|save money|coaching|insight|insights|analysis|analyze|suggest|suggestion|recommendations|improve|optimize|reduce(?:\\s+my)?\\s+spend(?:ing)?|increase.*savings|how am i doing)\b",
     re.IGNORECASE,
 )
 
