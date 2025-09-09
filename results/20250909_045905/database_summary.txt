@@ -1,0 +1,6 @@
+Database Reality Check:
+Total tables: 19
+Main tables: expenses, users, monthly_summaries, telemetry_events, growth_counters
+Support tables: ai_request_audit, data_integrity_status, expense_edits, user_corrections
+Operational: rate_limits, real_users_allowlist, report_feedback
+Views: v_expenses_live, v_users_live

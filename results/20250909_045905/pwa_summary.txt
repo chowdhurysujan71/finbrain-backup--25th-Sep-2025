@@ -1,0 +1,2 @@
+PWA manifest exists: YES
+Service worker exists: YES
