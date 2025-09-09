@@ -1,0 +1,5 @@
+PWA MANIFEST STATUS
+Timestamp: 2025-09-08T15:08:52Z
+
+COMMAND: ls -la static/manifest.webmanifest
+OUTPUT: manifest: missing

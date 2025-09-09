@@ -1,0 +1,11 @@
+HTTP/1.1 200 OK
+Server: gunicorn
+Date: Tue, 09 Sep 2025 06:39:47 GMT
+Connection: close
+Content-Type: text/html; charset=utf-8
+Allow: OPTIONS, POST
+X-Request-ID: 952f2d2d-d061-466e-a107-db13c1d060b8
+Access-Control-Allow-Origin: http://localhost:5000
+Access-Control-Allow-Methods: DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT
+Content-Length: 0
+
