@@ -29,6 +29,7 @@ class Expense(db.Model):
     original_message = db.Column(db.Text, default='')  # Full original message
     ai_insights = db.Column(db.Text, default='')  # Future AI insights storage
     mid = db.Column(db.String(255), nullable=True)  # Facebook message ID for idempotency
+    correlation_id = db.Column(db.String(36), nullable=True)  # UUID for idempotency across channels
     
     # Expense correction tracking (backwards-compatible)
     superseded_by = db.Column(db.BigInteger, nullable=True)  # ID of expense that supersedes this one

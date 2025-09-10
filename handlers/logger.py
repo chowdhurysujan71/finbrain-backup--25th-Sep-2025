@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 
 def handle_log(user_id: str, text: str) -> Dict[str, str]:
     """
-    Log expense(s) from user message
+    Log expense(s) from user message using unified create_expense function
     Returns dict with 'text' key containing confirmation
     """
-    from models import Expense
-    from app import db
+    from utils.db import create_expense
+    import uuid
     
     try:
         # Extract expenses from text
@@ -29,64 +29,31 @@ def handle_log(user_id: str, text: str) -> Dict[str, str]:
         total = 0
         user_hash = hash_psid(user_id) if user_id.isdigit() else user_id
         
-        # Atomic transaction with concurrent-safe user updates
+        # Generate correlation_id at edge for idempotency
+        correlation_id = str(uuid.uuid4())
+        occurred_at = datetime.now()
+        source_message_id = f"chat_{int(time.time() * 1000000)}"
+        
+        # Use unified create_expense function for each expense
+        expense_results = []
         try:
-            from models import User
-            from decimal import Decimal
-            from sqlalchemy import text as sql_text
-            
-            # Log each expense first
             for exp in expenses:
-                expense = Expense()
-                expense.user_id = user_id
-                expense.user_id_hash = user_hash
-                expense.amount = exp['amount']
-                expense.category = exp['category']
-                expense.description = exp.get('description', '')
-                expense.original_message = text
-                expense.date = datetime.now().date()
-                expense.time = datetime.now().time()
-                expense.month = datetime.now().strftime("%Y-%m")
-                expense.platform = "pwa"
-                
-                # Generate unique ID for idempotency
-                try:
-                    import uuid
-                    expense.unique_id = uuid.uuid4().hex
-                except Exception:
-                    expense.unique_id = f"fallback_{datetime.now().isoformat()}"
-                
-                # Set message ID if available - ensure uniqueness for rapid requests
-                expense.mid = locals().get("mid") or exp.get("mid") or f"dispatch_{int(time.time() * 1000000)}"
-                
-                db.session.add(expense)
+                result = create_expense(
+                    user_id=user_hash,
+                    amount=exp['amount'],
+                    currency='৳',
+                    category=exp['category'],
+                    occurred_at=occurred_at,
+                    source_message_id=source_message_id,
+                    correlation_id=f"{correlation_id}_{len(expense_results)}",  # Unique per expense
+                    notes=exp.get('description') or text
+                )
+                expense_results.append(result)
                 logged.append(f"{exp['amount']:.0f} for {exp['category']}")
                 total += exp['amount']
             
-            # Use PostgreSQL UPSERT for concurrent-safe user totals update
-            now_ts = datetime.utcnow()
-            db.session.execute(sql_text("""
-                INSERT INTO users (user_id_hash, platform, total_expenses, expense_count, last_interaction, last_user_message_at)
-                VALUES (:user_hash, 'pwa', :total, :count, :now_ts, :now_ts)
-                ON CONFLICT (user_id_hash) DO UPDATE SET
-                    total_expenses = COALESCE(users.total_expenses, 0) + :total,
-                    expense_count = COALESCE(users.expense_count, 0) + :count,
-                    last_interaction = :now_ts,
-                    last_user_message_at = :now_ts
-            """), {
-                'user_hash': user_hash,
-                'total': total,
-                'count': len(logged),
-                'now_ts': now_ts
-            })
-            
-            # Single atomic commit for both expenses and user totals
-            db.session.commit()
-            
         except Exception as e:
-            # Rollback entire transaction on any failure
-            db.session.rollback()
-            logger.error(f"Atomic expense logging failed: {e}")
+            logger.error(f"Unified expense logging failed: {e}")
             return {"text": "Unable to log expense. Please try again."}
         
         # Format confirmation
@@ -130,5 +97,4 @@ def handle_log(user_id: str, text: str) -> Dict[str, str]:
         
     except Exception as e:
         logger.error(f"Log handler error: {e}")
-        db.session.rollback()
         return {"text": "Unable to log expense. Please try again."}
