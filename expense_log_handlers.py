@@ -30,23 +30,36 @@ def handle_expense_log_intent(user_id: str, text: str, signals: Dict[str, Any]) 
         parsed_expense = parse_amount_currency_category(text)
         
         if parsed_expense and parsed_expense.get('amount', 0) > 0:
-            # Store expense using existing database logic
+            # Store expense using unified create_expense function
             try:
-                from utils.db import save_expense
+                from utils.db import create_expense
+                from datetime import datetime
+                import uuid
                 
-                expense_record = save_expense(
-                    user_identifier=user_id,
-                    description=parsed_expense.get('description', text[:50]),
+                # Generate proper metadata for unified function
+                correlation_id = str(uuid.uuid4())
+                occurred_at = datetime.now()
+                source_message_id = f"chat_expense_{int(time.time() * 1000000)}"
+                
+                expense_record = create_expense(
+                    user_id=user_id,
                     amount=parsed_expense['amount'],
+                    currency='৳',
                     category=parsed_expense.get('category', 'General'),
-                    platform="messenger",
-                    original_message=text,
-                    unique_id=f"expense_log_{int(time.time())}"
+                    occurred_at=occurred_at,
+                    source_message_id=source_message_id,
+                    correlation_id=correlation_id,
+                    notes=parsed_expense.get('description', text[:50])
                 )
             except Exception as db_error:
-                logger.error(f"Database save failed: {db_error}")
-                # Return success with manual confirmation for now
-                expense_record = {"id": "temp", "success": True}
+                logger.error(f"Unified expense creation failed: {db_error}")
+                # Return error for proper handling
+                return {
+                    "intent": "EXPENSE_LOG",
+                    "success": False,
+                    "response": "Unable to log expense. Please try again.",
+                    "error": str(db_error)
+                }
             
             if expense_record:
                 # Generate confirmation response
@@ -64,7 +77,7 @@ def handle_expense_log_intent(user_id: str, text: str, signals: Dict[str, Any]) 
                     "intent": "EXPENSE_LOG",
                     "success": True,
                     "response": ai_response,
-                    "expense_id": expense_record.get('id') if hasattr(expense_record, 'id') else None,
+                    "expense_id": expense_record.get('expense_id'),
                     "amount": parsed_expense['amount'],
                     "category": parsed_expense.get('category')
                 }
