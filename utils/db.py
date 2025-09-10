@@ -7,6 +7,135 @@ from utils.identity import psid_hash
 
 logger = logging.getLogger(__name__)
 
+def create_expense(user_id, amount, currency, category, occurred_at, source_message_id, correlation_id, notes):
+    """
+    Unified expense creation function - single source of truth for expense writes
+    Both Chat and Quick Add must call this function synchronously
+    
+    Args:
+        user_id: User identifier (already hashed)
+        amount: Expense amount (float)
+        currency: Currency symbol (e.g., '৳', '$')
+        category: Expense category (string)
+        occurred_at: When expense occurred (datetime)
+        source_message_id: ID of source message (for audit trail)
+        correlation_id: UUID for idempotency
+        notes: Additional notes/description
+        
+    Returns:
+        dict: {expense_id, correlation_id, occurred_at, category, amount, currency}
+    """
+    from models import Expense, User, MonthlySummary
+    from utils.tracer import trace_event
+    from utils.telemetry import TelemetryTracker
+    from app import db
+    import uuid
+    from decimal import Decimal
+    
+    try:
+        # Validate inputs
+        if not user_id or not amount or not category:
+            raise ValueError("user_id, amount, and category are required")
+            
+        # Validate amount
+        MAX_AMOUNT = 99999999.99
+        MIN_AMOUNT = 0.01
+        amount_float = float(amount)
+        if amount_float > MAX_AMOUNT or amount_float < MIN_AMOUNT:
+            raise ValueError(f"Amount must be between ৳{MIN_AMOUNT} and ৳{MAX_AMOUNT:,.2f}")
+        
+        # Generate correlation_id if not provided
+        if not correlation_id:
+            correlation_id = str(uuid.uuid4())
+            
+        # Trace the write operation
+        trace_event("record_expense", user_id=user_id, amount=amount_float, category=category, path="write")
+        
+        # Create expense record with UPSERT for idempotency
+        current_month = occurred_at.strftime('%Y-%m')
+        
+        expense = Expense()
+        expense.user_id = user_id
+        expense.user_id_hash = user_id  # Ensure both fields are set
+        expense.description = notes or f"{category} expense"
+        expense.amount = Decimal(str(amount_float))
+        expense.category = category.lower()
+        expense.currency = currency or '৳'
+        expense.date = occurred_at.date()
+        expense.time = occurred_at.time()
+        expense.month = current_month
+        expense.platform = "pwa"  # Unified platform
+        expense.original_message = notes or f"Expense: {amount_float} {currency} for {category}"
+        expense.correlation_id = correlation_id
+        expense.unique_id = str(uuid.uuid4())
+        expense.mid = source_message_id
+        
+        # Atomic transaction
+        db.session.add(expense)
+        
+        # Update user totals (concurrent-safe UPSERT)
+        from sqlalchemy import text as sql_text
+        now_ts = datetime.utcnow()
+        db.session.execute(sql_text("""
+            INSERT INTO users (user_id_hash, platform, total_expenses, expense_count, last_interaction, last_user_message_at)
+            VALUES (:user_hash, 'pwa', :amount, 1, :now_ts, :now_ts)
+            ON CONFLICT (user_id_hash) DO UPDATE SET
+                total_expenses = COALESCE(users.total_expenses, 0) + :amount,
+                expense_count = COALESCE(users.expense_count, 0) + 1,
+                last_interaction = :now_ts,
+                last_user_message_at = :now_ts
+        """), {
+            'user_hash': user_id,
+            'amount': amount_float,
+            'now_ts': now_ts
+        })
+        
+        # Update monthly summary
+        monthly_summary = MonthlySummary.query.filter_by(
+            user_id_hash=user_id,
+            month=current_month
+        ).first()
+        
+        if not monthly_summary:
+            monthly_summary = MonthlySummary()
+            monthly_summary.user_id_hash = user_id
+            monthly_summary.month = current_month
+            monthly_summary.total_amount = amount_float
+            monthly_summary.expense_count = 1
+            monthly_summary.categories = {category.lower(): amount_float}
+            db.session.add(monthly_summary)
+        else:
+            monthly_summary.total_amount = float(monthly_summary.total_amount) + amount_float
+            monthly_summary.expense_count += 1
+            categories = monthly_summary.categories or {}
+            categories[category.lower()] = categories.get(category.lower(), 0) + amount_float
+            monthly_summary.categories = categories
+            monthly_summary.updated_at = datetime.utcnow()
+        
+        # Single atomic commit
+        db.session.commit()
+        
+        # Log telemetry
+        try:
+            TelemetryTracker.track_expense_logged(user_id, amount_float, category.lower())
+        except Exception as e:
+            logger.warning(f"Telemetry logging failed: {e}")
+        
+        return {
+            'expense_id': expense.id,
+            'correlation_id': correlation_id,
+            'occurred_at': occurred_at.isoformat(),
+            'category': category.lower(),
+            'amount': amount_float,
+            'currency': currency or '৳',
+            'description': expense.description
+        }
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"create_expense failed: {e}")
+        raise
+
 def get_or_create_user(user_identifier, platform, db_session=None):
     """Get existing user or create new one with hashed ID"""
     from models import User
