@@ -499,16 +499,19 @@ def add_expense():
         if description:
             original_message += f" - {description}"
         
-        # Use existing expense logging system
-        result = save_expense(
-            user_identifier=user_hash,
-            description=description or f"{category} expense",
+        # Use unified expense creation function
+        from utils.db import create_expense
+        from datetime import datetime
+        
+        result = create_expense(
+            user_id=user_hash,
             amount=amount_float,
+            currency='৳',
             category=category.lower(),
-            platform="pwa",
-            original_message=original_message,
-            unique_id=unique_id,
-            mid=mid
+            occurred_at=datetime.now(),
+            source_message_id=mid,
+            correlation_id=unique_id,  # Use unique_id as correlation_id
+            notes=description or f"{category} expense"
         )
         
         logger.info(f"PWA expense logged successfully for user {user_hash[:8]}... (original_id: {user_id})")
