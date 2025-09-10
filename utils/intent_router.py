@@ -44,13 +44,13 @@ def detect_intent(text: str) -> str:
     # Hot guardrail: if message contains money, prioritize expense logging
     # Simple money detection without external imports to avoid circular dependencies
     def has_money_pattern(text):
-        \"\"\"Detect money amounts in text\"\"\"
+        """Detect money amounts in text"""
         money_patterns = [
-            r'\\d+\\s*(?:taka|টাকা|tk|৳)',  # Bengali currency
-            r'\\$\\d+|\\d+\\s*(?:dollars?|usd)',  # USD  
-            r'€\\d+|\\d+\\s*(?:euro?s?)',  # Euro
-            r'£\\d+|\\d+\\s*(?:pounds?)',  # Pounds
-            r'₹\\d+|\\d+\\s*(?:rupees?)',  # Rupees
+            r'\d+\s*(?:taka|টাকা|tk|৳)',  # Bengali currency
+            r'\$\d+|\d+\s*(?:dollars?|usd)',  # USD  
+            r'€\d+|\d+\s*(?:euro?s?)',  # Euro
+            r'£\d+|\d+\s*(?:pounds?)',  # Pounds
+            r'₹\d+|\d+\s*(?:rupees?)',  # Rupees
         ]
         return any(re.search(pattern, text.lower()) for pattern in money_patterns)
     if has_money_pattern(text):
