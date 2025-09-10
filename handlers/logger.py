@@ -47,7 +47,7 @@ def handle_log(user_id: str, text: str) -> Dict[str, str]:
                 expense.date = datetime.now().date()
                 expense.time = datetime.now().time()
                 expense.month = datetime.now().strftime("%Y-%m")
-                expense.platform = "messenger"
+                expense.platform = "pwa"
                 
                 # Generate unique ID for idempotency
                 try:
@@ -67,7 +67,7 @@ def handle_log(user_id: str, text: str) -> Dict[str, str]:
             now_ts = datetime.utcnow()
             db.session.execute(sql_text("""
                 INSERT INTO users (user_id_hash, platform, total_expenses, expense_count, last_interaction, last_user_message_at)
-                VALUES (:user_hash, 'messenger', :total, :count, :now_ts, :now_ts)
+                VALUES (:user_hash, 'pwa', :total, :count, :now_ts, :now_ts)
                 ON CONFLICT (user_id_hash) DO UPDATE SET
                     total_expenses = COALESCE(users.total_expenses, 0) + :total,
                     expense_count = COALESCE(users.expense_count, 0) + :count,
