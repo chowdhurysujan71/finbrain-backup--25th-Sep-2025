@@ -183,7 +183,18 @@ with app.app_context():
     # Import models to ensure tables are created
     import models  # noqa: F401
     import models_pca  # noqa: F401
-    db.create_all()
+    
+    # Use safe database initialization to prevent duplicate index errors
+    try:
+        from utils.safe_db_init import safe_database_initialization
+        if not safe_database_initialization():
+            logger.error("✗ Safe database initialization failed - check logs for details")
+            sys.exit(1)
+        logger.info("✓ Safe database initialization completed successfully")
+    except ImportError as e:
+        logger.error(f"✗ Safe database initialization module not available: {e}")
+        logger.info("Falling back to standard db.create_all() - may cause duplicate errors")
+        db.create_all()
     
     # Schema validation and auto-healing
     try:
