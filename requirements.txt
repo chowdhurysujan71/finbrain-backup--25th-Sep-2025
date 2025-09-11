@@ -24,3 +24,5 @@ pyjwt
 flask-cors
 flask-limiter
 alembic
+psycopg2-binary
+requests
