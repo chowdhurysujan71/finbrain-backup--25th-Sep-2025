@@ -3,7 +3,8 @@ Routes for FinBrain Backend Assistant API
 Strict no-hallucination backend following exact specification
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
+from functools import wraps
 from backend_assistant import (
     propose_expense, 
     get_totals, 
@@ -19,6 +20,40 @@ import logging
 logger = logging.getLogger(__name__)
 
 backend_api = Blueprint('backend_api', __name__, url_prefix='/api/backend')
+
+def get_session_authenticated_user_id():
+    """Get authenticated user ID from server-side session only (SECURITY HARDENED).
+    
+    This function ONLY accepts session['user_id'] from proper server-side authentication.
+    X-User-ID headers are REJECTED to prevent user impersonation attacks.
+    Financial endpoints require proper login through the web interface.
+    """
+    # SECURITY: Only accept server-side session authentication
+    # Never trust client-supplied headers for financial data access
+    return session.get('user_id')
+
+def require_backend_user_auth(f):
+    """Backend API session-only authentication decorator (SECURITY HARDENED).
+    
+    Requires proper server-side session authentication. Client headers are rejected
+    to prevent user impersonation attacks on financial endpoints.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_id = get_session_authenticated_user_id()
+        
+        if not user_id:
+            logger.warning(f"Unauthorized access attempt to {request.path} - session auth required")
+            return jsonify({
+                "error": "Session authentication required", 
+                "message": "Please log in through the web interface. Client headers are not accepted for financial endpoints.",
+                "security_note": "X-User-ID headers rejected to prevent user impersonation"
+            }), 401
+        
+        # Pass authenticated user_id to the route function
+        kwargs['authenticated_user_id'] = user_id
+        return f(*args, **kwargs)
+    return decorated_function
 
 @backend_api.route('/propose_expense', methods=['POST'])
 def api_propose_expense():
@@ -40,53 +75,49 @@ def api_propose_expense():
         return jsonify({"error": "Internal server error"}), 500
 
 @backend_api.route('/get_totals', methods=['POST'])
-def api_get_totals():
+@require_backend_user_auth
+def api_get_totals(authenticated_user_id):
     """
     POST /api/backend/get_totals
-    Input: {"user_id": 123, "period": "week"}
+    Input: {"period": "week"}
     Output: {"period": "week", "total_minor": 50000, "top_category": "food", "expenses_count": 5}
+    Authentication: Required (session only - SECURITY HARDENED)
     """
     try:
-        data = request.get_json()
-        if not data or 'user_id' not in data:
-            return jsonify({"error": "Missing 'user_id' field"}), 400
-        
-        user_id = data['user_id']
+        data = request.get_json() or {}
         period = data.get('period', 'week')
         
         if period not in ['day', 'week', 'month']:
             return jsonify({"error": "Invalid period. Use: day, week, month"}), 400
         
-        result = get_totals(user_id, period)
+        result = get_totals(authenticated_user_id, period)
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"get_totals API error: {e}")
+        logger.error(f"get_totals API error for user {authenticated_user_id}: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 @backend_api.route('/get_recent_expenses', methods=['POST'])
-def api_get_recent_expenses():
+@require_backend_user_auth
+def api_get_recent_expenses(authenticated_user_id):
     """
     POST /api/backend/get_recent_expenses
-    Input: {"user_id": 123, "limit": 10}
+    Input: {"limit": 10}
     Output: [{"id": 1, "description": "coffee", "amount_minor": 5000, "category": "food", "created_at": "..."}]
+    Authentication: Required (session only - SECURITY HARDENED)
     """
     try:
-        data = request.get_json()
-        if not data or 'user_id' not in data:
-            return jsonify({"error": "Missing 'user_id' field"}), 400
-        
-        user_id = data['user_id']
+        data = request.get_json() or {}
         limit = data.get('limit', 10)
         
         if limit <= 0 or limit > 100:
             limit = 10
         
-        result = get_recent_expenses(user_id, limit)
+        result = get_recent_expenses(authenticated_user_id, limit)
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"get_recent_expenses API error: {e}")
+        logger.error(f"get_recent_expenses API error for user {authenticated_user_id}: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 @backend_api.route('/uat_checklist', methods=['GET'])
@@ -138,49 +169,45 @@ def api_process_message():
         return jsonify({"error": "Internal server error"}), 500
 
 @backend_api.route('/user_summary', methods=['POST']) 
-def api_user_summary():
+@require_backend_user_auth
+def api_user_summary(authenticated_user_id):
     """
     POST /api/backend/user_summary
     Get user expense summary
-    Input: {"user_id": 123, "period": "week"}
+    Input: {"period": "week"}
     Output: Summary from database only, never invented
+    Authentication: Required (session only - SECURITY HARDENED)
     """
     try:
-        data = request.get_json()
-        if not data or 'user_id' not in data:
-            return jsonify({"error": "Missing 'user_id' field"}), 400
-        
-        user_id = data['user_id']
+        data = request.get_json() or {}
         period = data.get('period', 'week')
         
-        result = get_user_summary(user_id, period)
+        result = get_user_summary(authenticated_user_id, period)
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"user_summary API error: {e}")
+        logger.error(f"user_summary API error for user {authenticated_user_id}: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 @backend_api.route('/user_expenses', methods=['POST'])
-def api_user_expenses():
+@require_backend_user_auth
+def api_user_expenses(authenticated_user_id):
     """
     POST /api/backend/user_expenses  
     Get recent user expenses
-    Input: {"user_id": 123, "limit": 10}
+    Input: {"limit": 10}
     Output: Array of expenses from database only
+    Authentication: Required (session only - SECURITY HARDENED)
     """
     try:
-        data = request.get_json()
-        if not data or 'user_id' not in data:
-            return jsonify({"error": "Missing 'user_id' field"}), 400
-        
-        user_id = data['user_id']
+        data = request.get_json() or {}
         limit = data.get('limit', 10)
         
-        result = get_user_expenses(user_id, limit)
+        result = get_user_expenses(authenticated_user_id, limit)
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"user_expenses API error: {e}")
+        logger.error(f"user_expenses API error for user {authenticated_user_id}: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 # Health check endpoint

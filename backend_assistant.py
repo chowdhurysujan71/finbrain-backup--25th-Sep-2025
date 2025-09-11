@@ -18,6 +18,7 @@ from models import Expense, User
 from sqlalchemy import text, and_, func
 from typing import Dict, List, Optional, Union
 import logging
+from utils.identity import ensure_hashed
 
 logger = logging.getLogger(__name__)
 
@@ -126,9 +127,9 @@ def propose_expense(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
             "confidence": 0.0
         }
 
-def get_totals(user_id: int, period: str) -> Dict[str, Union[str, int, None]]:
+def get_totals(user_id: str, period: str) -> Dict[str, Union[str, int, None]]:
     """
-    Input: { "user_id": int, "period": "day|week|month" }
+    Input: { "user_id": str, "period": "day|week|month" }
     Output JSON:
     {
       "period": "week",
@@ -137,27 +138,13 @@ def get_totals(user_id: int, period: str) -> Dict[str, Union[str, int, None]]:
       "expenses_count": int
     }
     Rules:
-    - Must call SQL: SELECT SUM(amount_minor), COUNT(*), category FROM expenses WHERE user_id=? AND created_at BETWEEN ...
+    - Must call SQL: SELECT SUM(amount_minor), COUNT(*), category FROM expenses WHERE user_id_hash=? AND created_at BETWEEN ...
     - Never guess or calculate inside the model. Only echo DB result.
     """
     
     try:
-        # First, translate user_id to user_id_hash via compatibility table
-        user_hash_query = db.session.execute(text("""
-            SELECT user_id_hash 
-            FROM assistant_user_map 
-            WHERE id = :user_id
-        """), {"user_id": user_id}).first()
-        
-        if not user_hash_query:
-            return {
-                "period": period,
-                "total_minor": 0,
-                "top_category": None,
-                "expenses_count": 0
-            }
-        
-        user_hash = user_hash_query[0]
+        # Ensure user_id is properly hashed for consistent lookup
+        user_hash = ensure_hashed(user_id)
         
         # Calculate date range based on period
         now = datetime.utcnow()
@@ -216,25 +203,16 @@ def get_totals(user_id: int, period: str) -> Dict[str, Union[str, int, None]]:
             "expenses_count": 0
         }
 
-def get_recent_expenses(user_id: int, limit: int = 10) -> List[Dict[str, Union[str, int, float]]]:
+def get_recent_expenses(user_id: str, limit: int = 10) -> List[Dict[str, Union[str, int, float]]]:
     """
-    Input: { "user_id": int, "limit": int }
+    Input: { "user_id": str, "limit": int }
     Output JSON array of last N rows from expenses table.
     Rules: show description, amount_minor, category, created_at.
     """
     
     try:
-        # First, translate user_id to user_id_hash via compatibility table
-        user_hash_query = db.session.execute(text("""
-            SELECT user_id_hash 
-            FROM assistant_user_map 
-            WHERE id = :user_id
-        """), {"user_id": user_id}).first()
-        
-        if not user_hash_query:
-            return []
-        
-        user_hash = user_hash_query[0]
+        # Ensure user_id is properly hashed for consistent lookup
+        user_hash = ensure_hashed(user_id)
         
         # Query database using SQL for precise amount_minor calculation
         expenses_result = db.session.execute(text("""
@@ -396,18 +374,19 @@ def get_sql_schemas() -> Dict[str, str]:
         """
     }
 
-# API endpoint wrapper functions
+# API endpoint wrapper functions  
 def process_message(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
     """
     Main entry point for message processing.
     Returns structured JSON or 'Not available in DB' for missing data.
+    Public endpoint - no authentication required (stateless parsing only).
     """
     if not raw_text or not raw_text.strip():
         return {"error": "Empty message"}
     
     return propose_expense(raw_text.strip())
 
-def get_user_summary(user_id: int, period: str = "week") -> Dict[str, Union[str, int, None]]:
+def get_user_summary(user_id: str, period: str = "week") -> Dict[str, Union[str, int, None]]:
     """
     Get user expense summary for specified period.
     Returns only data from database queries, never invented numbers.
@@ -417,7 +396,7 @@ def get_user_summary(user_id: int, period: str = "week") -> Dict[str, Union[str,
     
     return get_totals(user_id, period)
 
-def get_user_expenses(user_id: int, limit: int = 10) -> List[Dict[str, Union[str, int, float]]]:
+def get_user_expenses(user_id: str, limit: int = 10) -> List[Dict[str, Union[str, int, float]]]:
     """
     Get recent expenses for user.
     Returns only data from database, never fabricated.

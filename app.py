@@ -668,8 +668,8 @@ def deployment_readiness_check():
             "recommendation": "Contact support - deployment readiness system is not functioning"
         }), 500
 
-@app.route("/webhook/messenger", methods=["GET", "POST"])
-def webhook_messenger():  # type: ignore
+@app.route("/webhook/messenger", methods=["GET", "POST"])  # type: ignore[misc]
+def webhook_messenger():
     """Facebook Messenger webhook with structured request logging"""
     from utils.logger import request_logger
     
@@ -1194,9 +1194,9 @@ def pca_telemetry():
             'timestamp': datetime.utcnow().isoformat()
         }), 500
 
-@app.route("/ops/pca/canary", methods=["GET", "POST"])
+@app.route("/ops/pca/canary", methods=["GET", "POST"])  # type: ignore[misc]
 @require_basic_auth
-def pca_canary_management():  # type: ignore
+def pca_canary_management():
     """Manage PCA canary users for SHADOW mode testing"""
     if request.method == "GET":
         # Get current canary user status
