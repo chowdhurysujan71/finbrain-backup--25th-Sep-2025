@@ -314,42 +314,61 @@ def offline():
 @pwa_ui.route('/partials/entries')
 def entries_partial():
     """
-    Recent entries partial for HTMX - shows real user expenses
+    Recent entries partial for HTMX - UI GUARDRAILS ENFORCED
+    MUST use session-authenticated API endpoints only
     """
-    from models import Expense
-    from utils.identity import psid_hash
-    from app import db
+    from flask import session
+    import requests
+    import os
     
     try:
-        # Get user ID from header (set by PWA JavaScript)
-        user_id = get_user_id()
-        if user_id:
-            user_hash = psid_hash(user_id) if user_id.startswith('pwa_') else user_id
-            logger.info(f"PWA entries lookup for user {user_hash[:8]}...")
+        # SECURITY: Only session-authenticated users can see entries
+        if 'user_id' not in session:
+            logger.warning("Unauthorized access to /partials/entries - no session")
+            return render_template('partials/entries.html', entries=[])
+        
+        # UI GUARDRAIL: Call only the canonical backend API endpoint
+        # This enforces session authentication and unified read path
+        base_url = os.environ.get('REPLIT_DEV_DOMAIN', 'http://localhost:5000')
+        
+        # Use internal API call with session cookies
+        response = requests.post(
+            f"{base_url}/api/backend/get_recent_expenses",
+            json={"limit": 10},
+            cookies=request.cookies,  # Pass session cookies for authentication
+            headers={
+                'Content-Type': 'application/json',
+                'User-Agent': 'PWA-Internal-Client/1.0'
+            },
+            timeout=5
+        )
+        
+        if response.status_code == 200:
+            api_data = response.json()
             
-            # Use canonical recent_expenses prepared statement for unified read path
-            from sqlalchemy import text
-            recent_result = db.session.execute(text("EXECUTE recent_expenses(:user_hash, :limit)"), {"user_hash": user_hash, "limit": 10}).fetchall()
-            
-            # Convert to template-friendly format (from canonical prepared statement)
+            # Convert API response to template format
             entries = []
-            for row in recent_result:
+            for expense in api_data:
                 entries.append({
-                    'id': int(row[0]) if row[0] else 0,
-                    'amount': float(row[1] / 100) if row[1] else 0.0,  # amount_minor to float
-                    'category': (row[3] or 'uncategorized').title(),
-                    'description': row[4] or f"{(row[3] or 'uncategorized').title()} expense",
-                    'date': row[6].strftime('%Y-%m-%d') if row[6] else '',  # created_at as date
-                    'time': row[6].strftime('%H:%M') if row[6] else '00:00'  # created_at as time
+                    'id': expense.get('id', 0),
+                    'amount': float(expense.get('amount_minor', 0)) / 100,  # Convert to major units
+                    'category': (expense.get('category', 'uncategorized') or 'uncategorized').title(),
+                    'description': expense.get('description', '') or f"{(expense.get('category', 'uncategorized') or 'uncategorized').title()} expense",
+                    'date': expense.get('created_at', '')[:10] if expense.get('created_at') else '',  # Extract date part
+                    'time': expense.get('created_at', '')[11:16] if expense.get('created_at') and len(expense.get('created_at', '')) > 11 else '00:00'  # Extract time part
                 })
             
+            logger.info(f"PWA entries loaded via API: {len(entries)} entries")
             return render_template('partials/entries.html', entries=entries)
         
+        else:
+            logger.warning(f"API call failed with status {response.status_code}: {response.text}")
+            return render_template('partials/entries.html', entries=[])
+        
     except Exception as e:
-        logger.error(f"Error fetching entries: {e}")
-    
-    # Fallback to empty state
-    return render_template('partials/entries.html', entries=[])
+        logger.error(f"Error fetching entries via API: {e}")
+        # Fallback to empty state - NEVER bypass API endpoints
+        return render_template('partials/entries.html', entries=[])
 
 @pwa_ui.route('/ai-chat-test', methods=['POST'])
 def ai_chat_test():

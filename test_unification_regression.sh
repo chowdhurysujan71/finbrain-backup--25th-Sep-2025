@@ -31,6 +31,26 @@ else
     echo "✅ PASS: No monthly_summaries reads in user-facing code"
 fi
 
+# C) UI Guardrail checks
+echo ""
+echo "🛡️  C) UI Guardrail Checks"
+
+echo "🔍 Checking for direct database access in UI components..."
+if grep -r "db\.session\|execute.*text\|\.fetchall\|\.first()" --include="*.py" pwa_ui.py routes/pwa*.py 2>/dev/null; then
+    echo "❌ FAIL: Found direct database access in UI components (must use API endpoints only)"
+    exit 1
+else
+    echo "✅ PASS: No direct database access in UI components"
+fi
+
+echo "🔍 Checking for prepared statement calls outside backend..."
+if grep -r "EXECUTE.*recent_expenses\|EXECUTE.*weekly_totals" --include="*.py" --exclude="backend_assistant.py" --exclude="routes_backend_assistant.py" handlers/ routes/ pwa_ui.py 2>/dev/null; then
+    echo "❌ FAIL: Found prepared statement calls outside backend layer"
+    exit 1
+else
+    echo "✅ PASS: Prepared statements only used in backend layer"
+fi
+
 # B) Database state checks
 echo ""
 echo "🗃️  B) Database State Checks"
@@ -63,9 +83,21 @@ else
     echo "✅ PASS: No duplicate idempotency keys ($DUPLICATES found)"
 fi
 
-# D) Permission checks
+# D) UI Guardrails Check  
 echo ""
-echo "🔒 D) Permission Checks"
+echo "🔒 D) UI Guardrails - Frontend restricted to approved endpoints"
+
+echo "🔍 Checking UI guardrails compliance..."
+if python3 ui_guardrails_validation.py; then
+    echo "✅ PASS: UI guardrails enforced - frontend uses only approved endpoints"
+else
+    echo "❌ FAIL: UI guardrails violated - frontend bypassing approved endpoints"
+    exit 1
+fi
+
+# E) Permission checks
+echo ""
+echo "🔒 E) Permission Checks"
 
 echo "🔍 Checking for write permissions on legacy tables..."
 WRITE_PERMS=$(psql "$DATABASE_URL" -t -c "
@@ -82,7 +114,7 @@ else
     echo "✅ PASS: No write permissions on legacy tables ($WRITE_PERMS found)"
 fi
 
-# E) Verify unified read path
+# F) Verify unified read path
 echo "🔍 Verifying expenses table accessibility..."
 EXPENSE_COUNT=$(psql "$DATABASE_URL" -t -c "SELECT COUNT(*) FROM expenses" | tr -d ' ')
 

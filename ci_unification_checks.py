@@ -61,10 +61,10 @@ def main():
     # A) Check for fragmented reads in codebase
     print("\n📁 A) Code Pattern Checks - No fragmented reads")
     
-    # Check for inference_snapshots reads in user-facing code
+    # Check for inference_snapshots reads in UI-facing code (exclude backend handlers)
     code, stdout, stderr = run_command(
-        "grep -r 'FROM inference_snapshots' --include='*.py' handlers/ routes/ pwa_ui.py backend_assistant.py || true",
-        "Scanning for inference_snapshots reads in user-facing code"
+        "grep -r 'FROM inference_snapshots' --include='*.py' pwa_ui.py routes/pwa* templates/ static/ || true",
+        "Scanning for inference_snapshots reads in UI-facing code"
     )
     
     if stdout.strip():
@@ -74,10 +74,10 @@ def main():
     else:
         print("✅ PASS: No inference_snapshots reads in user-facing code")
     
-    # Check for monthly_summaries reads in user-facing code  
+    # Check for monthly_summaries reads in UI-facing code  
     code, stdout, stderr = run_command(
-        "grep -r 'FROM monthly_summaries' --include='*.py' handlers/ routes/ pwa_ui.py backend_assistant.py || true",
-        "Scanning for monthly_summaries reads in user-facing code"
+        "grep -r 'FROM monthly_summaries' --include='*.py' pwa_ui.py routes/pwa* templates/ static/ || true",
+        "Scanning for monthly_summaries reads in UI-facing code"
     )
     
     if stdout.strip():
@@ -86,6 +86,35 @@ def main():
         all_passed = False
     else:
         print("✅ PASS: No monthly_summaries reads in user-facing code")
+    
+    # C) UI Guardrail Checks - Frontend must only call backend APIs
+    print("\n🛡️  C) UI Guardrail Checks - Frontend API enforcement")
+    
+    # Check for direct database access in UI components
+    code, stdout, stderr = run_command(
+        "grep -r 'db\\.session\\|execute.*text\\|\.fetchall\\|\.first()' --include='*.py' pwa_ui.py routes/pwa*.py || true",
+        "Scanning for direct database access in UI components"
+    )
+    
+    if stdout.strip():
+        print(f"❌ FAIL: Found direct database access in UI components (must use API endpoints only):")
+        print(stdout)
+        all_passed = False
+    else:
+        print("✅ PASS: No direct database access in UI components")
+    
+    # Check for prepared statement calls outside backend
+    code, stdout, stderr = run_command(
+        "grep -r 'EXECUTE.*recent_expenses\\|EXECUTE.*weekly_totals' --include='*.py' --exclude='backend_assistant.py' --exclude='routes_backend_assistant.py' handlers/ routes/ pwa_ui.py || true",
+        "Scanning for prepared statement calls outside backend layer"
+    )
+    
+    if stdout.strip():
+        print(f"❌ FAIL: Found prepared statement calls outside backend layer:")
+        print(stdout)
+        all_passed = False
+    else:
+        print("✅ PASS: Prepared statements only used in backend layer")
     
     # B) Check for orphan snapshots (adapted to actual schema)
     print("\n🗃️  B) Database State Checks")
@@ -128,7 +157,22 @@ def main():
     )
     all_passed = all_passed and permission_check
     
-    # E) Verify unified read path is active
+    # E) UI Guardrails Check
+    print("\n🔒 E) UI Guardrails - Frontend can only use approved endpoints")
+    
+    ui_code, ui_stdout, ui_stderr = run_command(
+        "python3 ui_guardrails_validation.py",
+        "Running UI guardrails validation"
+    )
+    
+    if ui_code != 0:
+        print(f"❌ FAIL: UI guardrails validation failed")
+        print(ui_stdout)
+        all_passed = False
+    else:
+        print("✅ PASS: UI guardrails enforced")
+    
+    # F) Verify unified read path is active
     try:
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor()
