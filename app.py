@@ -669,7 +669,7 @@ def deployment_readiness_check():
         }), 500
 
 @app.route("/webhook/messenger", methods=["GET", "POST"])
-def webhook_messenger():
+def webhook_messenger():  # type: ignore
     """Facebook Messenger webhook with structured request logging"""
     from utils.logger import request_logger
     
@@ -691,7 +691,7 @@ def webhook_messenger():
             return challenge or ""
         else:
             logger.warning(f"❌ Webhook verification failed: mode={mode}, expected_mode=subscribe, token_match={verify_token == expected_token}")
-            logger.warning(f"Received token: '{verify_token}', Expected: '{expected_token[:10]}...' (masked)")
+            logger.warning(f"Received token: '{verify_token}', Expected: '{expected_token[:10] if expected_token else None}...' (masked)")
             return "Verification token mismatch", 403
         
     elif request.method == "POST":
@@ -1196,7 +1196,7 @@ def pca_telemetry():
 
 @app.route("/ops/pca/canary", methods=["GET", "POST"])
 @require_basic_auth
-def pca_canary_management():
+def pca_canary_management():  # type: ignore
     """Manage PCA canary users for SHADOW mode testing"""
     if request.method == "GET":
         # Get current canary user status

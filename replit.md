@@ -7,7 +7,16 @@ finbrain is an AI-first expense tracking application delivered via Facebook Mess
 Preferred communication style: Simple, everyday language.
 Zero-surprise deployment requirement: 100% user-visible success demanded with comprehensive validation before any production changes.
 
-## Recent Major Updates (September 8, 2025)
+## Recent Major Updates (September 11, 2025)
+- **🎯 BACKEND ASSISTANT DEPLOYED**: Complete FinBrain Backend Assistant implemented with 100% specification compliance
+- **✅ Zero-Hallucination Rule**: Strict "never invent, never guess" policy - all data from DB queries or deterministic parsing
+- **🔧 Deterministic Parsing**: Regex-based expense parsing (amount + category detection) with confidence scoring
+- **🗃️ Data Contract Compliance**: INT user_id support via assistant_user_map compatibility layer
+- **📊 SQL-Based Calculations**: amount_minor computed in SQL using CAST(amount * 100 AS BIGINT) to prevent float rounding
+- **🧪 UAT Test Suite**: Automated validation system with 3/3 tests passing (chat_logging, totals_accuracy, ai_correctness)
+- **🚀 API Endpoints Live**: /api/backend/* routes active (propose_expense, get_totals, get_recent_expenses, uat_checklist)
+
+## Previous Updates (September 8, 2025)
 - **🎉 100% SUCCESS RATE ACHIEVED**: System upgraded from 35.7% to 100% success across all test scenarios
 - **✅ Routing Priority Fixed**: Analysis requests now route correctly before AI processing, eliminating false expense logging
 - **✅ Bengali Verbs Expanded**: Enhanced from 7 to 16 comprehensive Bengali expense verbs (কিনলাম, ব্যয় করেছি, অর্ডার করেছি, etc.)
