@@ -327,23 +327,20 @@ def entries_partial():
             user_hash = psid_hash(user_id) if user_id.startswith('pwa_') else user_id
             logger.info(f"PWA entries lookup for user {user_hash[:8]}...")
             
-            # Query recent expenses for this user
-            recent_expenses = db.session.query(Expense)\
-                .filter_by(user_id_hash=user_hash)\
-                .order_by(Expense.created_at.desc())\
-                .limit(10)\
-                .all()
+            # Use canonical recent_expenses prepared statement for unified read path
+            from sqlalchemy import text
+            recent_result = db.session.execute(text("EXECUTE recent_expenses(:user_hash, :limit)"), {"user_hash": user_hash, "limit": 10}).fetchall()
             
-            # Convert to template-friendly format
+            # Convert to template-friendly format (from canonical prepared statement)
             entries = []
-            for exp in recent_expenses:
+            for row in recent_result:
                 entries.append({
-                    'id': exp.id,
-                    'amount': float(exp.amount),
-                    'category': exp.category.title(),
-                    'description': exp.description or f"{exp.category.title()} expense",
-                    'date': exp.date.strftime('%Y-%m-%d'),
-                    'time': exp.time.strftime('%H:%M') if exp.time else '00:00'
+                    'id': int(row[0]) if row[0] else 0,
+                    'amount': float(row[1] / 100) if row[1] else 0.0,  # amount_minor to float
+                    'category': (row[3] or 'uncategorized').title(),
+                    'description': row[4] or f"{(row[3] or 'uncategorized').title()} expense",
+                    'date': row[6].strftime('%Y-%m-%d') if row[6] else '',  # created_at as date
+                    'time': row[6].strftime('%H:%M') if row[6] else '00:00'  # created_at as time
                 })
             
             return render_template('partials/entries.html', entries=entries)

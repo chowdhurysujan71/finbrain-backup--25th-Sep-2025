@@ -44,24 +44,39 @@ def _range_this_month_and_prev(now: datetime):
     return (cur_start, cur_end), (prev_start, prev_end)
 
 def _totals_by_category(user_id: str, start: datetime, end: datetime):
-    """Get category totals for a date range"""
-    from models import Expense
+    """Get category totals for a date range - UNIFIED READ PATH (expenses table only)"""
     from app import app, db
-    from sqlalchemy import func
+    from sqlalchemy import text
+    from datetime import timedelta
     
+    # Check if this is a 7-day period to use canonical weekly_totals
+    now = datetime.utcnow()
+    if abs((now - end).total_seconds()) < 3600 and abs((start - (now - timedelta(days=7))).total_seconds()) < 3600:  # Within 1 hour tolerance
+        # Use canonical weekly_totals prepared statement
+        try:
+            result = db.session.execute(text("EXECUTE weekly_totals(:user_hash)"), {"user_hash": user_id}).first()
+            if result:
+                total_minor = int(result[0] or 0)
+                top_category = result[2] or "Uncategorized"
+                # For compatibility, return category map with single entry
+                category_map = {top_category: float(total_minor / 100)} if total_minor > 0 else {}
+                total = float(total_minor / 100)
+                return category_map, total
+        except Exception as e:
+            # Fallback to direct query if prepared statement fails
+            pass
     
-    rows = (
-        db.session.query(
-            Expense.category.label("category"),
-            func.coalesce(func.sum(Expense.amount), 0).label("total"),
-        )
-        .filter(Expense.user_id_hash == user_id)
-        .filter(Expense.created_at >= start)
-        .filter(Expense.created_at < end)   # exclusive end
-        .group_by(Expense.category)
-        .all()
-    )
-    category_map = {(r.category or "Uncategorized"): float(r.total or 0) for r in rows}
+    # Fallback: Direct query only from expenses table (no other tables)
+    rows = db.session.execute(text("""
+        SELECT category, COALESCE(SUM(amount_minor), 0) as total_minor
+        FROM expenses 
+        WHERE user_id_hash = :user_id 
+        AND created_at >= :start 
+        AND created_at < :end
+        GROUP BY category
+    """), {"user_id": user_id, "start": start, "end": end}).fetchall()
+    
+    category_map = {(r[0] or "Uncategorized"): float((r[1] or 0) / 100) for r in rows}
     total = sum(category_map.values())
     return category_map, total
 
@@ -98,16 +113,16 @@ def handle_summary(user_id: str, text: str = "", timeframe: str = "week") -> Dic
                 start, end = week_bounds()
                 period = "last 7 days"
             
-            # Query expenses
-            expenses = db.session.query(
-                Expense.category,
-                db.func.sum(Expense.amount).label('total'),
-                db.func.count(Expense.id).label('count')
-            ).filter(
-                Expense.user_id_hash == user_id,
-                Expense.created_at >= start,
-                Expense.created_at < end
-            ).group_by(Expense.category).all()
+            # Query expenses - UNIFIED READ PATH (expenses table only)
+            from sqlalchemy import text
+            expenses = db.session.execute(text("""
+                SELECT category, COALESCE(SUM(amount_minor), 0) as total_minor, COUNT(*) as count
+                FROM expenses 
+                WHERE user_id_hash = :user_id 
+                AND created_at >= :start 
+                AND created_at < :end
+                GROUP BY category
+            """), {"user_id": user_id, "start": start, "end": end}).fetchall()
             
             # BLOCK 4 ANALYTICS: Track report request (fail-safe)
             try:
@@ -126,12 +141,12 @@ def handle_summary(user_id: str, text: str = "", timeframe: str = "week") -> Dic
             if not expenses:
                 return {"text": format_ai_summary_reply(period, 0, 0, [])}
             
-            # Calculate totals
-            total_amount = sum(exp.total for exp in expenses)
-            total_entries = sum(exp.count for exp in expenses)
+            # Calculate totals (from unified read path)
+            total_amount = sum(float((exp[1] or 0) / 100) for exp in expenses)  # Convert minor to major units
+            total_entries = sum(exp[2] for exp in expenses)
             
-            # Build category list
-            categories = [exp.category for exp in expenses[:5]]  # Top 5 categories
+            # Build category list  
+            categories = [exp[0] for exp in expenses[:5]]  # Top 5 categories
             
             # Generate base summary first
             base_msg = format_ai_summary_reply(period, total_amount, total_entries, categories)
