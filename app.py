@@ -1848,6 +1848,15 @@ try:
 except ImportError as e:
     logger.warning(f"PWA UI routes not available: {e}")
 
+# Register Backend Assistant API routes
+try:
+    from routes_backend_assistant import backend_api
+    if 'backend_api' not in app.blueprints:
+        app.register_blueprint(backend_api)
+        logger.info("✓ Backend Assistant API routes registered (/api/backend/*)")
+except ImportError as e:
+    logger.warning(f"Backend Assistant routes not available: {e}")
+
 # Register Growth Telemetry Blueprint
 try:
     from routes_telemetry import register_telemetry_routes
