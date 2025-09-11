@@ -84,7 +84,20 @@ db = SQLAlchemy(model_class=Base)
 
 # Create the app
 app = Flask(__name__, static_folder='static', static_url_path='/static')
-app.secret_key = os.environ.get("SESSION_SECRET") or os.urandom(32).hex()
+
+# SECURITY HARDENED: Require SESSION_SECRET from environment - no fallback
+session_secret = os.environ.get("SESSION_SECRET")
+if not session_secret:
+    logger.critical("BOOT FAILURE: SESSION_SECRET environment variable is required for production security")
+    sys.exit(1)
+    
+app.secret_key = session_secret
+
+# SECURITY HARDENED: Configure secure session cookies for production
+app.config["SESSION_COOKIE_SECURE"] = True        # HTTPS only
+app.config["SESSION_COOKIE_HTTPONLY"] = True      # No JavaScript access  
+app.config["SESSION_COOKIE_SAMESITE"] = "Strict"  # CSRF protection
+
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Configure CORS and rate limiting
@@ -115,7 +128,9 @@ def after_request(response):
     if hasattr(g, 'start_time') and hasattr(g, 'request_id') and hasattr(g, 'logging_handled'):
         try:
             duration_ms = (time.time() - g.start_time) * 1000
-            user_id = request.headers.get('X-User-ID')
+            
+            # SECURITY HARDENED: Only log server-side session user_id, never client headers
+            session_user_id = session.get('user_id') if session else None
             
             # Use existing structured logger format
             import json
@@ -129,8 +144,9 @@ def after_request(response):
                 "latency_ms": round(duration_ms, 2)
             }
             
-            if user_id:
-                log_data["user_id"] = user_id
+            # Only log authenticated session user_id for security traceability
+            if session_user_id:
+                log_data["session_user_id"] = session_user_id[:12] + "..."  # Truncated for privacy
             
             # Log using existing logger infrastructure
             structured_logger.logger.info(json.dumps(log_data))
