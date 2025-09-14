@@ -28,7 +28,7 @@ def create_expense(user_id, amount, currency, category, occurred_at, source_mess
     from models import Expense, User, MonthlySummary
     from utils.tracer import trace_event
     from utils.telemetry import TelemetryTracker
-    from app import db
+    from db_base import db
     import uuid
     from decimal import Decimal
     
@@ -142,7 +142,7 @@ def get_or_create_user(user_identifier, platform, db_session=None):
     from flask import current_app
     
     if db_session is None:
-        from app import db
+        from db_base import db
         db_session = db
     
     try:
@@ -175,7 +175,7 @@ def save_expense(user_identifier, description, amount, category, platform, origi
     from utils.telemetry import TelemetryTracker
     
     if db_session is None:
-        from app import db
+        from db_base import db
         db_session = db
     
     try:
@@ -402,7 +402,7 @@ def upsert_expense_idempotent(psid_hash: str, mid: str, payload: Dict[str, Any])
     from decimal import Decimal
     import hashlib
     
-    from app import db
+    from db_base import db
     
     try:
         # Create unique constraint key
@@ -532,7 +532,7 @@ def ensure_idempotency_index():
     Safe to call multiple times.
     """
     try:
-        from app import db
+        from db_base import db
         
         # Create unique index if it doesn't exist
         index_sql = """
