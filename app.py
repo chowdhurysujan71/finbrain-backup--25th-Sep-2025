@@ -572,10 +572,78 @@ def admin_dashboard():
         response.headers['Expires'] = '0'
         return response
 
+# Helper functions for health and diagnostics
+def get_git_commit():
+    """Get git commit SHA safely"""
+    try:
+        import subprocess
+        result = subprocess.run(['git', 'rev-parse', 'HEAD'], 
+                              capture_output=True, text=True, timeout=2)
+        if result.returncode == 0:
+            return result.stdout.strip()[:8]  # First 8 chars
+    except:
+        pass
+    return "unknown"
+
+def get_database_host():
+    """Extract database host from DATABASE_URL safely (no secrets)"""
+    try:
+        from urllib.parse import urlparse
+        db_url = os.environ.get("DATABASE_URL", "")
+        if db_url:
+            parsed = urlparse(db_url)
+            return parsed.hostname or "localhost"
+    except:
+        pass
+    return "unknown"
+
+def get_alembic_head():
+    """Get current alembic revision"""
+    try:
+        import subprocess
+        result = subprocess.run(['alembic', 'current'], 
+                              capture_output=True, text=True, timeout=3)
+        if result.returncode == 0:
+            # Extract revision from output like "abc123 (head)"
+            output = result.stdout.strip()
+            if output:
+                return output.split()[0]  # First part is the revision
+    except:
+        pass
+    return "unknown"
+
+def check_migrations_applied():
+    """Check if all migrations are applied"""
+    try:
+        import subprocess
+        # Check if there are pending migrations
+        result = subprocess.run(['alembic', 'heads'], 
+                              capture_output=True, text=True, timeout=3)
+        if result.returncode == 0:
+            heads = result.stdout.strip()
+            if heads:
+                # Check current vs heads
+                current_result = subprocess.run(['alembic', 'current'], 
+                                              capture_output=True, text=True, timeout=3)
+                if current_result.returncode == 0:
+                    current = current_result.stdout.strip()
+                    # If current matches heads, migrations are up to date
+                    return heads in current if current else False
+    except:
+        pass
+    return False
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Lightweight health check endpoint - no dependencies, <100ms response"""
-    return jsonify({"status": "ok"}), 200
+    return jsonify({
+        "service": "FinBrain",
+        "status": "healthy",
+        "git_commit": get_git_commit(),
+        "db": get_database_host(),
+        "alembic_head": get_alembic_head(),
+        "migrations_applied": check_migrations_applied()
+    }), 200
 
 @app.route('/readyz', methods=['GET'])
 def readiness_check():
@@ -629,6 +697,108 @@ def readiness_check():
     }
     
     return jsonify(response), status_code
+
+# Import admin authentication from admin_ops
+from admin_ops import require_admin
+
+# Diagnostic helper functions
+def get_database_role_grants():
+    """Get role grants from database"""
+    try:
+        grants = db.session.execute(db.text("""
+            SELECT grantee, table_name, privilege_type 
+            FROM information_schema.role_table_grants 
+            WHERE table_schema = 'public' 
+            ORDER BY grantee, table_name
+            LIMIT 20
+        """)).fetchall()
+        return [{"grantee": g.grantee, "table": g.table_name, "privilege": g.privilege_type} for g in grants]
+    except Exception as e:
+        return [{"error": str(e)}]
+
+def test_advisory_lock():
+    """Test acquiring and releasing advisory lock 919191"""
+    try:
+        # Try to acquire advisory lock
+        result = db.session.execute(db.text("SELECT pg_try_advisory_lock(919191)")).scalar()
+        if result:
+            # Successfully acquired, now release it
+            db.session.execute(db.text("SELECT pg_advisory_unlock(919191)"))
+            return {"status": "success", "acquired": True, "released": True}
+        else:
+            return {"status": "failed", "acquired": False, "error": "Lock already held"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+def check_pending_migrations():
+    """Check for pending migrations with detailed info"""
+    try:
+        import subprocess
+        # Get head revisions
+        heads_result = subprocess.run(['alembic', 'heads'], 
+                                    capture_output=True, text=True, timeout=5)
+        # Get current revision
+        current_result = subprocess.run(['alembic', 'current'], 
+                                      capture_output=True, text=True, timeout=5)
+        
+        if heads_result.returncode == 0 and current_result.returncode == 0:
+            heads = heads_result.stdout.strip()
+            current = current_result.stdout.strip()
+            
+            # Check if there are pending migrations
+            pending_result = subprocess.run(['alembic', 'history', '--indicate-current'], 
+                                          capture_output=True, text=True, timeout=5)
+            
+            return {
+                "heads": heads,
+                "current": current,
+                "up_to_date": heads in current if current else False,
+                "pending_migrations": "-> (head)" not in pending_result.stdout if pending_result.returncode == 0 else "unknown"
+            }
+    except Exception as e:
+        return {"error": str(e)}
+    
+    return {"error": "Unable to check migrations"}
+
+@app.route('/diagnostics', methods=['GET'])
+@require_admin
+def diagnostics():
+    """Detailed diagnostics endpoint - admin auth required"""
+    import time
+    start_time = time.time()
+    
+    try:
+        diagnostics_data = {
+            "service": "FinBrain",
+            "timestamp": datetime.utcnow().isoformat(),
+            "database": {
+                "host": get_database_host(),
+                "role_grants": get_database_role_grants(),
+                "advisory_lock_test": test_advisory_lock()
+            },
+            "migrations": check_pending_migrations(),
+            "git": {
+                "commit": get_git_commit(),
+                "alembic_head": get_alembic_head()
+            },
+            "environment": {
+                "env": os.environ.get('ENV', 'development'),
+                "required_vars_present": all(os.environ.get(var) for var in ['DATABASE_URL', 'ADMIN_USER', 'ADMIN_PASS', 'FACEBOOK_PAGE_ACCESS_TOKEN', 'FACEBOOK_VERIFY_TOKEN'])
+            }
+        }
+        
+        diagnostics_data["response_time_ms"] = round((time.time() - start_time) * 1000, 2)
+        
+        return jsonify(diagnostics_data), 200
+        
+    except Exception as e:
+        logger.error(f"Diagnostics endpoint error: {str(e)}")
+        return jsonify({
+            "service": "FinBrain",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
+            "response_time_ms": round((time.time() - start_time) * 1000, 2)
+        }), 500
 
 @app.route('/__test_error', methods=['GET'])
 def test_error():
