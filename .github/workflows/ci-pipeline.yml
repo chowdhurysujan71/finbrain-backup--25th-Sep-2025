@@ -1,0 +1,315 @@
+# FinBrain CI/CD Pipeline
+# Comprehensive validation including migrations, tests, and trust checks
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  ci-validation:
+    name: CI Validation & Trust Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: finbrain_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client jq
+          
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov playwright
+          
+      - name: Install Node.js dependencies
+        run: |
+          npm ci
+          npx playwright install --with-deps
+
+      - name: Set up environment variables
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/finbrain_test
+          AI_ENABLED: "false"
+          ID_SALT: "test_salt_for_ci"
+          SESSION_SECRET: "test_session_secret"
+          ADMIN_USER: "admin"
+          ADMIN_PASS: "test_password"
+          PCA_MODE: "FALLBACK"
+          PCA_KILL_SWITCH: "false"
+          ENABLE_CLARIFIERS: "false"
+        run: |
+          echo "Environment variables configured"
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/finbrain_test" >> $GITHUB_ENV
+          echo "AI_ENABLED=false" >> $GITHUB_ENV
+          echo "ID_SALT=test_salt_for_ci" >> $GITHUB_ENV
+          echo "SESSION_SECRET=test_session_secret" >> $GITHUB_ENV
+          echo "ADMIN_USER=admin" >> $GITHUB_ENV
+          echo "ADMIN_PASS=test_password" >> $GITHUB_ENV
+          echo "PCA_MODE=FALLBACK" >> $GITHUB_ENV
+          echo "PCA_KILL_SWITCH=false" >> $GITHUB_ENV
+          echo "ENABLE_CLARIFIERS=false" >> $GITHUB_ENV
+
+      - name: Initialize database schema
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/finbrain_test
+        run: |
+          echo "Creating test database schema..."
+          psql $DATABASE_URL -c "CREATE EXTENSION IF NOT EXISTS btree_gin;"
+          
+          # Create basic tables for testing
+          psql $DATABASE_URL -c "
+            CREATE TABLE IF NOT EXISTS expenses (
+              id SERIAL PRIMARY KEY,
+              user_id VARCHAR(64) NOT NULL,
+              amount DECIMAL(10,2) NOT NULL,
+              category VARCHAR(100),
+              description TEXT,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              idempotency_key VARCHAR(255) UNIQUE,
+              mid VARCHAR(255),
+              nl_confidence DECIMAL(3,2),
+              nl_language VARCHAR(10),
+              needed_clarification BOOLEAN DEFAULT FALSE
+            );
+            
+            CREATE TABLE IF NOT EXISTS inference_snapshots (
+              id SERIAL PRIMARY KEY,
+              intent VARCHAR(50),
+              cc_id VARCHAR(255),
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            
+            CREATE TABLE IF NOT EXISTS monthly_summaries (
+              id SERIAL PRIMARY KEY,
+              user_id VARCHAR(64),
+              month_year VARCHAR(7),
+              total_amount DECIMAL(12,2),
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+          "
+          
+          # Create indexes
+          psql $DATABASE_URL -c "
+            CREATE INDEX IF NOT EXISTS idx_expenses_user_created ON expenses (user_id, created_at);
+            CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses (category);
+          "
+
+      - name: Run Database Migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/finbrain_test
+        run: |
+          echo "Running database migrations with advisory locks..."
+          python scripts/migrate_with_lock.py || {
+            echo "Migration failed!"
+            exit 1
+          }
+
+      - name: Run Unit Tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/finbrain_test
+        run: |
+          echo "Running Python unit tests..."
+          python -m pytest tests/ -v --cov=. --cov-report=xml --cov-report=term --tb=short || {
+            echo "Unit tests failed!"
+            exit 1
+          }
+
+      - name: Run End-to-End Tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/finbrain_test
+        run: |
+          echo "Running Playwright E2E tests..."
+          npx playwright test || {
+            echo "E2E tests failed!"
+            exit 1
+          }
+
+      - name: Run Trust Checks
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/finbrain_test
+          AI_ENABLED: "false"
+          GEMINI_API_KEY: "test_key_for_ci"
+        run: |
+          echo "Running comprehensive trust checks..."
+          ./trust_check.sh || {
+            echo "Trust checks failed!"
+            cat report.json || echo "No report.json generated"
+            exit 1
+          }
+
+      - name: Upload Test Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Upload Trust Check Report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: trust-check-report
+          path: |
+            report.json
+            trust_check_logs.tar.gz
+          retention-days: 30
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Validate Report JSON
+        if: always()
+        run: |
+          if [ -f "report.json" ]; then
+            echo "Trust check report generated:"
+            cat report.json | jq '.'
+            
+            # Check overall status
+            OVERALL_STATUS=$(cat report.json | jq -r '.trust_check.overall_status')
+            echo "Overall trust check status: $OVERALL_STATUS"
+            
+            if [ "$OVERALL_STATUS" = "FAIL" ]; then
+              echo "❌ Trust checks failed - blocking deployment"
+              exit 1
+            elif [ "$OVERALL_STATUS" = "WARN" ]; then
+              echo "⚠️ Trust checks have warnings - review required"
+              cat report.json | jq '.trust_check.checks[] | select(.status == "WARN")'
+            else
+              echo "✅ All trust checks passed"
+            fi
+          else
+            echo "❌ No trust check report generated"
+            exit 1
+          fi
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    needs: ci-validation
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  dependency-check:
+    name: Dependency Security Check
+    runs-on: ubuntu-latest
+    needs: ci-validation
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install safety
+        run: pip install safety
+        
+      - name: Run safety check
+        run: |
+          pip freeze | safety check --json --output safety-report.json || true
+          
+      - name: Upload safety report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: safety-report
+          path: safety-report.json
+
+  build-status:
+    name: Build Status
+    runs-on: ubuntu-latest
+    needs: [ci-validation, security-scan, dependency-check]
+    if: always()
+    
+    steps:
+      - name: Check build status
+        run: |
+          if [ "${{ needs.ci-validation.result }}" = "success" ]; then
+            echo "✅ CI validation passed"
+          else
+            echo "❌ CI validation failed"
+            exit 1
+          fi
+          
+          if [ "${{ needs.security-scan.result }}" = "success" ] || [ "${{ needs.security-scan.result }}" = "skipped" ]; then
+            echo "✅ Security scan completed"
+          else
+            echo "⚠️ Security scan had issues (non-blocking)"
+          fi
+          
+          if [ "${{ needs.dependency-check.result }}" = "success" ]; then
+            echo "✅ Dependency check completed"
+          else
+            echo "⚠️ Dependency check had issues (non-blocking)"
+          fi
+          
+          echo "🎉 Build is ready for production promotion"
