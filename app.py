@@ -4,8 +4,6 @@ import sys
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for, make_response, g
 import uuid
 import time
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_cors import CORS
 from flask_limiter import Limiter
@@ -77,10 +75,8 @@ if env == 'prod':
         logger.critical(f"BOOT FAILURE: Sentry initialization failed: {str(e)}")
         sys.exit(1)
 
-class Base(DeclarativeBase):
-    pass
-
-db = SQLAlchemy(model_class=Base)
+# Import shared db and Base from lightweight module
+from db_base import db, Base
 
 # Create the app
 app = Flask(__name__, static_folder='static', static_url_path='/static')
@@ -184,17 +180,31 @@ with app.app_context():
     import models  # noqa: F401
     import models_pca  # noqa: F401
     
-    # Use safe database initialization to prevent duplicate index errors
+    # Use read-only database validation for Alembic-managed environments
+    # Schema creation is now handled by Alembic migrations
     try:
-        from utils.safe_db_init import safe_database_initialization
-        if not safe_database_initialization():
-            logger.error("✗ Safe database initialization failed - check logs for details")
+        from utils.safe_db_init import safe_database_check_only
+        if not safe_database_check_only():
+            logger.error("✗ Database schema validation failed - check logs for details")
+            logger.error("✗ Run './scripts/migrate.sh' to apply pending migrations")
             sys.exit(1)
-        logger.info("✓ Safe database initialization completed successfully")
+        logger.info("✓ Database schema validation completed (Alembic-managed)")
     except ImportError as e:
-        logger.error(f"✗ Safe database initialization module not available: {e}")
-        logger.info("Falling back to standard db.create_all() - may cause duplicate errors")
-        db.create_all()
+        logger.critical(f"BOOT FAILURE: Safe database validation module not available: {e}")
+        logger.critical("Database schema validation is required for secure startup")
+        sys.exit(1)
+    
+    # Verify Alembic revision status - ensure DB is at current migration head
+    try:
+        from utils.alembic_checker import verify_alembic_status_or_fail
+        verify_alembic_status_or_fail(os.environ.get("DATABASE_URL"))
+        logger.info("✓ Alembic revision check completed - database at head revision")
+    except ImportError as e:
+        logger.warning(f"Alembic revision checker not available: {e}")
+        logger.warning("Skipping Alembic revision validation")
+    except Exception as e:
+        logger.error(f"Alembic revision check failed: {e}")
+        # Note: verify_alembic_status_or_fail calls sys.exit(1) on failure
     
     # Schema validation and auto-healing
     try:

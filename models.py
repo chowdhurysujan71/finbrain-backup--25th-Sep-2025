@@ -1,4 +1,4 @@
-from app import db
+from db_base import db
 from datetime import datetime, date, time
 from sqlalchemy import JSON
 

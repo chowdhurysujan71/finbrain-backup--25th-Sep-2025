@@ -8,7 +8,7 @@ import logging
 from sqlalchemy import text, inspect
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.schema import CreateTable
-from app import db, app
+from db_base import db
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +164,51 @@ def safe_database_initialization():
     
     logger.info("✓ Safe database initialization completed successfully")
     return True
+
+def safe_database_check_only():
+    """
+    Read-only database validation for Alembic-managed environments
+    Only performs logging and checking without any schema creation
+    Returns True if schema validation passes, False for critical issues
+    """
+    
+    logger.info("=== DATABASE SCHEMA VALIDATION (READ-ONLY) ===")
+    
+    # Check existing schema first
+    existing_schema = check_existing_schema()
+    
+    # Check if critical tables exist (read-only)
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        existing_tables = inspector.get_table_names()
+        
+        # Define critical tables that need to exist
+        required_tables = [
+            'expenses', 'users', 'monthly_summaries', 'user_corrections', 
+            'transactions_effective', 'user_rules', 'inference_snapshots'
+        ]
+        
+        missing_tables = [table for table in required_tables if table not in existing_tables]
+        
+        if missing_tables:
+            logger.error(f"✗ Missing required tables: {missing_tables}")
+            logger.error("These tables must be created through Alembic migrations")
+            logger.error("Run: ./scripts/migrate.sh to apply pending migrations")
+            logger.error("Database is not at the required schema state - refusing to start")
+            return False
+        else:
+            logger.info("✓ All required tables exist")
+        
+        # Log schema readiness
+        logger.info("✓ Database schema validation completed (read-only mode)")
+        logger.info("✓ Schema creation is now managed by Alembic migrations")
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"✗ Error during schema validation: {e}")
+        return False
 
 def reset_problematic_indexes():
     """

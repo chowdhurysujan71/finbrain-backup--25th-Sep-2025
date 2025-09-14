@@ -3,7 +3,7 @@ PCA (Precision Capture & Audit) Overlay Database Models
 Phase 1: Overlay Schema - Additive tables that don't touch core ledger
 """
 
-from app import db
+from db_base import db
 from datetime import datetime
 from sqlalchemy import JSON, Index
 from sqlalchemy.dialects.postgresql import UUID
