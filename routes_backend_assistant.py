@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify, session
 from functools import wraps
 from backend_assistant import (
     propose_expense, 
+    add_expense,
     get_totals, 
     get_recent_expenses, 
     run_uat_checklist,
@@ -127,6 +128,93 @@ def api_propose_expense():
         }, e)
         
         response, status_code = internal_error(safe_error_message(e, "Failed to analyze expense text"))
+        return jsonify(response), status_code
+
+@backend_api.route('/add_expense', methods=['POST'])
+@require_backend_user_auth
+def api_add_expense(authenticated_user_id):
+    """
+    POST /api/backend/add_expense
+    Input: {"amount_minor": 12300, "currency": "BDT", "category": "food", "description": "uat canary coffee", "source": "chat", "message_id": "optional"}
+    Output: {"expense_id": 123, "correlation_id": "uuid", "amount_minor": 12300, "category": "food", "description": "...", "source": "chat", "idempotency_key": "api:hash"}
+    Authentication: Required (session only - SECURITY HARDENED)
+    Server sets: idempotency_key, amount_minor validation, correlation_id, source validation
+    """
+    start_time = time.time()
+    
+    try:
+        data = request.get_json() or {}
+        
+        # Validate required fields
+        required_fields = ['amount_minor', 'currency', 'category', 'description', 'source']
+        field_errors = {}
+        
+        for field in required_fields:
+            if not data.get(field):
+                if field == 'amount_minor':
+                    field_errors[field] = "amount_minor is required and must be a positive integer"
+                else:
+                    field_errors[field] = f"{field} is required"
+        
+        # Validate amount_minor specifically
+        amount_minor = data.get('amount_minor')
+        if amount_minor is not None:
+            if not isinstance(amount_minor, int) or amount_minor <= 0:
+                field_errors['amount_minor'] = "amount_minor must be a positive integer (cents)"
+        
+        # Validate source
+        source = data.get('source')
+        if source and source not in {'chat', 'form', 'messenger'}:
+            field_errors['source'] = "source must be one of: chat, form, messenger"
+            
+        if field_errors:
+            response, status_code = standardized_error_response(
+                code=ErrorCodes.VALIDATION_ERROR,
+                message="Invalid expense data provided",
+                field_errors=field_errors,
+                status_code=400,
+                log_error=False
+            )
+            return jsonify(response), status_code
+        
+        # Extract fields
+        currency = data['currency']
+        category = data['category']
+        description = data['description']
+        message_id = data.get('message_id')  # Optional
+        
+        # Call add_expense function with server-side field generation
+        result = add_expense(
+            user_id=authenticated_user_id,
+            amount_minor=amount_minor,
+            currency=currency,
+            category=category,
+            description=description,
+            source=source,
+            message_id=message_id
+        )
+        
+        # Log successful expense creation
+        response_time = (time.time() - start_time) * 1000
+        api_logger.log_api_request(True, response_time, {
+            "user_prefix": authenticated_user_id[:8] + "***",
+            "amount_minor": amount_minor,
+            "category": category,
+            "source": source,
+            "has_message_id": bool(message_id)
+        })
+        
+        return jsonify(success_response(result, "Expense added successfully"))
+        
+    except Exception as e:
+        response_time = (time.time() - start_time) * 1000
+        api_logger.error("Add expense error", {
+            "error_type": type(e).__name__,
+            "user_prefix": authenticated_user_id[:8] + "***",
+            "response_time_ms": response_time
+        }, e)
+        
+        response, status_code = internal_error(safe_error_message(e, "Failed to add expense"))
         return jsonify(response), status_code
 
 @backend_api.route('/get_totals', methods=['POST'])

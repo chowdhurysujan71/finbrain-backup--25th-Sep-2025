@@ -127,6 +127,95 @@ def propose_expense(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
             "confidence": 0.0
         }
 
+def add_expense(user_id: str, amount_minor: int, currency: str, category: str, 
+                description: str, source: str, message_id: str = None) -> Dict[str, Union[str, int, None]]:
+    """
+    Add expense with server-side field generation according to frozen contract.
+    
+    Server sets:
+    - idempotency_key = "api:" + sha256(user_id|message_id|amount|timestamp)
+    - amount_minor (validated input)
+    - correlation_id = uuid4()
+    - source in {'chat','form','messenger'}
+    
+    Args:
+        user_id: Authenticated user ID (from session)
+        amount_minor: Amount in minor units (cents)
+        currency: Currency code
+        category: Expense category
+        description: Expense description
+        source: Source type ('chat', 'form', 'messenger')
+        message_id: Message ID (for messenger-like inserts)
+    
+    Returns:
+        dict: {expense_id, correlation_id, amount_minor, category, description}
+    """
+    import uuid
+    import hashlib
+    from datetime import datetime
+    from decimal import Decimal
+    from utils.db import create_expense
+    
+    try:
+        # Validate required fields
+        if not all([user_id, amount_minor, currency, category, description, source]):
+            raise ValueError("All fields are required")
+        
+        # Validate source
+        if source not in {'chat', 'form', 'messenger'}:
+            raise ValueError(f"Invalid source '{source}'. Must be one of: chat, form, messenger")
+            
+        # Validate amount_minor
+        if not isinstance(amount_minor, int) or amount_minor <= 0:
+            raise ValueError("amount_minor must be a positive integer")
+            
+        # Server-side field generation
+        correlation_id = str(uuid.uuid4())
+        
+        # Generate unique message_id if not provided (for repeatability)
+        if not message_id:
+            message_id = f"{source}_{uuid.uuid4()}"
+            
+        # Generate idempotency_key with sha256
+        timestamp = str(int(datetime.utcnow().timestamp()))
+        amount_str = str(amount_minor)
+        hash_input = f"{user_id}|{message_id}|{amount_str}|{timestamp}"
+        idempotency_hash = hashlib.sha256(hash_input.encode()).hexdigest()
+        idempotency_key = f"api:{idempotency_hash}"
+        
+        # Convert amount_minor to decimal amount
+        amount_decimal = Decimal(amount_minor) / 100
+        
+        # Use the existing create_expense function
+        result = create_expense(
+            user_id=user_id,
+            amount=float(amount_decimal),
+            currency=currency,
+            category=category,
+            occurred_at=datetime.utcnow(),
+            source_message_id=message_id,
+            correlation_id=correlation_id,
+            notes=description
+        )
+        
+        # Return standardized response
+        if result:
+            return {
+                "expense_id": result.get('expense_id'),
+                "correlation_id": correlation_id,
+                "amount_minor": amount_minor,
+                "category": category,
+                "description": description,
+                "source": source,
+                "idempotency_key": idempotency_key
+            }
+        else:
+            raise Exception("Failed to create expense")
+            
+    except Exception as e:
+        logger.error(f"add_expense failed: {e}")
+        raise e
+
 def get_totals(user_id: str, period: str) -> Dict[str, Union[str, int, None]]:
     """
     Input: { "user_id": str, "period": "day|week|month" }

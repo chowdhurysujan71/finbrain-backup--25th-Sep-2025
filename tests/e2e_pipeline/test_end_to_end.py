@@ -27,29 +27,48 @@ def test_end_to_end_pipeline(client):
     user_id = setup_session(client, "uat_user_123")
     user_hash = psid_hash(user_id)
 
-    # Step 2: Insert expense via direct database function with proper UUID and API prefix
-    # Test the core functionality directly, bypassing the trigger with proper idempotency_key
-    with app.app_context():
-        from utils.db import create_expense
-        from datetime import datetime
-        import uuid
-        
-        # Generate unique UUIDs for correlation_id and message_id to allow multiple test runs
-        correlation_uuid = str(uuid.uuid4())
-        unique_message_id = f'uat_test_{uuid.uuid4()}'
-        
-        result = create_expense(
-            user_id=user_hash,
-            amount=123.0,
-            currency='৳',
-            category='food',
-            occurred_at=datetime.utcnow(),
-            source_message_id=unique_message_id,
-            correlation_id=correlation_uuid,
-            notes='uat canary coffee 123 taka'
-        )
-        assert result is not None
-        assert result.get('expense_id') is not None
+    # Step 2: Use correct frozen contract flow: propose_expense → add_expense
+    # Test the public parse → authenticated write pattern
+    import uuid
+    
+    # Step 2a: Propose expense (parse only - no session required)
+    test_text = "uat canary coffee 123 taka"
+    r = client.post("/api/backend/propose_expense", 
+                   data=json.dumps({"text": test_text}),
+                   content_type="application/json")
+    assert r.status_code == 200
+    propose_data = r.get_json()
+    
+    # Extract parsed data from standardized response
+    parsed = propose_data.get('data', propose_data)
+    assert parsed['amount_minor'] == 12300  # 123.00 * 100
+    assert parsed['category'] == 'food'
+    assert parsed['description'] == test_text
+    
+    # Step 2b: Add expense (write with session auth) using unique message_id for repeatability
+    unique_message_id = f'uat_test_{uuid.uuid4()}'
+    add_payload = {
+        "amount_minor": parsed['amount_minor'],
+        "currency": "BDT",
+        "category": parsed['category'], 
+        "description": parsed['description'],
+        "source": "chat",
+        "message_id": unique_message_id
+    }
+    
+    r = client.post('/api/backend/add_expense', 
+                   data=json.dumps(add_payload),
+                   content_type="application/json")
+    assert r.status_code == 200
+    add_data = r.get_json()
+    
+    # Verify server-side field generation
+    result = add_data.get('data', add_data)
+    assert result['expense_id'] is not None
+    assert result['correlation_id'] is not None
+    assert result['idempotency_key'].startswith('api:')
+    assert result['amount_minor'] == 12300
+    assert result['source'] == 'chat'
 
     # Step 3: Retrieve recent expenses (must contain our canary)  
     r = client.post("/api/backend/get_recent_expenses",
