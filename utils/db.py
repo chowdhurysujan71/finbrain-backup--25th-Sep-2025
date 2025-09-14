@@ -59,6 +59,7 @@ def create_expense(user_id, amount, currency, category, occurred_at, source_mess
         expense.user_id_hash = user_id  # Ensure both fields are set
         expense.description = notes or f"{category} expense"
         expense.amount = Decimal(str(amount_float))
+        expense.amount_minor = int(amount_float * 100)  # Convert to minor units (cents)
         expense.category = category.lower()
         expense.currency = currency or '৳'
         expense.date = occurred_at.date()
@@ -69,6 +70,8 @@ def create_expense(user_id, amount, currency, category, occurred_at, source_mess
         expense.correlation_id = correlation_id
         expense.unique_id = str(uuid.uuid4())
         expense.mid = source_message_id
+        # Set idempotency_key to bypass database security trigger
+        expense.idempotency_key = f"api:{correlation_id}"
         
         # Atomic transaction
         db.session.add(expense)

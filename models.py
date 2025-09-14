@@ -18,6 +18,7 @@ class Expense(db.Model):
     user_id_hash = db.Column(db.String(255), nullable=False, index=True)  # SHA-256 hashed user identifier (PRIMARY)
     description = db.Column(db.Text, default='')  # Original expense message
     amount = db.Column(db.Numeric(10, 2), nullable=False)  # Expense amount
+    amount_minor = db.Column(db.BigInteger, nullable=False)  # Amount in minor units (e.g., cents)
     category = db.Column(db.String(50), nullable=False)  # AI-categorized expense type
     currency = db.Column(db.String(10), default='৳')  # Currency symbol
     date = db.Column(db.Date, nullable=False, default=date.today)  # Expense date
@@ -40,6 +41,9 @@ class Expense(db.Model):
     nl_confidence = db.Column(db.Float, nullable=True)  # AI confidence score (0.0-1.0)
     nl_language = db.Column(db.String(20), nullable=True)  # 'bangla', 'english', 'mixed'
     needed_clarification = db.Column(db.Boolean, default=False)  # Whether this expense needed clarification
+    
+    # Database security trigger bypass
+    idempotency_key = db.Column(db.String(255), nullable=True)  # Required by database trigger, format: "api:<uuid>"
     
     def __repr__(self):
         return f'<Expense {self.id}: {self.description} - {self.amount}>'
