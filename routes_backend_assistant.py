@@ -142,7 +142,9 @@ def api_add_expense(authenticated_user_id):
     Authentication: Required (session only - SECURITY HARDENED)
     Server sets: idempotency_key, amount_minor validation, correlation_id, source validation
     """
-    start_time = time.time()
+    import uuid, json
+    start = time.time()
+    trace_id = str(uuid.uuid4())
     
     try:
         data = request.get_json() or {}
@@ -197,7 +199,18 @@ def api_add_expense(authenticated_user_id):
         )
         
         # Log successful expense creation with structured metrics
-        response_time = (time.time() - start_time) * 1000
+        latency = int((time.time() - start) * 1000)
+        
+        # Step 4: Structured JSON metrics logging to stdout (12-factor)
+        print(json.dumps({
+            "evt":"add_expense",
+            "trace_id": trace_id,
+            "user_id_hash": authenticated_user_id,
+            "amount_minor": int(amount_minor),
+            "source": source,
+            "latency_ms": latency,
+            "status":"ok"
+        }))
         
         # Enhanced structured metrics logging
         metrics_data = {
@@ -206,7 +219,7 @@ def api_add_expense(authenticated_user_id):
             "category": category,
             "source": source,
             "has_message_id": bool(message_id),
-            "response_time_ms": response_time,
+            "response_time_ms": latency,
             # Additional structured metrics
             "amount_major": amount_minor / 100,
             "currency": currency,
@@ -218,7 +231,7 @@ def api_add_expense(authenticated_user_id):
             "operation": "create_expense"
         }
         
-        api_logger.log_api_request(True, response_time, metrics_data)
+        api_logger.log_api_request(True, latency, metrics_data)
         
         # Additional structured metrics log for business analytics
         logger.info("EXPENSE_CREATED", extra={
@@ -229,19 +242,33 @@ def api_add_expense(authenticated_user_id):
                 "category": category,
                 "source_channel": source,
                 "expense_id": result["expense_id"],
-                "processing_time_ms": response_time,
+                "processing_time_ms": latency,
                 "success": True
             }
         })
         
-        return jsonify(success_response(result, "Expense added successfully"))
+        return jsonify(success_response(result, "Expense added successfully", {"trace_id": trace_id}))
         
     except Exception as e:
-        response_time = (time.time() - start_time) * 1000
+        latency = int((time.time() - start) * 1000)
+        
+        # Step 4: Structured JSON metrics logging to stdout (error case)
+        payload = request.get_json() or {}
+        print(json.dumps({
+            "evt":"add_expense",
+            "trace_id": trace_id,
+            "user_id_hash": authenticated_user_id if 'authenticated_user_id' in locals() else None,
+            "amount_minor": payload.get("amount_minor"),
+            "source": payload.get("source"),
+            "latency_ms": latency,
+            "status":"error",
+            "error": str(e)[:200]
+        }))
+        
         api_logger.error("Add expense error", {
             "error_type": type(e).__name__,
             "user_prefix": authenticated_user_id[:8] + "***",
-            "response_time_ms": response_time
+            "response_time_ms": latency
         }, e)
         
         response, status_code = internal_error(safe_error_message(e, "Failed to add expense"))
