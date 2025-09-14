@@ -170,84 +170,125 @@ def register():
 @pwa_ui.route('/auth/login', methods=['POST'])
 def auth_login():
     """
-    Process user login
+    Process user login with comprehensive validation and standardized error handling
     """
     from models import User
     from app import db
     from werkzeug.security import check_password_hash
     from flask import session
     from utils.identity import psid_hash
+    from utils.error_responses import (
+        validation_error_response, unauthorized_error, internal_error, 
+        success_response, safe_error_message
+    )
+    from utils.validators import validate_login
+    from utils.structured_logger import auth_logger, log_auth_event, log_validation_failure
+    
+    start_time = time.time()
     
     try:
-        data = request.get_json()
-        email = data.get('email')
-        password = data.get('password')
+        # Get and validate login data
+        data = request.get_json() or {}
         
-        if not email or not password:
-            return jsonify({
-                'success': False,
-                'error': 'Email and password are required'
-            }), 400
+        # Validate login data using comprehensive validator
+        validation_result = validate_login(data)
+        if validation_result.has_errors():
+            log_validation_failure(validation_result.errors, "user_login")
+            response, status_code = validation_error_response(validation_result.errors)
+            return jsonify(response), status_code
+        
+        email = data['email'].lower().strip()
+        password = data['password']
         
         # Find user by email (stored in additional_info JSON field)
         user = User.query.filter(User.additional_info.contains({'email': email})).first()
+        
+        # Check credentials
         if not user or not check_password_hash(user.additional_info.get('password_hash', ''), password):
-            return jsonify({
-                'success': False,
-                'error': 'Invalid email or password'
-            }), 401
+            # Log failed login attempt (security event)
+            log_auth_event("login_failed", email, success=False)
+            auth_logger.log_security_event("failed_login_attempt", {
+                "email": email,
+                "user_exists": user is not None,
+                "ip_address": request.environ.get('REMOTE_ADDR', 'unknown')
+            })
+            
+            response, status_code = unauthorized_error("Invalid email or password")
+            return jsonify(response), status_code
         
         # Create session
         session['user_id'] = user.user_id_hash
         session['email'] = user.email
         session['is_registered'] = True
         
-        logger.info(f"User logged in successfully: {email}")
-        
-        return jsonify({
-            'success': True,
-            'message': 'Login successful',
-            'redirect': '/chat'
+        # Log successful login
+        response_time = (time.time() - start_time) * 1000
+        log_auth_event("login_success", user.user_id_hash, success=True)
+        auth_logger.log_api_request(True, response_time, {
+            "event_type": "login",
+            "user_email": email,
+            "session_created": True
         })
         
+        return jsonify(success_response({
+            'redirect': '/chat',
+            'user_id': user.user_id_hash
+        }, 'Login successful'))
+        
     except Exception as e:
-        logger.error(f"Login error: {e}")
-        return jsonify({
-            'success': False,
-            'error': 'Login failed. Please try again.'
-        }), 500
+        response_time = (time.time() - start_time) * 1000
+        auth_logger.error("Login system error", {
+            "error_type": type(e).__name__,
+            "response_time_ms": response_time
+        }, e)
+        
+        response, status_code = internal_error(safe_error_message(e, "Login failed. Please try again."))
+        return jsonify(response), status_code
 
 @pwa_ui.route('/auth/register', methods=['POST'])
 def auth_register():
     """
-    Process user registration
+    Process user registration with comprehensive validation and standardized error handling
     """
     from models import User
     from app import db
     from werkzeug.security import generate_password_hash
     from flask import session
     from utils.identity import psid_hash
+    from utils.error_responses import (
+        validation_error_response, duplicate_resource_error, internal_error, 
+        success_response, safe_error_message
+    )
+    from utils.validators import validate_registration
+    from utils.structured_logger import auth_logger, log_auth_event, log_validation_failure
     import uuid
     
+    start_time = time.time()
+    
     try:
-        data = request.get_json()
-        email = data.get('email')
-        password = data.get('password')
-        name = data.get('name', '')
+        # Get and validate registration data
+        data = request.get_json() or {}
         
-        if not email or not password:
-            return jsonify({
-                'success': False,
-                'error': 'Email and password are required'
-            }), 400
+        # Validate registration data using comprehensive validator
+        validation_result = validate_registration(data)
+        if validation_result.has_errors():
+            log_validation_failure(validation_result.errors, "user_registration")
+            response, status_code = validation_error_response(validation_result.errors)
+            return jsonify(response), status_code
+        
+        email = data['email'].lower().strip()
+        password = data['password']
+        name = data.get('name', '').strip()
         
         # Check if user already exists (check additional_info JSON field for email)
         existing_user = User.query.filter(User.additional_info.contains({'email': email})).first()
         if existing_user:
-            return jsonify({
-                'success': False,
-                'error': 'An account with this email already exists'
-            }), 409
+            auth_logger.log_security_event("duplicate_registration_attempt", {
+                "email": email,
+                "ip_address": request.environ.get('REMOTE_ADDR', 'unknown')
+            })
+            response, status_code = duplicate_resource_error("account")
+            return jsonify(response), status_code
         
         # Generate user hash
         user_id = f"pwa_reg_{int(time.time())}_{uuid.uuid4().hex[:8]}"
@@ -272,21 +313,31 @@ def auth_register():
         session['email'] = email
         session['is_registered'] = True
         
-        logger.info(f"User registered successfully: {email}")
-        
-        return jsonify({
-            'success': True,
-            'message': 'Registration successful',
-            'redirect': '/chat'
+        # Log successful registration
+        response_time = (time.time() - start_time) * 1000
+        log_auth_event("registration_success", user_hash, success=True)
+        auth_logger.log_api_request(True, response_time, {
+            "event_type": "registration",
+            "user_email": email,
+            "has_name": bool(name),
+            "session_created": True
         })
+        
+        return jsonify(success_response({
+            'redirect': '/chat',
+            'user_id': user_hash
+        }, 'Registration successful'))
         
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Registration error: {e}")
-        return jsonify({
-            'success': False,
-            'error': 'Registration failed. Please try again.'
-        }), 500
+        response_time = (time.time() - start_time) * 1000
+        auth_logger.error("Registration system error", {
+            "error_type": type(e).__name__,
+            "response_time_ms": response_time
+        }, e)
+        
+        response, status_code = internal_error(safe_error_message(e, "Registration failed. Please try again."))
+        return jsonify(response), status_code
 
 @pwa_ui.route('/auth/logout', methods=['POST'])
 def auth_logout():
@@ -431,10 +482,19 @@ def add_expense():
     """
     Real expense submission using existing FinBrain expense logging system
     Now supports natural language input via unified brain
+    Enhanced with standardized error handling and comprehensive validation
     """
     from utils.db import save_expense
     from utils.identity import psid_hash
+    from utils.error_responses import (
+        validation_error_response, internal_error, success_response, 
+        standardized_error_response, ErrorCodes, safe_error_message
+    )
+    from utils.validators import validate_expense
+    from utils.structured_logger import api_logger, log_validation_failure
     import uuid
+    
+    start_time = time.time()
     
     try:
         # Get user ID for both structured and natural language processing
@@ -445,7 +505,11 @@ def add_expense():
         
         if nl_message and nl_message.strip():
             # Process natural language expense using unified brain
-            logger.info(f"Processing natural language expense from {uid[:8]}: '{nl_message[:50]}...'")
+            api_logger.info(f"Processing natural language expense", {
+                "user_prefix": uid[:8] + "***" if len(uid) > 8 else uid,
+                "message_length": len(nl_message),
+                "processing_type": "natural_language"
+            })
             
             try:
                 from core.brain import process_expense_message
@@ -459,48 +523,56 @@ def add_expense():
                     category = structured["category"]
                     description = brain_result["reply"]
                     
-                    logger.info(f"Auto-saving NL expense: ${amount_float} {category}")
+                    api_logger.info(f"Auto-saving NL expense", {
+                        "amount": amount_float,
+                        "category": category,
+                        "auto_save": True
+                    })
                     # Continue with existing save logic using structured data
                 else:
                     # Return response for user confirmation or interaction
-                    return jsonify({
-                        'success': True,
+                    response_time = (time.time() - start_time) * 1000
+                    api_logger.log_api_request(True, response_time, {
+                        "needs_confirmation": True,
+                        "suggested_amount": brain_result.get("structured", {}).get("amount")
+                    })
+                    return jsonify(success_response({
                         'needs_confirmation': brain_result.get("structured", {}).get("amount") is not None,
-                        'message': brain_result["reply"],
                         'suggested_data': brain_result.get("structured", {}),
                         'metadata': brain_result.get("metadata", {})
-                    })
+                    }, brain_result["reply"]))
                     
             except Exception as e:
-                logger.error(f"Natural language expense processing failed: {e}")
-                return jsonify({
-                    'success': False,
-                    'message': 'Could not process your expense message. Please try using the form instead.',
-                    'nl_error': True
-                }), 400
+                api_logger.error("Natural language expense processing failed", {
+                    "error_type": type(e).__name__,
+                    "processing_type": "natural_language"
+                }, e)
+                response, status_code = standardized_error_response(
+                    code=ErrorCodes.OPERATION_FAILED,
+                    message="Could not process your expense message. Please try using the form instead.",
+                    status_code=400,
+                    context={"nl_error": True}
+                )
+                return jsonify(response), status_code
         else:
-            # Traditional form-based expense entry
-            amount = request.form.get('amount')
-            category = request.form.get('category')
-            description = request.form.get('description', '')
+            # Traditional form-based expense entry - validate using new system
+            expense_data = {
+                'amount': request.form.get('amount'),
+                'category': request.form.get('category'),
+                'description': request.form.get('description', '')
+            }
             
-            # Validate required fields
-            if not amount or not category:
-                return jsonify({
-                    'success': False,
-                    'message': 'Amount and category are required'
-                }), 400
+            # Validate expense data using comprehensive validator
+            validation_result = validate_expense(expense_data)
+            if validation_result.has_errors():
+                log_validation_failure(validation_result.errors, "expense_submission")
+                response, status_code = validation_error_response(validation_result.errors)
+                return jsonify(response), status_code
             
-            # Convert amount to float and validate
-            try:
-                amount_float = float(amount)
-                if amount_float <= 0:
-                    raise ValueError("Amount must be positive")
-            except ValueError:
-                return jsonify({
-                    'success': False,
-                    'message': 'Please enter a valid positive amount'
-                }), 400
+            # Extract validated data
+            amount_float = float(expense_data['amount'])
+            category = expense_data['category'].lower()
+            description = expense_data['description']
         
         # Get user ID from header or form data (set by PWA JavaScript)
         user_id = get_user_id() or request.form.get('user_id') or f"pwa_user_{int(time.time())}"
@@ -511,7 +583,7 @@ def add_expense():
         mid = f"pwa_{int(time.time() * 1000000)}"
         
         # Create original message for logging
-        original_message = f"PWA: {amount} BDT for {category}"
+        original_message = f"PWA: {amount_float} BDT for {category}"
         if description:
             original_message += f" - {description}"
         
@@ -523,28 +595,38 @@ def add_expense():
             user_id=user_hash,
             amount=amount_float,
             currency='৳',
-            category=category.lower(),
+            category=category,
             occurred_at=datetime.now(),
             source_message_id=mid,
             correlation_id=unique_id,  # Use unique_id as correlation_id
             notes=description or f"{category} expense"
         )
         
-        logger.info(f"PWA expense logged successfully for user {user_hash[:8]}... (original_id: {user_id})")
+        # Log successful expense creation
+        response_time = (time.time() - start_time) * 1000
+        api_logger.log_api_request(True, response_time, {
+            "amount": amount_float,
+            "category": category,
+            "expense_id": result.get('expense_id') if result else unique_id,
+            "processing_type": "form_based"
+        })
         
-        # Return success message as plain text for HTMX to display
-        return jsonify({
-            'success': True,
-            'message': f'Expense of ৳{amount_float:.2f} logged successfully!',
-            'expense_id': result.get('expense_id') if result else unique_id
-        }), 200
+        # Return standardized success response
+        return jsonify(success_response({
+            'expense_id': result.get('expense_id') if result else unique_id,
+            'amount': amount_float,
+            'category': category
+        }, f'Expense of ৳{amount_float:.2f} logged successfully!'))
         
     except Exception as e:
-        logger.error(f"PWA expense logging error: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'message': 'Failed to log expense. Please try again.'
-        }), 500
+        response_time = (time.time() - start_time) * 1000
+        api_logger.error("PWA expense logging error", {
+            "error_type": type(e).__name__,
+            "response_time_ms": response_time
+        }, e)
+        
+        response, status_code = internal_error(safe_error_message(e, "Failed to log expense. Please try again."))
+        return jsonify(response), status_code
 
 # Service Worker route (must be at root for scope)
 @pwa_ui.route('/sw.js')

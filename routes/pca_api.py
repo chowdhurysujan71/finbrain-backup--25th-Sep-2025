@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify, render_template
 from datetime import datetime
 import json
 import logging
+import time
 from typing import Dict, List, Any
 
 from app import db
@@ -14,6 +15,12 @@ from models_pca import UserRule, UserCorrection, TransactionEffective
 from utils.precedence_engine import precedence_engine
 from utils.pca_feature_flags import pca_feature_flags
 from utils.deterministic import ensure_hashed
+from utils.error_responses import (
+    standardized_error_response, internal_error, resource_not_found_error,
+    validation_error_response, success_response, ErrorCodes, safe_error_message
+)
+from utils.validators import APIValidator
+from utils.structured_logger import api_logger, log_validation_failure
 
 logger = logging.getLogger("finbrain.pca_api")
 
@@ -22,45 +29,73 @@ pca_api = Blueprint('pca_api', __name__, url_prefix='/api')
 
 @pca_api.before_request
 def check_overlay_enabled():
-    """Ensure overlay features are enabled for API access"""
+    """Ensure overlay features are enabled for API access with standardized error response"""
     if not pca_feature_flags.is_overlay_active():
-        return jsonify({
-            'error': 'PCA overlay system is not active',
-            'mode': pca_feature_flags.mode,
-            'overlay_enabled': pca_feature_flags.overlay_enabled
-        }), 503
+        response, status_code = standardized_error_response(
+            code=ErrorCodes.SERVICE_UNAVAILABLE,
+            message="PCA overlay system is not currently active",
+            status_code=503,
+            context={
+                'mode': pca_feature_flags.mode,
+                'overlay_enabled': pca_feature_flags.overlay_enabled
+            }
+        )
+        return jsonify(response), status_code
 
 @pca_api.route('/rules/create', methods=['POST'])
 def create_rule():
-    """Create a new user rule"""
+    """Create a new user rule with comprehensive validation and standardized error handling"""
+    start_time = time.time()
+    
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         
-        # Validate required fields
-        required_fields = ['category', 'merchant_pattern']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'error': f'Missing required field: {field}'}), 400
+        # Validate required fields with detailed error messages
+        validation_errors = {}
+        
+        if not data.get('category'):
+            validation_errors['category'] = 'Category is required for rule creation'
+        elif not isinstance(data['category'], str) or len(data['category'].strip()) == 0:
+            validation_errors['category'] = 'Category must be a non-empty string'
+            
+        if not data.get('merchant_pattern'):
+            validation_errors['merchant_pattern'] = 'Merchant pattern is required for rule matching'
+        elif not isinstance(data['merchant_pattern'], str) or len(data['merchant_pattern'].strip()) == 0:
+            validation_errors['merchant_pattern'] = 'Merchant pattern must be a non-empty string'
+        
+        # Validate optional fields
+        if data.get('rule_name'):
+            name_error = APIValidator.validate_string_length(data['rule_name'], 'rule_name', max_length=100)
+            if name_error:
+                validation_errors['rule_name'] = name_error
+        
+        if data.get('scope') and data['scope'] not in ['future_only', 'all_transactions']:
+            validation_errors['scope'] = 'Scope must be either "future_only" or "all_transactions"'
+        
+        if validation_errors:
+            log_validation_failure(validation_errors, "pca_rule_creation")
+            response, status_code = validation_error_response(validation_errors)
+            return jsonify(response), status_code
         
         # Get user from session or header (implement based on your auth)
         user_id = ensure_hashed("demo_user")  # Replace with actual user identification
         
         # Build pattern and rule_set
-        pattern = {}
-        if data.get('merchant_pattern'):
-            pattern['store_name_contains'] = data['merchant_pattern']
+        pattern = {
+            'store_name_contains': data['merchant_pattern'].strip()
+        }
         if data.get('vertical'):
-            pattern['vertical'] = data['vertical']
+            pattern['vertical'] = data['vertical'].strip()
         if data.get('text_contains'):
-            pattern['text_contains'] = data['text_contains']
+            pattern['text_contains'] = data['text_contains'].strip()
         if data.get('category_was'):
-            pattern['category_was'] = data['category_was']
+            pattern['category_was'] = data['category_was'].strip()
             
         rule_set = {
-            'category': data['category']
+            'category': data['category'].strip()
         }
         if data.get('subcategory'):
-            rule_set['subcategory'] = data['subcategory']
+            rule_set['subcategory'] = data['subcategory'].strip()
         
         # Create rule
         rule = UserRule(
@@ -68,7 +103,7 @@ def create_rule():
             user_id=user_id,
             pattern_json=pattern,
             rule_set_json=rule_set,
-            rule_name=data.get('rule_name', f"Auto-rule for {data['category']}"),
+            rule_name=data.get('rule_name', f"Auto-rule for {data['category']}").strip(),
             scope=data.get('scope', 'future_only'),
             active=True
         )
@@ -79,55 +114,111 @@ def create_rule():
         # Preview how many transactions this would affect
         preview_count = _preview_rule_impact(user_id, pattern, rule_set)
         
-        logger.info(f"Created rule {rule.rule_id} for user {user_id}")
-        
-        return jsonify({
-            'success': True,
-            'rule_id': rule.rule_id,
-            'preview_count': preview_count,
-            'message': f'Rule created successfully. Will apply to {preview_count} transactions.'
+        # Log successful creation
+        response_time = (time.time() - start_time) * 1000
+        api_logger.log_api_request(True, response_time, {
+            "rule_id": rule.rule_id,
+            "user_prefix": user_id[:8] + "***",
+            "category": rule_set['category'],
+            "preview_count": preview_count
         })
         
+        result_data = {
+            'rule_id': rule.rule_id,
+            'preview_count': preview_count,
+            'rule_name': rule.rule_name,
+            'active': rule.active
+        }
+        
+        return jsonify(success_response(result_data, f'Rule created successfully. Will apply to {preview_count} transactions.'))
+        
     except Exception as e:
-        logger.error(f"Error creating rule: {e}")
         db.session.rollback()
-        return jsonify({'error': 'Failed to create rule'}), 500
+        response_time = (time.time() - start_time) * 1000
+        api_logger.error("PCA rule creation error", {
+            "error_type": type(e).__name__,
+            "response_time_ms": response_time
+        }, e)
+        
+        response, status_code = internal_error(safe_error_message(e, "Failed to create rule"))
+        return jsonify(response), status_code
 
 @pca_api.route('/rules/<rule_id>/toggle', methods=['POST'])
 def toggle_rule(rule_id):
-    """Enable or disable a rule"""
+    """Enable or disable a rule with standardized error handling"""
+    start_time = time.time()
+    
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
+        
+        # Validate rule_id parameter
+        if not rule_id or not rule_id.strip():
+            response, status_code = standardized_error_response(
+                code=ErrorCodes.VALIDATION_ERROR,
+                message="Invalid rule ID",
+                field_errors={"rule_id": "Rule ID is required and cannot be empty"},
+                status_code=400,
+                log_error=False
+            )
+            return jsonify(response), status_code
+        
+        # Validate active parameter if provided
         active = data.get('active', True)
+        if not isinstance(active, bool):
+            response, status_code = standardized_error_response(
+                code=ErrorCodes.VALIDATION_ERROR,
+                message="Invalid active status",
+                field_errors={"active": "Active status must be true or false"},
+                status_code=400,
+                log_error=False
+            )
+            return jsonify(response), status_code
         
         user_id = ensure_hashed("demo_user")  # Replace with actual user identification
         
         rule = db.session.query(UserRule).filter_by(
-            rule_id=rule_id,
+            rule_id=rule_id.strip(),
             user_id=user_id
         ).first()
         
         if not rule:
-            return jsonify({'error': 'Rule not found'}), 404
+            response, status_code = resource_not_found_error("rule")
+            return jsonify(response), status_code
             
         rule.active = active
         rule.updated_at = datetime.utcnow()
         db.session.commit()
         
         action = "enabled" if active else "disabled"
-        logger.info(f"Rule {rule_id} {action} by user {user_id}")
         
-        return jsonify({
-            'success': True,
-            'rule_id': rule_id,
-            'active': active,
-            'message': f'Rule {action} successfully'
+        # Log successful toggle
+        response_time = (time.time() - start_time) * 1000
+        api_logger.log_api_request(True, response_time, {
+            "rule_id": rule_id,
+            "user_prefix": user_id[:8] + "***",
+            "action": action,
+            "active": active
         })
         
+        result_data = {
+            'rule_id': rule_id,
+            'active': active,
+            'rule_name': rule.rule_name
+        }
+        
+        return jsonify(success_response(result_data, f'Rule {action} successfully'))
+        
     except Exception as e:
-        logger.error(f"Error toggling rule {rule_id}: {e}")
         db.session.rollback()
-        return jsonify({'error': 'Failed to toggle rule'}), 500
+        response_time = (time.time() - start_time) * 1000
+        api_logger.error("PCA rule toggle error", {
+            "error_type": type(e).__name__,
+            "rule_id": rule_id,
+            "response_time_ms": response_time
+        }, e)
+        
+        response, status_code = internal_error(safe_error_message(e, "Failed to toggle rule"))
+        return jsonify(response), status_code
 
 @pca_api.route('/rules/<rule_id>/preview', methods=['GET'])
 def preview_rule(rule_id):
