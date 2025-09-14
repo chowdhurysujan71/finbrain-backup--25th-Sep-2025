@@ -83,7 +83,7 @@ def upgrade() -> None:
         "demo_ix_expenses_recent_90d",
         "expenses",
         ["user_id_hash", "amount", "created_at DESC"],
-        where_clause="created_at >= CURRENT_DATE - INTERVAL '90 days'",
+        where_clause="created_at >= '2024-01-01'::date",
         if_not_exists=True
     )
     
