@@ -13,6 +13,9 @@ from typing import Optional
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
+# Add project root to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -20,8 +23,29 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Advisory lock ID for migrations - use a unique number
-MIGRATION_LOCK_ID = 919191
+# Import shared migration configuration
+try:
+    from utils.migration_config import (
+        get_migration_lock_id, 
+        get_safe_database_info,
+        MIGRATION_LOCK_TIMEOUT
+    )
+    MIGRATION_LOCK_ID = get_migration_lock_id()
+except ImportError:
+    logger.warning("Could not import shared migration config, using fallback values")
+    MIGRATION_LOCK_ID = 919191
+    MIGRATION_LOCK_TIMEOUT = 300
+    
+    def get_safe_database_info(database_url: str) -> str:
+        """Fallback function for safe database info extraction"""
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(database_url)
+            database = parsed.path.lstrip('/') if parsed.path else 'unknown'
+            host = parsed.hostname or 'unknown'
+            return f"{database}@{host}"
+        except Exception:
+            return "database@unknown_host"
 
 class MigrationLockError(Exception):
     """Raised when migration lock operations fail"""
@@ -170,11 +194,18 @@ def main() -> int:
         return 1
     
     logger.info("=== MIGRATION WITH ADVISORY LOCK ===")
+    # Log safe database info (no credentials)
+    try:
+        safe_db_info = get_safe_database_info(database_url)
+        logger.info(f"Database: {safe_db_info}")
+    except Exception:
+        logger.info("Database: unknown")
     
     try:
         with AdvisoryLockManager(database_url) as lock_manager:
-            # Try to acquire lock with 5 minute timeout
-            if not lock_manager.acquire_lock(timeout_seconds=300):
+            # Try to acquire lock with configured timeout
+            timeout = MIGRATION_LOCK_TIMEOUT if 'MIGRATION_LOCK_TIMEOUT' in globals() else 300
+            if not lock_manager.acquire_lock(timeout_seconds=timeout):
                 logger.critical("Failed to acquire migration lock within timeout")
                 logger.critical("Another migration process may be stuck or taking too long")
                 return 1

@@ -15,10 +15,38 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configuration
-LOCK_ID=919191  # Same advisory lock ID used during startup migrations
+# Import shared migration configuration
+source_migration_config() {
+    # Try to get migration constants from Python config
+    if command -v python3 &> /dev/null; then
+        local config_output
+        config_output=$(cd "$PROJECT_DIR" && python3 -c "
+from utils.migration_config import get_migration_lock_id, get_migration_backup_dir, get_safe_database_info
+import os
+print(f'LOCK_ID={get_migration_lock_id()}')
+print(f'BACKUP_DIR={get_migration_backup_dir()}')
+if 'DATABASE_URL' in os.environ:
+    print(f'SAFE_DB_INFO={get_safe_database_info(os.environ["DATABASE_URL"])}')
+else:
+    print('SAFE_DB_INFO=database@unknown_host')
+" 2>/dev/null || echo "LOCK_ID=919191
+BACKUP_DIR=$PROJECT_DIR/migration_backups
+SAFE_DB_INFO=database@unknown_host")
+        
+        eval "$config_output"
+    else
+        # Fallback if Python not available
+        LOCK_ID=919191
+        BACKUP_DIR="$PROJECT_DIR/migration_backups"
+        SAFE_DB_INFO="database@unknown_host"
+    fi
+}
+
+# Load configuration
+source_migration_config
+
+# Configuration constants
 MAX_WAIT_SECONDS=300  # 5 minutes maximum wait for lock
-BACKUP_DIR="$PROJECT_DIR/migration_backups"
 
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1" >&2
@@ -82,10 +110,44 @@ check_dependencies() {
 get_current_revision() {
     log_info "Getting current migration revision..."
     local current_rev
-    current_rev=$(alembic current --verbose 2>/dev/null | grep "Current revision" | cut -d' ' -f3 || echo "")
+    local alembic_output
+    
+    # Get alembic current output
+    alembic_output=$(alembic current --verbose 2>/dev/null || echo "")
+    
+    if [[ -z "$alembic_output" ]]; then
+        log_error "Could not get alembic current output"
+        exit 1
+    fi
+    
+    # Try multiple parsing approaches to handle different Alembic output formats
+    
+    # Format 1: "Current revision: <revision_id>"
+    current_rev=$(echo "$alembic_output" | grep -i "current revision" | head -1 | sed -E 's/.*current revision[s]*:?[[:space:]]*([a-f0-9]+).*/\1/i' || echo "")
+    
+    # Format 2: "Current revision(s): <revision_id>"
+    if [[ -z "$current_rev" ]]; then
+        current_rev=$(echo "$alembic_output" | grep -i "current revision(s)" | head -1 | sed -E 's/.*current revision\(s\)[s]*:?[[:space:]]*([a-f0-9]+).*/\1/i' || echo "")
+    fi
+    
+    # Format 3: Plain revision ID on its own line
+    if [[ -z "$current_rev" ]]; then
+        current_rev=$(echo "$alembic_output" | grep -E '^[a-f0-9]{12,40}$' | head -1 || echo "")
+    fi
+    
+    # Format 4: Extract any hex string that looks like a revision
+    if [[ -z "$current_rev" ]]; then
+        current_rev=$(echo "$alembic_output" | grep -oE '[a-f0-9]{12,40}' | head -1 || echo "")
+    fi
+    
+    # Format 5: Handle "None" case (no migrations applied)
+    if [[ -z "$current_rev" ]] && echo "$alembic_output" | grep -iq "none"; then
+        current_rev="base"
+    fi
     
     if [[ -z "$current_rev" ]]; then
-        log_error "Could not determine current migration revision"
+        log_error "Could not parse current migration revision from output:"
+        log_error "$alembic_output"
         exit 1
     fi
     
@@ -160,28 +222,39 @@ create_backup_log() {
     
     local backup_file="$BACKUP_DIR/rollback_$(date +%Y%m%d_%H%M%S).log"
     
+    # SECURITY: Create backup log with only safe, non-sensitive information
     cat > "$backup_file" <<EOF
 # Migration Rollback Log
 # Generated: $(date)
 # Current Revision: $current_rev
 # Target Revision: $target_rev
-# Database URL: ${DATABASE_URL%@*}@***
+# Database: $SAFE_DB_INFO
 # User: $(whoami)
 # Host: $(hostname)
+# Script Version: $(basename "$0")
+# Project: $(basename "$PROJECT_DIR")
 
 ## Pre-Rollback State
-$(alembic current --verbose)
+$(alembic current --verbose 2>/dev/null || echo "Could not get current state")
 
 ## Migration History
-$(alembic history --verbose)
+$(alembic history --verbose 2>/dev/null || echo "Could not get migration history")
 
 ## Schema State Before Rollback
 EOF
     
-    # Add schema dump if possible
-    if command -v pg_dump &> /dev/null; then
+    # Add schema dump if possible (without connection string in output)
+    if command -v pg_dump &> /dev/null && [[ -n "${DATABASE_URL:-}" ]]; then
         log_info "Adding schema dump to backup log..."
-        pg_dump "$DATABASE_URL" --schema-only >> "$backup_file" 2>/dev/null || true
+        {
+            echo "-- Schema dump generated at $(date)"
+            echo "-- Database: $SAFE_DB_INFO"
+            pg_dump "$DATABASE_URL" --schema-only 2>/dev/null | grep -v "^-- Dumped from database version" | grep -v "^-- Dumped by pg_dump version"
+        } >> "$backup_file" || {
+            echo "-- Schema dump failed at $(date)" >> "$backup_file"
+        }
+    else
+        echo "-- Schema dump not available (pg_dump not found or DATABASE_URL not set)" >> "$backup_file"
     fi
     
     log_success "Backup log created: $backup_file"
@@ -270,7 +343,7 @@ main() {
     log_info "=== FinBrain Migration Rollback Script ==="
     log_info "Target revision: $target_revision"
     log_info "Timestamp: $(date)"
-    log_info "Database: ${DATABASE_URL%@*}@***"
+    log_info "Database: $SAFE_DB_INFO"
     
     # Validation and setup
     check_dependencies

@@ -15,6 +15,19 @@ Each migration entry includes:
 
 ---
 
+### Revision: 30b14b696ef7
+- **Summary**: test_rollback_safety_noop
+
+Revision ID: 30b14b696ef7
+Revises: cf6afe03b206
+Create Date: 2025-09-14 06:34:29.210395
+- **Author**: chowdhurysujan71
+- **Date**: 2025-09-14 06:34:29.210395
+- **Type**: Schema Addition
+- **Previous**: cf6afe03b206
+- **File**: `30b14b696ef7_test_rollback_safety_noop.py`
+
+
 ### Revision: cf6afe03b206
 - **Summary**: sample_concurrent_indexes
 
