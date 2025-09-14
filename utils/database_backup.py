@@ -51,7 +51,7 @@ class DatabaseBackup:
                 users = User.query.all()
                 backup_data['data']['users'] = []
                 for user in users:
-                user_data = {
+                    user_data = {
                     'id': user.id,
                     'user_id_hash': user.user_id_hash,
                     'platform': user.platform,
@@ -82,8 +82,8 @@ class DatabaseBackup:
                     'privacy_consent_at': user.privacy_consent_at.isoformat() if user.privacy_consent_at else None,
                     'terms_accepted': user.terms_accepted,
                     'terms_accepted_at': user.terms_accepted_at.isoformat() if user.terms_accepted_at else None
-                }
-                backup_data['data']['users'].append(user_data)
+                    }
+                    backup_data['data']['users'].append(user_data)
             
             # Backup Expenses table
             expenses = Expense.query.all()

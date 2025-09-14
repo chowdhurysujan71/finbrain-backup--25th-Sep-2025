@@ -160,8 +160,15 @@ jobs:
       - name: Run production trust checks
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/finbrain_prod_test
+          BASE_URL: ${{ secrets.BASE_URL }}
+          SESSION_COOKIE: ${{ secrets.SESSION_COOKIE }}
+          PSQL_URI: postgresql://postgres:postgres@localhost:5432/finbrain_prod_test
+          EXPECT_EXPENSES_COUNT: ${{ secrets.EXPECT_EXPENSES_COUNT || '' }}
+          EXPECT_ORPHANS: "0"
+          EXPECT_DUPES: "0"
         run: |
-          echo "Running production trust checks..."
+          echo "Running production trust checks after migrations..."
+          chmod +x trust_check.sh
           ./trust_check.sh
           
           # Validate results
