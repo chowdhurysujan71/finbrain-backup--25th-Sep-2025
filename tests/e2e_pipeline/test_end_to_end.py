@@ -34,8 +34,9 @@ def test_end_to_end_pipeline(client):
         from datetime import datetime
         import uuid
         
-        # Generate proper UUID for correlation_id
+        # Generate unique UUIDs for correlation_id and message_id to allow multiple test runs
         correlation_uuid = str(uuid.uuid4())
+        unique_message_id = f'uat_test_{uuid.uuid4()}'
         
         result = create_expense(
             user_id=user_hash,
@@ -43,7 +44,7 @@ def test_end_to_end_pipeline(client):
             currency='৳',
             category='food',
             occurred_at=datetime.utcnow(),
-            source_message_id='uat_test_123',
+            source_message_id=unique_message_id,
             correlation_id=correlation_uuid,
             notes='uat canary coffee 123 taka'
         )
