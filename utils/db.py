@@ -59,7 +59,8 @@ def create_expense(user_id, amount, currency, category, occurred_at, source_mess
         expense.user_id_hash = user_id  # Ensure both fields are set
         expense.description = notes or f"{category} expense"
         expense.amount = Decimal(str(amount_float))
-        expense.amount_minor = int(amount_float * 100)  # Convert to minor units (cents)
+        # Use Decimal arithmetic to avoid floating-point precision errors
+        expense.amount_minor = int(Decimal(str(amount_float)).quantize(Decimal('0.01')) * 100)
         expense.category = category.lower()
         expense.currency = currency or '৳'
         expense.date = occurred_at.date()
