@@ -274,6 +274,37 @@ h1, h2, h3, h4, h5, h6 {
     margin-top: var(--space-1);
 }
 
+/* ===== FIELD ERROR STYLES ===== */
+.form-field-error {
+    border-color: var(--color-error) !important;
+    box-shadow: 0 0 0 3px hsl(0, 84%, 60%, 0.1) !important;
+}
+
+.form-field-error:focus {
+    border-color: var(--color-error) !important;
+    box-shadow: 0 0 0 3px hsl(0, 84%, 60%, 0.2) !important;
+}
+
+.field-error-message {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-error);
+    margin-top: var(--space-1);
+    font-weight: 500;
+    animation: slideInError 0.2s ease-out;
+}
+
+@keyframes slideInError {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* ===== NAVIGATION ===== */
 .bottom-nav {
     position: fixed;
@@ -759,6 +790,15 @@ h1, h2, h3, h4, h5, h6 {
     font-size: var(--font-size-sm);
 }
 
+.toast-trace {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-muted);
+    margin-top: var(--space-1);
+    font-family: monospace;
+    opacity: 0.8;
+}
+
 .toast-close {
     background: none;
     border: none;
@@ -767,6 +807,10 @@ h1, h2, h3, h4, h5, h6 {
     cursor: pointer;
     padding: 0;
     line-height: 1;
+}
+
+.toast-close:hover {
+    color: var(--color-fg);
 }
 
 /* ===== OFFLINE/PWA SPECIFIC ===== */

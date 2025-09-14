@@ -42,5 +42,9 @@ externalPort = 3001
 localPort = 44767
 externalPort = 3000
 
+[[ports]]
+localPort = 45513
+externalPort = 3002
+
 [agent]
 integrations = ["python_log_in_with_replit==1.0.0", "python_openai==1.0.0", "python_database==1.0.0"]

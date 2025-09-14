@@ -383,7 +383,183 @@
         }
     }
     
-    // Global Toast Function (Enhanced)
+    // Enhanced Field Error Management
+    function clearFieldErrors(form = document) {
+        // Remove existing error styling and messages
+        const errorInputs = form.querySelectorAll('.form-field-error');
+        errorInputs.forEach(input => {
+            input.classList.remove('form-field-error');
+        });
+        
+        const errorMessages = form.querySelectorAll('.field-error-message');
+        errorMessages.forEach(msg => msg.remove());
+    }
+    
+    function displayFieldErrors(fieldErrors, form = document) {
+        // Clear existing errors first
+        clearFieldErrors(form);
+        
+        // Display new field errors
+        Object.keys(fieldErrors).forEach(fieldName => {
+            const field = form.querySelector(`[name="${fieldName}"], #${fieldName}`);
+            if (field) {
+                // Add error styling to input
+                field.classList.add('form-field-error');
+                
+                // Create and insert error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'field-error-message';
+                errorDiv.textContent = fieldErrors[fieldName];
+                
+                // Insert after the field or its wrapper
+                const insertTarget = field.closest('.form-group') || field.closest('.input-group') || field;
+                insertTarget.parentNode.insertBefore(errorDiv, insertTarget.nextSibling);
+            }
+        });
+    }
+    
+    function handleStandardizedResponse(response, options = {}) {
+        const form = options.form;
+        
+        // Clear previous field errors
+        if (form) {
+            clearFieldErrors(form);
+        }
+        
+        if (response.success) {
+            // Handle success
+            if (response.message) {
+                showToast(response.message, 'success', options.toastOptions || {});
+            }
+            
+            // Call success callback if provided
+            if (options.onSuccess) {
+                options.onSuccess(response);
+            }
+            
+        } else {
+            // Handle error cases
+            let errorType = 'error';
+            let toastMessage = response.message || 'An error occurred';
+            let toastOptions = { ...options.toastOptions };
+            
+            // Add trace ID if available
+            if (response.trace_id) {
+                toastOptions.traceId = response.trace_id;
+            }
+            
+            // Handle different error codes
+            switch (response.code) {
+                case 'VALIDATION_ERROR':
+                    errorType = 'warning';
+                    toastMessage = response.message || 'Please check the highlighted fields';
+                    
+                    // Display field-specific errors
+                    if (response.field_errors && form) {
+                        displayFieldErrors(response.field_errors, form);
+                    }
+                    break;
+                    
+                case 'UNAUTHORIZED':
+                    errorType = 'error';
+                    toastMessage = response.message || 'You are not authorized to perform this action';
+                    break;
+                    
+                case 'RATE_LIMITED':
+                    errorType = 'warning';
+                    toastMessage = response.message || 'Too many requests. Please try again later.';
+                    toastOptions.persistent = true;
+                    break;
+                    
+                case 'SERVER_ERROR':
+                default:
+                    errorType = 'error';
+                    toastMessage = response.message || 'A server error occurred. Please try again.';
+                    break;
+            }
+            
+            showToast(toastMessage, errorType, toastOptions);
+            
+            // Call error callback if provided
+            if (options.onError) {
+                options.onError(response);
+            }
+        }
+        
+        return response.success;
+    }
+    
+    function enhancedFormSubmit(form, endpoint, options = {}) {
+        return new Promise((resolve, reject) => {
+            const formData = new FormData(form);
+            
+            // Add user ID if available
+            if (window.finbrainUserId) {
+                formData.append('user_id', window.finbrainUserId);
+            }
+            
+            fetch(endpoint, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-User-ID': window.finbrainUserId || ''
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Handle standardized response
+                const success = handleStandardizedResponse(data, {
+                    form: form,
+                    ...options
+                });
+                
+                if (success) {
+                    resolve(data);
+                } else {
+                    reject(data);
+                }
+            })
+            .catch(error => {
+                console.error('Form submission error:', error);
+                
+                // Handle network errors or non-JSON responses
+                const fallbackError = {
+                    success: false,
+                    code: 'NETWORK_ERROR',
+                    message: 'Network error. Please check your connection and try again.',
+                    trace_id: `client_${Date.now()}`
+                };
+                
+                handleStandardizedResponse(fallbackError, {
+                    form: form,
+                    ...options
+                });
+                
+                reject(fallbackError);
+            });
+        });
+    }
+    
+    // Legacy compatibility: Handle non-standardized responses
+    function handleLegacyResponse(data, form = null) {
+        // Clear any existing field errors
+        if (form) {
+            clearFieldErrors(form);
+        }
+        
+        // Try to determine success/error from legacy format
+        if (data.error || data.status === 'error' || data.success === false) {
+            const message = data.error || data.message || 'An error occurred';
+            showToast(message, 'error');
+            return false;
+        } else {
+            const message = data.message || data.reply || 'Operation completed successfully';
+            showToast(message, 'success');
+            return true;
+        }
+    }
+    
+    // Enhanced Global Toast Function
     window.showToast = function(message, type = 'info', options = {}) {
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
@@ -407,7 +583,12 @@
         
         toastHTML += `<span class="toast-message">${message}</span>`;
         
-        if (options.dismissible !== false) {
+        // Add trace ID if provided
+        if (options.traceId && (type === 'error' || type === 'warning')) {
+            toastHTML += `<div class="toast-trace">Trace ID: ${options.traceId}</div>`;
+        }
+        
+        if (options.dismissible !== false && !options.persistent) {
             toastHTML += `
                 <button class="toast-close" onclick="this.parentElement.parentElement.remove()" aria-label="Close">
                     &times;
@@ -436,8 +617,8 @@
             toast.style.transform = 'translateX(0)';
         }, 10);
         
-        // Auto-remove
-        const duration = options.duration !== undefined ? options.duration : 5000;
+        // Auto-remove (unless persistent)
+        const duration = options.duration !== undefined ? options.duration : (options.persistent ? 0 : 5000);
         if (duration > 0) {
             setTimeout(() => {
                 if (toast.parentElement) {
@@ -473,6 +654,13 @@
             return 'denied';
         }
     };
+    
+    // Expose enhanced error handling functions globally
+    window.clearFieldErrors = clearFieldErrors;
+    window.displayFieldErrors = displayFieldErrors;
+    window.handleStandardizedResponse = handleStandardizedResponse;
+    window.enhancedFormSubmit = enhancedFormSubmit;
+    window.handleLegacyResponse = handleLegacyResponse;
     
     console.log('[PWA] FinBrain PWA setup complete');
     
