@@ -252,27 +252,40 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Create Database Backup
+      - name: DB Backup (pre-deploy)
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          ENABLE_BACKUPS: "true"
+          PG_DUMP_URI: ${{ secrets.PG_DUMP_URI || secrets.DATABASE_URL }}
         run: |
           echo "Creating pre-deployment database backup..."
-          python -c "
-          from utils.database_backup import DatabaseBackup
-          import json
-          backup = DatabaseBackup()
-          result = backup.create_full_backup()
-          print(json.dumps(result, indent=2))
-          if result.get('status') == 'success':
-              print('✅ Database backup completed successfully')
-              print(f'Backup file: {result.get(\"backup_file\")}')
-          else:
-              print('⚠️ Database backup had issues:', result.get('message'))
-          "
+          TS=$(date -u +'%Y%m%d_%H%M%S')
+          FILE="backup_prod_${TS}.sql.gz"
+          
+          # Create backup using pg_dump
+          pg_dump "$PG_DUMP_URI" | gzip > "$FILE" || {
+            echo "❌ Database backup failed - deployment blocked"
+            exit 1
+          }
+          
+          # Verify backup was created and has content
+          if [ ! -f "$FILE" ] || [ ! -s "$FILE" ]; then
+            echo "❌ Backup file is empty or missing - deployment blocked"
+            exit 1
+          fi
+          
+          echo "✅ Database backup completed successfully"
+          echo "Created $FILE ($(stat -c%s "$FILE") bytes)"
+
+      - name: Upload DB Backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-prod
+          path: backup_prod_*.sql.gz
+          retention-days: 90
 
       - name: Run pre-deployment migrations
         if: github.event.inputs.migration_required == 'true'
