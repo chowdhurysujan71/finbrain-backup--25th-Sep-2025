@@ -5,7 +5,7 @@ from typing import Dict, List
 import logging
 import time
 from datetime import datetime
-from utils.parser import extract_expenses
+import backend_assistant as ba
 from utils.security import hash_psid
 
 logger = logging.getLogger(__name__)
@@ -19,11 +19,22 @@ def handle_log(user_id: str, text: str) -> Dict[str, str]:
     import uuid
     
     try:
-        # Extract expenses from text
-        expenses = extract_expenses(text)
+        # Parse expense using same deterministic parser as propose_expense API
+        parsed_expense = ba.propose_expense(text)
         
-        if not expenses:
+        # Check if parsing was successful
+        amount_minor = parsed_expense.get('amount_minor')
+        category = parsed_expense.get('category')
+        
+        if not amount_minor or not category:
             return {"text": "I couldn't find an amount to log. Try: 'spent 100 on lunch'"}
+        
+        # Convert parsed data to expected format
+        expenses = [{
+            'amount': float(amount_minor) / 100,  # Convert from minor units to float
+            'category': str(category),
+            'description': parsed_expense.get('description', text)
+        }]
         
         logged = []
         total = 0
