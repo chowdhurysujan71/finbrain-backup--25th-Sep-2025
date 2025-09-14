@@ -49,22 +49,29 @@ def _totals_by_category(user_id: str, start: datetime, end: datetime):
     from sqlalchemy import text
     from datetime import timedelta
     
-    # Check if this is a 7-day period to use canonical weekly_totals
-    now = datetime.utcnow()
-    if abs((now - end).total_seconds()) < 3600 and abs((start - (now - timedelta(days=7))).total_seconds()) < 3600:  # Within 1 hour tolerance
-        # Use canonical weekly_totals prepared statement
-        try:
-            result = db.session.execute(text("EXECUTE weekly_totals(:user_hash)"), {"user_hash": user_id}).first()
-            if result:
-                total_minor = int(result[0] or 0)
-                top_category = result[2] or "Uncategorized"
-                # For compatibility, return category map with single entry
-                category_map = {top_category: float(total_minor / 100)} if total_minor > 0 else {}
-                total = float(total_minor / 100)
-                return category_map, total
-        except Exception as e:
-            # Fallback to direct query if prepared statement fails
-            pass
+    # Use direct SQL query instead of prepared statement (fixed compatibility issue)
+    try:
+        result = db.session.execute(text("""
+            SELECT 
+                COALESCE(SUM(amount_minor), 0) as total_minor,
+                COUNT(*) as expenses_count,
+                (SELECT category FROM expenses 
+                 WHERE user_id_hash = :user_hash AND created_at BETWEEN :start AND :end
+                 GROUP BY category ORDER BY SUM(amount_minor) DESC NULLS LAST LIMIT 1) AS top_category
+            FROM expenses 
+            WHERE user_id_hash = :user_hash 
+            AND created_at BETWEEN :start AND :end
+        """), {"user_hash": user_id, "start": start, "end": end}).first()
+        if result:
+            total_minor = int(result[0] or 0)
+            top_category = result[2] or "Uncategorized"
+            # For compatibility, return category map with single entry
+            category_map = {top_category: float(total_minor / 100)} if total_minor > 0 else {}
+            total = float(total_minor / 100)
+            return category_map, total
+    except Exception as e:
+        # Continue to fallback query if this fails
+        pass
     
     # Fallback: Direct query only from expenses table (no other tables)
     rows = db.session.execute(text("""

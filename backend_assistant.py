@@ -161,28 +161,21 @@ def get_totals(user_id: str, period: str) -> Dict[str, Union[str, int, None]]:
         else:
             raise ValueError(f"Invalid period: {period}")
         
-        # Use canonical weekly_totals prepared statement for unified read path
-        if period == "week":
-            totals_result = db.session.execute(text("EXECUTE weekly_totals(:user_hash)"), {"user_hash": user_hash}).first()
-            total_minor = int(totals_result[0] or 0) if totals_result else 0
-            expenses_count = int(totals_result[1] or 0) if totals_result else 0  
-            top_category = totals_result[2] if totals_result and len(totals_result) > 2 else None
-        else:
-            # For non-week periods, use direct SQL (will be unified later)
-            totals_result = db.session.execute(text("""
-                SELECT 
-                    COALESCE(SUM(amount_minor), 0) as total_minor,
-                    COUNT(*) as expenses_count,
-                    (SELECT category FROM expenses 
-                     WHERE user_id_hash = :user_hash AND created_at >= :start_date
-                     GROUP BY category ORDER BY SUM(amount_minor) DESC NULLS LAST LIMIT 1) AS top_category
-                FROM expenses 
-                WHERE user_id_hash = :user_hash 
-                AND created_at >= :start_date
-            """), {"user_hash": user_hash, "start_date": start_date}).first()
-            total_minor = int(totals_result[0] or 0) if totals_result else 0
-            expenses_count = int(totals_result[1] or 0) if totals_result else 0
-            top_category = totals_result[2] if totals_result and len(totals_result) > 2 else None
+        # Use direct SQL query for all periods (fixed prepared statement issue)
+        totals_result = db.session.execute(text("""
+            SELECT 
+                COALESCE(SUM(amount_minor), 0) as total_minor,
+                COUNT(*) as expenses_count,
+                (SELECT category FROM expenses 
+                 WHERE user_id_hash = :user_hash AND created_at >= :start_date
+                 GROUP BY category ORDER BY SUM(amount_minor) DESC NULLS LAST LIMIT 1) AS top_category
+            FROM expenses 
+            WHERE user_id_hash = :user_hash 
+            AND created_at >= :start_date
+        """), {"user_hash": user_hash, "start_date": start_date}).first()
+        total_minor = int(totals_result[0] or 0) if totals_result else 0
+        expenses_count = int(totals_result[1] or 0) if totals_result else 0
+        top_category = totals_result[2] if totals_result and len(totals_result) > 2 else None
         
         # Results extracted above from canonical queries - NEVER invent numbers
         
@@ -213,15 +206,21 @@ def get_recent_expenses(user_id: str, limit: int = 10) -> List[Dict[str, Union[s
         # Ensure user_id is properly hashed for consistent lookup
         user_hash = ensure_hashed(user_id)
         
-        # Use canonical recent_expenses prepared statement for unified read path
-        expenses_result = db.session.execute(text("EXECUTE recent_expenses(:user_hash, :limit)"), {"user_hash": user_hash, "limit": limit}).fetchall()
+        # Use direct SQL query (fixed prepared statement issue)
+        expenses_result = db.session.execute(text("""
+            SELECT id, amount_minor, currency, category, description, source, created_at
+            FROM expenses 
+            WHERE user_id_hash = :user_hash 
+            ORDER BY created_at DESC 
+            LIMIT :limit
+        """), {"user_hash": user_hash, "limit": limit}).fetchall()
         
-        # Convert to JSON array - NEVER invent data (canonical prepared statement format)
+        # Convert to JSON array - NEVER invent data (direct SQL query format)
         expenses_list = []
         for row in expenses_result:
             expenses_list.append({
                 "id": int(row[0]) if row[0] else 0,
-                "amount_minor": int(row[1]) if row[1] else 0,  # from prepared statement
+                "amount_minor": int(row[1]) if row[1] else 0,
                 "currency": row[2] or "BDT",
                 "category": row[3] or "",
                 "description": row[4] or "",
