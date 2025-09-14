@@ -216,6 +216,60 @@ def add_expense(user_id: str, amount_minor: int, currency: str, category: str,
         logger.error(f"add_expense failed: {e}")
         raise e
 
+def delete_expense(user_id: str, expense_id: int) -> Dict[str, Union[str, int, bool]]:
+    """
+    Delete expense with proper authorization and audit trail.
+    
+    Args:
+        user_id: Authenticated user ID (from session)
+        expense_id: ID of expense to delete
+    
+    Returns:
+        dict: {success: bool, expense_id: int, deleted_at: timestamp}
+    """
+    from models import Expense
+    from datetime import datetime
+    
+    try:
+        # Validate inputs
+        if not user_id or not expense_id:
+            raise ValueError("user_id and expense_id are required")
+        
+        if not isinstance(expense_id, int) or expense_id <= 0:
+            raise ValueError("expense_id must be a positive integer")
+        
+        # Find the expense and verify ownership
+        expense = Expense.query.filter_by(id=expense_id, user_id_hash=user_id).first()
+        
+        if not expense:
+            raise ValueError(f"Expense {expense_id} not found or access denied")
+        
+        # Store info for audit trail before deletion
+        deleted_info = {
+            "expense_id": expense.id,
+            "description": expense.description,
+            "amount": float(expense.amount),
+            "category": expense.category,
+            "deleted_at": datetime.utcnow().isoformat()
+        }
+        
+        # Delete the expense
+        db.session.delete(expense)
+        db.session.commit()
+        
+        logger.info(f"Expense {expense_id} deleted by user {user_id[:8]}...")
+        
+        return {
+            "success": True,
+            "expense_id": expense_id,
+            "deleted_at": deleted_info["deleted_at"],
+            "description": deleted_info["description"]
+        }
+        
+    except Exception as e:
+        logger.error(f"delete_expense failed: {e}")
+        raise e
+
 def get_totals(user_id: str, period: str) -> Dict[str, Union[str, int, None]]:
     """
     Input: { "user_id": str, "period": "day|week|month" }

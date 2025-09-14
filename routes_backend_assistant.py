@@ -8,6 +8,7 @@ from functools import wraps
 from backend_assistant import (
     propose_expense, 
     add_expense,
+    delete_expense,
     get_totals, 
     get_recent_expenses, 
     run_uat_checklist,
@@ -215,6 +216,70 @@ def api_add_expense(authenticated_user_id):
         }, e)
         
         response, status_code = internal_error(safe_error_message(e, "Failed to add expense"))
+        return jsonify(response), status_code
+
+@backend_api.route('/delete_expense', methods=['POST'])
+@require_backend_user_auth
+def api_delete_expense(authenticated_user_id):
+    """
+    POST /api/backend/delete_expense
+    Input: {"expense_id": 123}
+    Output: {"success": true, "expense_id": 123, "deleted_at": "...", "description": "..."}
+    Authentication: Required (session only - SECURITY HARDENED)
+    """
+    start_time = time.time()
+    
+    try:
+        data = request.get_json() or {}
+        
+        # Validate required fields
+        expense_id = data.get('expense_id')
+        if not expense_id:
+            response, status_code = standardized_error_response(
+                code=ErrorCodes.VALIDATION_ERROR,
+                message="expense_id is required",
+                field_errors={"expense_id": "expense_id is required"},
+                status_code=400,
+                log_error=False
+            )
+            return jsonify(response), status_code
+        
+        # Validate expense_id type
+        if not isinstance(expense_id, int) or expense_id <= 0:
+            response, status_code = standardized_error_response(
+                code=ErrorCodes.VALIDATION_ERROR,
+                message="Invalid expense_id",
+                field_errors={"expense_id": "expense_id must be a positive integer"},
+                status_code=400,
+                log_error=False
+            )
+            return jsonify(response), status_code
+        
+        # Call delete_expense function
+        result = delete_expense(
+            user_id=authenticated_user_id,
+            expense_id=expense_id
+        )
+        
+        # Log successful deletion
+        response_time = (time.time() - start_time) * 1000
+        api_logger.log_api_request(True, response_time, {
+            "user_prefix": authenticated_user_id[:8] + "***",
+            "expense_id": expense_id,
+            "operation": "delete"
+        })
+        
+        return jsonify(success_response(result, "Expense deleted successfully"))
+        
+    except Exception as e:
+        response_time = (time.time() - start_time) * 1000
+        api_logger.error("Delete expense error", {
+            "error_type": type(e).__name__,
+            "user_prefix": authenticated_user_id[:8] + "***",
+            "response_time_ms": response_time
+        }, e)
+        
+        response, status_code = internal_error(safe_error_message(e, "Failed to delete expense"))
         return jsonify(response), status_code
 
 @backend_api.route('/get_totals', methods=['POST'])
