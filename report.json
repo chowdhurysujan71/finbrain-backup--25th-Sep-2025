@@ -5,9 +5,9 @@
     "duration_seconds": 0,
     "overall_status": "RUNNING",
     "summary": {
-      "total_checks": 3,
-      "passed": 1,
-      "failed": 2,
+      "total_checks": 8,
+      "passed": 5,
+      "failed": 3,
       "warnings": 0
     },
     "checks": {
@@ -25,32 +25,51 @@
           "Security vulnerabilities detected",
           "Check security audit logs"
         ],
-        "duration": 4
+        "duration": 3
       },
       "ai_contamination": {
-        "status": "PENDING",
-        "details": [],
-        "duration": 0
+        "status": "PASS",
+        "details": [
+          "No cross-user data contamination detected",
+          "User isolation verified",
+          "Concurrent request safety confirmed"
+        ],
+        "duration": 28
       },
       "ui_guardrails": {
-        "status": "PENDING",
-        "details": [],
-        "duration": 0
+        "status": "PASS",
+        "details": [
+          "Frontend restricted to approved endpoints",
+          "No direct database access in UI",
+          "API boundary enforced"
+        ],
+        "duration": 9
       },
       "migration_safety": {
-        "status": "PENDING",
-        "details": [],
+        "status": "PASS",
+        "details": [
+          "Migration script validated",
+          "Advisory lock mechanism available",
+          "Safe concurrent migration support"
+        ],
         "duration": 0
       },
       "production_gate": {
-        "status": "PENDING",
-        "details": [],
-        "duration": 0
+        "status": "FAIL",
+        "details": [
+          "Production gate validation failed",
+          "Critical endpoints not responding"
+        ],
+        "duration": 3
       },
       "feature_flag_safety": {
-        "status": "PENDING",
-        "details": [],
-        "duration": 0
+        "status": "PASS",
+        "details": [
+          "Kill switches functional",
+          "Configuration thresholds valid",
+          "Feature flags safely configured"
+        ],
+        "duration": 2
       },
       "environment": {
         "status": "PASS",
