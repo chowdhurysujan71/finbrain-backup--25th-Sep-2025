@@ -45,7 +45,7 @@ def handle_log(user_id: str, text: str) -> Dict[str, str]:
                     category=exp['category'],
                     occurred_at=occurred_at,
                     source_message_id=source_message_id,
-                    correlation_id=f"{correlation_id}_{len(expense_results)}",  # Unique per expense
+                    correlation_id=str(uuid.uuid4()),  # Generate unique UUID for each expense
                     notes=exp.get('description') or text
                 )
                 expense_results.append(result)
