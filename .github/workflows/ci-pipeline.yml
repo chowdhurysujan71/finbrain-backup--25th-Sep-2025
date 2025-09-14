@@ -63,7 +63,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-cov playwright
+          pip install pytest pytest-cov playwright requests
           
       - name: Install Node.js dependencies
         run: |
@@ -167,6 +167,40 @@ jobs:
             echo "E2E tests failed!"
             exit 1
           }
+
+      - name: Run Frozen Contract Smoke Test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/finbrain_test
+          BASE_URL: ${{ secrets.BASE_URL || 'http://localhost:5000/api/backend' }}
+          SESSION_COOKIE: ${{ secrets.SESSION_COOKIE }}
+          CANARY_DESC: "uat canary coffee"
+          CANARY_AMOUNT_MAJOR: "123"
+          CANARY_SOURCE: "chat"
+          PERIOD: "week"
+        run: |
+          echo "Running frozen contract smoke test..."
+          echo "Starting Flask app in background for smoke test..."
+          python -m gunicorn --bind 127.0.0.1:5000 --timeout 30 --workers 1 main:app &
+          APP_PID=$!
+          sleep 10
+          
+          # Wait for app to be ready
+          timeout 30 bash -c 'until curl -f http://localhost:5000/health; do sleep 1; done' || {
+            echo "App failed to start for smoke test"
+            kill $APP_PID 2>/dev/null || true
+            exit 1
+          }
+          
+          echo "App ready, running smoke test..."
+          python demo_smoke.py || {
+            echo "Frozen contract smoke test failed!"
+            kill $APP_PID 2>/dev/null || true
+            exit 1
+          }
+          
+          # Clean up
+          kill $APP_PID 2>/dev/null || true
+          echo "Frozen contract smoke test passed ✅"
 
       - name: Run Trust Checks
         env:

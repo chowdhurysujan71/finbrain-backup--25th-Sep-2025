@@ -195,14 +195,42 @@ def api_add_expense(authenticated_user_id):
             message_id=message_id
         )
         
-        # Log successful expense creation
+        # Log successful expense creation with structured metrics
         response_time = (time.time() - start_time) * 1000
-        api_logger.log_api_request(True, response_time, {
+        
+        # Enhanced structured metrics logging
+        metrics_data = {
             "user_prefix": authenticated_user_id[:8] + "***",
             "amount_minor": amount_minor,
             "category": category,
             "source": source,
-            "has_message_id": bool(message_id)
+            "has_message_id": bool(message_id),
+            "response_time_ms": response_time,
+            # Additional structured metrics
+            "amount_major": amount_minor / 100,
+            "currency": currency,
+            "expense_id": result["expense_id"],
+            "correlation_id": result["correlation_id"][:8] + "...",
+            "idempotency_key_prefix": result["idempotency_key"][:12] + "...",
+            "timestamp": datetime.utcnow().isoformat(),
+            "endpoint": "/api/backend/add_expense",
+            "operation": "create_expense"
+        }
+        
+        api_logger.log_api_request(True, response_time, metrics_data)
+        
+        # Additional structured metrics log for business analytics
+        logger.info("EXPENSE_CREATED", extra={
+            "structured_metrics": {
+                "event_type": "expense_creation",
+                "user_id_hash": authenticated_user_id,
+                "amount_bdt": amount_minor / 100,
+                "category": category,
+                "source_channel": source,
+                "expense_id": result["expense_id"],
+                "processing_time_ms": response_time,
+                "success": True
+            }
         })
         
         return jsonify(success_response(result, "Expense added successfully"))

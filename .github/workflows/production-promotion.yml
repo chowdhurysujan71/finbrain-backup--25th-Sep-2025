@@ -248,6 +248,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Create Database Backup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ENABLE_BACKUPS: "true"
+        run: |
+          echo "Creating pre-deployment database backup..."
+          python -c "
+          from utils.database_backup import DatabaseBackup
+          import json
+          backup = DatabaseBackup()
+          result = backup.create_full_backup()
+          print(json.dumps(result, indent=2))
+          if result.get('status') == 'success':
+              print('✅ Database backup completed successfully')
+              print(f'Backup file: {result.get(\"backup_file\")}')
+          else:
+              print('⚠️ Database backup had issues:', result.get('message'))
+          "
+
       - name: Run pre-deployment migrations
         if: github.event.inputs.migration_required == 'true'
         env:
