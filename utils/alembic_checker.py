@@ -29,7 +29,8 @@ def get_alembic_current_revision(database_url: str) -> Optional[str]:
                 );
             """))
             
-            if not result.fetchone()[0]:
+            row = result.fetchone()
+            if not row or not row[0]:
                 logger.warning("Alembic version table does not exist - database not initialized with Alembic")
                 return None
             

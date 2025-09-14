@@ -245,6 +245,8 @@ def reset_problematic_indexes():
         return False
 
 if __name__ == "__main__":
+    # Import Flask app when running as standalone script
+    from app import app
     with app.app_context():
         success = safe_database_initialization()
         exit(0 if success else 1)

@@ -194,17 +194,49 @@ with app.app_context():
         logger.critical("Database schema validation is required for secure startup")
         sys.exit(1)
     
-    # Verify Alembic revision status - ensure DB is at current migration head
+    # Run database migrations with advisory lock to prevent race conditions
+    logger.info("Running database migrations with advisory lock...")
+    import subprocess
+    script_path = os.path.join(os.path.dirname(__file__), "scripts", "migrate_with_lock.py")
+    
     try:
-        from utils.alembic_checker import verify_alembic_status_or_fail
-        verify_alembic_status_or_fail(os.environ.get("DATABASE_URL"))
-        logger.info("✓ Alembic revision check completed - database at head revision")
-    except ImportError as e:
-        logger.warning(f"Alembic revision checker not available: {e}")
-        logger.warning("Skipping Alembic revision validation")
+        
+        # Run migration script with timeout
+        result = subprocess.run(
+            [sys.executable, script_path],
+            timeout=600,  # 10 minute timeout for migrations
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode == 0:
+            logger.info("✓ Database migrations completed successfully")
+            if result.stdout.strip():
+                # Log migration output at debug level to avoid spam
+                for line in result.stdout.strip().split('\n'):
+                    if line.strip():
+                        logger.debug(f"Migration: {line.strip()}")
+        else:
+            logger.critical(f"✗ Database migration failed with exit code {result.returncode}")
+            if result.stderr.strip():
+                logger.critical(f"Migration error: {result.stderr.strip()}")
+            if result.stdout.strip():
+                logger.error(f"Migration output: {result.stdout.strip()}")
+            logger.critical("BOOT FAILURE: Cannot start application with failed migrations")
+            sys.exit(1)
+            
+    except subprocess.TimeoutExpired:
+        logger.critical("✗ Database migration timed out after 10 minutes")
+        logger.critical("BOOT FAILURE: Migration process may be stuck or database unreachable")
+        sys.exit(1)
+    except FileNotFoundError:
+        logger.critical(f"✗ Migration script not found: {script_path}")
+        logger.critical("BOOT FAILURE: Migration infrastructure missing")
+        sys.exit(1)
     except Exception as e:
-        logger.error(f"Alembic revision check failed: {e}")
-        # Note: verify_alembic_status_or_fail calls sys.exit(1) on failure
+        logger.critical(f"✗ Unexpected error running migrations: {e}")
+        logger.critical("BOOT FAILURE: Migration process failed")
+        sys.exit(1)
     
     # Schema validation and auto-healing
     try:
