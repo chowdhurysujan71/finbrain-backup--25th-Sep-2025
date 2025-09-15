@@ -1,0 +1,410 @@
+{
+  "metadata": {
+    "generated_from": "system_freeze_map_v4_operational.json",
+    "purpose": "Step-by-step quarantine plan to safely separate active vs legacy code",
+    "date": "2025-09-15",
+    "critical_warning": "NEVER quarantine files in the 'keep' list - system will crash"
+  },
+  "keep": {
+    "core_files": [
+      {
+        "file": "db_base.py",
+        "reason": "Canonical database import (85+ dependencies)",
+        "impact": "CRITICAL - System crash if removed"
+      },
+      {
+        "file": "app.py", 
+        "reason": "Main Flask app with blueprint registrations",
+        "impact": "CRITICAL - Application startup failure"
+      },
+      {
+        "file": "main.py",
+        "reason": "Application entry point", 
+        "impact": "CRITICAL - Cannot start application"
+      },
+      {
+        "file": "models.py",
+        "reason": "Core data models (User, Expense, ExpenseEdit, MonthlySummary)",
+        "impact": "CRITICAL - Database schema failure"
+      },
+      {
+        "file": "models_pca.py",
+        "reason": "PCA data models for admin functionality",
+        "impact": "HIGH - Admin features failure"
+      },
+      {
+        "file": "utils/production_router.py",
+        "reason": "Core message routing (needs quarantine dependency fix first)",
+        "impact": "CRITICAL - Message processing failure"
+      }
+    ],
+    "blueprints": [
+      {
+        "name": "pwa_ui",
+        "file": "pwa_ui.py",
+        "usage": ["Auth", "PWA"],
+        "routes": 13,
+        "critical": true,
+        "reason": "User authentication and main PWA interface"
+      },
+      {
+        "name": "backend_api",
+        "file": "routes_backend_assistant.py", 
+        "usage": ["Expense Contract"],
+        "routes": 8,
+        "critical": true,
+        "reason": "Core expense tracking API endpoints"
+      }
+    ],
+    "admin_blueprints": [
+      {
+        "name": "pca_api",
+        "file": "routes/pca_api.py",
+        "routes": 7,
+        "reason": "PCA management API"
+      },
+      {
+        "name": "pca_ui", 
+        "file": "routes/pca_ui.py",
+        "routes": 3,
+        "reason": "PCA dashboard UI"
+      },
+      {
+        "name": "audit_api",
+        "file": "routes/audit_api.py",
+        "routes": 3,
+        "reason": "Audit trail API"
+      },
+      {
+        "name": "assets_bp",
+        "file": "routes_assets.py",
+        "routes": 3,
+        "reason": "Asset serving"
+      },
+      {
+        "name": "redis_smoke_bp",
+        "file": "app/routes_redis_smoke.py", 
+        "routes": 1,
+        "reason": "Redis connectivity testing"
+      },
+      {
+        "name": "admin_ops",
+        "file": "admin_ops.py",
+        "routes": 4,
+        "reason": "Administrative operations"
+      },
+      {
+        "name": "coaching_bp",
+        "file": "app_coaching_endpoints.py",
+        "routes": 11,
+        "reason": "AI coaching endpoints"
+      },
+      {
+        "name": "quickscan",
+        "file": "routes/ops_quickscan.py",
+        "routes": 1,
+        "reason": "Diagnostic scanning"
+      }
+    ],
+    "routes_by_usage": {
+      "Auth": [
+        "/login", "/register", "/auth/login", "/auth/register", "/auth/logout"
+      ],
+      "PWA": [
+        "/chat", "/report", "/profile", "/challenge", "/offline", "/partials/entries",
+        "/ai-chat-test", "/ai-chat", "/sw.js", "/manifest.webmanifest"
+      ],
+      "Expense_Contract": [
+        "/expense", "/api/backend/propose_expense", "/api/backend/add_expense", 
+        "/api/backend/delete_expense", "/api/backend/get_totals", "/api/backend/get_recent_expenses",
+        "/api/backend/process_message", "/api/backend/user_summary", "/api/backend/user_expenses",
+        "/user/<psid_hash>/insights", "/user/<psid_hash>/category/<category_name>", 
+        "/user/<psid_hash>/categories", "/api/preview/report"
+      ],
+      "Messenger": [
+        "/webhook/messenger"
+      ],
+      "Core": [
+        "/", "/health", "/readyz"
+      ],
+      "Admin": [
+        "/admin", "/diagnostics", "/__test_error", "/health/deployment", "/diagnose/router",
+        "/ops", "/ops/token-refresh-status", "/ops/pca/status", "/ops/pca/health", 
+        "/ops/pca/overlay", "/ops/pca/telemetry", "/ops/pca/canary", "/psid/<psid_hash>",
+        "/version", "/ops/telemetry", "/ops/ai/ping", "/ops/rl/reset", "/ops/trace",
+        "/ops/users", "/jobs", "/jobs/<job_id>/status", "/jobs/<job_id>/cancel", 
+        "/jobs/status", "/api/backend/uat_checklist", "/api/backend/schemas", 
+        "/api/backend/health", "/ops/quickscan"
+      ]
+    },
+    "models": [
+      {"class": "User", "file": "models.py", "usage": "Auth"},
+      {"class": "Expense", "file": "models.py", "usage": "Expense Contract"},
+      {"class": "ExpenseEdit", "file": "models.py", "usage": "Expense Contract"},
+      {"class": "MonthlySummary", "file": "models.py", "usage": "Expense Contract"},
+      {"class": "RateLimit", "file": "models.py", "usage": "Admin"},
+      {"class": "UserMilestone", "file": "models.py", "usage": "Admin"},
+      {"class": "ReportFeedback", "file": "models.py", "usage": "Admin"},
+      {"class": "TelemetryEvent", "file": "models.py", "usage": "Admin"},
+      {"class": "GrowthCounter", "file": "models.py", "usage": "Admin"},
+      {"class": "TransactionEffective", "file": "models_pca.py", "usage": "Admin"},
+      {"class": "UserCorrection", "file": "models_pca.py", "usage": "Admin"},
+      {"class": "UserRule", "file": "models_pca.py", "usage": "Admin"},
+      {"class": "InferenceSnapshot", "file": "models_pca.py", "usage": "Admin"},
+      {"class": "Base", "file": "db_base.py", "usage": "Core"}
+    ],
+    "critical_imports": [
+      {
+        "pattern": "from db_base import db",
+        "count": 85,
+        "impact": "CRITICAL - Breaks entire database layer"
+      },
+      {
+        "pattern": "from app import limiter",
+        "count": 1,
+        "impact": "HIGH - Breaks PWA auth rate limiting"
+      }
+    ]
+  },
+  "quarantine": {
+    "legacy_files": [
+      "phase3_replay_debug.py",
+      "phase4_enhanced_monitoring.py",
+      "phase5_production_blast.py",
+      "_quarantine/finbrain_router_deprecated.py",
+      "_quarantine/archive_legacy/*"
+    ],
+    "test_files": [
+      "tests/*"
+    ],
+    "script_files": [
+      "scripts/*"
+    ],
+    "risky_dependencies": [
+      {
+        "pattern": "sys.path.insert(0, '_quarantine')",
+        "file": "utils/production_router.py",
+        "risk": "CRITICAL - Order-dependent import from quarantined code",
+        "must_fix_before_quarantine": true
+      }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "title": "Pre-quarantine Validation",
+      "description": "Verify system state and fix critical dependencies before quarantine",
+      "actions": [
+        {
+          "action": "Run validation commands",
+          "commands": [
+            "grep -r 'from db_base import db' --include='*.py' . | wc -l  # Expected: 85",
+            "grep -r 'from app import limiter' --include='*.py' . | wc -l  # Expected: 1", 
+            "grep -r 'sys.path.insert.*quarantine' --include='*.py' . | wc -l  # Expected: 1",
+            "grep 'app.register_blueprint' app.py | wc -l  # Expected: 10"
+          ]
+        },
+        {
+          "action": "Run pre-quarantine smoke tests",
+          "commands": [
+            "python -c 'from main import *; print(\"Import successful\")'",
+            "python -c 'from models import Expense, User; from models_pca import TransactionEffective; print(\"Models imported\")'",
+            "python -c 'from pwa_ui import pwa_ui; from routes_backend_assistant import backend_api; print(\"Blueprints imported\")'",
+            "python -c 'from utils.production_router import contains_money; print(\"Router imported\")'"
+          ]
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "title": "Fix Critical Dependencies",
+      "description": "Remove quarantine dependencies to enable safe quarantine operations",
+      "actions": [
+        {
+          "action": "Fix sys.path quarantine dependency in utils/production_router.py",
+          "sub_steps": [
+            "Copy contains_money and contains_money_with_correction_fallback functions from _quarantine/finbrain_router_deprecated.py",
+            "Paste functions directly into utils/production_router.py", 
+            "Remove lines 19-21: sys.path.insert(0, '_quarantine') and import from finbrain_router_deprecated",
+            "Verify with: grep 'sys.path.insert.*quarantine' utils/production_router.py  # Should be empty",
+            "Test with: python -c 'from utils.production_router import contains_money; print(\"Import successful\")'"
+          ]
+        },
+        {
+          "action": "Ensure all KEEP files use canonical db_base import",
+          "verification": "grep -r 'from app import db' --include='*.py' .  # Should find minimal results",
+          "fix_if_needed": "Replace any 'from app import db' with 'from db_base import db'"
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "title": "Create Quarantine Directory Structure", 
+      "description": "Set up organized quarantine directory with access logging",
+      "actions": [
+        {
+          "action": "Create quarantine directories",
+          "commands": [
+            "mkdir -p /quarantine/legacy_phases",
+            "mkdir -p /quarantine/test_files",
+            "mkdir -p /quarantine/script_files",
+            "mkdir -p /quarantine/access_logs"
+          ]
+        },
+        {
+          "action": "Create access stub template",
+          "content": "# QUARANTINED FILE ACCESS LOG\\n# File: {filename}\\n# Quarantined: {date}\\n# Accessed: {timestamp}\\n# Caller: {caller_info}\\nimport logging\\nlogging.warning(f'QUARANTINE ACCESS: {filename} accessed by {caller_info}')"
+        }
+      ]
+    },
+    {
+      "step": 4,
+      "title": "Execute Quarantine Operations",
+      "description": "Move legacy files to quarantine with access logging stubs",
+      "actions": [
+        {
+          "action": "Move legacy phase files",
+          "commands": [
+            "mv phase3_replay_debug.py /quarantine/legacy_phases/",
+            "mv phase4_enhanced_monitoring.py /quarantine/legacy_phases/",
+            "mv phase5_production_blast.py /quarantine/legacy_phases/"
+          ],
+          "create_stubs": [
+            "echo '# QUARANTINED: phase3_replay_debug.py moved to /quarantine/legacy_phases/\\nimport logging\\nlogging.warning(\"QUARANTINE ACCESS: phase3_replay_debug.py accessed\")' > phase3_replay_debug.py",
+            "echo '# QUARANTINED: phase4_enhanced_monitoring.py moved to /quarantine/legacy_phases/\\nimport logging\\nlogging.warning(\"QUARANTINE ACCESS: phase4_enhanced_monitoring.py accessed\")' > phase4_enhanced_monitoring.py",
+            "echo '# QUARANTINED: phase5_production_blast.py moved to /quarantine/legacy_phases/\\nimport logging\\nlogging.warning(\"QUARANTINE ACCESS: phase5_production_blast.py accessed\")' > phase5_production_blast.py"
+          ]
+        },
+        {
+          "action": "Move test files (if safe)",
+          "commands": [
+            "mv tests/ /quarantine/test_files/ || echo 'Tests directory not found or in use'"
+          ]
+        },
+        {
+          "action": "Move script files (if safe)",
+          "commands": [
+            "mv scripts/ /quarantine/script_files/ || echo 'Scripts directory not found or in use'"
+          ]
+        }
+      ]
+    },
+    {
+      "step": 5,
+      "title": "Verify Clean Startup",
+      "description": "Ensure application starts cleanly with only KEEP set active",
+      "actions": [
+        {
+          "action": "Test application startup",
+          "commands": [
+            "python -c 'from main import *; print(\"App import successful\")'",
+            "# Start server in background: gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app &",
+            "# Wait 5 seconds for startup",
+            "sleep 5"
+          ]
+        },
+        {
+          "action": "Verify critical endpoints",
+          "commands": [
+            "curl -s -o /dev/null -w '%{http_code}' http://localhost:5000/health  # Expected: 200",
+            "curl -s -o /dev/null -w '%{http_code}' http://localhost:5000/  # Expected: 200",
+            "curl -s -o /dev/null -w '%{http_code}' http://localhost:5000/login  # Expected: 200"
+          ]
+        },
+        {
+          "action": "Check for import errors in logs",
+          "commands": [
+            "grep -i 'import.*error\\|module.*not.*found' /tmp/logs/Start_application_*.log || echo 'No import errors found'"
+          ]
+        }
+      ]
+    },
+    {
+      "step": 6,
+      "title": "Run Frozen Contract Tests",
+      "description": "Confirm all frozen contract tests still pass with quarantined system",
+      "actions": [
+        {
+          "action": "Locate and run demo_smoke.py",
+          "commands": [
+            "find . -name 'demo_smoke.py' -type f",
+            "python demo_smoke.py || echo 'demo_smoke.py not found or failed'"
+          ]
+        },
+        {
+          "action": "Run critical endpoint smoke tests",
+          "tests": [
+            {
+              "test": "Auth endpoints",
+              "command": "curl -s -X POST -H 'Content-Type: application/json' -d '{\"username\":\"test\",\"password\":\"test\"}' http://localhost:5000/auth/login",
+              "expected": "JSON response (success or error, not crash)"
+            },
+            {
+              "test": "Expense endpoints", 
+              "command": "curl -s -X POST -H 'Content-Type: application/json' -d '{\"message\":\"spent 50 taka\"}' http://localhost:5000/expense",
+              "expected": "JSON response (success or error, not crash)"
+            },
+            {
+              "test": "PWA routes",
+              "command": "curl -s -o /dev/null -w '%{http_code}' http://localhost:5000/chat",
+              "expected": "200 or 401 (not 500)"
+            },
+            {
+              "test": "Admin routes",
+              "command": "curl -s -o /dev/null -w '%{http_code}' http://localhost:5000/admin",
+              "expected": "200 or 401 (not 500)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "step": 7,
+      "title": "Post-Quarantine Validation",
+      "description": "Final verification that quarantine operation was successful",
+      "actions": [
+        {
+          "action": "Re-run validation commands",
+          "commands": [
+            "grep -r 'from db_base import db' --include='*.py' . | wc -l  # Should still be ~85",
+            "grep -r 'sys.path.insert.*quarantine' --include='*.py' . | wc -l  # Should be 0",
+            "ls -la /quarantine/  # Verify quarantined files are present"
+          ]
+        },
+        {
+          "action": "Verify quarantine access logging",
+          "commands": [
+            "python -c 'import phase3_replay_debug' || echo 'Expected: quarantine access logged'",
+            "grep 'QUARANTINE ACCESS' /var/log/* /tmp/logs/* || echo 'Check application logs for quarantine access warnings'"
+          ]
+        },
+        {
+          "action": "Document quarantine status",
+          "commands": [
+            "echo 'Quarantine completed on $(date)' > /quarantine/quarantine_status.log",
+            "echo 'Files quarantined: phase3_replay_debug.py, phase4_enhanced_monitoring.py, phase5_production_blast.py' >> /quarantine/quarantine_status.log"
+          ]
+        }
+      ]
+    }
+  ],
+  "rollback_plan": {
+    "description": "Steps to rollback quarantine if issues occur",
+    "actions": [
+      "Stop application server",
+      "Move files back from /quarantine/ to their original locations",
+      "Remove stub files created during quarantine",
+      "Restart application server",
+      "Run validation commands to verify restoration"
+    ]
+  },
+  "success_criteria": [
+    "✓ Application starts without import errors",
+    "✓ All critical endpoints return expected HTTP status codes", 
+    "✓ No sys.path quarantine dependencies remain",
+    "✓ demo_smoke.py tests pass (if available)",
+    "✓ Quarantine access logging works for moved files",
+    "✓ All KEEP files remain in their original locations",
+    "✓ Database imports use canonical db_base pattern"
+  ]
+}
