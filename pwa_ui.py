@@ -322,7 +322,7 @@ def auth_register():
             import logging
             logger = logging.getLogger(__name__)
             logger.exception(f"COMMIT ERROR: {type(commit_error).__name__}: {str(commit_error)}")
-            if hasattr(commit_error, 'orig'):
+            if hasattr(commit_error, 'orig') and commit_error.orig:
                 logger.error(f"Original DB error: {commit_error.orig}")
             raise  # Re-raise to trigger the outer exception handler
         
@@ -481,7 +481,7 @@ def finbrain_route(text, request_obj):
         user_id_hash=user_hash,
         text=text,
         channel="web",
-        locale=None,
+        locale="en",
         meta={"user_agent": request_obj.headers.get('User-Agent', 'unknown')}
     )
     
