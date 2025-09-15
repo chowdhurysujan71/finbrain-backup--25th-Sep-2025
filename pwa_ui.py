@@ -201,7 +201,7 @@ def auth_login():
         password = data['password']
         
         # Find user by email (stored in additional_info JSON field)
-        user = User.query.filter(User.additional_info.contains({'email': email})).first()
+        user = User.query.filter(User.additional_info.op('->>')('email') == email).first()
         
         # Check credentials
         if not user or not check_password_hash(user.additional_info.get('password_hash', ''), password):
@@ -281,7 +281,7 @@ def auth_register():
         name = data.get('name', '').strip()
         
         # Check if user already exists (check additional_info JSON field for email)
-        existing_user = User.query.filter(User.additional_info.contains({'email': email})).first()
+        existing_user = User.query.filter(User.additional_info.op('->>')('email') == email).first()
         if existing_user:
             auth_logger.log_security_event("duplicate_registration_attempt", {
                 "email": email,
