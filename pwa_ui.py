@@ -250,7 +250,18 @@ def auth_register():
     """
     Process user registration with comprehensive validation and standardized error handling
     """
-    from models import User
+    import logging
+    import sys
+    logger = logging.getLogger(__name__)
+    print("=== REGISTRATION FUNCTION CALLED ===", file=sys.stderr)
+    logger.error("=== REGISTRATION REQUEST RECEIVED ===")
+    
+    try:
+        from models import User
+        print("=== MODELS IMPORTED ===", file=sys.stderr)
+    except Exception as e:
+        print(f"=== MODELS IMPORT ERROR: {e} ===", file=sys.stderr)
+        raise
     from db_base import db
     from werkzeug.security import generate_password_hash
     from flask import session
@@ -303,7 +314,17 @@ def auth_register():
         user.platform = 'pwa'
         
         db.session.add(user)
-        db.session.commit()
+        
+        # ARCHITECT FIX: Add commit-level error logging
+        try:
+            db.session.commit()
+        except Exception as commit_error:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception(f"COMMIT ERROR: {type(commit_error).__name__}: {str(commit_error)}")
+            if hasattr(commit_error, 'orig'):
+                logger.error(f"Original DB error: {commit_error.orig}")
+            raise  # Re-raise to trigger the outer exception handler
         
         # Create session
         session['user_id'] = user_hash
