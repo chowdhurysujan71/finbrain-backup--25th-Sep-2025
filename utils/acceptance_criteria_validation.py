@@ -73,7 +73,7 @@ class AcceptanceCriteriaValidator:
         try:
             from utils.identity import psid_hash
             from models import User
-            from app import db
+            from db_base import db
             
             # Test user creation with messenger demo mode
             test_user_id = "validation_data_anchor_user"
@@ -141,7 +141,7 @@ class AcceptanceCriteriaValidator:
             from utils.identity import psid_hash
             from utils.db import save_expense
             from models import User
-            from app import db
+            from db_base import db
             from utils.timezone_helpers import today_local
             
             # Test D1 logging on same day
@@ -224,7 +224,7 @@ class AcceptanceCriteriaValidator:
             from utils.identity import psid_hash
             from utils.db import save_expense
             from models import User
-            from app import db
+            from db_base import db
             
             # Test D3 completion within 72h
             test_user_id = "validation_d3_user"
@@ -310,7 +310,7 @@ class AcceptanceCriteriaValidator:
         try:
             from utils.identity import psid_hash
             from models import User
-            from app import db
+            from db_base import db
             
             # Test report request tracking
             test_user_id = "validation_reports_user"
@@ -446,7 +446,7 @@ class AcceptanceCriteriaValidator:
         try:
             from utils.identity import psid_hash
             from models import User
-            from app import db
+            from db_base import db
             
             # Test streak calculation
             test_user_id = "validation_streak_user"
@@ -907,7 +907,7 @@ class AcceptanceCriteriaValidator:
         
         try:
             from models import User, Expense, MonthlySummary
-            from app import db
+            from db_base import db
             
             for user_hash in self.test_user_hashes:
                 # Delete expenses

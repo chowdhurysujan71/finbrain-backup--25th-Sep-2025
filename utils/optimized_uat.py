@@ -213,7 +213,7 @@ class OptimizedUAT:
         try:
             from utils.identity import psid_hash
             from models import User
-            from app import db
+            from db_base import db
             
             user_hash = psid_hash(scenario.test_data["user_id"])
             self.test_user_hashes.add(user_hash)
@@ -671,7 +671,7 @@ class OptimizedUAT:
         
         try:
             from models import User, Expense, MonthlySummary
-            from app import db
+            from db_base import db
             
             cleanup_summary = {
                 "users_cleaned": 0,

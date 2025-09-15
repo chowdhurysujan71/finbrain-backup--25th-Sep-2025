@@ -31,7 +31,7 @@ class Final100PercentValidator:
         try:
             from utils.identity import psid_hash
             from models import User
-            from app import db
+            from db_base import db
             
             # Test report request tracking with correct handler signatures
             test_user_id = "ultimate_validation_user"
@@ -151,7 +151,7 @@ class Final100PercentValidator:
         
         try:
             from models import User, Expense, MonthlySummary
-            from app import db
+            from db_base import db
             
             for user_hash in self.test_user_hashes:
                 # Delete expenses

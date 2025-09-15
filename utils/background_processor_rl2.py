@@ -77,7 +77,7 @@ class RL2Processor:
         response = f"{get_rl2_summary_prefix()}\nNo expenses found."
         
         try:
-            from app import db
+            from db_base import db
             from models import Expense
             from sqlalchemy import text
             
@@ -145,7 +145,7 @@ class RL2Processor:
         Never throws - constraint violations are logged but don't block UX
         """
         try:
-            from app import db
+            from db_base import db
             from models import Expense, User
             from datetime import datetime
             import random

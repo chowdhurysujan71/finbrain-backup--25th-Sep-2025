@@ -101,7 +101,7 @@ class PrecedenceEngine:
     def _get_latest_correction(self, user_id: str, tx_id: str) -> Optional[Dict]:
         """Get the most recent user correction for a transaction"""
         try:
-            from app import db
+            from db_base import db
             from models_pca import UserCorrection
             
             correction = db.session.query(UserCorrection).filter_by(
@@ -128,7 +128,7 @@ class PrecedenceEngine:
             return None
             
         try:
-            from app import db
+            from db_base import db
             from models_pca import UserRule
             
             # Get all user rules
@@ -209,7 +209,7 @@ class PrecedenceEngine:
     def _get_transaction_effective(self, user_id: str, tx_id: str) -> Optional[Dict]:
         """Get transaction from effective table"""
         try:
-            from app import db
+            from db_base import db
             from models_pca import TransactionEffective
             
             effective = db.session.query(TransactionEffective).filter_by(

@@ -231,7 +231,7 @@ class DataVersionManager:
             SHA-256 hex digest of user's expense data in window
         """
         try:
-            from app import db
+            from db_base import db
             from models import Expense
             
             # Strong fingerprint: ID + amount + category + merchant + timestamp
@@ -275,7 +275,7 @@ class DataVersionManager:
         Uses COUNT + SUM + MAX(updated_at) to catch changes efficiently
         """
         try:
-            from app import db
+            from db_base import db
             
             from sqlalchemy import text
             result = db.session.execute(
@@ -547,7 +547,7 @@ class DeterministicRouter:
     def _get_ledger_count_30d(self, user_id: str) -> int:
         """Get user's expense count in last 30 days"""
         try:
-            from app import db
+            from db_base import db
             from datetime import timedelta
             
             thirty_days_ago = datetime.utcnow() - timedelta(days=30)

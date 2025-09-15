@@ -9,7 +9,7 @@ import logging
 from datetime import datetime, date
 from typing import Optional, Dict, Any, Tuple
 from models import User
-from app import db
+from db_base import db
 from utils.timezone_helpers import local_date_from_datetime, days_between_local, today_local
 import json
 

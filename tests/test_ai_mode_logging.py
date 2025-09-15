@@ -19,7 +19,7 @@ def test_modes_are_logged(caplog):
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
     
     # Initialize test database context
-    from app import db
+    from db_base import db
     db.init_app(app)
     
     with app.app_context():

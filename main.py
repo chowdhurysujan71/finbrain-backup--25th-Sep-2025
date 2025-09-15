@@ -21,7 +21,7 @@ try:
     
     # Test database connection on startup
     with app.app_context():
-        from app import db
+        from db_base import db
         try:
             db.session.execute(db.text('SELECT 1'))
             logger.info("✓ Database connection verified")

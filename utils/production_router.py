@@ -1001,7 +1001,7 @@ class ProductionRouter:
         """Update recent expense category if item matches"""
         try:
             from models import Expense
-            from app import db
+            from db_base import db
             from datetime import datetime, timedelta
             
             # Look for recent expenses (last 10 minutes) that might match
@@ -1329,7 +1329,7 @@ class ProductionRouter:
     def _persist_cc_snapshot(self, cc_id: str, user_hash: str, text: str, ai_result: dict, pca_mode: str, rid: str):
         """Persist CC snapshot to inference_snapshots table (append-only)"""
         try:
-            from app import db
+            from db_base import db
             from sqlalchemy import text as sql_text
             from datetime import datetime
             import json
@@ -1695,7 +1695,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
     def route_message_engagement(self, text: str, psid: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Engagement-driven message routing with UAT testing and personalization (deprecated)"""
         from utils.uat_system import uat_system
-        from app import db
+        from db_base import db
         
         # Start performance tracking
         start_time = time.time()
@@ -1882,7 +1882,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             try:
                 # Simple interaction count update without user_manager
                 from models import User
-                from app import db
+                from db_base import db
                 from utils.identity import psid_hash as psid_hash_func
                 user_hash = psid_hash_func(psid)  # Compute the hash from PSID
                 user = db.session.query(User).filter_by(user_id_hash=user_hash).first()
@@ -1939,7 +1939,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             
             # Update the database with AI-extracted data directly
             from models import User
-            from app import db
+            from db_base import db
             user_hash_value = user_hash  # Use the already computed hash from above
             # Guard against model regressions
             assert hasattr(User, "user_id_hash"), "User model must expose user_id_hash"
@@ -2129,7 +2129,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
     def _store_expense_deterministic(self, psid: str, amount: float, description: str, category: str, original_text: str):
         """Store expense with deterministic error handling"""
         try:
-            from app import db
+            from db_base import db
             from models import Expense, User
             from datetime import datetime
             import random
@@ -2174,7 +2174,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
     def _get_summary_data(self, psid: str) -> Dict[str, float]:
         """Get summary data for user"""
         try:
-            from app import db
+            from db_base import db
             from sqlalchemy import text
             from datetime import datetime, timedelta
             
@@ -2290,7 +2290,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
     def _undo_last_expense(self, psid: str) -> Optional[Tuple[float, str]]:
         """Undo last expense for user"""
         try:
-            from app import db
+            from db_base import db
             from models import Expense, User
             
             user_hash = psid_hash(psid)

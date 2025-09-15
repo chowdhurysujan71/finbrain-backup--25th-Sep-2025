@@ -107,7 +107,7 @@ def get_pca_telemetry_summary() -> Dict[str, Any]:
         Dictionary with processing statistics
     """
     try:
-        from app import db
+        from db_base import db
         from models_pca import InferenceSnapshot
         from datetime import timedelta
         

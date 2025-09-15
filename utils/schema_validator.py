@@ -3,7 +3,7 @@ Database Schema Validator - Prevents schema drift by validating expected columns
 """
 import logging
 from sqlalchemy import inspect, text
-from app import db
+from db_base import db
 
 logger = logging.getLogger(__name__)
 

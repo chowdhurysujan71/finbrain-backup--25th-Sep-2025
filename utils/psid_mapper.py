@@ -5,7 +5,7 @@ Fixes the critical Messenger delivery issue by mapping hashes back to valid PSID
 
 import logging
 from typing import Optional
-from app import db
+from db_base import db
 from sqlalchemy import text
 
 logger = logging.getLogger(__name__)

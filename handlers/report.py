@@ -24,7 +24,7 @@ def handle_report(user_id: str) -> Dict[str, str]:
     
     try:
         from models import Expense
-        from app import db
+        from db_base import db
         from utils.feedback_context import set_feedback_context
         from utils.performance_cache import performance_cache
         import uuid
@@ -124,7 +124,7 @@ def _generate_money_story(expenses, days_window: int, user_id: str) -> str:
             # Enhanced empty state with user context
             try:
                 from models import User
-                from app import db
+                from db_base import db
                 
                 user = db.session.query(User).filter_by(user_id_hash=user_id).first()
                 if user and user.is_new and user.expense_count == 0:
@@ -212,7 +212,7 @@ def _find_spending_win(expenses, days_window: int, user_id: str) -> str:
     """Find a spending win by comparing with previous period"""
     try:
         from models import Expense
-        from app import db
+        from db_base import db
         
         # Get previous period expenses
         end_time = datetime.now(timezone.utc) - timedelta(days=days_window)
@@ -257,7 +257,7 @@ def _get_streak_text(user_id: str) -> str:
     """Get streak text if streak ≥ 3 days"""
     try:
         from models import Expense
-        from app import db
+        from db_base import db
         
         # Calculate consecutive logging days
         today = datetime.now(timezone.utc).date()

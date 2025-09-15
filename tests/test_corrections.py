@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
-from app import db
+from db_base import db
 from models import Expense, User
 from handlers.expense import handle_correction
 from parsers.expense import is_correction_message, parse_correction_reason, similar_category, similar_merchant

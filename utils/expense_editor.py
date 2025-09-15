@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional, Tuple, List
 from flask import request
 
 from models import Expense, ExpenseEdit, User
-from app import db
+from db_base import db
 
 logger = logging.getLogger(__name__)
 

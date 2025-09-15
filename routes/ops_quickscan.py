@@ -4,7 +4,7 @@ Diagnostic endpoint for tracing write/read path inconsistencies
 from flask import Blueprint, request, jsonify
 from utils.crypto import ensure_hashed
 from models import Expense, User
-from app import db
+from db_base import db
 
 bp = Blueprint("quickscan", __name__)
 

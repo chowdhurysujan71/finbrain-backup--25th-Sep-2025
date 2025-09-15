@@ -6,7 +6,7 @@ Implements explicit 3-Day Challenge flow with policy-compliant automation
 import logging
 from datetime import datetime, date, timedelta
 from typing import Dict, Any, Optional
-from app import db
+from db_base import db
 from models import User
 from utils.structured import log_structured_event
 

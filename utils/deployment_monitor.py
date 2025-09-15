@@ -7,7 +7,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
-from app import db
+from db_base import db
 from sqlalchemy import text
 
 logger = logging.getLogger(__name__)

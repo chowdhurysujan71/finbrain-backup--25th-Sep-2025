@@ -18,7 +18,7 @@ from utils.nl_expense_parser import parse_nl_expense
 from utils.expense_editor import edit_last_expense, expense_editor
 from pwa_nl_integration import handle_nl_expense_entry, handle_clarification_response
 from models import Expense, ExpenseEdit, User
-from app import db
+from db_base import db
 from utils.db import save_expense
 from utils.identity import psid_hash
 

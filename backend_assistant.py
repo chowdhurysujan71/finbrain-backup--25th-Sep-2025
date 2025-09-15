@@ -13,7 +13,9 @@ If you don't have the data, say: "Not available in DB."
 
 import json
 from datetime import datetime, timedelta
-from app import db
+from db_base import db
+from utils.db_guard import assert_single_db_instance
+assert_single_db_instance(db)
 from models import Expense, User
 from sqlalchemy import text, and_, func
 from typing import Dict, List, Optional, Union

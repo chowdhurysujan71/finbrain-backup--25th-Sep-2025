@@ -14,7 +14,7 @@ def handle_insight(user_id: str) -> Dict[str, str]:
     """
     try:
         from models import Expense
-        from app import db
+        from db_base import db
         
         start, end = month_bounds()
         

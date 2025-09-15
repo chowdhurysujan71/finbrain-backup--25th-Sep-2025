@@ -10,7 +10,7 @@ import logging
 import time
 from typing import Dict, List, Any
 
-from app import db
+from db_base import db
 from models_pca import UserRule, UserCorrection, TransactionEffective
 from utils.precedence_engine import precedence_engine
 from utils.pca_feature_flags import pca_feature_flags

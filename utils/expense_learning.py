@@ -8,7 +8,7 @@ import json
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
-from app import db
+from db_base import db
 from models import User
 
 logger = logging.getLogger(__name__)

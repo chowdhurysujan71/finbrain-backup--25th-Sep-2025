@@ -52,7 +52,7 @@ def verify_database():
     print("=" * 50)
     
     try:
-        from app import db, app
+        from db_base import db, app
         
         with app.app_context():
             # Check if mid column exists

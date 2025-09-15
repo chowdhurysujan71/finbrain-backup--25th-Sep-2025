@@ -7,7 +7,9 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for
 import logging
 from datetime import datetime
 
-from app import db
+from db_base import db
+from utils.db_guard import assert_single_db_instance
+assert_single_db_instance(db)
 from models_pca import UserRule, UserCorrection
 from utils.pca_feature_flags import pca_feature_flags
 from utils.deterministic import ensure_hashed

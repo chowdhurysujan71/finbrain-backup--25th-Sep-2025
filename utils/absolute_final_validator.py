@@ -27,7 +27,7 @@ class AbsoluteFinalValidator:
         try:
             from utils.identity import psid_hash
             from models import User
-            from app import db
+            from db_base import db
             
             # Create test user
             test_user_id = "absolute_final_validation_user"
@@ -183,7 +183,7 @@ class AbsoluteFinalValidator:
         """Cleanup test data"""
         try:
             from models import User, Expense, MonthlySummary
-            from app import db
+            from db_base import db
             
             for user_hash in self.test_user_hashes:
                 expenses = Expense.query.filter_by(user_id_hash=user_hash).all()

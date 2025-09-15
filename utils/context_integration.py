@@ -13,7 +13,7 @@ from utils.facebook_handler import send_message
 from utils.quick_reply_system import send_custom_quick_replies
 from utils.ai_adapter_v2 import production_ai_adapter
 from limiter import can_use_ai
-from app import db
+from db_base import db
 
 logger = logging.getLogger(__name__)
 

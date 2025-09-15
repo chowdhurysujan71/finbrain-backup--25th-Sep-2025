@@ -11,7 +11,7 @@ from functools import lru_cache
 from datetime import datetime, timedelta
 import hashlib
 
-from app import db
+from db_base import db
 from models import Expense
 from models_pca import UserCorrection, UserRule
 from utils.pca_feature_flags import pca_feature_flags

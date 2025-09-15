@@ -6,7 +6,7 @@ Handles reminder scheduling, checking, and sending within Facebook's 24-hour pol
 import logging
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
-from app import db
+from db_base import db
 from models import User
 from utils.facebook_handler import send_facebook_message
 

@@ -26,7 +26,7 @@ def log_cc_snapshot(cc_dict: Dict[str, Any], processing_time_ms: Optional[int] =
         True if logged successfully, False otherwise
     """
     try:
-        from app import db, app
+        from db_base import db, app
         from models_pca import InferenceSnapshot
         from utils.pca_flags import pca_flags
         
@@ -481,7 +481,7 @@ def process_production_mode(user_id: str, message_text: str, message_id: str, cc
 def apply_cc_transaction(cc: 'CanonicalCommand', user_id: str) -> bool:
     """Apply high-confidence CC by creating actual expense transaction"""
     try:
-        from app import db, app
+        from db_base import db, app
         from models import Expense, User
         from datetime import datetime
         
@@ -517,7 +517,7 @@ def apply_cc_transaction(cc: 'CanonicalCommand', user_id: str) -> bool:
 def get_pca_health_status() -> Dict[str, Any]:
     """Get health status of PCA overlay tables and processing"""
     try:
-        from app import db
+        from db_base import db
         from models_pca import TransactionEffective, UserCorrection, UserRule, InferenceSnapshot
         
         # Check table accessibility and basic counts

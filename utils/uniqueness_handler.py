@@ -81,7 +81,7 @@ class UniquenessHandler:
     def _generate_micro_insight(self, user_id: str, window_start: datetime, window_end: datetime) -> Optional[str]:
         """Generate deterministic micro-insight for unchanged data"""
         try:
-            from app import db
+            from db_base import db
             
             # Check eligibility: only for users with ≥5 transactions and non-zero total
             result = db.session.execute(

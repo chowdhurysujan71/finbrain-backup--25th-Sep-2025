@@ -13,7 +13,7 @@ HOURLY_MESSAGE_LIMIT = int(os.environ.get("HOURLY_MESSAGE_LIMIT", "10"))
 def check_rate_limit(user_identifier, platform):
     """Check if user has exceeded rate limits"""
     from models import RateLimit
-    from app import db
+    from db_base import db
     
     try:
         user_hash = ensure_hashed(user_identifier)

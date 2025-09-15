@@ -145,7 +145,7 @@ def handle_undo(user_id: str) -> str:
     """Simple undo handler - removes last expense"""
     try:
         from models import Expense
-        from app import db
+        from db_base import db
         
         # Get last expense
         last_expense = db.session.query(Expense).filter_by(

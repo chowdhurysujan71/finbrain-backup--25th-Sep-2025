@@ -5,7 +5,7 @@ Runs structured tests through actual Messenger interactions
 import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
-from app import db
+from db_base import db
 from models import User
 from utils.security import hash_psid
 

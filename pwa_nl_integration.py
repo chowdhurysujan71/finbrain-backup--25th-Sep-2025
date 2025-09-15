@@ -12,7 +12,9 @@ from utils.expense_editor import edit_last_expense, expense_editor
 from utils.db import save_expense
 from utils.identity import psid_hash
 from models import Expense
-from app import db
+from db_base import db
+from utils.db_guard import assert_single_db_instance
+assert_single_db_instance(db)
 
 logger = logging.getLogger(__name__)
 

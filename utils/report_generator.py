@@ -5,7 +5,7 @@ from utils.db import get_monthly_summary, get_user_expenses
 
 from utils.facebook_handler import send_facebook_report
 from models import User, Expense
-from app import db
+from db_base import db
 
 logger = logging.getLogger(__name__)
 

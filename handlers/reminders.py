@@ -8,7 +8,7 @@ import re
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from app import db
+from db_base import db
 from models import User
 from utils.smart_reminders import schedule_reminder, cancel_reminders
 

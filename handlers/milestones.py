@@ -22,7 +22,7 @@ def check_milestones_after_log(user_id_hash: str) -> Optional[str]:
     """
     try:
         from models import UserMilestone, Expense
-        from app import db
+        from db_base import db
         
         # Check daily milestone cap (max 1 per day)
         today = date.today()
@@ -55,7 +55,7 @@ def _check_streak_milestone(user_id_hash: str) -> Optional[str]:
     """Check if user has achieved 3-day logging streak"""
     try:
         from models import UserMilestone, Expense
-        from app import db
+        from db_base import db
         
         # Check if already fired
         existing = db.session.query(UserMilestone).filter(
@@ -96,7 +96,7 @@ def _check_logs_milestone(user_id_hash: str) -> Optional[str]:
     """Check if user has reached 10 total logs"""
     try:
         from models import UserMilestone, Expense
-        from app import db
+        from db_base import db
         
         # Check if already fired
         existing = db.session.query(UserMilestone).filter(
@@ -142,7 +142,7 @@ def _calculate_streak_days(user_id_hash: str) -> int:
     """
     try:
         from models import Expense
-        from app import db
+        from db_base import db
         
         # Calculate consecutive logging days
         today = datetime.now(timezone.utc).date()

@@ -264,7 +264,7 @@ class BackgroundProcessor:
     
     def _generate_simple_summary(self, psid: str) -> str:
         """Generate a simple summary without AI calls"""
-        from app import db
+        from db_base import db
         from models import Expense
         from datetime import datetime, timedelta
         

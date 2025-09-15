@@ -74,7 +74,7 @@ def test_ui_guardrails():
     ui_files = ['pwa_ui.py']
     forbidden_patterns = [
         ('from models import', 'Direct model imports'),
-        ('from app import db', 'Direct database imports'),
+        ('from db_base import db', 'Direct database imports'),
         ('db.session.execute', 'Direct database queries'),
         ('inference_snapshots', 'Legacy table access')
     ]

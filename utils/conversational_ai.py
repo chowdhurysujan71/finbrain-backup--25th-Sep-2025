@@ -19,7 +19,7 @@ class ConversationalAI:
     def get_user_expense_context(self, psid: str, days: int = 30) -> Dict[str, Any]:
         """Get comprehensive user expense context for conversations"""
         from models import Expense
-        from app import db
+        from db_base import db
         from utils.identity import psid_hash as ensure_hashed
         from utils.tracer import trace_event
         
@@ -312,7 +312,7 @@ Keep response conversational and under 280 characters."""
     def get_user_expense_context_direct(self, psid_hash: str, days: int = 30) -> Dict[str, Any]:
         """Get user expense context using pre-hashed PSID (no double hashing)"""
         from models import Expense
-        from app import db
+        from db_base import db
         
         cutoff_date = datetime.utcnow() - timedelta(days=days)
         

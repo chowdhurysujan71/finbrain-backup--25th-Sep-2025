@@ -33,7 +33,7 @@ class DatabaseBackup:
         
         try:
             from models import User, Expense, MonthlySummary
-            from app import db, app
+            from db_base import db, app
             
             # Ensure we have Flask application context
             with app.app_context():

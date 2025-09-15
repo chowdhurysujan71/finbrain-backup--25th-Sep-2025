@@ -298,7 +298,7 @@ class Block5ComprehensiveUAT:
         try:
             from utils.identity import psid_hash
             from models import User, Expense
-            from app import db
+            from db_base import db
             
             # Create existing user with historical data
             existing_user_id = "existing_user_block5_test"
@@ -443,7 +443,7 @@ class Block5ComprehensiveUAT:
         try:
             from utils.identity import psid_hash
             from models import User
-            from app import db
+            from db_base import db
             
             # Create new user while preview endpoint is active
             new_user_id = "new_user_block5_test"
@@ -657,7 +657,7 @@ class Block5ComprehensiveUAT:
         
         try:
             from models import User, Expense
-            from app import db
+            from db_base import db
             
             # Count all users and expenses before preview access
             test_start = time.time()
@@ -847,7 +847,7 @@ class Block5ComprehensiveUAT:
         
         try:
             from models import User, Expense
-            from app import db
+            from db_base import db
             
             for user_hash in self.test_user_hashes:
                 # Delete expenses

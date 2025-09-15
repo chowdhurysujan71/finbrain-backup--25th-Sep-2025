@@ -58,7 +58,7 @@ class FinalComplianceValidator:
         try:
             from utils.identity import psid_hash
             from models import User
-            from app import db
+            from db_base import db
             
             # Test report request tracking with actual handler calls
             test_user_id = "final_reports_validation_user"
@@ -174,7 +174,7 @@ class FinalComplianceValidator:
             from utils.db import save_expense
             from utils.identity import psid_hash
             from models import User
-            from app import db
+            from db_base import db
             
             # Test expense logging performance with multiple operations
             test_user_id = "final_performance_validation_user"
@@ -419,7 +419,7 @@ class FinalComplianceValidator:
         
         try:
             from models import User, Expense, MonthlySummary
-            from app import db
+            from db_base import db
             
             for user_hash in self.test_user_hashes:
                 # Delete expenses

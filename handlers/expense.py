@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from app import db
+from db_base import db
 from models import Expense, User
 from parsers.expense import parse_expense, extract_all_expenses, parse_correction_reason, similar_category, similar_merchant
 from utils.structured import log_correction_detected, log_correction_no_candidate, log_correction_duplicate, log_correction_applied

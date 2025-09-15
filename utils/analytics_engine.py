@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 from typing import Optional, Dict, Any
 from models import User
-from app import db
+from db_base import db
 from utils.timezone_helpers import is_same_local_day, is_within_hours
 import json
 

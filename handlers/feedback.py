@@ -35,7 +35,7 @@ def handle_report_feedback(user_id_hash: str, text: str) -> Optional[Dict[str, A
         from utils.feedback_context import get_feedback_context, clear_feedback_context
         from utils.structured import log_report_feedback
         from models import ReportFeedback
-        from app import db
+        from db_base import db
         
         # Check if user has pending feedback context
         report_context_id = get_feedback_context(user_id_hash)
