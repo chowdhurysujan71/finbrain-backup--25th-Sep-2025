@@ -294,13 +294,24 @@ def auth_register():
         user_id = f"pwa_reg_{int(time.time())}_{uuid.uuid4().hex[:8]}"
         user_hash = psid_hash(user_id)
         
-        # Create new user with standard fields
-        user = User()
-        user.user_id_hash = user_hash
-        user.email = email
-        user.password_hash = generate_password_hash(password)
-        user.name = name
-        user.platform = 'pwa'
+        # Create new user with all required non-nullable fields
+        user = User(
+            user_id_hash=user_hash,
+            email=email,
+            password_hash=generate_password_hash(password),
+            name=name,
+            platform='pwa',
+            # Ensure all non-nullable fields are set
+            first_name=name.split()[0] if name else '',
+            total_expenses=0,
+            expense_count=0,
+            daily_message_count=0,
+            hourly_message_count=0,
+            interaction_count=0,
+            onboarding_step=0,
+            consecutive_days=0,
+            reports_requested=0
+        )
         
         db.session.add(user)
         
@@ -342,11 +353,8 @@ def auth_register():
         db.session.rollback()
         response_time = (time.time() - start_time) * 1000
         
-        # ARCHITECT FIX: Use Flask logger and Python logging to see actual traceback
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.exception(f"REGISTRATION ERROR: {type(e).__name__}: {str(e)}")
-        current_app.logger.exception(f"REGISTRATION ERROR: {type(e).__name__}: {str(e)}")
+        # Log registration error for debugging
+        logger.exception(f"Registration failed: {type(e).__name__}: {str(e)}")
         
         auth_logger.error("Registration system error", {
             "error_type": type(e).__name__,
