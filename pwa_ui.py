@@ -168,6 +168,7 @@ def register():
     return render_template('register.html')
 
 @pwa_ui.route('/auth/login', methods=['POST'])
+@limiter.limit("5 per minute")
 def auth_login():
     """
     Process user login with comprehensive validation and standardized error handling
@@ -246,6 +247,7 @@ def auth_login():
         return jsonify(response), status_code
 
 @pwa_ui.route('/auth/register', methods=['POST'])
+@limiter.limit("3 per minute")
 def auth_register():
     """
     Process user registration with comprehensive validation and standardized error handling
@@ -295,23 +297,22 @@ def auth_register():
         user_hash = psid_hash(user_id)
         
         # Create new user with all required non-nullable fields
-        user = User(
-            user_id_hash=user_hash,
-            email=email,
-            password_hash=generate_password_hash(password),
-            name=name,
-            platform='pwa',
-            # Ensure all non-nullable fields are set
-            first_name=name.split()[0] if name else '',
-            total_expenses=0,
-            expense_count=0,
-            daily_message_count=0,
-            hourly_message_count=0,
-            interaction_count=0,
-            onboarding_step=0,
-            consecutive_days=0,
-            reports_requested=0
-        )
+        user = User()
+        user.user_id_hash = user_hash
+        user.email = email
+        user.password_hash = generate_password_hash(password)
+        user.name = name
+        user.platform = 'pwa'
+        # Ensure all non-nullable fields are set
+        user.first_name = name.split()[0] if name else ''
+        user.total_expenses = 0
+        user.expense_count = 0
+        user.daily_message_count = 0
+        user.hourly_message_count = 0
+        user.interaction_count = 0
+        user.onboarding_step = 0
+        user.consecutive_days = 0
+        user.reports_requested = 0
         
         db.session.add(user)
         
@@ -320,8 +321,9 @@ def auth_register():
             db.session.commit()
         except Exception as commit_error:
             db.session.rollback()
-            # Check for IntegrityError (duplicate email)
-            if 'unique constraint' in str(commit_error).lower() or 'duplicate' in str(commit_error).lower():
+            # Handle specific database constraint violations
+            from sqlalchemy.exc import IntegrityError
+            if isinstance(commit_error, IntegrityError):
                 from utils.error_responses import duplicate_resource_error
                 response, status_code = duplicate_resource_error("account")
                 return jsonify(response), status_code
