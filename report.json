@@ -1,13 +1,13 @@
 {
   "trust_check": {
     "version": "1.0.0",
-    "timestamp": "2025-09-15T13:02:16.336014",
-    "duration_seconds": 118,
-    "overall_status": "FAIL",
+    "timestamp": "",
+    "duration_seconds": 0,
+    "overall_status": "RUNNING",
     "summary": {
-      "total_checks": 8,
+      "total_checks": 6,
       "passed": 4,
-      "failed": 4,
+      "failed": 2,
       "warnings": 0
     },
     "checks": {
@@ -17,7 +17,7 @@
           "Database unification regression detected",
           "Check logs for details"
         ],
-        "duration": 12
+        "duration": 2
       },
       "security_audit": {
         "status": "FAIL",
@@ -25,7 +25,7 @@
           "Security vulnerabilities detected",
           "Check security audit logs"
         ],
-        "duration": 4
+        "duration": 3
       },
       "ai_contamination": {
         "status": "PASS",
@@ -34,13 +34,14 @@
           "User isolation verified",
           "Concurrent request safety confirmed"
         ],
-        "duration": 28
+        "duration": 29
       },
       "ui_guardrails": {
-        "status": "FAIL",
+        "status": "PASS",
         "details": [
-          "UI guardrails violations detected",
-          "Frontend bypassing API boundaries"
+          "Frontend restricted to approved endpoints",
+          "No direct database access in UI",
+          "API boundary enforced"
         ],
         "duration": 9
       },
@@ -51,24 +52,17 @@
           "Advisory lock mechanism available",
           "Safe concurrent migration support"
         ],
-        "duration": 0
+        "duration": 1
       },
       "production_gate": {
-        "status": "FAIL",
-        "details": [
-          "Production gate validation failed",
-          "Critical endpoints not responding"
-        ],
-        "duration": 4
+        "status": "PENDING",
+        "details": [],
+        "duration": 0
       },
       "feature_flag_safety": {
-        "status": "PASS",
-        "details": [
-          "Kill switches functional",
-          "Configuration thresholds valid",
-          "Feature flags safely configured"
-        ],
-        "duration": 1
+        "status": "PENDING",
+        "details": [],
+        "duration": 0
       },
       "environment": {
         "status": "PASS",
@@ -76,10 +70,7 @@
         "duration": 0
       }
     },
-    "artifacts": [
-      "trust_check_logs.tar.gz",
-      "report.json"
-    ],
+    "artifacts": [],
     "environment": {
       "python_version": "",
       "database_url_set": true,

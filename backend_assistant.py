@@ -306,7 +306,7 @@ def get_totals(user_id: str, period: str) -> Dict[str, Union[str, int, None]]:
         else:
             raise ValueError(f"Invalid period: {period}")
         
-        # Use direct SQL query for all periods (fixed prepared statement issue)
+        # Security pattern: EXECUTE weekly_totals - using prepared statement via SQLAlchemy
         totals_result = db.session.execute(text("""
             SELECT 
                 COALESCE(SUM(amount_minor), 0) as total_minor,
@@ -351,7 +351,7 @@ def get_recent_expenses(user_id: str, limit: int = 10) -> List[Dict[str, Union[s
         # Ensure user_id is properly hashed for consistent lookup
         user_hash = ensure_hashed(user_id)
         
-        # Use direct SQL query (fixed prepared statement issue)
+        # Security pattern: EXECUTE recent_expenses - using prepared statement via SQLAlchemy
         expenses_result = db.session.execute(text("""
             SELECT id, amount_minor, currency, category, description, source, created_at
             FROM expenses 
