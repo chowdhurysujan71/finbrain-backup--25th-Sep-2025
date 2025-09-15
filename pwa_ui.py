@@ -218,7 +218,7 @@ def auth_login():
         
         # Create session
         session['user_id'] = user.user_id_hash
-        session['email'] = user.email
+        session['email'] = user.additional_info.get('email')
         session['is_registered'] = True
         
         # Log successful login
