@@ -12,6 +12,8 @@
 
         <!-- Success/Error Messages -->
         <div id="auth-messages" class="form-messages" style="display: none;"></div>
+        <div id="auth-error" style="display:none"></div>
+        <div id="auth-spinner" style="display:none">Signing in…</div>
 
         <form id="login-form" class="auth-form">
             <div class="form-group">
@@ -42,112 +44,39 @@
 </div>
 
 <script>
-function mustGet(id) {
-  const el = document.getElementById(id);
-  if (!el) throw new Error(`UI invariant failed: missing #${id} on login page`);
-  return el;
-}
-
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('login.js loaded');
-  
-  try {
-    const loginForm = mustGet('login-form');
-    const loginBtn = mustGet('login-btn');
-    const messagesDiv = mustGet('auth-messages');
-    
-    loginForm.addEventListener('submit', async function(e) {
+  const form = document.getElementById('login-form');
+  const err = document.getElementById('auth-error');   // must exist in login.html
+  const spinner = document.getElementById('auth-spinner'); // optional
+
+  form?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    
-    // Show loading state
-    if (loginBtn) {
-        loginBtn.disabled = true;
-        const btnText = loginBtn.querySelector('.btn-text');
-        const btnLoading = loginBtn.querySelector('.btn-loading');
-        if (btnText) btnText.style.display = 'none';
-        if (btnLoading) btnLoading.style.display = 'inline';
-    }
-    
-    try {
-        const response = await fetch('/auth/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-                email: formData.get('email'),
-                password: formData.get('password')
-            })
-        });
-        
-        const data = await response.json();
-        
-        // Show messages
-        if (messagesDiv) {
-            messagesDiv.style.display = 'block';
-        }
-        
-        if (data.success) {
-            if (messagesDiv) {
-                messagesDiv.innerHTML = `
-                    <div class="alert alert-success">
-                        <span class="alert-icon">✅</span>
-                        <span class="alert-message">${data.message}</span>
-                    </div>
-                `;
-            }
-            
-            // Save session data
-            sessionStorage.setItem('is_registered', 'true');
-            sessionStorage.setItem('user_email', formData.get('email'));
-            
-            // Redirect after short delay
-            setTimeout(() => {
-                window.location.href = data.redirect || '/chat';
-            }, 1000);
-            
-        } else {
-            if (messagesDiv) {
-                const errorMessage = data.message || data.error || 'Login failed. Please try again.';
-                messagesDiv.innerHTML = `
-                    <div class="alert alert-error">
-                        <span class="alert-icon">❌</span>
-                        <span class="alert-message">${errorMessage}</span>
-                    </div>
-                `;
-            }
-        }
-        
-    } catch (error) {
-        if (messagesDiv) {
-            messagesDiv.style.display = 'block';
-            messagesDiv.innerHTML = `
-                <div class="alert alert-error">
-                    <span class="alert-icon">❌</span>
-                    <span class="alert-message">Connection error. Please try again.</span>
-                </div>
-            `;
-        }
-        console.error('Login error:', error);
-    } finally {
-        // Reset button state
-        if (loginBtn) {
-            loginBtn.disabled = false;
-            const btnText = loginBtn.querySelector('.btn-text');
-            const btnLoading = loginBtn.querySelector('.btn-loading');
-            if (btnText) btnText.style.display = 'inline';
-            if (btnLoading) btnLoading.style.display = 'none';
-        }
-    }
+
+    if (spinner) spinner.style.display = 'inline-block'; // guard against null
+    err && (err.style.display = 'none');
+
+    const res = await fetch('/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'include',
+      body: JSON.stringify({
+        email: form.email.value,
+        password: form.password.value
+      })
     });
-    
-    console.log('UI invariant checks: OK');
-  } catch (e) {
-    console.error(e.message);
-  }
+
+    const data = await res.json().catch(() => ({}));
+
+    if (spinner) spinner.style.display = 'none';
+
+    if (!res.ok) {
+      const msg = data.error || data.message || 'Invalid email or password';
+      if (err) { err.textContent = msg; err.style.display = 'block'; }
+      return;
+    }
+
+    window.location.href = '/chat';
+  });
 });
 </script>
 
