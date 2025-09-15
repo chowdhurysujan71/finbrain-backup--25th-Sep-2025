@@ -89,10 +89,11 @@ if not session_secret:
     
 app.secret_key = session_secret
 
-# SECURITY HARDENED: Configure secure session cookies for production
-app.config["SESSION_COOKIE_SECURE"] = True        # HTTPS only
-app.config["SESSION_COOKIE_HTTPONLY"] = True      # No JavaScript access  
-app.config["SESSION_COOKIE_SAMESITE"] = "Strict"  # CSRF protection
+# Session cookie hardening (works in dev & prod; tune SameSite if cross-site)
+app.config["SESSION_COOKIE_SECURE"] = True         # send cookie only over HTTPS
+app.config["SESSION_COOKIE_HTTPONLY"] = True       # JS cannot read cookie
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"      # or "None" + HTTPS if cross-site auth
+app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 7  # 7 days
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
