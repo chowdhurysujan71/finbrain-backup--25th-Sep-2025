@@ -58,12 +58,24 @@
 </div>
 
 <script>
-document.getElementById('register-form').addEventListener('submit', async function(e) {
+function mustGet(id) {
+  const el = document.getElementById(id);
+  if (!el) throw new Error(`UI invariant failed: missing #${id} on register page`);
+  return el;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('register.js loaded');
+  
+  try {
+    const registerForm = mustGet('register-form');
+    const registerBtn = mustGet('register-btn');
+    const messagesDiv = mustGet('auth-messages');
+    
+    registerForm.addEventListener('submit', async function(e) {
     e.preventDefault();
     
     const formData = new FormData(e.target);
-    const registerBtn = document.getElementById('register-btn');
-    const messagesDiv = document.getElementById('auth-messages');
     
     // Validate password confirmation
     const password = formData.get('password');
@@ -163,6 +175,12 @@ document.getElementById('register-form').addEventListener('submit', async functi
             if (btnLoading) btnLoading.style.display = 'none';
         }
     }
+    });
+    
+    console.log('UI invariant checks: OK');
+  } catch (e) {
+    console.error(e.message);
+  }
 });
 </script>
 
