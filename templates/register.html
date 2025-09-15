@@ -70,13 +70,15 @@ document.getElementById('register-form').addEventListener('submit', async functi
     const passwordConfirm = formData.get('password_confirm');
     
     if (password !== passwordConfirm) {
-        messagesDiv.style.display = 'block';
-        messagesDiv.innerHTML = `
-            <div class="alert alert-error">
-                <span class="alert-icon">❌</span>
-                <span class="alert-message">Passwords don't match</span>
-            </div>
-        `;
+        if (messagesDiv) {
+            messagesDiv.style.display = 'block';
+            messagesDiv.innerHTML = `
+                <div class="alert alert-error">
+                    <span class="alert-icon">❌</span>
+                    <span class="alert-message">Passwords don't match</span>
+                </div>
+            `;
+        }
         return;
     }
     
@@ -102,15 +104,19 @@ document.getElementById('register-form').addEventListener('submit', async functi
         const data = await response.json();
         
         // Show messages
-        messagesDiv.style.display = 'block';
+        if (messagesDiv) {
+            messagesDiv.style.display = 'block';
+        }
         
         if (data.success) {
-            messagesDiv.innerHTML = `
-                <div class="alert alert-success">
-                    <span class="alert-icon">✅</span>
-                    <span class="alert-message">${data.message}</span>
-                </div>
-            `;
+            if (messagesDiv) {
+                messagesDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <span class="alert-icon">✅</span>
+                        <span class="alert-message">${data.message}</span>
+                    </div>
+                `;
+            }
             
             // Save session data
             sessionStorage.setItem('is_registered', 'true');
@@ -122,22 +128,26 @@ document.getElementById('register-form').addEventListener('submit', async functi
             }, 1000);
             
         } else {
-            messagesDiv.innerHTML = `
-                <div class="alert alert-error">
-                    <span class="alert-icon">❌</span>
-                    <span class="alert-message">${data.error}</span>
-                </div>
-            `;
+            if (messagesDiv) {
+                messagesDiv.innerHTML = `
+                    <div class="alert alert-error">
+                        <span class="alert-icon">❌</span>
+                        <span class="alert-message">${data.error}</span>
+                    </div>
+                `;
+            }
         }
         
     } catch (error) {
-        messagesDiv.style.display = 'block';
-        messagesDiv.innerHTML = `
-            <div class="alert alert-error">
-                <span class="alert-icon">❌</span>
-                <span class="alert-message">Connection error. Please try again.</span>
-            </div>
-        `;
+        if (messagesDiv) {
+            messagesDiv.style.display = 'block';
+            messagesDiv.innerHTML = `
+                <div class="alert alert-error">
+                    <span class="alert-icon">❌</span>
+                    <span class="alert-message">Connection error. Please try again.</span>
+                </div>
+            `;
+        }
         console.error('Register error:', error);
     } finally {
         // Reset button state
