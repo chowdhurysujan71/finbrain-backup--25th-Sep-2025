@@ -88,6 +88,12 @@ class User(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     user_id_hash = db.Column(db.String(255), unique=True, nullable=False)  # SHA-256 hashed user ID
+    
+    # Authentication fields
+    email = db.Column(db.String(120), unique=True, nullable=True)  # User email (for web auth)
+    password_hash = db.Column(db.String(256), nullable=True)  # Password hash (for web auth)
+    name = db.Column(db.String(100), nullable=True)  # User name (for web auth)
+    
     platform = db.Column(db.String(20), nullable=False)  # Facebook Messenger
     total_expenses = db.Column(db.Numeric(12, 2), default=0)  # Lifetime total expenses
     expense_count = db.Column(db.Integer, default=0)  # Total number of expenses

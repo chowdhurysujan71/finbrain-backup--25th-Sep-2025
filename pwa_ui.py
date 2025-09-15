@@ -173,7 +173,7 @@ def auth_login():
     Process user login with comprehensive validation and standardized error handling
     """
     from models import User
-    from app import db
+    from db_base import db
     from werkzeug.security import check_password_hash
     from flask import session
     from utils.identity import psid_hash
@@ -181,7 +181,7 @@ def auth_login():
         validation_error_response, unauthorized_error, internal_error, 
         success_response, safe_error_message
     )
-    from utils.validators import validate_login
+    from utils.validators import AuthValidator
     from utils.structured_logger import auth_logger, log_auth_event, log_validation_failure
     
     start_time = time.time()
@@ -191,7 +191,7 @@ def auth_login():
         data = request.get_json() or {}
         
         # Validate login data using comprehensive validator
-        validation_result = validate_login(data)
+        validation_result = AuthValidator.validate_login_data(data)
         if validation_result.has_errors():
             log_validation_failure(validation_result.errors, "user_login")
             response, status_code = validation_error_response(validation_result.errors)
@@ -200,11 +200,11 @@ def auth_login():
         email = data['email'].lower().strip()
         password = data['password']
         
-        # Find user by email (stored in additional_info JSON field)
-        user = User.query.filter(User.additional_info.op('->>')('email') == email).first()
+        # Find user by email
+        user = User.query.filter_by(email=email).first()
         
         # Check credentials
-        if not user or not check_password_hash(user.additional_info.get('password_hash', ''), password):
+        if not user or not check_password_hash(user.password_hash, password):
             # Log failed login attempt (security event)
             log_auth_event("login_failed", email, success=False)
             auth_logger.log_security_event("failed_login_attempt", {
@@ -218,7 +218,7 @@ def auth_login():
         
         # Create session
         session['user_id'] = user.user_id_hash
-        session['email'] = user.additional_info.get('email')
+        session['email'] = user.email
         session['is_registered'] = True
         
         # Log successful login
@@ -251,7 +251,7 @@ def auth_register():
     Process user registration with comprehensive validation and standardized error handling
     """
     from models import User
-    from app import db
+    from db_base import db
     from werkzeug.security import generate_password_hash
     from flask import session
     from utils.identity import psid_hash
@@ -259,7 +259,7 @@ def auth_register():
         validation_error_response, duplicate_resource_error, internal_error, 
         success_response, safe_error_message
     )
-    from utils.validators import validate_registration
+    from utils.validators import AuthValidator
     from utils.structured_logger import auth_logger, log_auth_event, log_validation_failure
     import uuid
     
@@ -270,7 +270,7 @@ def auth_register():
         data = request.get_json() or {}
         
         # Validate registration data using comprehensive validator
-        validation_result = validate_registration(data)
+        validation_result = AuthValidator.validate_registration_data(data)
         if validation_result.has_errors():
             log_validation_failure(validation_result.errors, "user_registration")
             response, status_code = validation_error_response(validation_result.errors)
@@ -280,8 +280,8 @@ def auth_register():
         password = data['password']
         name = data.get('name', '').strip()
         
-        # Check if user already exists (check additional_info JSON field for email)
-        existing_user = User.query.filter(User.additional_info.op('->>')('email') == email).first()
+        # Check if user already exists
+        existing_user = User.query.filter_by(email=email).first()
         if existing_user:
             auth_logger.log_security_event("duplicate_registration_attempt", {
                 "email": email,
@@ -294,16 +294,13 @@ def auth_register():
         user_id = f"pwa_reg_{int(time.time())}_{uuid.uuid4().hex[:8]}"
         user_hash = psid_hash(user_id)
         
-        # Create new user (store email/password in additional_info JSON field)
+        # Create new user with standard fields
         user = User()
         user.user_id_hash = user_hash
-        user.first_name = name
+        user.email = email
+        user.password_hash = generate_password_hash(password)
+        user.name = name
         user.platform = 'pwa'
-        user.additional_info = {
-            'email': email,
-            'password_hash': generate_password_hash(password),
-            'registration_type': 'pwa'
-        }
         
         db.session.add(user)
         db.session.commit()
@@ -329,10 +326,19 @@ def auth_register():
         }, 'Registration successful'))
         
     except Exception as e:
+        from flask import current_app
         db.session.rollback()
         response_time = (time.time() - start_time) * 1000
+        
+        # ARCHITECT FIX: Use Flask logger and Python logging to see actual traceback
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception(f"REGISTRATION ERROR: {type(e).__name__}: {str(e)}")
+        current_app.logger.exception(f"REGISTRATION ERROR: {type(e).__name__}: {str(e)}")
+        
         auth_logger.error("Registration system error", {
             "error_type": type(e).__name__,
+            "error_message": str(e),
             "response_time_ms": response_time
         }, e)
         
