@@ -145,10 +145,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
         } else {
             if (messagesDiv) {
+                const errorMessage = data.message || data.error || 'Registration failed. Please try again.';
                 messagesDiv.innerHTML = `
                     <div class="alert alert-error">
                         <span class="alert-icon">❌</span>
-                        <span class="alert-message">${data.error}</span>
+                        <span class="alert-message">${errorMessage}</span>
                     </div>
                 `;
             }

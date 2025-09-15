@@ -42,17 +42,33 @@
 </div>
 
 <script>
-document.getElementById('login-form').addEventListener('submit', async function(e) {
+function mustGet(id) {
+  const el = document.getElementById(id);
+  if (!el) throw new Error(`UI invariant failed: missing #${id} on login page`);
+  return el;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('login.js loaded');
+  
+  try {
+    const loginForm = mustGet('login-form');
+    const loginBtn = mustGet('login-btn');
+    const messagesDiv = mustGet('auth-messages');
+    
+    loginForm.addEventListener('submit', async function(e) {
     e.preventDefault();
     
     const formData = new FormData(e.target);
-    const loginBtn = document.getElementById('login-btn');
-    const messagesDiv = document.getElementById('auth-messages');
     
     // Show loading state
-    loginBtn.disabled = true;
-    loginBtn.querySelector('.btn-text').style.display = 'none';
-    loginBtn.querySelector('.btn-loading').style.display = 'inline';
+    if (loginBtn) {
+        loginBtn.disabled = true;
+        const btnText = loginBtn.querySelector('.btn-text');
+        const btnLoading = loginBtn.querySelector('.btn-loading');
+        if (btnText) btnText.style.display = 'none';
+        if (btnLoading) btnLoading.style.display = 'inline';
+    }
     
     try {
         const response = await fetch('/auth/login', {
@@ -70,15 +86,19 @@ document.getElementById('login-form').addEventListener('submit', async function(
         const data = await response.json();
         
         // Show messages
-        messagesDiv.style.display = 'block';
+        if (messagesDiv) {
+            messagesDiv.style.display = 'block';
+        }
         
         if (data.success) {
-            messagesDiv.innerHTML = `
-                <div class="alert alert-success">
-                    <span class="alert-icon">✅</span>
-                    <span class="alert-message">${data.message}</span>
-                </div>
-            `;
+            if (messagesDiv) {
+                messagesDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <span class="alert-icon">✅</span>
+                        <span class="alert-message">${data.message}</span>
+                    </div>
+                `;
+            }
             
             // Save session data
             sessionStorage.setItem('is_registered', 'true');
@@ -90,29 +110,44 @@ document.getElementById('login-form').addEventListener('submit', async function(
             }, 1000);
             
         } else {
-            messagesDiv.innerHTML = `
-                <div class="alert alert-error">
-                    <span class="alert-icon">❌</span>
-                    <span class="alert-message">${data.error}</span>
-                </div>
-            `;
+            if (messagesDiv) {
+                const errorMessage = data.message || data.error || 'Login failed. Please try again.';
+                messagesDiv.innerHTML = `
+                    <div class="alert alert-error">
+                        <span class="alert-icon">❌</span>
+                        <span class="alert-message">${errorMessage}</span>
+                    </div>
+                `;
+            }
         }
         
     } catch (error) {
-        messagesDiv.style.display = 'block';
-        messagesDiv.innerHTML = `
-            <div class="alert alert-error">
-                <span class="alert-icon">❌</span>
-                <span class="alert-message">Connection error. Please try again.</span>
-            </div>
-        `;
+        if (messagesDiv) {
+            messagesDiv.style.display = 'block';
+            messagesDiv.innerHTML = `
+                <div class="alert alert-error">
+                    <span class="alert-icon">❌</span>
+                    <span class="alert-message">Connection error. Please try again.</span>
+                </div>
+            `;
+        }
         console.error('Login error:', error);
     } finally {
         // Reset button state
-        loginBtn.disabled = false;
-        loginBtn.querySelector('.btn-text').style.display = 'inline';
-        loginBtn.querySelector('.btn-loading').style.display = 'none';
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            const btnText = loginBtn.querySelector('.btn-text');
+            const btnLoading = loginBtn.querySelector('.btn-loading');
+            if (btnText) btnText.style.display = 'inline';
+            if (btnLoading) btnLoading.style.display = 'none';
+        }
     }
+    });
+    
+    console.log('UI invariant checks: OK');
+  } catch (e) {
+    console.error(e.message);
+  }
 });
 </script>
 
