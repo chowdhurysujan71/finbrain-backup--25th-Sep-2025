@@ -9,7 +9,7 @@
   "critical_import_patterns": [
     {
       "pattern": "from db_base import db",
-      "count": 85,
+      "count": 105,
       "risk_level": "CRITICAL",
       "description": "Canonical database import pattern used throughout production codebase",
       "files_sample": [
@@ -18,7 +18,7 @@
         "routes/pca_api.py", "routes/pca_ui.py", "routes/audit_api.py", 
         "routes/ops_quickscan.py", "backend_assistant.py"
       ],
-      "impact": "Breaking db_base.py will crash entire system (85+ files)",
+      "impact": "Breaking db_base.py will crash entire system (105 files)",
       "mitigation": "NEVER quarantine db_base.py or any files it depends on"
     },
     {
@@ -43,10 +43,10 @@
   "never_quarantine_files_explicit": [
     {
       "file": "db_base.py",
-      "reason": "Canonical database configuration imported by 85+ files (from db_base import db)",
+      "reason": "Canonical database configuration imported by 105 files (from db_base import db)",
       "impact": "CRITICAL - Database access failure across entire system",
       "verification_command": "grep -r 'from db_base import db' --include='*.py' . | wc -l",
-      "expected_count": "85"
+      "expected_count": "105"
     },
     {
       "file": "utils/production_router.py",
@@ -101,7 +101,7 @@
   "quarantine_validation_commands": [
     {
       "command": "grep -r 'from db_base import db' --include='*.py' . | wc -l",
-      "expected_count": "85",
+      "expected_count": "105",
       "description": "Count canonical database imports",
       "critical": true
     },
