@@ -12,15 +12,16 @@ import hashlib
 from typing import Tuple, Optional, Dict, Any, List
 from datetime import datetime, timezone, timedelta
 
-# Money detection and unified parsing (enhanced)
-from finbrain.router import contains_money
+# Money detection and unified parsing (enhanced) - temporarily use quarantined functions
+import sys
+sys.path.insert(0, '_quarantine')
+from finbrain_router_deprecated import contains_money, contains_money_with_correction_fallback
 from parsers.expense import parse_amount_currency_category, parse_expense as parse_expense_enhanced
 
 # SMART_NLP_ROUTING and SMART_CORRECTIONS system components
 from utils.feature_flags import is_smart_nlp_enabled, is_smart_tone_enabled, is_smart_corrections_enabled
 from utils.structured import log_routing_decision, log_money_detection_fallback
 from parsers.expense import is_correction_message
-from finbrain.router import contains_money_with_correction_fallback
 # Lazy import for handle_correction to break circular dependency
 # from handlers.expense import handle_correction
 
