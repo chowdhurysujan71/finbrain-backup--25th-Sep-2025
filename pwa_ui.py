@@ -6,8 +6,8 @@ import logging
 import time
 import os
 
-# Import rate limiter from main app
-from app import limiter
+# Import rate limiter from centralized utility
+from utils.rate_limiting import limiter
 
 logger = logging.getLogger(__name__)
 

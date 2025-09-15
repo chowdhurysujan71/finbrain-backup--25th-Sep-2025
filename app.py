@@ -99,11 +99,8 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Configure CORS and rate limiting
 CORS(app, resources={r"/ai-chat": {"origins": [os.getenv("APP_ORIGIN", "http://localhost:5000")]}})
-limiter = Limiter(
-    key_func=get_remote_address,
-    app=app, 
-    default_limits=["120 per minute"]
-)
+from utils.rate_limiting import limiter
+limiter.init_app(app)
 
 # Request logging middleware using existing structured logger
 from utils.logger import structured_logger
