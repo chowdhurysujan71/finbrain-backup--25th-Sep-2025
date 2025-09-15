@@ -1,10 +1,71 @@
 {
   "metadata": {
-    "generated_at": "2025-09-15T11:05:00Z",
+    "generated_at": "2025-09-15T11:06:00Z",
     "purpose": "Comprehensive system freeze map to prevent crashes during legacy code quarantine",
-    "version": "1.0"
+    "version": "2.0",
+    "fixes": "Added canonical db_base imports, limiter imports, all blueprint definitions, sys.path mutations, proper usage classification"
   },
   "imports": [
+    {
+      "pattern": "from db_base import db",
+      "files": [
+        "app.py",
+        "tests/test_corrections.py",
+        "tests/test_ai_mode_logging.py",
+        "tests/e2e_pipeline/test_ci_cd_integration.py",
+        "tests/e2e_pipeline/test_audit_trail.py",
+        "scripts/verify_always_on.py",
+        "handlers/report.py",
+        "handlers/reminders.py",
+        "handlers/milestones.py",
+        "handlers/insight.py",
+        "handlers/feedback.py",
+        "routes/pca_ui.py",
+        "handlers/expense.py",
+        "routes/pca_api.py",
+        "handlers/challenge.py",
+        "routes/ops_quickscan.py",
+        "routes/audit_api.py",
+        "pwa_ui.py",
+        "models.py",
+        "models_pca.py",
+        "utils/production_router.py",
+        "alembic/env.py",
+        "utils/uniqueness_handler.py",
+        "utils/uat_system.py",
+        "utils/telemetry.py",
+        "utils/smart_reminders.py",
+        "utils/schema_validator.py",
+        "utils/routing_policy.py",
+        "pwa_nl_integration.py",
+        "utils/report_generator.py",
+        "backend_assistant.py",
+        "utils/rate_limiter.py",
+        "utils/psid_mapper.py",
+        "uat_e2e_framework.py",
+        "main.py",
+        "utils/precedence_engine.py",
+        "utils/pca_processor.py",
+        "utils/pca_integration.py",
+        "utils/optimized_uat.py",
+        "utils/milestone_engine.py",
+        "utils/final_compliance_validator.py",
+        "utils/context_integration.py",
+        "utils/comprehensive_uat.py",
+        "utils/block5_comprehensive_uat.py",
+        "utils/background_processor_rl2.py",
+        "utils/background_processor.py",
+        "utils/analytics_engine.py",
+        "utils/safe_db_init.py",
+        "utils/acceptance_criteria_validation.py",
+        "utils/db.py",
+        "utils/db_guard.py",
+        "utils/absolute_final_validator.py"
+      ],
+      "status": "used:core",
+      "critical": true,
+      "risk": "HIGH - Canonical database import pattern, breaking db_base.py will crash 85+ files"
+    },
     {
       "pattern": "from app import db",
       "files": [
@@ -51,7 +112,17 @@
         "utils/performance_optimizer.py",
         "milestone_focused_audit.py"
       ],
-      "status": "used:core"
+      "status": "legacy",
+      "risk": "MEDIUM - Legacy import pattern, mostly in test/UAT files"
+    },
+    {
+      "pattern": "from app import limiter",
+      "files": [
+        "pwa_ui.py"
+      ],
+      "status": "used:Auth",
+      "critical": true,
+      "risk": "HIGH - PWA auth depends on app.py limiter global, breaking app structure crashes auth"
     },
     {
       "pattern": "app.register_blueprint",
@@ -67,7 +138,37 @@
         "tests/test_webhook_smoke.py",
         "routes_telemetry.py"
       ],
-      "status": "used:core"
+      "status": "used:core",
+      "critical": true,
+      "risk": "HIGH - Blueprint registration pattern, breaking will prevent route registration"
+    },
+    {
+      "pattern": "sys.path.insert(0, '_quarantine')",
+      "files": [
+        "utils/production_router.py"
+      ],
+      "status": "quarantine_dependency",
+      "critical": true,
+      "risk": "CRITICAL - Order-dependent import from quarantine, hidden dependency that will break if quarantine is moved"
+    },
+    {
+      "pattern": "sys.path modifications",
+      "files": [
+        "utils/production_router.py",
+        "alembic/env.py",
+        "migrations/env.py",
+        "scripts/verify_always_on.py",
+        "scripts/migrate_with_lock.py",
+        "scripts/smoke_coach_guard.py",
+        "scripts/simple_coaching_test.py",
+        "scripts/demo_coach_flow.py",
+        "scripts/comprehensive_uat.py",
+        "scripts/uat_ensure_hashed.py",
+        "utils/alembic_checker.py",
+        "utils/quick_reply_system.py"
+      ],
+      "status": "used:core",
+      "risk": "MEDIUM - Path manipulations that could affect imports"
     },
     {
       "pattern": "from finbrain.*router|from.*router.*import",

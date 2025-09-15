@@ -1,0 +1,473 @@
+{
+  "metadata": {
+    "generated_at": "2025-09-15T11:30:00Z", 
+    "purpose": "Definitive operational system freeze map to prevent crashes during legacy code quarantine",
+    "version": "4.0",
+    "method": "Programmatic enumeration with explicit never-quarantine lists and verification commands",
+    "compliance": "Uses exact categories: Auth, PWA, Expense Contract, Messenger, Admin, Legacy"
+  },
+  "critical_import_patterns": [
+    {
+      "pattern": "from db_base import db",
+      "count": 85,
+      "risk_level": "CRITICAL",
+      "description": "Canonical database import pattern used throughout production codebase",
+      "files_sample": [
+        "app.py", "models.py", "models_pca.py", "pwa_ui.py", 
+        "utils/production_router.py", "handlers/expense.py", 
+        "routes/pca_api.py", "routes/pca_ui.py", "routes/audit_api.py", 
+        "routes/ops_quickscan.py", "backend_assistant.py"
+      ],
+      "impact": "Breaking db_base.py will crash entire system (85+ files)",
+      "mitigation": "NEVER quarantine db_base.py or any files it depends on"
+    },
+    {
+      "pattern": "from app import limiter", 
+      "count": 1,
+      "risk_level": "HIGH",
+      "description": "PWA auth blueprint depends on app.py limiter global",
+      "files": ["pwa_ui.py"],
+      "impact": "Auth system crashes if app structure changes",
+      "mitigation": "Consider moving limiter to dedicated module or blueprint-local config"
+    },
+    {
+      "pattern": "sys.path.insert(0, '_quarantine')",
+      "count": 1,
+      "risk_level": "CRITICAL",
+      "description": "Production router imports from quarantined code via sys.path manipulation",
+      "files": ["utils/production_router.py"],
+      "impact": "Order-dependent quarantine import breaks core routing",
+      "mitigation": "Extract contains_money functions to production_router.py, remove sys.path hack"
+    }
+  ],
+  "never_quarantine_files_explicit": [
+    {
+      "file": "db_base.py",
+      "reason": "Canonical database configuration imported by 85+ files (from db_base import db)",
+      "impact": "CRITICAL - Database access failure across entire system",
+      "verification_command": "grep -r 'from db_base import db' --include='*.py' . | wc -l",
+      "expected_count": "85"
+    },
+    {
+      "file": "utils/production_router.py",
+      "reason": "Core message routing logic with CRITICAL quarantine dependency (sys.path hack)",
+      "impact": "CRITICAL - Core routing functionality failure until quarantine dependency removed",
+      "verification_command": "grep 'sys.path.insert.*quarantine' utils/production_router.py",
+      "expected_output": "sys.path.insert(0, '_quarantine')"
+    },
+    {
+      "file": "app.py",
+      "reason": "Main Flask application with blueprint registrations, limiter global, core routes",
+      "impact": "CRITICAL - System startup failure, PWA auth depends on app.limiter",
+      "verification_command": "grep 'app.register_blueprint' app.py | wc -l",
+      "expected_count": "10"
+    },
+    {
+      "file": "models.py",
+      "reason": "Core data models for Auth (User) and Expense Contract (Expense, ExpenseEdit, MonthlySummary)",
+      "impact": "CRITICAL - Database schema failure, breaks auth and expense functionality",
+      "verification_command": "grep -c 'class.*db.Model' models.py",
+      "expected_count": "9"
+    },
+    {
+      "file": "models_pca.py",
+      "reason": "PCA data models (TransactionEffective, UserCorrection, UserRule, InferenceSnapshot)",
+      "impact": "HIGH - Admin features failure, breaks PCA audit trails",
+      "verification_command": "grep -c 'class.*db.Model' models_pca.py",
+      "expected_count": "4"
+    },
+    {
+      "file": "pwa_ui.py",
+      "reason": "Critical PWA and Auth routes, depends on app.limiter global",
+      "impact": "CRITICAL - User interface and authentication failure",
+      "verification_command": "grep -c '@pwa_ui.route' pwa_ui.py",
+      "expected_count": "13"
+    },
+    {
+      "file": "routes_backend_assistant.py",
+      "reason": "Core Expense Contract API endpoints (/api/backend/*)",
+      "impact": "CRITICAL - Expense tracking functionality failure",
+      "verification_command": "grep -c '@backend_api.route' routes_backend_assistant.py",
+      "expected_count": "8"
+    },
+    {
+      "file": "main.py",
+      "reason": "Application entry point, imports app",
+      "impact": "CRITICAL - Application startup failure",
+      "verification_command": "grep 'from app import app' main.py",
+      "expected_output": "from app import app  # noqa: F401"
+    }
+  ],
+  "quarantine_validation_commands": [
+    {
+      "command": "grep -r 'from db_base import db' --include='*.py' . | wc -l",
+      "expected_count": "85",
+      "description": "Count canonical database imports",
+      "critical": true
+    },
+    {
+      "command": "grep -r 'from app import limiter' --include='*.py' . | wc -l",
+      "expected_count": "1",
+      "description": "Count PWA limiter dependencies",
+      "critical": true
+    },
+    {
+      "command": "grep -r 'sys.path.insert.*quarantine' --include='*.py' . | wc -l",
+      "expected_count": "1",
+      "description": "Count quarantine path manipulations",
+      "critical": true
+    },
+    {
+      "command": "grep -r 'Blueprint(' --include='*.py' . | grep -v test | wc -l",
+      "expected_count": "14",
+      "description": "Count non-test blueprint definitions",
+      "critical": false
+    },
+    {
+      "command": "grep 'app.register_blueprint' app.py | wc -l",
+      "expected_count": "10",
+      "description": "Count production blueprint registrations in app.py",
+      "critical": true
+    },
+    {
+      "command": "grep -c '@.*\\.route' pwa_ui.py routes_backend_assistant.py",
+      "expected_output": "pwa_ui.py:13\\nroutes_backend_assistant.py:8",
+      "description": "Count critical routes in core blueprints",
+      "critical": true
+    }
+  ],
+  "pre_quarantine_smoke_tests": [
+    {
+      "test": "Application startup",
+      "command": "python -c 'from main import *; print(\"Import successful\")'",
+      "expected_output": "Import successful",
+      "description": "Verify main imports work",
+      "critical": true
+    },
+    {
+      "test": "Database models import",
+      "command": "python -c 'from models import Expense, User; from models_pca import TransactionEffective; print(\"Models imported\")'",
+      "expected_output": "Models imported",
+      "description": "Verify core models import correctly",
+      "critical": true
+    },
+    {
+      "test": "Blueprint imports",
+      "command": "python -c 'from pwa_ui import pwa_ui; from routes_backend_assistant import backend_api; print(\"Blueprints imported\")'",
+      "expected_output": "Blueprints imported",
+      "description": "Verify critical blueprints import correctly",
+      "critical": true
+    },
+    {
+      "test": "Production router import",
+      "command": "python -c 'from utils.production_router import contains_money; print(\"Router imported\")'",
+      "expected_output": "Router imported",
+      "description": "Verify production router functions import (may fail if quarantine dependency broken)",
+      "critical": true
+    }
+  ],
+  "actionable_fixes": [
+    {
+      "risk": "sys.path.insert(0, '_quarantine') in utils/production_router.py",
+      "action": "Extract contains_money and contains_money_with_correction_fallback functions from quarantined code into utils/production_router.py",
+      "priority": "HIGH",
+      "steps": [
+        "1. Copy contains_money and contains_money_with_correction_fallback functions from _quarantine/finbrain_router_deprecated.py",
+        "2. Paste functions directly into utils/production_router.py",
+        "3. Remove lines 19-21: sys.path.insert(0, '_quarantine') and import from finbrain_router_deprecated",
+        "4. Test all verification steps below"
+      ],
+      "before_verification": {
+        "command": "grep -n 'sys.path.insert.*quarantine' utils/production_router.py",
+        "expected_output": "20:sys.path.insert(0, '_quarantine')",
+        "description": "Confirm quarantine dependency exists"
+      },
+      "after_verification": {
+        "commands": [
+          {
+            "command": "grep 'sys.path.insert.*quarantine' utils/production_router.py",
+            "expected_output": "",
+            "description": "Confirm sys.path hack removed"
+          },
+          {
+            "command": "grep 'from finbrain_router_deprecated' utils/production_router.py",
+            "expected_output": "",
+            "description": "Confirm quarantine import removed"
+          },
+          {
+            "command": "grep -A5 -B5 'def contains_money' utils/production_router.py",
+            "expected_pattern": "def contains_money.*:",
+            "description": "Confirm contains_money function exists locally"
+          }
+        ]
+      },
+      "smoke_tests": [
+        {
+          "test": "Import verification",
+          "command": "python -c 'from utils.production_router import contains_money; print(\"Import successful\")'",
+          "expected_output": "Import successful",
+          "description": "Verify function imports work"
+        },
+        {
+          "test": "Application startup",
+          "command": "python -c 'from main import *; print(\"App startup successful\")'",
+          "expected_output": "App startup successful",
+          "description": "Verify app still starts without quarantine dependency"
+        },
+        {
+          "test": "Route health check",
+          "command": "curl -s -o /dev/null -w '%{http_code}' http://localhost:5000/health",
+          "expected_output": "200",
+          "description": "Verify health endpoint responds"
+        },
+        {
+          "test": "Expense endpoint test",
+          "command": "curl -s -X POST -H 'Content-Type: application/json' -d '{\"message\":\"spent 50 taka on lunch\"}' http://localhost:5000/expense -w '%{http_code}'",
+          "expected_output": "200 or 401",
+          "description": "Verify expense processing works (200 if auth bypassed, 401 if auth required)"
+        }
+      ]
+    },
+    {
+      "risk": "PWA auth depends on app.limiter global",
+      "action": "Move limiter to dedicated module",
+      "priority": "MEDIUM",
+      "steps": [
+        "1. Create utils/rate_limiting.py with limiter configuration",
+        "2. Import limiter from utils/rate_limiting in pwa_ui.py", 
+        "3. Update app.py to use same limiter source",
+        "4. Test auth endpoints still work"
+      ],
+      "verification": {
+        "command": "grep 'from app import limiter' pwa_ui.py",
+        "expected_output": "",
+        "description": "Confirm app.limiter dependency removed"
+      }
+    }
+  ],
+  "quarantine_safety_protocol": [
+    "1. STOP - Run all quarantine_validation_commands to verify map accuracy before any quarantine operation",
+    "2. Run pre_quarantine_smoke_tests to verify import health",
+    "3. Check never_quarantine_files_explicit list - DO NOT MOVE any listed files",
+    "4. For any quarantine operation, verify target files are NOT in never_quarantine list",
+    "5. After quarantine, re-run validation commands to detect drift",
+    "6. If actionable fixes are implemented, update never_quarantine list accordingly",
+    "7. Always test critical endpoints after quarantine operations"
+  ],
+  "blueprints_production": [
+    {
+      "name": "pwa_ui",
+      "definition": "pwa_ui = Blueprint('pwa_ui', __name__)",
+      "file": "pwa_ui.py:14",
+      "url_prefix": null,
+      "registration": "app.py:2189",
+      "usage": ["Auth", "PWA"],
+      "route_count": 13,
+      "critical": true
+    },
+    {
+      "name": "backend_api", 
+      "definition": "backend_api = Blueprint('backend_api', __name__, url_prefix='/api/backend')",
+      "file": "routes_backend_assistant.py:32",
+      "url_prefix": "/api/backend",
+      "registration": "app.py:2198",
+      "usage": ["Expense Contract"],
+      "route_count": 8,
+      "critical": true
+    },
+    {
+      "name": "pca_api",
+      "definition": "pca_api = Blueprint('pca_api', __name__, url_prefix='/api')",
+      "file": "routes/pca_api.py:28", 
+      "url_prefix": "/api",
+      "registration": "app.py:262",
+      "usage": ["Admin"],
+      "route_count": 7,
+      "critical": false
+    },
+    {
+      "name": "pca_ui",
+      "definition": "pca_ui = Blueprint('pca_ui', __name__)",
+      "file": "routes/pca_ui.py:20",
+      "url_prefix": null,
+      "registration": "app.py:265",
+      "usage": ["Admin"], 
+      "route_count": 3,
+      "critical": false
+    },
+    {
+      "name": "audit_api",
+      "definition": "audit_api = Blueprint('audit_api', __name__, url_prefix='/api/audit')",
+      "file": "routes/audit_api.py:21",
+      "url_prefix": "/api/audit",
+      "registration": "app.py:276",
+      "usage": ["Admin"],
+      "route_count": 3,
+      "critical": false
+    },
+    {
+      "name": "assets_bp",
+      "definition": "assets_bp = Blueprint('assets', __name__, url_prefix='/assets')",
+      "file": "routes_assets.py:22",
+      "url_prefix": "/assets", 
+      "registration": "app.py:287",
+      "usage": ["Admin"],
+      "route_count": 3,
+      "critical": false
+    },
+    {
+      "name": "redis_smoke_bp",
+      "definition": "redis_smoke_bp = Blueprint('redis_smoke', __name__)",
+      "file": "app/routes_redis_smoke.py:9",
+      "url_prefix": null,
+      "registration": "app.py:299",
+      "usage": ["Admin"],
+      "route_count": 1,
+      "critical": false
+    },
+    {
+      "name": "admin_ops",
+      "definition": "admin_ops = Blueprint('admin_ops', __name__)",
+      "file": "admin_ops.py:14",
+      "url_prefix": null,
+      "registration": "app.py:1899", 
+      "usage": ["Admin"],
+      "route_count": 4,
+      "critical": false
+    },
+    {
+      "name": "coaching_bp",
+      "definition": "coaching_bp = Blueprint('coaching', __name__, url_prefix='/ops/coaching')",
+      "file": "app_coaching_endpoints.py:12",
+      "url_prefix": "/ops/coaching",
+      "registration": "app.py:1904",
+      "usage": ["Admin"],
+      "route_count": 11,
+      "critical": false
+    },
+    {
+      "name": "quickscan (registered as quickscan_bp)",
+      "definition": "bp = Blueprint('quickscan', __name__)",
+      "file": "routes/ops_quickscan.py:9",
+      "url_prefix": null,
+      "registration": "app.py:2026",
+      "usage": ["Admin"],
+      "route_count": 1,
+      "critical": false
+    }
+  ],
+  "routes_by_usage": {
+    "Auth": [
+      {"path": "/login", "file": "pwa_ui.py", "line": 156, "method": "GET"},
+      {"path": "/register", "file": "pwa_ui.py", "line": 163, "method": "GET"},
+      {"path": "/auth/login", "file": "pwa_ui.py", "line": 170, "method": "POST"},
+      {"path": "/auth/register", "file": "pwa_ui.py", "line": 248, "method": "POST"},
+      {"path": "/auth/logout", "file": "pwa_ui.py", "line": 369, "method": "POST"}
+    ],
+    "PWA": [
+      {"path": "/chat", "file": "pwa_ui.py", "line": 112, "method": "GET"}, 
+      {"path": "/report", "file": "pwa_ui.py", "line": 123, "method": "GET"},
+      {"path": "/profile", "file": "pwa_ui.py", "line": 134, "method": "GET"},
+      {"path": "/challenge", "file": "pwa_ui.py", "line": 145, "method": "GET"},
+      {"path": "/offline", "file": "pwa_ui.py", "line": 383, "method": "GET"},
+      {"path": "/partials/entries", "file": "pwa_ui.py", "line": 392, "method": "GET"},
+      {"path": "/ai-chat-test", "file": "pwa_ui.py", "line": 451, "method": "POST"},
+      {"path": "/ai-chat", "file": "pwa_ui.py", "line": 490, "method": "POST"},
+      {"path": "/sw.js", "file": "pwa_ui.py", "line": 659, "method": "GET"},
+      {"path": "/manifest.webmanifest", "file": "pwa_ui.py", "line": 670, "method": "GET"}
+    ],
+    "Expense Contract": [
+      {"path": "/expense", "file": "pwa_ui.py", "line": 507, "method": "POST"},
+      {"path": "/api/backend/propose_expense", "file": "routes_backend_assistant.py", "line": 77, "method": "POST"},
+      {"path": "/api/backend/add_expense", "file": "routes_backend_assistant.py", "line": 135, "method": "POST"},
+      {"path": "/api/backend/delete_expense", "file": "routes_backend_assistant.py", "line": 277, "method": "POST"},
+      {"path": "/api/backend/get_totals", "file": "routes_backend_assistant.py", "line": 341, "method": "POST"},
+      {"path": "/api/backend/get_recent_expenses", "file": "routes_backend_assistant.py", "line": 392, "method": "POST"},
+      {"path": "/api/backend/process_message", "file": "routes_backend_assistant.py", "line": 505, "method": "POST"},
+      {"path": "/api/backend/user_summary", "file": "routes_backend_assistant.py", "line": 564, "method": "POST"},
+      {"path": "/api/backend/user_expenses", "file": "routes_backend_assistant.py", "line": 616, "method": "POST"},
+      {"path": "/user/<psid_hash>/insights", "file": "app.py", "line": 1255, "method": "GET"},
+      {"path": "/user/<psid_hash>/category/<category_name>", "file": "app.py", "line": 1370, "method": "GET"},
+      {"path": "/user/<psid_hash>/categories", "file": "app.py", "line": 1406, "method": "GET"},
+      {"path": "/api/preview/report", "file": "app.py", "line": 1700, "method": "GET"}
+    ],
+    "Messenger": [
+      {"path": "/webhook/messenger", "file": "app.py", "line": 1014, "method": "GET,POST"}
+    ],
+    "Admin": [
+      {"path": "/admin", "file": "app.py", "line": 489, "method": "GET"},
+      {"path": "/diagnostics", "file": "app.py", "line": 867, "method": "GET"},
+      {"path": "/__test_error", "file": "app.py", "line": 907, "method": "GET"},
+      {"path": "/health/deployment", "file": "app.py", "line": 912, "method": "GET"},
+      {"path": "/diagnose/router", "file": "app.py", "line": 1083, "method": "GET"},
+      {"path": "/ops", "file": "app.py", "line": 1144, "method": "GET"},
+      {"path": "/ops/token-refresh-status", "file": "app.py", "line": 1233, "method": "GET"},
+      {"path": "/ops/pca/status", "file": "app.py", "line": 1453, "method": "GET"},
+      {"path": "/ops/pca/health", "file": "app.py", "line": 1479, "method": "GET"},
+      {"path": "/ops/pca/overlay", "file": "app.py", "line": 1500, "method": "GET"},
+      {"path": "/ops/pca/telemetry", "file": "app.py", "line": 1519, "method": "GET"},
+      {"path": "/ops/pca/canary", "file": "app.py", "line": 1540, "method": "GET,POST"},
+      {"path": "/psid/<psid_hash>", "file": "app.py", "line": 1590, "method": "GET"},
+      {"path": "/version", "file": "app.py", "line": 1664, "method": "GET"},
+      {"path": "/ops/telemetry", "file": "app.py", "line": 1735, "method": "GET"},
+      {"path": "/ops/ai/ping", "file": "app.py", "line": 1779, "method": "GET"},
+      {"path": "/ops/rl/reset", "file": "app.py", "line": 1818, "method": "POST"},
+      {"path": "/ops/trace", "file": "app.py", "line": 1841, "method": "GET"},
+      {"path": "/ops/users", "file": "app.py", "line": 1865, "method": "GET"},
+      {"path": "/jobs", "file": "app.py", "line": 2043, "method": "POST"},
+      {"path": "/jobs/<job_id>/status", "file": "app.py", "line": 2109, "method": "GET"},
+      {"path": "/jobs/<job_id>/cancel", "file": "app.py", "line": 2128, "method": "POST"},
+      {"path": "/jobs/status", "file": "app.py", "line": 2147, "method": "GET"},
+      {"path": "/api/backend/uat_checklist", "file": "routes_backend_assistant.py", "line": 443, "method": "GET"},
+      {"path": "/api/backend/schemas", "file": "routes_backend_assistant.py", "line": 474, "method": "GET"},
+      {"path": "/api/backend/health", "file": "routes_backend_assistant.py", "line": 669, "method": "GET"},
+      {"path": "/ops/quickscan", "file": "routes/ops_quickscan.py", "line": 11, "method": "GET"}
+    ],
+    "Core": [
+      {"path": "/", "file": "app.py", "line": 411, "method": "GET"},
+      {"path": "/health", "file": "app.py", "line": 700, "method": "GET"},
+      {"path": "/readyz", "file": "app.py", "line": 716, "method": "GET"}
+    ]
+  },
+  "models_by_usage": {
+    "Auth": [
+      {"class": "User", "file": "models.py", "line": 85, "table": "users"}
+    ],
+    "Expense Contract": [
+      {"class": "Expense", "file": "models.py", "line": 12, "table": "expenses"},
+      {"class": "ExpenseEdit", "file": "models.py", "line": 51, "table": "expense_edits"},
+      {"class": "MonthlySummary", "file": "models.py", "line": 181, "table": "monthly_summaries"}
+    ],
+    "Admin": [
+      {"class": "RateLimit", "file": "models.py", "line": 198, "table": "rate_limits"},
+      {"class": "UserMilestone", "file": "models.py", "line": 215, "table": "user_milestones"},
+      {"class": "ReportFeedback", "file": "models.py", "line": 233, "table": "report_feedback"},
+      {"class": "TelemetryEvent", "file": "models.py", "line": 252, "table": "telemetry_events"},
+      {"class": "GrowthCounter", "file": "models.py", "line": 266, "table": "growth_counters"},
+      {"class": "TransactionEffective", "file": "models_pca.py", "line": 12, "table": "transactions_effective"},
+      {"class": "UserCorrection", "file": "models_pca.py", "line": 54, "table": "user_corrections"},
+      {"class": "UserRule", "file": "models_pca.py", "line": 86, "table": "user_rules"},
+      {"class": "InferenceSnapshot", "file": "models_pca.py", "line": 123, "table": "inference_snapshots"}
+    ],
+    "Core": [
+      {"class": "Base", "file": "db_base.py", "line": 4, "table": null}
+    ]
+  },
+  "quarantine_safe_files": [
+    "_quarantine/finbrain_router_deprecated.py",
+    "_quarantine/archive_legacy/*",
+    "phase3_replay_debug.py",
+    "phase4_enhanced_monitoring.py", 
+    "phase5_production_blast.py",
+    "tests/*",
+    "scripts/*"
+  ],
+  "usage_summary": {
+    "Auth": {"routes": 5, "models": 1, "blueprints": 1, "critical": true},
+    "PWA": {"routes": 10, "models": 0, "blueprints": 1, "critical": true},
+    "Expense Contract": {"routes": 13, "models": 3, "blueprints": 1, "critical": true},
+    "Messenger": {"routes": 1, "models": 0, "blueprints": 0, "critical": true},
+    "Admin": {"routes": 37, "models": 9, "blueprints": 7, "critical": false},
+    "Core": {"routes": 3, "models": 1, "blueprints": 0, "critical": true}
+  }
+}
