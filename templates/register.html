@@ -83,9 +83,13 @@ document.getElementById('register-form').addEventListener('submit', async functi
     }
     
     // Show loading state
-    registerBtn.disabled = true;
-    registerBtn.querySelector('.btn-text').style.display = 'none';
-    registerBtn.querySelector('.btn-loading').style.display = 'inline';
+    if (registerBtn) {
+        registerBtn.disabled = true;
+        const btnText = registerBtn.querySelector('.btn-text');
+        const btnLoading = registerBtn.querySelector('.btn-loading');
+        if (btnText) btnText.style.display = 'none';
+        if (btnLoading) btnLoading.style.display = 'inline';
+    }
     
     try {
         const response = await fetch('/auth/register', {
@@ -151,9 +155,13 @@ document.getElementById('register-form').addEventListener('submit', async functi
         console.error('Register error:', error);
     } finally {
         // Reset button state
-        registerBtn.disabled = false;
-        registerBtn.querySelector('.btn-text').style.display = 'inline';
-        registerBtn.querySelector('.btn-loading').style.display = 'none';
+        if (registerBtn) {
+            registerBtn.disabled = false;
+            const btnText = registerBtn.querySelector('.btn-text');
+            const btnLoading = registerBtn.querySelector('.btn-loading');
+            if (btnText) btnText.style.display = 'inline';
+            if (btnLoading) btnLoading.style.display = 'none';
+        }
     }
 });
 </script>
