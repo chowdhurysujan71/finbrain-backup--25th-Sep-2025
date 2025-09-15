@@ -12,7 +12,8 @@
 
         <!-- Success/Error Messages -->
         <div id="auth-messages" class="form-messages" style="display: none;"></div>
-        <div id="auth-error" class="error" style="display:none"></div>
+        <div id="auth-error" style="display:none"></div>
+        <div id="auth-spinner" style="display:none">Working…</div>
 
         <form id="register-form" class="auth-form">
             <div class="form-group">
@@ -58,41 +59,7 @@
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('register-form');
-  const err = document.getElementById('auth-error'); // make sure this exists
-
-  form?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    err && (err.style.display = 'none');
-
-    const body = {
-      name: form.name.value,
-      email: form.email.value,
-      password: form.password.value,
-      confirm: form.confirm.value,
-    };
-
-    const res = await fetch('/auth/register', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      credentials: 'include',
-      body: JSON.stringify(body)
-    });
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const msg = data.error || data.message || 'Account already exists';
-      if (err) { err.textContent = msg; err.style.display = 'block'; }
-      return;
-    }
-
-    // success: redirect to dashboard
-    window.location.href = '/chat';
-  });
-});
-</script>
+<script src="/static/js/register.js" defer></script>
 
 <style>
 .auth-container {
