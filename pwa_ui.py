@@ -171,80 +171,39 @@ def register():
 @limiter.limit("5 per minute")
 def auth_login():
     """
-    Process user login with comprehensive validation and standardized error handling
+    Process user login by proxying to backend authentication API
     """
-    from models import User
-    from db_base import db
-    from werkzeug.security import check_password_hash
-    from flask import session
-    from utils.identity import psid_hash
-    from utils.error_responses import (
-        validation_error_response, unauthorized_error, internal_error, 
-        success_response, safe_error_message
-    )
-    from utils.validators import AuthValidator
-    from utils.structured_logger import auth_logger, log_auth_event, log_validation_failure
-    
-    start_time = time.time()
+    import requests
+    from flask import session, request, jsonify
     
     try:
-        # Get and validate login data
+        # Get login data
         data = request.get_json(silent=True) or {}
         
-        # Validate login data using comprehensive validator
-        validation_result = AuthValidator.validate_login_data(data)
-        if validation_result.has_errors():
-            log_validation_failure(validation_result.errors, "user_login")
-            response, status_code = validation_error_response(validation_result.errors)
-            return jsonify(response), status_code
+        # Forward to backend authentication API
+        backend_url = f"http://localhost:5000/api/backend/login"
+        response = requests.post(
+            backend_url, 
+            json=data,
+            timeout=10,
+            cookies=request.cookies
+        )
         
-        email = data['email'].lower().strip()
-        password = data['password']
+        # If login successful, extract user info from backend response
+        if response.status_code == 200:
+            result = response.json()
+            # Create local session based on backend response
+            if result.get('data', {}).get('user_id'):
+                session['user_id'] = result['data']['user_id']
+                session['email'] = data.get('email', '').lower().strip()
+                session['is_registered'] = True
         
-        # Find user by email
-        user = User.query.filter_by(email=email).first()
-        
-        # Check credentials
-        if not user or not check_password_hash(user.password_hash, password):
-            # Log failed login attempt (security event)
-            log_auth_event("login_failed", email, success=False)
-            auth_logger.log_security_event("failed_login_attempt", {
-                "email": email,
-                "user_exists": user is not None,
-                "ip_address": request.environ.get('REMOTE_ADDR', 'unknown')
-            })
-            
-            response, status_code = unauthorized_error("Invalid email or password")
-            return jsonify(response), status_code
-        
-        # Create session
-        session['user_id'] = user.user_id_hash
-        session['email'] = user.email
-        session['is_registered'] = True
-        
-        # Log successful login
-        response_time = (time.time() - start_time) * 1000
-        log_auth_event("login_success", user.user_id_hash, success=True)
-        auth_logger.log_api_request(True, response_time, {
-            "event_type": "login",
-            "user_email": email,
-            "session_created": True
-        })
-        
-        return jsonify(success_response({
-            'redirect': '/chat',
-            'user_id': user.user_id_hash
-        }, 'Login successful'))
+        # Return backend response as-is
+        return jsonify(response.json()), response.status_code
         
     except Exception as e:
-        response_time = (time.time() - start_time) * 1000
-        auth_logger.error("Login system error", {
-            "error_type": type(e).__name__,
-            "response_time_ms": response_time
-        }, e)
-        
-        response, status_code = internal_error(safe_error_message(e, "Login failed. Please try again."))
-        return jsonify(response), status_code
+        # Return requests library errors as server errors
+        return jsonify({"error": "Login service unavailable. Please try again."}), 503
 
 @pwa_ui.route('/auth/register', methods=['POST'])
 @limiter.limit("3 per minute")
@@ -252,120 +211,37 @@ def auth_register():
     """
     Process user registration with comprehensive validation and standardized error handling
     """
-    from models import User
-    from db_base import db
-    from werkzeug.security import generate_password_hash
-    from flask import session
-    from utils.identity import psid_hash
-    from utils.error_responses import (
-        validation_error_response, duplicate_resource_error, internal_error, 
-        success_response, safe_error_message
-    )
-    from utils.validators import AuthValidator
-    from utils.structured_logger import auth_logger, log_auth_event, log_validation_failure
-    import uuid
-    
-    start_time = time.time()
+    import requests
+    from flask import session, request, jsonify
     
     try:
-        # Get and validate registration data
+        # Get registration data
         data = request.get_json(silent=True) or {}
         
-        # Validate registration data using comprehensive validator
-        validation_result = AuthValidator.validate_registration_data(data)
-        if validation_result.has_errors():
-            log_validation_failure(validation_result.errors, "user_registration")
-            response, status_code = validation_error_response(validation_result.errors)
-            return jsonify(response), status_code
+        # Forward to backend authentication API
+        backend_url = f"http://localhost:5000/api/backend/register"
+        response = requests.post(
+            backend_url, 
+            json=data,
+            timeout=10,
+            cookies=request.cookies
+        )
         
-        email = data['email'].lower().strip()
-        password = data['password']
-        name = data.get('name', '').strip()
+        # If registration successful, extract user info from backend response
+        if response.status_code == 200:
+            result = response.json()
+            # Create local session based on backend response
+            if result.get('data', {}).get('user_id'):
+                session['user_id'] = result['data']['user_id']
+                session['email'] = data.get('email', '').lower().strip()
+                session['is_registered'] = True
         
-        # Check if user already exists
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
-            auth_logger.log_security_event("duplicate_registration_attempt", {
-                "email": email,
-                "ip_address": request.environ.get('REMOTE_ADDR', 'unknown')
-            })
-            response, status_code = duplicate_resource_error("account")
-            return jsonify(response), status_code
-        
-        # Generate user hash
-        user_id = f"pwa_reg_{int(time.time())}_{uuid.uuid4().hex[:8]}"
-        user_hash = psid_hash(user_id)
-        
-        # Create new user with all required non-nullable fields
-        user = User()
-        user.user_id_hash = user_hash
-        user.email = email
-        user.password_hash = generate_password_hash(password)
-        user.name = name
-        user.platform = 'pwa'
-        # Ensure all non-nullable fields are set
-        user.first_name = name.split()[0] if name else ''
-        user.total_expenses = 0
-        user.expense_count = 0
-        user.daily_message_count = 0
-        user.hourly_message_count = 0
-        user.interaction_count = 0
-        user.onboarding_step = 0
-        user.consecutive_days = 0
-        user.reports_requested = 0
-        
-        db.session.add(user)
-        
-        # Commit with proper IntegrityError handling
-        try:
-            db.session.commit()
-        except Exception as commit_error:
-            db.session.rollback()
-            # Handle specific database constraint violations
-            from sqlalchemy.exc import IntegrityError
-            if isinstance(commit_error, IntegrityError):
-                from utils.error_responses import duplicate_resource_error
-                response, status_code = duplicate_resource_error("account")
-                return jsonify(response), status_code
-            # For other database errors, re-raise to outer handler
-            raise
-        
-        # Create session
-        session['user_id'] = user_hash
-        session['email'] = email
-        session['is_registered'] = True
-        
-        # Log successful registration
-        response_time = (time.time() - start_time) * 1000
-        log_auth_event("registration_success", user_hash, success=True)
-        auth_logger.log_api_request(True, response_time, {
-            "event_type": "registration",
-            "user_email": email,
-            "has_name": bool(name),
-            "session_created": True
-        })
-        
-        return jsonify(success_response({
-            'redirect': '/chat',
-            'user_id': user_hash
-        }, 'Registration successful'))
+        # Return backend response as-is
+        return jsonify(response.json()), response.status_code
         
     except Exception as e:
-        from flask import current_app
-        db.session.rollback()
-        response_time = (time.time() - start_time) * 1000
-        
-        # Log registration error for debugging
-        logger.exception(f"Registration failed: {type(e).__name__}: {str(e)}")
-        
-        auth_logger.error("Registration system error", {
-            "error_type": type(e).__name__,
-            "error_message": str(e),
-            "response_time_ms": response_time
-        }, e)
-        
-        response, status_code = internal_error(safe_error_message(e, "Registration failed. Please try again."))
-        return jsonify(response), status_code
+        # Return requests library errors as server errors
+        return jsonify({"error": "Registration service unavailable. Please try again."}), 503
 
 @pwa_ui.route('/auth/logout', methods=['POST'])
 def auth_logout():
