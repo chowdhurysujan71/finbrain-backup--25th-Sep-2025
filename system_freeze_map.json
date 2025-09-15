@@ -1,0 +1,811 @@
+{
+  "metadata": {
+    "generated_at": "2025-09-15T11:05:00Z",
+    "purpose": "Comprehensive system freeze map to prevent crashes during legacy code quarantine",
+    "version": "1.0"
+  },
+  "imports": [
+    {
+      "pattern": "from app import db",
+      "files": [
+        "emergency_data_fix.py",
+        "data_integrity_fix.py", 
+        "data_integrity_audit.py",
+        "tests/test_stabilization.py",
+        "comprehensive_uat_test.py",
+        "tests/e2e_pipeline/test_end_to_end.py",
+        "phase3_replay_debug.py",
+        "FINAL_VALIDATION_TEST.py",
+        "comprehensive_phase_test.py",
+        "phase5_production_blast.py",
+        "phase4_enhanced_monitoring.py",
+        "uat_phase1_cc_persistence.py",
+        "uat_phase2_router_decision.py",
+        "tests/e2e_pipeline/test_base.py",
+        "scripts/verify_always_on.py",
+        "tests/test_phase_c_uat.py",
+        "tests/test_supabase_smoke.py",
+        "tests/test_supabase_test.py",
+        "tests/test_assets_supabase.py",
+        "tests/test_health_readyz.py",
+        "scripts/comprehensive_system_audit.py",
+        "scripts/diagnostics_cli.py",
+        "tests/test_pca_comprehensive_uat.py",
+        "tests/test_pca_phase2_integration.py",
+        "scripts/check_db_indexes.py",
+        "routes/ops_quickscan.py",
+        "production_ready_uat.py",
+        "uat_comprehensive_e2e.py",
+        "FINAL_PRODUCTION_TEST.py",
+        "production_flow_uat.py",
+        "final_comprehensive_uat.py",
+        "migrations/env.py",
+        "utils/background_processor.py",
+        "utils/acceptance_criteria_validation.py",
+        "utils/absolute_final_validator.py",
+        "validate_ui_guardrails.py",
+        "master_uat_audit.py",
+        "utils/safe_db_init.py",
+        "core/brain.py",
+        "utils/comprehensive_uat_block6.py",
+        "utils/performance_optimizer.py",
+        "milestone_focused_audit.py"
+      ],
+      "status": "used:core"
+    },
+    {
+      "pattern": "app.register_blueprint",
+      "files": [
+        "app.py",
+        "phase3_replay_debug.py",
+        "phase5_production_blast.py", 
+        "phase4_enhanced_monitoring.py",
+        "tests/test_ai_mode_logging.py",
+        "tests/test_perf_log_hook.py",
+        "tests/test_redis_smoke.py",
+        "tests/test_pca_phase2_integration.py",
+        "tests/test_webhook_smoke.py",
+        "routes_telemetry.py"
+      ],
+      "status": "used:core"
+    },
+    {
+      "pattern": "from finbrain.*router|from.*router.*import",
+      "files": [
+        "utils/production_router.py",
+        "parsers/expense_broken.py",
+        "admin_ops.py",
+        "utils/pca_processor.py",
+        "tests/test_ai_mode_logging.py",
+        "utils/enhanced_uat.py",
+        "utils/dispatcher.py",
+        "utils/deployment_monitor.py",
+        "tests/test_perf_log_hook.py",
+        "tests/test_nlp_logging.py",
+        "utils/background_processor.py",
+        "scripts/dev_simulate_correction.py",
+        "scripts/comprehensive_system_audit.py",
+        "scripts/dev_simulate_new_user.py",
+        "FINAL_PRODUCTION_TEST.py",
+        "production_ready_uat.py",
+        "uat_comprehensive_e2e.py",
+        "master_uat_audit.py",
+        "production_flow_uat.py",
+        "final_comprehensive_uat.py",
+        "core/brain.py",
+        "pwa_ui.py",
+        "focused_e2e_uat.py",
+        "comprehensive_e2e_uat.py"
+      ],
+      "status": "used:core"
+    },
+    {
+      "pattern": "from _quarantine.finbrain_router_deprecated",
+      "files": [
+        "utils/production_router.py"
+      ],
+      "status": "quarantine_dependency"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/",
+      "file": "app.py",
+      "line": 411,
+      "status": "used:core"
+    },
+    {
+      "path": "/admin",
+      "file": "app.py", 
+      "line": 489,
+      "status": "used:admin"
+    },
+    {
+      "path": "/health",
+      "file": "app.py",
+      "line": 700,
+      "status": "used:core"
+    },
+    {
+      "path": "/readyz",
+      "file": "app.py",
+      "line": 716,
+      "status": "used:core"
+    },
+    {
+      "path": "/diagnostics",
+      "file": "app.py",
+      "line": 867,
+      "status": "used:admin"
+    },
+    {
+      "path": "/__test_error",
+      "file": "app.py",
+      "line": 907,
+      "status": "used:admin"
+    },
+    {
+      "path": "/health/deployment",
+      "file": "app.py",
+      "line": 912,
+      "status": "used:admin"
+    },
+    {
+      "path": "/webhook/messenger",
+      "file": "app.py",
+      "line": 1014,
+      "status": "used:messenger"
+    },
+    {
+      "path": "/diagnose/router",
+      "file": "app.py",
+      "line": 1083,
+      "status": "used:admin"
+    },
+    {
+      "path": "/ops",
+      "file": "app.py",
+      "line": 1144,
+      "status": "used:admin"
+    },
+    {
+      "path": "/ops/token-refresh-status",
+      "file": "app.py",
+      "line": 1233,
+      "status": "used:admin"
+    },
+    {
+      "path": "/user/<psid_hash>/insights",
+      "file": "app.py",
+      "line": 1255,
+      "status": "used:expense_contract"
+    },
+    {
+      "path": "/user/<psid_hash>/category/<category_name>",
+      "file": "app.py",
+      "line": 1370,
+      "status": "used:expense_contract"
+    },
+    {
+      "path": "/user/<psid_hash>/categories",
+      "file": "app.py",
+      "line": 1406,
+      "status": "used:expense_contract"
+    },
+    {
+      "path": "/ops/pca/status",
+      "file": "app.py",
+      "line": 1453,
+      "status": "used:admin"
+    },
+    {
+      "path": "/ops/pca/health",
+      "file": "app.py",
+      "line": 1479,
+      "status": "used:admin"
+    },
+    {
+      "path": "/ops/pca/overlay",
+      "file": "app.py",
+      "line": 1500,
+      "status": "used:admin"
+    },
+    {
+      "path": "/ops/pca/telemetry",
+      "file": "app.py",
+      "line": 1519,
+      "status": "used:admin"
+    },
+    {
+      "path": "/ops/pca/canary",
+      "file": "app.py",
+      "line": 1540,
+      "status": "used:admin"
+    },
+    {
+      "path": "/psid/<psid_hash>",
+      "file": "app.py",
+      "line": 1590,
+      "status": "used:admin"
+    },
+    {
+      "path": "/version",
+      "file": "app.py",
+      "line": 1664,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/preview/report",
+      "file": "app.py",
+      "line": 1700,
+      "status": "used:expense_contract"
+    },
+    {
+      "path": "/ops/telemetry",
+      "file": "app.py",
+      "line": 1735,
+      "status": "used:admin"
+    },
+    {
+      "path": "/ops/ai/ping",
+      "file": "app.py",
+      "line": 1779,
+      "status": "used:admin"
+    },
+    {
+      "path": "/ops/rl/reset",
+      "file": "app.py",
+      "line": 1818,
+      "status": "used:admin"
+    },
+    {
+      "path": "/ops/trace",
+      "file": "app.py",
+      "line": 1841,
+      "status": "used:admin"
+    },
+    {
+      "path": "/ops/users",
+      "file": "app.py",
+      "line": 1865,
+      "status": "used:admin"
+    },
+    {
+      "path": "/jobs",
+      "file": "app.py",
+      "line": 2043,
+      "status": "used:admin"
+    },
+    {
+      "path": "/jobs/<job_id>/status",
+      "file": "app.py",
+      "line": 2109,
+      "status": "used:admin"
+    },
+    {
+      "path": "/jobs/<job_id>/cancel",
+      "file": "app.py",
+      "line": 2128,
+      "status": "used:admin"
+    },
+    {
+      "path": "/jobs/status",
+      "file": "app.py",
+      "line": 2147,
+      "status": "used:admin"
+    },
+    {
+      "path": "/chat",
+      "file": "pwa_ui.py",
+      "line": 112,
+      "status": "used:pwa"
+    },
+    {
+      "path": "/report",
+      "file": "pwa_ui.py",
+      "line": 123,
+      "status": "used:pwa"
+    },
+    {
+      "path": "/profile",
+      "file": "pwa_ui.py",
+      "line": 134,
+      "status": "used:pwa"
+    },
+    {
+      "path": "/challenge",
+      "file": "pwa_ui.py",
+      "line": 145,
+      "status": "used:pwa"
+    },
+    {
+      "path": "/login",
+      "file": "pwa_ui.py",
+      "line": 156,
+      "status": "used:auth"
+    },
+    {
+      "path": "/register",
+      "file": "pwa_ui.py",
+      "line": 163,
+      "status": "used:auth"
+    },
+    {
+      "path": "/auth/login",
+      "file": "pwa_ui.py",
+      "line": 170,
+      "status": "used:auth"
+    },
+    {
+      "path": "/auth/register",
+      "file": "pwa_ui.py",
+      "line": 248,
+      "status": "used:auth"
+    },
+    {
+      "path": "/auth/logout",
+      "file": "pwa_ui.py",
+      "line": 369,
+      "status": "used:auth"
+    },
+    {
+      "path": "/offline",
+      "file": "pwa_ui.py",
+      "line": 383,
+      "status": "used:pwa"
+    },
+    {
+      "path": "/partials/entries",
+      "file": "pwa_ui.py",
+      "line": 392,
+      "status": "used:pwa"
+    },
+    {
+      "path": "/ai-chat-test",
+      "file": "pwa_ui.py",
+      "line": 451,
+      "status": "used:pwa"
+    },
+    {
+      "path": "/ai-chat",
+      "file": "pwa_ui.py",
+      "line": 490,
+      "status": "used:pwa"
+    },
+    {
+      "path": "/expense",
+      "file": "pwa_ui.py",
+      "line": 507,
+      "status": "used:expense_contract"
+    },
+    {
+      "path": "/sw.js",
+      "file": "pwa_ui.py",
+      "line": 659,
+      "status": "used:pwa"
+    },
+    {
+      "path": "/manifest.webmanifest",
+      "file": "pwa_ui.py",
+      "line": 670,
+      "status": "used:pwa"
+    },
+    {
+      "path": "/api/backend/propose_expense",
+      "file": "routes_backend_assistant.py",
+      "line": 77,
+      "status": "used:expense_contract"
+    },
+    {
+      "path": "/api/backend/add_expense",
+      "file": "routes_backend_assistant.py",
+      "line": 135,
+      "status": "used:expense_contract"
+    },
+    {
+      "path": "/api/backend/delete_expense",
+      "file": "routes_backend_assistant.py",
+      "line": 277,
+      "status": "used:expense_contract"
+    },
+    {
+      "path": "/api/backend/get_totals",
+      "file": "routes_backend_assistant.py",
+      "line": 341,
+      "status": "used:expense_contract"
+    },
+    {
+      "path": "/api/backend/get_recent_expenses",
+      "file": "routes_backend_assistant.py",
+      "line": 392,
+      "status": "used:expense_contract"
+    },
+    {
+      "path": "/api/backend/uat_checklist",
+      "file": "routes_backend_assistant.py",
+      "line": 443,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/backend/schemas",
+      "file": "routes_backend_assistant.py",
+      "line": 474,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/backend/process_message",
+      "file": "routes_backend_assistant.py",
+      "line": 505,
+      "status": "used:expense_contract"
+    },
+    {
+      "path": "/api/backend/user_summary",
+      "file": "routes_backend_assistant.py",
+      "line": 564,
+      "status": "used:expense_contract"
+    },
+    {
+      "path": "/api/backend/user_expenses",
+      "file": "routes_backend_assistant.py",
+      "line": 616,
+      "status": "used:expense_contract"
+    },
+    {
+      "path": "/api/backend/health",
+      "file": "routes_backend_assistant.py",
+      "line": 669,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/pca/rules",
+      "file": "routes/pca_ui.py",
+      "line": 22,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/pca/transactions/<tx_id>/audit",
+      "file": "routes/pca_ui.py",
+      "line": 61,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/pca/dashboard/pca",
+      "file": "routes/pca_ui.py",
+      "line": 97,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/pca/rules/create",
+      "file": "routes/pca_api.py",
+      "line": 45,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/pca/rules/<rule_id>/toggle",
+      "file": "routes/pca_api.py",
+      "line": 146,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/pca/rules/<rule_id>/preview",
+      "file": "routes/pca_api.py",
+      "line": 223,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/pca/rules",
+      "file": "routes/pca_api.py",
+      "line": 258,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/pca/rules/<rule_id>",
+      "file": "routes/pca_api.py",
+      "line": 291,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/pca/corrections/create",
+      "file": "routes/pca_api.py",
+      "line": 320,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/pca/transactions/<tx_id>/effective",
+      "file": "routes/pca_api.py",
+      "line": 369,
+      "status": "used:admin"
+    },
+    {
+      "path": "/ops/quickscan",
+      "file": "routes/ops_quickscan.py",
+      "line": 11,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/audit/transactions/<tx_id>",
+      "file": "routes/audit_api.py",
+      "line": 55,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/audit/transactions/<tx_id>/compare",
+      "file": "routes/audit_api.py",
+      "line": 166,
+      "status": "used:admin"
+    },
+    {
+      "path": "/api/audit/health",
+      "file": "routes/audit_api.py",
+      "line": 238,
+      "status": "used:admin"
+    },
+    {
+      "path": "/metrics",
+      "file": "routes_telemetry.py",
+      "line": 14,
+      "status": "used:admin"
+    },
+    {
+      "path": "/admin/metrics",
+      "file": "routes_telemetry.py",
+      "line": 36,
+      "status": "used:admin"
+    }
+  ],
+  "models": [
+    {
+      "class": "Expense",
+      "file": "models.py",
+      "line": 12,
+      "table": "expenses",
+      "status": "used:expense_contract"
+    },
+    {
+      "class": "ExpenseEdit",
+      "file": "models.py",
+      "line": 51,
+      "table": "expense_edits",
+      "status": "used:expense_contract"
+    },
+    {
+      "class": "User",
+      "file": "models.py",
+      "line": 85,
+      "table": "users",
+      "status": "used:auth"
+    },
+    {
+      "class": "MonthlySummary",
+      "file": "models.py",
+      "line": 181,
+      "table": "monthly_summaries",
+      "status": "used:expense_contract"
+    },
+    {
+      "class": "RateLimit",
+      "file": "models.py",
+      "line": 198,
+      "table": "rate_limits",
+      "status": "used:admin"
+    },
+    {
+      "class": "UserMilestone",
+      "file": "models.py",
+      "line": 215,
+      "table": "user_milestones",
+      "status": "used:admin"
+    },
+    {
+      "class": "ReportFeedback",
+      "file": "models.py",
+      "line": 233,
+      "table": "report_feedback",
+      "status": "used:admin"
+    },
+    {
+      "class": "TelemetryEvent",
+      "file": "models.py",
+      "line": 252,
+      "table": "telemetry_events",
+      "status": "used:admin"
+    },
+    {
+      "class": "GrowthCounter",
+      "file": "models.py",
+      "line": 266,
+      "table": "growth_counters",
+      "status": "used:admin"
+    },
+    {
+      "class": "TransactionEffective",
+      "file": "models_pca.py",
+      "line": 12,
+      "table": "transactions_effective",
+      "status": "used:admin"
+    },
+    {
+      "class": "UserCorrection",
+      "file": "models_pca.py",
+      "line": 54,
+      "table": "user_corrections",
+      "status": "used:admin"
+    },
+    {
+      "class": "UserRule",
+      "file": "models_pca.py",
+      "line": 86,
+      "table": "user_rules",
+      "status": "used:admin"
+    },
+    {
+      "class": "InferenceSnapshot",
+      "file": "models_pca.py",
+      "line": 123,
+      "table": "inference_snapshots",
+      "status": "used:admin"
+    },
+    {
+      "class": "Base",
+      "file": "db_base.py",
+      "line": 4,
+      "table": null,
+      "status": "used:core"
+    }
+  ],
+  "blueprints": [
+    {
+      "name": "pca_api",
+      "file": "routes/pca_api.py",
+      "registered_in": "app.py",
+      "status": "used:admin"
+    },
+    {
+      "name": "pca_ui",
+      "file": "routes/pca_ui.py",
+      "registered_in": "app.py",
+      "status": "used:admin"
+    },
+    {
+      "name": "audit_api",
+      "file": "routes/audit_api.py",
+      "registered_in": "app.py",
+      "status": "used:admin"
+    },
+    {
+      "name": "assets_bp",
+      "file": "routes_assets.py",
+      "registered_in": "app.py",
+      "status": "used:admin"
+    },
+    {
+      "name": "redis_smoke_bp",
+      "file": "app/routes_redis_smoke.py",
+      "registered_in": "app.py",
+      "status": "used:admin"
+    },
+    {
+      "name": "admin_ops",
+      "file": "admin_ops.py",
+      "registered_in": "app.py",
+      "status": "used:admin"
+    },
+    {
+      "name": "coaching_bp",
+      "file": "app_coaching_endpoints.py",
+      "registered_in": "app.py",
+      "status": "used:admin"
+    },
+    {
+      "name": "quickscan_bp",
+      "file": "routes/ops_quickscan.py",
+      "registered_in": "app.py",
+      "status": "used:admin"
+    },
+    {
+      "name": "pwa_ui",
+      "file": "pwa_ui.py",
+      "registered_in": "app.py",
+      "status": "used:pwa_auth"
+    },
+    {
+      "name": "backend_api",
+      "file": "routes_backend_assistant.py",
+      "registered_in": "app.py",
+      "status": "used:expense_contract"
+    },
+    {
+      "name": "telemetry_bp",
+      "file": "routes_telemetry.py",
+      "registered_in": "app.py",
+      "status": "used:admin"
+    }
+  ],
+  "critical_files": [
+    {
+      "file": "app.py",
+      "status": "used:core",
+      "description": "Main Flask application with core routes and blueprint registration"
+    },
+    {
+      "file": "pwa_ui.py",
+      "status": "used:pwa_auth",
+      "description": "PWA UI routes and authentication endpoints"
+    },
+    {
+      "file": "routes_backend_assistant.py",
+      "status": "used:expense_contract",
+      "description": "Backend API for expense contract operations"
+    },
+    {
+      "file": "models.py",
+      "status": "used:expense_contract_auth",
+      "description": "Core data models for expenses and users"
+    },
+    {
+      "file": "models_pca.py",
+      "status": "used:admin",
+      "description": "PCA (Post-Completion Analysis) data models"
+    },
+    {
+      "file": "db_base.py",
+      "status": "used:core",
+      "description": "Database base configuration and SQLAlchemy setup"
+    },
+    {
+      "file": "utils/production_router.py",
+      "status": "used:core",
+      "description": "Core message routing logic"
+    },
+    {
+      "file": "_quarantine/finbrain_router_deprecated.py",
+      "status": "quarantined",
+      "description": "Legacy router functions, still imported by production_router.py"
+    }
+  ],
+  "quarantine_risks": [
+    {
+      "risk": "Production router depends on quarantined finbrain_router_deprecated.py",
+      "affected_files": ["utils/production_router.py"],
+      "impact": "High - Core routing functionality could fail",
+      "mitigation": "Extract contains_money functions to utils/production_router.py"
+    }
+  ],
+  "usage_summary": {
+    "auth": {
+      "routes": 4,
+      "models": 1,
+      "files": ["pwa_ui.py", "models.py"]
+    },
+    "pwa": {
+      "routes": 9,
+      "models": 0,
+      "files": ["pwa_ui.py"]
+    },
+    "expense_contract": {
+      "routes": 12,
+      "models": 3,
+      "files": ["routes_backend_assistant.py", "models.py", "app.py"]
+    },
+    "messenger": {
+      "routes": 1,
+      "models": 0,
+      "files": ["app.py"]
+    },
+    "admin": {
+      "routes": 35,
+      "models": 9,
+      "files": ["app.py", "routes/pca_api.py", "routes/pca_ui.py", "routes/audit_api.py", "routes/ops_quickscan.py", "routes_telemetry.py", "admin_ops.py", "models.py", "models_pca.py"]
+    },
+    "core": {
+      "routes": 4,
+      "models": 1,
+      "files": ["app.py", "db_base.py"]
+    },
+    "quarantined": {
+      "routes": 0,
+      "models": 0,
+      "files": ["_quarantine/finbrain_router_deprecated.py"]
+    }
+  }
+}
