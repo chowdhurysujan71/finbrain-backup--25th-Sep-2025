@@ -496,6 +496,7 @@ class ProductionRouter:
         try:
             from utils.lightweight_analytics import track_user_activity
             from models import User
+            from db_base import db
             user = db.session.query(User).filter_by(user_id_hash=user_hash).first()
             is_new_user = user is None or user.is_new if user else False
             track_user_activity(user_hash, is_new_user)

@@ -173,37 +173,37 @@ def auth_login():
     """
     Process user login by proxying to backend authentication API
     """
-    import requests
+    from models import User
+    from db_base import db
+    from werkzeug.security import check_password_hash
     from flask import session, request, jsonify
     
     try:
-        # Get login data
         data = request.get_json(silent=True) or {}
         
-        # Forward to backend authentication API
-        backend_url = f"http://localhost:5000/api/backend/login"
-        response = requests.post(
-            backend_url, 
-            json=data,
-            timeout=10,
-            cookies=request.cookies
-        )
+        email = data.get('email', '').lower().strip()
+        password = data.get('password', '')
         
-        # If login successful, extract user info from backend response
-        if response.status_code == 200:
-            result = response.json()
-            # Create local session based on backend response
-            if result.get('data', {}).get('user_id'):
-                session['user_id'] = result['data']['user_id']
-                session['email'] = data.get('email', '').lower().strip()
-                session['is_registered'] = True
+        if not email or not password:
+            return jsonify({"error": "Email and password required"}), 400
         
-        # Return backend response as-is
-        return jsonify(response.json()), response.status_code
+        user = User.query.filter_by(email=email).first()
+        if not user or not check_password_hash(user.password_hash, password):
+            return jsonify({"error": "Invalid credentials"}), 401
+        
+        # Create session
+        session['user_id'] = user.user_id_hash
+        session['email'] = email
+        session['is_registered'] = True
+        
+        return jsonify({
+            "success": True, 
+            "message": "Login successful",
+            "data": {"user_id": user.user_id_hash}
+        }), 200
         
     except Exception as e:
-        # Return requests library errors as server errors
-        return jsonify({"error": "Login service unavailable. Please try again."}), 503
+        return jsonify({"error": "Login failed. Please try again."}), 500
 
 @pwa_ui.route('/auth/register', methods=['POST'])
 @limiter.limit("3 per minute")
@@ -211,37 +211,67 @@ def auth_register():
     """
     Process user registration with comprehensive validation and standardized error handling
     """
-    import requests
+    from models import User
+    from db_base import db
+    from werkzeug.security import generate_password_hash
     from flask import session, request, jsonify
+    from utils.identity import psid_hash
+    import uuid
+    import time
     
     try:
-        # Get registration data
         data = request.get_json(silent=True) or {}
         
-        # Forward to backend authentication API
-        backend_url = f"http://localhost:5000/api/backend/register"
-        response = requests.post(
-            backend_url, 
-            json=data,
-            timeout=10,
-            cookies=request.cookies
-        )
+        email = data.get('email', '').lower().strip()
+        password = data.get('password', '')
+        name = data.get('name', '').strip()
         
-        # If registration successful, extract user info from backend response
-        if response.status_code == 200:
-            result = response.json()
-            # Create local session based on backend response
-            if result.get('data', {}).get('user_id'):
-                session['user_id'] = result['data']['user_id']
-                session['email'] = data.get('email', '').lower().strip()
-                session['is_registered'] = True
+        if not email or not password:
+            return jsonify({"error": "Email and password required"}), 400
         
-        # Return backend response as-is
-        return jsonify(response.json()), response.status_code
+        # Check if user exists
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            return jsonify({"error": "Account already exists"}), 409
+        
+        # Generate user hash
+        user_id = f"pwa_reg_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+        user_hash = psid_hash(user_id)
+        
+        # Create user
+        user = User()
+        user.user_id_hash = user_hash
+        user.email = email
+        user.password_hash = generate_password_hash(password)
+        user.name = name
+        user.platform = 'pwa'
+        user.first_name = name.split()[0] if name else ''
+        user.total_expenses = 0
+        user.expense_count = 0
+        user.daily_message_count = 0
+        user.hourly_message_count = 0
+        user.interaction_count = 0
+        user.onboarding_step = 0
+        user.consecutive_days = 0
+        user.reports_requested = 0
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        # Create session
+        session['user_id'] = user_hash
+        session['email'] = email
+        session['is_registered'] = True
+        
+        return jsonify({
+            "success": True,
+            "message": "Registration successful", 
+            "data": {"user_id": user_hash}
+        }), 200
         
     except Exception as e:
-        # Return requests library errors as server errors
-        return jsonify({"error": "Registration service unavailable. Please try again."}), 503
+        db.session.rollback()
+        return jsonify({"error": "Registration failed. Please try again."}), 500
 
 @pwa_ui.route('/auth/logout', methods=['POST'])
 def auth_logout():
