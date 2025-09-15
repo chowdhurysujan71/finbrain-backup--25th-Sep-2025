@@ -13,6 +13,7 @@ from typing import Dict, Any
 
 # Configuration (override via ENV)
 BASE_URL = os.getenv("BASE_URL", "http://localhost:5000/api/backend")
+WEB_BASE_URL = BASE_URL.replace('/api/backend', '')
 SESSION_COOKIE = os.getenv("SESSION_COOKIE", "")
 CANARY_DESC = os.getenv("CANARY_DESC", "uat canary coffee")
 CANARY_AMOUNT_MAJOR = os.getenv("CANARY_AMOUNT_MAJOR", "123")
@@ -28,19 +29,47 @@ def post_json(url: str, data: Dict[str, Any], headers: Dict[str, str]) -> reques
         return requests.post(url, json=data, headers=headers, timeout=30)
     except requests.exceptions.RequestException as e:
         fail(f"Network error: {e}")
+        # This line is never reached due to fail() calling sys.exit()
+        # but needed for type checker
+        raise
 
 def expect_status(response: requests.Response, expected: int, operation: str) -> None:
     if response.status_code != expected:
         body = response.text[:500]
         fail(f"{operation} HTTP {response.status_code} != {expected} | Body: {body}")
+    return  # Explicit return for clarity
+
+def create_test_session() -> str:
+    """Create a test user and return session cookie"""
+    print("Creating test session...")
+    
+    # Create test user
+    register_data = {
+        "email": f"smoke_test_{int(datetime.now().timestamp())}@test.com",
+        "password": "SmokeTe5t!Pass",
+        "name": "Smoke Test User"
+    }
+    
+    register_resp = requests.post(f"{WEB_BASE_URL}/auth/register", 
+                                 json=register_data, timeout=30)
+    
+    if register_resp.status_code not in [200, 409]:  # 200 = created, 409 = already exists
+        fail(f"Failed to create test user: {register_resp.status_code} - {register_resp.text[:200]}")
+    
+    # Extract session cookie from response
+    for cookie in register_resp.headers.get('Set-Cookie', '').split(';'):
+        if cookie.strip().startswith('session='):
+            return cookie.strip()
+    
+    fail("No session cookie received from registration")
 
 def main() -> None:
-    if not SESSION_COOKIE:
-        fail("SESSION_COOKIE environment variable is required")
+    # Use provided SESSION_COOKIE or create new test session
+    session_cookie = SESSION_COOKIE or create_test_session()
     
     headers = {
         "Content-Type": "application/json",
-        "Cookie": SESSION_COOKIE
+        "Cookie": session_cookie
     }
     
     print("🚀 Frozen Contract Smoke Test")

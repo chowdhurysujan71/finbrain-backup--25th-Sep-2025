@@ -247,7 +247,10 @@ def api_add_expense(authenticated_user_id):
             }
         })
         
-        return jsonify(success_response(result, "Expense added successfully", {"trace_id": trace_id}))
+        # Merge trace_id into result data for consistent response format
+        enhanced_result = dict(result)
+        enhanced_result["trace_id"] = trace_id
+        return jsonify(success_response(enhanced_result, "Expense added successfully"))
         
     except Exception as e:
         latency = int((time.time() - start) * 1000)
