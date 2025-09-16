@@ -48,12 +48,14 @@
     }
   }
 
-  form.addEventListener("submit", async (ev) => {
-    ev.preventDefault(); clearErr();
-    const text = (input.value || "").trim();
-    if (!text) return;
-    addMsg("user", text);
-    busy(true);
+  // Prevent double event bindings after re-renders
+  if (!window.__chatBound) {
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault(); clearErr();
+      const text = (input.value || "").trim();
+      if (!text) return;
+      addMsg("user", text);
+      busy(true);
     try {
       const parsed = await j("/api/backend/propose_expense", { text });
       const {data: p} = parsed; // Unwrap standardized response envelope
@@ -90,11 +92,14 @@
     } finally {
       busy(false); input.value = ""; input.focus();
     }
-  });
+    });
 
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit?.() || form.submit(); }
-  });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit?.() || form.submit(); }
+    });
+    
+    window.__chatBound = true;
+  }
 
   busy(false); clearErr(); refreshRecent();
 })();
