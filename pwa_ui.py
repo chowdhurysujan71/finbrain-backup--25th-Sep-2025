@@ -196,11 +196,25 @@ def auth_login():
         session['email'] = email
         session['is_registered'] = True
         
-        return jsonify({
+        # Create response with proper cookie setting
+        resp = jsonify({
             "success": True, 
             "message": "Login successful",
             "data": {"user_id": user.user_id_hash}
-        }), 200
+        })
+        
+        # Set secure session cookie (as specified by user)
+        resp.set_cookie(
+            "session",
+            user.user_id_hash,           # Use user_id_hash as session token
+            httponly=True,
+            secure=True,                 # Replit URL is https, keep True
+            samesite="Lax",             # Lax for same-site requests
+            max_age=60*60*24*30,        # 30 days
+            path="/"
+        )
+        
+        return resp, 200
         
     except Exception as e:
         return jsonify({"error": "Login failed. Please try again."}), 500

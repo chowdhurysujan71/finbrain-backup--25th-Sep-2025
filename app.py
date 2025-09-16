@@ -97,8 +97,12 @@ app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 7  # 7 days
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configure CORS and rate limiting
-CORS(app, resources={r"/ai-chat": {"origins": [os.getenv("APP_ORIGIN", "http://localhost:5000")]}})
+# Configure CORS and rate limiting - Support credentials for all API endpoints
+CORS(app, supports_credentials=True, resources={
+    r"/api/*": {"origins": ["*"]},  # All API endpoints
+    r"/ai-chat": {"origins": [os.getenv("APP_ORIGIN", "http://localhost:5000")]},
+    r"/auth/*": {"origins": ["*"]}  # Auth endpoints
+})
 from utils.rate_limiting import limiter
 limiter.init_app(app)
 
