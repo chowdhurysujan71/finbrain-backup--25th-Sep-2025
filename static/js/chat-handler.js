@@ -58,8 +58,14 @@
       const parsed = await j("/api/backend/propose_expense", { text });
       let saved;
       try {
-        saved = await j("/api/backend/add_expense", { description: text, source: "chat" });
-        addMsg("bot", `Saved ${(saved.amount_minor/100).toFixed(2)} BDT as ${parsed.category || "uncategorized"}.`);
+        saved = await j("/api/backend/add_expense", { 
+          description: text, 
+          source: "chat",
+          amount_minor: parsed.amount_minor,
+          currency: parsed.currency || "BDT",
+          category: parsed.category
+        });
+        addMsg("bot", `Saved ${(saved.amount_minor/100).toFixed(2)} BDT as ${saved.category || "uncategorized"}.`);
         await refreshRecent();
       } catch (e) {
         if (String(e.message).includes("401")) {
