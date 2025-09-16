@@ -127,7 +127,13 @@ def before_request():
 
 @app.after_request
 def after_request(response):
-    """Log request completion with structured JSON format"""
+    """Log request completion with structured JSON format and add cache control for APIs"""
+    # Add no-cache headers for all API endpoints to prevent stale cached responses
+    if request.path.startswith('/api/') or request.path.startswith('/ai-chat'):
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, proxy-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    
     if hasattr(g, 'start_time') and hasattr(g, 'request_id') and hasattr(g, 'logging_handled'):
         try:
             duration_ms = (time.time() - g.start_time) * 1000
