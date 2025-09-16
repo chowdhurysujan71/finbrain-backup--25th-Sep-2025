@@ -111,7 +111,9 @@ from utils.logger import structured_logger
 
 @app.before_request
 def before_request():
-    """Capture request start time, generate request_id, and set user context"""
+    """Capture request start time, generate request_id, set user context, and enforce auth"""
+    import os
+    from flask import request, jsonify
     from auth_helpers import get_user_id_from_session
     
     g.start_time = time.time()
@@ -120,6 +122,19 @@ def before_request():
     
     # SINGLE-SOURCE-OF-TRUTH: Set authenticated user context from session only
     g.user_id = get_user_id_from_session()
+    
+    # SECURITY GUARDRAIL: Block writes when no authenticated user (unless dev mode)
+    is_write_method = request.method in ['POST', 'PUT', 'PATCH', 'DELETE']
+    is_api_route = request.path.startswith('/api/')
+    allow_guest_writes = os.environ.get('ALLOW_GUEST_WRITES', 'false').lower() == 'true'
+    
+    if is_write_method and is_api_route and not g.user_id and not allow_guest_writes:
+        return jsonify({
+            'success': False,
+            'error': 'Authentication required',
+            'error_code': 'AUTH_REQUIRED',
+            'trace_id': g.request_id
+        }), 401
     
     # Check if existing logger already handles this to avoid duplication
     if not hasattr(g, 'logging_handled'):
@@ -152,6 +167,13 @@ def after_request(response):
                 "status": response.status_code,
                 "latency_ms": round(duration_ms, 2)
             }
+            
+            # ENHANCED TELEMETRY: For /api/backend/* routes, log detailed auth context
+            if request.path.startswith('/api/backend/'):
+                log_data["route"] = request.path
+                log_data["resolved_user_id"] = getattr(g, 'user_id', None) or "anonymous"
+                log_data["corr_id"] = g.request_id
+                log_data["api_backend_request"] = True
             
             # Only log authenticated session user_id for security traceability
             if session_user_id:
