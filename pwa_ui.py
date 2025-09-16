@@ -344,28 +344,86 @@ def auth_logout():
         'redirect': '/login'
     })
 
+@pwa_ui.route('/api/auth/generate-guest-token', methods=['POST'])
+@limiter.limit("20 per minute")
+def generate_guest_token():
+    """
+    Generate a secure link token for a guest ID
+    Called by PWA when creating guest sessions
+    """
+    from utils.guest_tokens import generate_guest_token as create_token
+    from flask import request, jsonify
+    
+    try:
+        data = request.get_json(silent=True) or {}
+        guest_id = data.get('guest_id', '').strip()
+        
+        if not guest_id:
+            return jsonify({"error": "Guest ID is required"}), 400
+        
+        # Validate guest ID format (prevent abuse)
+        if not guest_id.startswith('pwa_user_') or len(guest_id) > 100:
+            return jsonify({"error": "Invalid guest ID format"}), 400
+        
+        # Generate secure token
+        token = create_token(guest_id, validity_hours=720)  # 30 days
+        
+        logger.info(f"Generated secure token for guest {guest_id[:12]}***")
+        
+        return jsonify({
+            "ok": True,
+            "guest_id": guest_id,
+            "link_token": token
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Token generation error: {e}")
+        return jsonify({"error": "Token generation failed"}), 500
+
 @pwa_ui.route('/api/auth/link-guest', methods=['POST'])
 @limiter.limit("10 per minute")
 def link_guest_data():
     """
-    Link guest expense data to authenticated user account
+    Link guest expense data to authenticated user account (SECURE VERSION)
+    Requires valid guest ID and cryptographic link token to prevent unauthorized access
     Transfers all guest expenses to the authenticated user's account
     """
     from models import Expense
     from db_base import db
     from flask import request, jsonify
     from utils.identity import psid_hash
+    from utils.guest_tokens import verify_guest_token, mark_token_as_used, is_token_recently_used
     
     try:
         # Ensure user is authenticated
         user = require_auth()
         
-        # Get guest ID from request
+        # Get guest ID and link token from request
         data = request.get_json(silent=True) or {}
         guest_id = data.get('guest_id', '').strip()
+        link_token = data.get('link_token', '').strip()
         
+        # Validate required parameters
         if not guest_id:
             return jsonify({"error": "Guest ID is required"}), 400
+        
+        if not link_token:
+            return jsonify({"error": "Link token is required for security"}), 400
+        
+        # Verify the guest token
+        is_valid, token_data = verify_guest_token(link_token, guest_id)
+        if not is_valid:
+            logger.warning(f"Invalid guest token attempt from user {user.user_id_hash[:8]}*** for guest {guest_id[:8]}***: {token_data.get('error', 'Unknown error')}")
+            return jsonify({
+                "error": "Invalid or expired link token",
+                "details": "Guest data merge requires valid authentication token"
+            }), 401
+        
+        # Check for token reuse (basic replay protection)
+        token_nonce = token_data.get('nonce', '')
+        if token_nonce and is_token_recently_used(guest_id, token_nonce):
+            logger.warning(f"Token reuse attempt from user {user.user_id_hash[:8]}*** for guest {guest_id[:8]}***")
+            return jsonify({"error": "Token has already been used"}), 401
         
         # Generate guest hash for database lookup
         guest_hash = psid_hash(guest_id)
@@ -395,15 +453,20 @@ def link_guest_data():
             })
             expenses_updated += unhashed_count
             
+            # Mark token as used to prevent replay attacks (before committing)
+            if token_nonce:
+                mark_token_as_used(guest_id, token_nonce)
+            
             # Commit the transaction
             db.session.commit()
             
-            logger.info(f"Guest data merged: {expenses_updated} expenses transferred from guest {guest_id[:8]}*** to user {user.user_id_hash[:8]}***")
+            logger.info(f"SECURE Guest data merged: {expenses_updated} expenses transferred from guest {guest_id[:8]}*** to user {user.user_id_hash[:8]}*** with verified token")
             
             return jsonify({
                 "ok": True,
                 "expenses_merged": expenses_updated,
-                "message": f"Successfully merged {expenses_updated} expenses"
+                "message": f"Successfully merged {expenses_updated} expenses",
+                "security": "Token verified and invalidated"
             }), 200
             
         except Exception as db_error:

@@ -30,15 +30,64 @@
     }
     
     // User Session Management for PWA
-    function initializeUserSession() {
+    async function initializeUserSession() {
         // Get or create persistent user ID for anonymous PWA users
         let userId = localStorage.getItem('finbrain_user_id');
+        let linkToken = localStorage.getItem('finbrain_link_token');
+        
         if (!userId) {
             userId = `pwa_user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            localStorage.setItem('finbrain_user_id', userId);
             console.log('[PWA] Created new user ID:', userId);
+            
+            // Generate secure link token for this guest ID
+            try {
+                const tokenResponse = await fetch('/api/auth/generate-guest-token', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ guest_id: userId })
+                });
+                
+                if (tokenResponse.ok) {
+                    const tokenData = await tokenResponse.json();
+                    linkToken = tokenData.link_token;
+                    
+                    // Store both values in localStorage
+                    localStorage.setItem('finbrain_user_id', userId);
+                    localStorage.setItem('finbrain_link_token', linkToken);
+                    
+                    console.log('[PWA] Generated secure guest session with token');
+                } else {
+                    // Fallback: store guest ID without token (reduced security but functional)
+                    localStorage.setItem('finbrain_user_id', userId);
+                    console.warn('[PWA] Failed to generate secure token, using guest ID only');
+                }
+            } catch (error) {
+                // Network error - store guest ID for now, can retry token generation later
+                localStorage.setItem('finbrain_user_id', userId);
+                console.warn('[PWA] Network error generating token:', error.message);
+            }
         } else {
             console.log('[PWA] Using existing user ID:', userId);
+            // Check if we have a token, generate one if missing
+            if (!linkToken) {
+                console.log('[PWA] Generating missing link token for existing guest');
+                try {
+                    const tokenResponse = await fetch('/api/auth/generate-guest-token', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ guest_id: userId })
+                    });
+                    
+                    if (tokenResponse.ok) {
+                        const tokenData = await tokenResponse.json();
+                        linkToken = tokenData.link_token;
+                        localStorage.setItem('finbrain_link_token', linkToken);
+                        console.log('[PWA] Generated missing link token');
+                    }
+                } catch (error) {
+                    console.warn('[PWA] Could not generate link token:', error.message);
+                }
+            }
         }
         
         // Set up HTMX to send user ID with all requests
@@ -62,8 +111,9 @@
             }
         });
         
-        // Store user ID globally for other functions to use
+        // Store user ID and token globally for other functions to use
         window.finbrainUserId = userId;
+        window.finbrainLinkToken = linkToken;
     }
     
     // Service Worker Registration
