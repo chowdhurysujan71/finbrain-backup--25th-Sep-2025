@@ -40,7 +40,7 @@
           "X-User-ID": getUserId() // Send consistent user ID
         },
         body: JSON.stringify({ text }),
-        signal: ctrl.signal,
+        signal: ctrl.signal
       });
 
       if (!res.ok) {
