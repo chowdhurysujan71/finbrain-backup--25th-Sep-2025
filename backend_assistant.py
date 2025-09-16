@@ -221,7 +221,8 @@ def add_expense(user_id: str, amount_minor: int, currency: str, category: str,
                 "category": category,
                 "description": description,
                 "source": source,
-                "idempotency_key": idempotency_key
+                "idempotency_key": idempotency_key,
+                "status": result.get('status', 'created')
             }
         else:
             raise Exception("Failed to create expense")
