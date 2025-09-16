@@ -56,24 +56,31 @@
     busy(true);
     try {
       const parsed = await j("/api/backend/propose_expense", { text });
-      let saved;
-      try {
-        saved = await j("/api/backend/add_expense", { 
-          description: text, 
-          source: "chat",
-          amount_minor: parsed.amount_minor,
-          currency: parsed.currency || "BDT",
-          category: parsed.category
-        });
-        addMsg("bot", `Saved ${(saved.amount_minor/100).toFixed(2)} BDT as ${saved.category || "uncategorized"}.`);
-        await refreshRecent();
-      } catch (e) {
-        if (String(e.message).includes("401")) {
-          addMsg("bot", `Parsed ${(parsed.amount_minor/100).toFixed(2)} BDT as ${parsed.category || "uncategorized"}. Log in to save.`);
-        } else {
-          showErr("Couldn't save that right now. Please try again.");
-          console.error(e);
+      
+      // Check if this is actually an expense (has amount and reasonable confidence)
+      if (parsed.amount_minor && parsed.confidence > 0.5) {
+        let saved;
+        try {
+          saved = await j("/api/backend/add_expense", { 
+            description: text, 
+            source: "chat",
+            amount_minor: parsed.amount_minor,
+            currency: parsed.currency || "BDT",
+            category: parsed.category
+          });
+          addMsg("bot", `Saved ${(saved.amount_minor/100).toFixed(2)} BDT as ${saved.category || "uncategorized"}.`);
+          await refreshRecent();
+        } catch (e) {
+          if (String(e.message).includes("401")) {
+            addMsg("bot", `Parsed ${(parsed.amount_minor/100).toFixed(2)} BDT as ${parsed.category || "uncategorized"}. Log in to save.`);
+          } else {
+            showErr("Couldn't save that right now. Please try again.");
+            console.error(e);
+          }
         }
+      } else {
+        // Not an expense - show a helpful response
+        addMsg("bot", "I can help you log expenses like 'I spent 200 taka on groceries' or analyze your spending. What would you like to do?");
       }
     } catch (e) {
       showErr("Sorry, I couldn't parse that message.");
