@@ -13,6 +13,25 @@ logger = logging.getLogger(__name__)
 
 pwa_ui = Blueprint('pwa_ui', __name__)
 
+def require_auth():
+    """Helper function to ensure user is authenticated via session"""
+    from models import User
+    from flask import session, abort
+    
+    # Check if user is logged in via session
+    user_id_hash = session.get('user_id')
+    if not user_id_hash:
+        abort(401)
+    
+    # Find user in database
+    user = User.query.filter_by(user_id_hash=user_id_hash).first()
+    if not user:
+        # Session is invalid, clear it
+        session.clear()
+        abort(401)
+    
+    return user
+
 # Safe JSON helper function
 def _json():
     """Safely get JSON from request, return empty dict if parsing fails"""
@@ -324,6 +343,78 @@ def auth_logout():
         'message': 'Logged out successfully',
         'redirect': '/login'
     })
+
+@pwa_ui.route('/api/auth/link-guest', methods=['POST'])
+@limiter.limit("10 per minute")
+def link_guest_data():
+    """
+    Link guest expense data to authenticated user account
+    Transfers all guest expenses to the authenticated user's account
+    """
+    from models import Expense
+    from db_base import db
+    from flask import request, jsonify
+    from utils.identity import psid_hash
+    
+    try:
+        # Ensure user is authenticated
+        user = require_auth()
+        
+        # Get guest ID from request
+        data = request.get_json(silent=True) or {}
+        guest_id = data.get('guest_id', '').strip()
+        
+        if not guest_id:
+            return jsonify({"error": "Guest ID is required"}), 400
+        
+        # Generate guest hash for database lookup
+        guest_hash = psid_hash(guest_id)
+        
+        # Begin database transaction for safety
+        try:
+            # Check for expenses with both hashed and unhashed guest IDs for backward compatibility
+            expenses_updated = 0
+            
+            # First try with hashed guest ID
+            hashed_count = db.session.query(Expense).filter(
+                Expense.user_id_hash == guest_hash
+            ).update({
+                'user_id_hash': user.user_id_hash,
+                'user_id': user.user_id_hash,  # Also update legacy user_id field
+                'platform': 'pwa'  # Ensure platform is consistent
+            })
+            expenses_updated += hashed_count
+            
+            # Then try with unhashed guest ID (for backward compatibility)
+            unhashed_count = db.session.query(Expense).filter(
+                Expense.user_id_hash == guest_id
+            ).update({
+                'user_id_hash': user.user_id_hash,
+                'user_id': user.user_id_hash,  # Also update legacy user_id field
+                'platform': 'pwa'  # Ensure platform is consistent
+            })
+            expenses_updated += unhashed_count
+            
+            # Commit the transaction
+            db.session.commit()
+            
+            logger.info(f"Guest data merged: {expenses_updated} expenses transferred from guest {guest_id[:8]}*** to user {user.user_id_hash[:8]}***")
+            
+            return jsonify({
+                "ok": True,
+                "expenses_merged": expenses_updated,
+                "message": f"Successfully merged {expenses_updated} expenses"
+            }), 200
+            
+        except Exception as db_error:
+            # Rollback on database error
+            db.session.rollback()
+            logger.error(f"Database error during guest data merge: {db_error}")
+            return jsonify({"error": "Failed to merge guest data"}), 500
+            
+    except Exception as e:
+        logger.error(f"Error in link_guest_data: {e}")
+        return jsonify({"error": "Failed to process guest data linking"}), 500
 
 @pwa_ui.route('/offline')
 def offline():

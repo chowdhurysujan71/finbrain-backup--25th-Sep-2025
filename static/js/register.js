@@ -35,6 +35,31 @@ document.addEventListener('DOMContentLoaded', () => {
       if (err) { err.textContent = msg; err.style.display = 'block'; }
       return;
     }
+
+    // Handle guest data merging if guest ID exists
+    const guestId = localStorage.getItem('GUEST_ID');
+    if (guestId) {
+      try {
+        const linkRes = await fetch('/api/auth/link-guest', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          credentials: 'include',
+          body: JSON.stringify({ guest_id: guestId })
+        });
+        
+        if (linkRes.ok) {
+          const linkData = await linkRes.json().catch(() => ({}));
+          console.log('Guest data merged:', linkData);
+          // Remove guest ID after successful linking
+          localStorage.removeItem('GUEST_ID');
+        } else {
+          console.warn('Failed to merge guest data, but registration successful');
+        }
+      } catch (linkError) {
+        console.warn('Error merging guest data:', linkError);
+      }
+    }
+
     location.href = '/chat';
   });
 });
