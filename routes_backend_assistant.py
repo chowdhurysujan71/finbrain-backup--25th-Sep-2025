@@ -149,19 +149,20 @@ def api_add_expense(authenticated_user_id):
     try:
         data = request.get_json() or {}
         
-        # Validate required fields
-        required_fields = ['amount_minor', 'currency', 'category', 'description', 'source']
+        # Essential fields - description and source are always required
+        essential_fields = ['description', 'source']
         field_errors = {}
         
-        for field in required_fields:
+        for field in essential_fields:
             if not data.get(field):
-                if field == 'amount_minor':
-                    field_errors[field] = "amount_minor is required and must be a positive integer"
-                else:
-                    field_errors[field] = f"{field} is required"
+                field_errors[field] = f"{field} is required"
         
-        # Validate amount_minor specifically
+        # Optional structured fields - if not provided, will be parsed from description
         amount_minor = data.get('amount_minor')
+        currency = data.get('currency')
+        category = data.get('category')
+        
+        # Validate amount_minor if provided
         if amount_minor is not None:
             if not isinstance(amount_minor, int) or amount_minor <= 0:
                 field_errors['amount_minor'] = "amount_minor must be a positive integer (cents)"
@@ -181,10 +182,9 @@ def api_add_expense(authenticated_user_id):
             )
             return jsonify(response), status_code
         
-        # Extract fields
-        currency = data['currency']
-        category = data['category']
+        # Extract fields (only description and source are required)
         description = data['description']
+        source = data['source']
         message_id = data.get('message_id')  # Optional
         
         # Call add_expense function with server-side field generation
@@ -201,12 +201,17 @@ def api_add_expense(authenticated_user_id):
         # Log successful expense creation with structured metrics
         latency = int((time.time() - start) * 1000)
         
+        # Extract actual values from result (post-parsing)
+        actual_amount_minor = result.get("amount_minor", 0)
+        actual_category = result.get("category", "unknown")
+        actual_currency = currency or result.get("currency", "BDT")
+        
         # Step 4: Structured JSON metrics logging to stdout (12-factor)
         print(json.dumps({
             "evt":"add_expense",
             "trace_id": trace_id,
             "user_id_hash": authenticated_user_id,
-            "amount_minor": int(amount_minor),
+            "amount_minor": actual_amount_minor,
             "source": source,
             "latency_ms": latency,
             "status":"ok"
@@ -215,17 +220,17 @@ def api_add_expense(authenticated_user_id):
         # Enhanced structured metrics logging
         metrics_data = {
             "user_prefix": authenticated_user_id[:8] + "***",
-            "amount_minor": amount_minor,
-            "category": category,
+            "amount_minor": actual_amount_minor,
+            "category": actual_category,
             "source": source,
             "has_message_id": bool(message_id),
             "response_time_ms": latency,
             # Additional structured metrics
-            "amount_major": amount_minor / 100,
-            "currency": currency,
-            "expense_id": result["expense_id"],
-            "correlation_id": result["correlation_id"][:8] + "...",
-            "idempotency_key_prefix": result["idempotency_key"][:12] + "...",
+            "amount_major": int(actual_amount_minor) / 100 if actual_amount_minor else 0,
+            "currency": actual_currency,
+            "expense_id": result.get("expense_id"),
+            "correlation_id": str(result.get("correlation_id", ""))[:8] + "...",
+            "idempotency_key_prefix": str(result.get("idempotency_key", ""))[:12] + "...",
             "timestamp": datetime.utcnow().isoformat(),
             "endpoint": "/api/backend/add_expense",
             "operation": "create_expense"
@@ -238,10 +243,10 @@ def api_add_expense(authenticated_user_id):
             "structured_metrics": {
                 "event_type": "expense_creation",
                 "user_id_hash": authenticated_user_id,
-                "amount_bdt": amount_minor / 100,
-                "category": category,
+                "amount_bdt": int(actual_amount_minor) / 100 if actual_amount_minor else 0,
+                "category": actual_category,
                 "source_channel": source,
-                "expense_id": result["expense_id"],
+                "expense_id": result.get("expense_id"),
                 "processing_time_ms": latency,
                 "success": True
             }

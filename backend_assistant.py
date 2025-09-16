@@ -138,23 +138,24 @@ def sha256(s: str) -> str:
     import hashlib
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
 
-def add_expense(user_id: str, amount_minor: int, currency: str, category: str, 
-                description: str, source: str, message_id: str | None = None) -> Dict[str, Union[str, int, None]]:
+def add_expense(user_id: str, amount_minor: int | None = None, currency: str | None = None, category: str | None = None, 
+                description: str | None = None, source: str | None = None, message_id: str | None = None) -> Dict[str, Union[str, int, None]]:
     """
     Add expense with server-side field generation according to frozen contract.
+    Supports both structured input and description-only parsing.
     
     Server sets:
     - idempotency_key = "api:" + sha256(user_id|message_id|amount|timestamp)
-    - amount_minor (validated input)
+    - amount_minor (validated input or parsed)
     - correlation_id = uuid4()
     - source in {'chat','form','messenger'}
     
     Args:
         user_id: Authenticated user ID (from session)
-        amount_minor: Amount in minor units (cents)
-        currency: Currency code
-        category: Expense category
-        description: Expense description
+        amount_minor: Amount in minor units (cents) - optional if description provided
+        currency: Currency code - optional if description provided
+        category: Expense category - optional if description provided
+        description: Expense description - required
         source: Source type ('chat', 'form', 'messenger')
         message_id: Message ID (for messenger-like inserts)
     
@@ -168,9 +169,35 @@ def add_expense(user_id: str, amount_minor: int, currency: str, category: str,
     from utils.db import create_expense
     
     try:
-        # Validate required fields
+        # Validate essential fields
+        if not user_id or not description or not source:
+            raise ValueError("user_id, description, and source are required")
+        
+        # Check if we need to parse the description
+        if not amount_minor or not currency or not category:
+            # Use propose_expense to parse the description
+            parsed_data = propose_expense(description)
+            
+            # Extract parsed fields if available
+            if not amount_minor:
+                parsed_amount = parsed_data.get('amount_minor')
+                amount_minor = int(parsed_amount) if parsed_amount is not None else None
+            if not currency:
+                parsed_currency = parsed_data.get('currency', 'BDT')
+                currency = str(parsed_currency) if parsed_currency is not None else 'BDT'
+            if not category:
+                parsed_category = parsed_data.get('category')
+                category = str(parsed_category) if parsed_category is not None else None
+            
+            # Validate that parsing succeeded
+            if not amount_minor:
+                raise ValueError("Could not parse amount from description")
+            if not category:
+                category = "uncategorized"  # Default fallback
+        
+        # Validate required fields after parsing
         if not all([user_id, amount_minor, currency, category, description, source]):
-            raise ValueError("All fields are required")
+            raise ValueError("All fields are required (after parsing)")
         
         # Validate source
         if source not in {'chat', 'form', 'messenger'}:
