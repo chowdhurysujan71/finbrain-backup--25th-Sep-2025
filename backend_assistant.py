@@ -129,6 +129,15 @@ def propose_expense(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
             "confidence": 0.0
         }
 
+def canonical(s: str) -> str:
+    """Canonicalize string for deterministic hashing."""
+    return " ".join((s or "").strip().lower().split())
+
+def sha256(s: str) -> str:
+    """Helper function for SHA-256 hashing."""
+    import hashlib
+    return hashlib.sha256(s.encode("utf-8")).hexdigest()
+
 def add_expense(user_id: str, amount_minor: int, currency: str, category: str, 
                 description: str, source: str, message_id: str = None) -> Dict[str, Union[str, int, None]]:
     """
@@ -174,16 +183,18 @@ def add_expense(user_id: str, amount_minor: int, currency: str, category: str,
         # Server-side field generation
         correlation_id = str(uuid.uuid4())
         
-        # Generate unique message_id if not provided (for repeatability)
-        if not message_id:
-            message_id = f"{source}_{uuid.uuid4()}"
-            
-        # Generate idempotency_key with sha256
-        timestamp = str(int(datetime.utcnow().timestamp()))
-        amount_str = str(amount_minor)
-        hash_input = f"{user_id}|{message_id}|{amount_str}|{timestamp}"
-        idempotency_hash = hashlib.sha256(hash_input.encode()).hexdigest()
-        idempotency_key = f"api:{idempotency_hash}"
+        # Generate deterministic idempotency key (FIXED: no randomness/time)
+        tx_day = datetime.utcnow().strftime("%Y-%m-%d")
+        desc_canon = canonical(description)
+        
+        if message_id:  # e.g., Messenger 'mid' or UI-provided message_id
+            stable_message_id = message_id
+        else:
+            # Derive stable message_id from deterministic inputs only
+            stable_message_id = sha256(f"{user_id}|{source}|{desc_canon}|{amount_minor}|{tx_day}")
+        
+        # Generate deterministic idempotency_key
+        idempotency_key = "api:" + sha256(f"{user_id}|{source}|{stable_message_id}")
         
         # Convert amount_minor to decimal amount
         amount_decimal = Decimal(amount_minor) / 100
@@ -195,7 +206,7 @@ def add_expense(user_id: str, amount_minor: int, currency: str, category: str,
             currency=currency,
             category=category,
             occurred_at=datetime.utcnow(),
-            source_message_id=message_id,
+            source_message_id=stable_message_id,
             correlation_id=correlation_id,
             notes=description
         )

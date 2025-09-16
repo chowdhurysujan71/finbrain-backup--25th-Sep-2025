@@ -137,6 +137,28 @@ def create_expense(user_id, amount, currency, category, occurred_at, source_mess
         
     except Exception as e:
         db.session.rollback()
+        
+        # Handle idempotency: if duplicate mid detected, return existing expense
+        if "ux_expenses_psid_mid" in str(e) and "duplicate key value" in str(e):
+            logger.info(f"Idempotency: returning existing expense for user {user_id[:10]}*** mid {source_message_id[:10]}***")
+            
+            # Find and return the existing expense
+            existing_expense = Expense.query.filter_by(
+                user_id_hash=user_id,
+                mid=source_message_id
+            ).first()
+            
+            if existing_expense:
+                return {
+                    'expense_id': existing_expense.id,
+                    'correlation_id': existing_expense.correlation_id,
+                    'occurred_at': existing_expense.created_at.isoformat(),
+                    'category': existing_expense.category,
+                    'amount': float(existing_expense.amount),
+                    'currency': existing_expense.currency,
+                    'description': existing_expense.description
+                }
+        
         logger.error(f"create_expense failed: {e}")
         raise
 
