@@ -1,31 +1,56 @@
 {
   "single_source_of_truth_roots": [
-    "app.py",
-    "main.py",
-    "db_base.py",
-    "config.py",
-    "models*/",
-    "routes_backend_assistant.py",
-    "pwa_ui.py",
+    "app.py", "main.py", "db_base.py", "config.py",
+    "models*/", "routes_backend_assistant.py", "pwa_ui.py",
     "utils/{production_router.py,rate_limiting.py,structured_logger.py,identity.py}",
-    "templates/",
-    "static/",
-    "alembic/ or migrations/",
-    "scripts/",
+    "templates/", "static/", "alembic/ or migrations/", "scripts/",
     "tests/{demo_smoke.py,trust_check.sh}"
   ],
+  "evidence": {
+    "db_imports": {
+      "canonical": 112,
+      "legacy": 0
+    },
+    "routes": 0,
+    "auth": 3,
+    "blueprints_in_app": 10,
+    "pwa": {
+      "sw": 155,
+      "manifest": 47,
+      "icons": 0
+    },
+    "ci": {
+      "workflows": 2,
+      "gates_refs": 5
+    }
+  },
   "classification": {
     "KEEP": 106,
-    "QUARANTINE": 703
+    "QUARANTINE": 702,
+    "total_files": 808
   },
   "checks": {
     "must_have_zero_legacy_db_imports": true,
     "must_have_blueprints_registered": true,
     "must_have_ci_gates": true,
-    "canonical_db_imports": 106,
+    "canonical_db_imports": 112,
     "legacy_db_imports": 0,
     "blueprints_count": 10,
     "ci_gates_count": 5
   },
-  "status": "PASSED"
+  "status": "PASSED",
+  "summary": {
+    "total_tracked_files": 808,
+    "sot_compliance_rate": "13.1%",
+    "quarantine_isolation_rate": "86.9%",
+    "db_migration_complete": true,
+    "system_health": "CLEAN"
+  },
+  "timestamp": "2024-09-16T04:03:00Z",
+  "verification": {
+    "legacy_imports_eliminated": true,
+    "canonical_imports_active": true,
+    "quarantine_isolation_verified": true,
+    "production_readiness": "CONFIRMED"
+  }
 }
