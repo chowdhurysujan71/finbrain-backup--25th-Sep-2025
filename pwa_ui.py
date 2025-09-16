@@ -134,7 +134,8 @@ def chat():
     Expense input + recent entries list (HTMX partial hydrate)
     Safe route that shows UI even if backend APIs aren't available
     """
-    user_id = get_user_id()
+    from flask import g
+    user_id = getattr(g, 'user_id', None)
     logger.info(f"PWA chat route accessed by user: {user_id or 'anonymous'}")
     
     return render_template('chat.html', user_id=user_id)
@@ -156,7 +157,8 @@ def profile():
     Profile summary showing user info if available
     Safe fallback when no user context
     """
-    user_id = get_user_id()
+    from flask import g
+    user_id = getattr(g, 'user_id', None)
     logger.info(f"PWA profile route accessed by user: {user_id or 'anonymous'}")
     
     return render_template('profile.html', user_id=user_id)
@@ -167,7 +169,8 @@ def challenge():
     3-day challenge progress UI
     Placeholder implementation for demo purposes
     """
-    user_id = get_user_id()
+    from flask import g
+    user_id = getattr(g, 'user_id', None)
     logger.info(f"PWA challenge route accessed by user: {user_id or 'anonymous'}")
     
     return render_template('challenge.html', user_id=user_id)
@@ -595,8 +598,9 @@ def ai_chat():
         data = request.get_json(force=True) or {}
         text = (data.get("text") or data.get("message") or "").strip()
         
-        # Get user ID from session or headers (proper auth handling)
-        user_id = get_user_id() or 'anonymous'
+        # Get user ID from Flask g context (single-source-of-truth)
+        from flask import g
+        user_id = getattr(g, 'user_id', None) or 'anonymous'
         
         if not text:
             latency_ms = int((time.time() - start_time) * 1000)
