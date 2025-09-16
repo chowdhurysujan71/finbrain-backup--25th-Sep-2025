@@ -88,7 +88,8 @@ def api_propose_expense():
         data = request.get_json() or {}
         
         # Validate required fields
-        if not data.get('text') or not data.get('text').strip():
+        text_value = data.get('text')
+        if not text_value or not text_value.strip():
             response, status_code = standardized_error_response(
                 code=ErrorCodes.VALIDATION_ERROR,
                 message="Text is required for expense analysis",
@@ -525,7 +526,8 @@ def api_process_message():
         data = request.get_json() or {}
         
         # Validate required fields
-        if not data.get('text') or not data.get('text').strip():
+        text_value = data.get('text')
+        if not text_value or not text_value.strip():
             response, status_code = standardized_error_response(
                 code=ErrorCodes.VALIDATION_ERROR,
                 message="Text is required for message processing",
