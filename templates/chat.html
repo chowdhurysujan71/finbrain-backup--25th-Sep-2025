@@ -169,8 +169,60 @@
         }
     });
     
+    // Refresh feed functionality
+    async function refreshFeed() {
+        try {
+            const res = await fetch('/api/backend/expenses?limit=20', { credentials: 'include' });
+            if (!res.ok) {
+                // Fallback to existing API if new endpoint doesn't exist
+                const fallbackRes = await fetch('/api/backend/get_recent_expenses', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ limit: 20 })
+                });
+                const fallbackData = await fallbackRes.json();
+                const expenses = fallbackData.data?.expenses || fallbackData.expenses || [];
+                renderRecentExpenses(expenses);
+                return;
+            }
+            const data = await res.json();
+            renderRecentExpenses(data.items || data.expenses || []);
+        } catch (error) {
+            console.warn('Feed refresh failed:', error);
+        }
+    }
+
+    // Render recent expenses
+    function renderRecentExpenses(expenses) {
+        const container = document.getElementById('recent-expenses-list');
+        if (!container) return;
+
+        if (!expenses || expenses.length === 0) {
+            container.innerHTML = '<p class="text-muted">No recent expenses yet. Add one above to get started!</p>';
+            return;
+        }
+
+        container.innerHTML = expenses.map(expense => {
+            const amount = expense.amount_minor ? (expense.amount_minor / 100).toFixed(2) : expense.amount?.toFixed(2) || '0.00';
+            const currency = expense.currency || '৳';
+            const category = expense.category || 'other';
+            const description = expense.description || expense.original_message || 'No description';
+            
+            return `
+                <div class="expense-row">
+                    <span class="expense-amount">${currency}${amount}</span>
+                    <span class="expense-separator">•</span>
+                    <span class="expense-category">${category}</span>
+                    <span class="expense-separator">•</span>
+                    <span class="expense-description">${escapeHtml(description)}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
     // Form handling for quick add
-    function handleFormResponse(event) {
+    async function handleFormResponse(event) {
         const xhr = event.detail.xhr;
         const response = JSON.parse(xhr.responseText);
         const messagesDiv = document.getElementById('form-messages');
@@ -192,7 +244,10 @@
             // Clear the form
             form.reset();
             
-            // Refresh entries list
+            // Refresh the feed to show the new expense
+            await refreshFeed();
+            
+            // Also trigger HTMX refresh for backward compatibility
             htmx.trigger('#entries-section', 'expense-added');
             
             // Auto-hide success message after 3 seconds
@@ -247,15 +302,18 @@
 
 <script>
 // Enhanced form handling
-document.getElementById('expense-form').addEventListener('htmx:afterRequest', function(event) {
+document.getElementById('expense-form').addEventListener('htmx:afterRequest', async function(event) {
     if (event.detail.successful) {
         // Reset form
         this.reset();
         
+        // Refresh the feed to show the new expense
+        await refreshFeed();
+        
         // Show success toast
         showToast('Expense added successfully!', 'success');
         
-        // Trigger entries refresh
+        // Trigger entries refresh for backward compatibility
         document.body.dispatchEvent(new CustomEvent('expense-added'));
     } else {
         // Show error toast
