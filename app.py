@@ -111,10 +111,15 @@ from utils.logger import structured_logger
 
 @app.before_request
 def before_request():
-    """Capture request start time and generate/propagate request_id"""
+    """Capture request start time, generate request_id, and set user context"""
+    from auth_helpers import get_user_id_from_session
+    
     g.start_time = time.time()
     # Get request_id from header or generate new one
     g.request_id = request.headers.get('X-Request-ID') or str(uuid.uuid4())
+    
+    # SINGLE-SOURCE-OF-TRUTH: Set authenticated user context from session only
+    g.user_id = get_user_id_from_session()
     
     # Check if existing logger already handles this to avoid duplication
     if not hasattr(g, 'logging_handled'):
