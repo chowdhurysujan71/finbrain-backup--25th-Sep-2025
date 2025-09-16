@@ -139,7 +139,7 @@ def sha256(s: str) -> str:
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
 
 def add_expense(user_id: str, amount_minor: int, currency: str, category: str, 
-                description: str, source: str, message_id: str = None) -> Dict[str, Union[str, int, None]]:
+                description: str, source: str, message_id: str | None = None) -> Dict[str, Union[str, int, None]]:
     """
     Add expense with server-side field generation according to frozen contract.
     
