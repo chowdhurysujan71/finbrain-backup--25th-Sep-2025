@@ -36,7 +36,7 @@
       const res = await j("/api/backend/get_recent_expenses", { limit: 10 });
       const list = get("recent-expenses-list"); if (!list) return;
       list.innerHTML = "";
-      (res.expenses || []).forEach(e => {
+      (res.data?.expenses || []).forEach(e => {
         const li = document.createElement("div");
         li.className = "expense-row";
         li.textContent = `${(e.amount_minor/100).toFixed(2)} ${e.currency||"BDT"} • ${e.category} • ${e.description||""}`;
@@ -56,23 +56,25 @@
     busy(true);
     try {
       const parsed = await j("/api/backend/propose_expense", { text });
+      const {data: p} = parsed; // Unwrap standardized response envelope
       
       // Check if this is actually an expense (has amount and reasonable confidence)
-      if (parsed.amount_minor && parsed.confidence > 0.5) {
+      if (p.amount_minor && p.confidence > 0.5) {
         let saved;
         try {
           saved = await j("/api/backend/add_expense", { 
             description: text, 
             source: "chat",
-            amount_minor: parsed.amount_minor,
-            currency: parsed.currency || "BDT",
-            category: parsed.category
+            amount_minor: p.amount_minor,
+            currency: p.currency || "BDT",
+            category: p.category
           });
-          addMsg("bot", `Saved ${(saved.amount_minor/100).toFixed(2)} BDT as ${saved.category || "uncategorized"}.`);
+          const {data: s} = saved; // Unwrap standardized response envelope
+          addMsg("bot", `Saved ${(s.amount_minor/100).toFixed(2)} BDT as ${s.category || "uncategorized"}.`);
           await refreshRecent();
         } catch (e) {
           if (String(e.message).includes("401")) {
-            addMsg("bot", `Parsed ${(parsed.amount_minor/100).toFixed(2)} BDT as ${parsed.category || "uncategorized"}. Log in to save.`);
+            addMsg("bot", `Parsed ${(p.amount_minor/100).toFixed(2)} BDT as ${p.category || "uncategorized"}. Log in to save.`);
           } else {
             showErr("Couldn't save that right now. Please try again.");
             console.error(e);
