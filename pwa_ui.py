@@ -595,8 +595,8 @@ def ai_chat():
         data = request.get_json(force=True) or {}
         text = (data.get("text") or data.get("message") or "").strip()
         
-        # Get user ID from headers (for prod gate testing)
-        user_id = request.headers.get('X-User-ID', 'anonymous')
+        # Get user ID from session or headers (proper auth handling)
+        user_id = get_user_id() or 'anonymous'
         
         if not text:
             latency_ms = int((time.time() - start_time) * 1000)
