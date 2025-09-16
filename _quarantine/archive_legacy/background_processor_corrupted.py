@@ -216,7 +216,7 @@ class BackgroundProcessor:
         from utils.expense import process_expense_message
         from utils.categories import categorize_expense
         from datetime import datetime, timedelta
-        from app import db
+        from db_base import db
         from models import Expense
         
         psid_hash = hash_psid(psid)
@@ -235,7 +235,7 @@ class BackgroundProcessor:
                 category = categorize_expense(description)
                 
                 # Store expense directly in database with clean description
-                from app import db
+                from db_base import db
                 from models import Expense, User
                 from utils.security import hash_psid
                 
@@ -312,7 +312,7 @@ class BackgroundProcessor:
         Single SQL query, prepend disclaimer, never requeue
         """
         try:
-            from app import db
+            from db_base import db
             from models import Expense
             from datetime import datetime, timedelta
             from sqlalchemy import func, text
