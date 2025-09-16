@@ -97,11 +97,17 @@ app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 30  # 30 days
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configure CORS and rate limiting - Support credentials for all API endpoints
+# Configure CORS and rate limiting - SECURITY HARDENED: Specific origins only
+allowed_origins = [
+    os.getenv("APP_ORIGIN", "http://localhost:5000"),
+    "https://*.replit.app",
+    "https://*.repl.co"
+]
+
 CORS(app, supports_credentials=True, resources={
-    r"/api/*": {"origins": ["*"]},  # All API endpoints
-    r"/ai-chat": {"origins": [os.getenv("APP_ORIGIN", "http://localhost:5000")]},
-    r"/auth/*": {"origins": ["*"]}  # Auth endpoints
+    r"/api/*": {"origins": allowed_origins},  # FIXED: No wildcard with credentials
+    r"/ai-chat": {"origins": allowed_origins},
+    r"/auth/*": {"origins": allowed_origins}  # FIXED: No wildcard with credentials
 })
 from utils.rate_limiting import limiter
 limiter.init_app(app)
