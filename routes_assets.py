@@ -32,10 +32,10 @@ def is_delete_enabled():
     return os.environ.get('ASSETS_ALLOW_DELETE', 'false').lower() == 'true'
 
 def validate_user_context():
-    """Validate X-User-ID header is present"""
-    user_id = request.headers.get('X-User-ID')
+    """Validate user is authenticated via session"""
+    user_id = getattr(g, 'user_id', None)
     if not user_id:
-        return None, {"error": "X-User-ID header required"}, 401
+        return None, {"error": "Authentication required"}, 401
     return user_id, None, None
 
 def validate_path_prefix(path: str, user_id: str):

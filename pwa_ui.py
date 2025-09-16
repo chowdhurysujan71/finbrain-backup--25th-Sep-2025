@@ -41,15 +41,15 @@ def _json():
         return {}
 
 def get_user_id():
-    """Get user ID from session, X-User-ID header, or return None"""
+    """Get user ID from session only - SECURITY: Never read from headers"""
     from flask import session
     
-    # First check session for registered users
+    # ONLY check session for authenticated users
     if 'user_id' in session:
         return session['user_id']
     
-    # Then check header for PWA/anonymous users
-    return request.headers.get('X-User-ID')
+    # Return None for unauthenticated users - no header fallback
+    return None
 
 # Request logging for chat debugging
 @pwa_ui.before_app_request
@@ -57,7 +57,7 @@ def _debug_chat_requests():
     """Log chat requests for frontend-backend correlation"""
     if request.path == '/ai-chat' and request.method == 'POST':
         current_app.logger.info('ai-chat start uid=%s ctype=%s', 
-                              request.headers.get('X-User-ID'),
+                              getattr(g, 'user_id', 'anonymous'),
                               request.headers.get('Content-Type'))
 
 def handle_with_fallback_ai(user_id_hash, user_message, conversational_ai=None):
@@ -146,7 +146,8 @@ def report():
     Money Story summary cards + placeholder charts
     Reads from existing endpoints if available, shows placeholders otherwise
     """
-    user_id = get_user_id()
+    from flask import g
+    user_id = getattr(g, 'user_id', None)
     logger.info(f"PWA report route accessed by user: {user_id or 'anonymous'}")
     
     return render_template('report.html', user_id=user_id)
@@ -633,7 +634,7 @@ def ai_chat():
         return jsonify({
             "reply": f"Server error: {type(e).__name__}",
             "data": {"intent": "error", "category": None, "amount": None},
-            "user_id": request.headers.get('X-User-ID', 'anonymous'),
+            "user_id": getattr(g, 'user_id', 'anonymous'),
             "metadata": {
                 "source": "ai-chat",
                 "latency_ms": latency_ms
@@ -660,8 +661,10 @@ def add_expense():
     start_time = time.time()
     
     try:
-        # Get user ID for both structured and natural language processing
-        uid = request.headers.get('X-User-ID') or request.cookies.get('user_id') or 'anon'
+        # SECURITY: Get user ID from session only - require authentication for expenses
+        uid = getattr(g, 'user_id', None)
+        if not uid:
+            return jsonify({"error": "Authentication required"}), 401
         
         # Check if user submitted natural language instead of form fields
         nl_message = request.form.get('nl_message')
@@ -737,8 +740,11 @@ def add_expense():
             category = expense_data['category'].lower()
             description = expense_data['description']
         
-        # Get user ID from header or form data (set by PWA JavaScript)
-        user_id = get_user_id() or request.form.get('user_id') or f"pwa_user_{int(time.time())}"
+        # SECURITY: Get user ID from session only - no client-provided fallbacks
+        user_id = getattr(g, 'user_id', None)
+        if not user_id:
+            # Require authentication for expense creation
+            return jsonify({"error": "Authentication required"}), 401
         user_hash = psid_hash(user_id) if user_id.startswith('pwa_') else user_id
         
         # Generate unique identifiers

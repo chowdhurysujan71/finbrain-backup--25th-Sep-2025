@@ -2057,10 +2057,10 @@ try:
         """Enqueue a job with validation and rate limiting"""
         start_time = time.time()
         
-        # Get user ID from header
-        user_id = request.headers.get('X-User-ID')
+        # SECURITY: Get user ID from session only
+        user_id = getattr(g, 'user_id', None)
         if not user_id:
-            return jsonify({"error": "X-User-ID header required"}), 400
+            return jsonify({"error": "Authentication required"}), 401
         
         # Validate request body
         if not request.is_json:
@@ -2121,10 +2121,10 @@ try:
     @app.route('/jobs/<job_id>/status', methods=['GET'])
     def get_job_status(job_id):
         """Get job status and metadata"""
-        # Get user ID from header
-        user_id = request.headers.get('X-User-ID')
+        # SECURITY: Get user ID from session only
+        user_id = getattr(g, 'user_id', None)
         if not user_id:
-            return jsonify({"error": "X-User-ID header required"}), 400
+            return jsonify({"error": "Authentication required"}), 401
         
         try:
             status = job_queue.get_job_status(job_id)
@@ -2140,10 +2140,10 @@ try:
     @app.route('/jobs/<job_id>/cancel', methods=['POST'])
     def cancel_job(job_id):
         """Cancel a job (best effort)"""
-        # Get user ID from header
-        user_id = request.headers.get('X-User-ID')
+        # SECURITY: Get user ID from session only
+        user_id = getattr(g, 'user_id', None)
         if not user_id:
-            return jsonify({"error": "X-User-ID header required"}), 400
+            return jsonify({"error": "Authentication required"}), 401
         
         try:
             success = job_queue.cancel_job(job_id)
