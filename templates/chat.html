@@ -24,7 +24,8 @@
         <h2 id="chat-title" class="card-title">💬 Chat with FinBrain AI</h2>
         
         <!-- Chat Messages -->
-        <ul id="chat-list" class="chat-messages">
+        <div id="chat-error" class="alert alert-danger" style="display: none;"></div>
+        <div id="chat-messages" class="chat-messages">
             <div class="message ai-message">
                 <div class="message-avatar">🤖</div>
                 <div class="message-content">
@@ -49,7 +50,7 @@
                               rows="2" maxlength="500"></textarea>
                     <button type="submit" class="btn btn-primary chat-send-btn" id="chat-send">
                         <span class="btn-text">Send</span>
-                        <span class="btn-loading" style="display: none;">...</span>
+                        <span id="chat-spinner" class="btn-loading" style="display: none;">⏳</span>
                     </button>
                 </div>
                 <div class="chat-suggestions">
@@ -280,5 +281,5 @@ function showToast(message, type = 'info') {
 }
 </script>
 
-<script src="/static/js/chat-handler.js" defer></script>
+<script src="/static/js/chat-handler.js?v=20250916_fixed" defer></script>
 {% endblock %}
