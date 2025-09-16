@@ -1,176 +1,164 @@
-(function () {
-  const form = document.querySelector("#chat-form");
-  const input = document.querySelector("#chat-input");
-  const list  = document.querySelector("#chat-list");
-  const sendBtn = document.querySelector("#chat-send");
+(() => {
+  // ---------- tiny helpers ----------
+  const mustGet = (id) => {
+    const el = document.getElementById(id);
+    if (!el) throw new Error(`Missing DOM element: #${id}`);
+    return el;
+  };
+  const softGet = (id) => document.getElementById(id) || null;
+  const safeText = (v) => (typeof v === "string" ? v : JSON.stringify(v ?? ""));
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-  if (!form || !input || !list || !sendBtn) {
-    console.error("Chat elements not found. Check IDs: #chat-form, #chat-input, #chat-list, #chat-send");
-    console.error("Found:", {form: !!form, input: !!input, list: !!list, sendBtn: !!sendBtn});
-    return;
-  }
+  // ---------- cache DOM (throws if core nodes are missing) ----------
+  const form = mustGet("chat-form");
+  const input = mustGet("chat-input");
+  const messages = mustGet("chat-messages");
 
-  function addBubble(role, text) {
-    const li = document.createElement("li");
-    li.className = role === "user" ? "user" : "bot";
-    li.textContent = text;
-    list.appendChild(li);
-    list.scrollTop = list.scrollHeight;
-  }
+  // optional nodes (null-safe)
+  const sendBtn = softGet("chat-send");
+  const spinner = softGet("chat-spinner");
+  const errorBox = softGet("chat-error");
 
-  // Generate consistent user ID for session
-  function getUserId() {
-    let userId = localStorage.getItem('chat-user-id');
-    if (!userId) {
-      userId = 'pwa_user_' + Date.now() + '_' + Math.random().toString(36).substring(7);
-      localStorage.setItem('chat-user-id', userId);
+  // ---------- config ----------
+  const ENDPOINTS = {
+    propose: "/api/backend/propose_expense",   // public (parse only)
+    add:     "/api/backend/add_expense",       // session write
+  };
+
+  // ---------- UI helpers ----------
+  const setBusy = (busy) => {
+    if (sendBtn) sendBtn.disabled = busy;
+    if (spinner) spinner.style.display = busy ? "inline-block" : "none";
+  };
+
+  const showError = (msg) => {
+    if (errorBox) {
+      errorBox.textContent = msg;
+      errorBox.style.display = "block";
+    } else {
+      console.error("[chat] ", msg);
     }
-    return userId;
-  }
+  };
 
-  async function sendMessage(text) {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 30000); // 30s hard timeout
+  const clearError = () => {
+    if (errorBox) {
+      errorBox.textContent = "";
+      errorBox.style.display = "none";
+    }
+  };
 
+  const appendMsg = (role, text) => {
+    const item = document.createElement("div");
+    item.className = role === "user" ? "msg msg-user" : "msg msg-bot";
+    item.textContent = text;
+    messages.appendChild(item);
+    messages.scrollTop = messages.scrollHeight;
+  };
+
+  // ---------- safe fetch wrapper ----------
+  const safeFetchJSON = async (url, options) => {
+    const res = await fetch(url, {
+      credentials: "include",           // IMPORTANT for session auth
+      headers: { "Content-Type": "application/json" },
+      ...options,
+    });
+    // Try to parse JSON; if it fails, surface a readable error
+    let data = null;
     try {
-      const res = await fetch("/ai-chat", {
+      data = await res.json();
+    } catch (e) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Bad JSON from ${url} (status ${res.status}) ${text?.slice(0, 200)}`);
+    }
+    if (!res.ok) {
+      // server provided JSON error; extract common fields
+      const msg = data?.message || data?.error || `HTTP ${res.status}`;
+      const trace = data?.trace_id ? ` (trace: ${data.trace_id})` : "";
+      throw new Error(`${msg}${trace}`);
+    }
+    return data;
+  };
+
+  // ---------- main submit handler ----------
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    clearError();
+
+    const text = (input.value || "").trim();
+    if (!text) return;
+
+    // Display user message immediately
+    appendMsg("user", text);
+
+    setBusy(true);
+    try {
+      // 1) propose parse (public, no write)
+      const parsed = await safeFetchJSON(ENDPOINTS.propose, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "X-User-ID": getUserId() // Send consistent user ID
-        },
         body: JSON.stringify({ text }),
-        signal: ctrl.signal
       });
 
-      if (!res.ok) {
-        // Handle HTTP errors with enhanced error handling
-        const errorResponse = {
-          success: false,
-          code: res.status >= 500 ? 'SERVER_ERROR' : 'CLIENT_ERROR',
-          message: `Request failed with status ${res.status}`,
-          trace_id: `chat_${Date.now()}`
-        };
-        
-        // Use standardized error handling if available
-        if (typeof window.handleStandardizedResponse === 'function') {
-          window.handleStandardizedResponse(errorResponse, {
-            form: form,
-            onError: (error) => {
-              console.error('Chat API error:', error);
-            }
-          });
-        } else {
-          // Fallback to legacy error handling
-          console.error('API error:', errorResponse.message);
-          if (typeof window.showToast === 'function') {
-            window.showToast(errorResponse.message, 'error');
-          }
-        }
-        
-        return { error: errorResponse.message };
-      }
-      
-      const data = await res.json();
-      
-      // Handle standardized responses if the backend sends them
-      if (data.hasOwnProperty('success')) {
-        if (typeof window.handleStandardizedResponse === 'function') {
-          const success = window.handleStandardizedResponse(data, {
-            form: form,
-            onSuccess: (response) => {
-              // Success handling is done by the toast system
-              console.log('Chat message sent successfully');
-            },
-            onError: (response) => {
-              console.error('Chat error response:', response);
-            }
-          });
-          
-          if (!success) {
-            return { error: data.message || 'An error occurred' };
-          }
-        }
-        
-        // Extract reply from standardized response
-        return { reply: data.reply || data.message || 'Success' };
-      }
-      
-      // Handle legacy response format
-      if (data.error) {
-        if (typeof window.handleLegacyResponse === 'function') {
-          window.handleLegacyResponse(data, form);
-        } else if (typeof window.showToast === 'function') {
-          window.showToast(data.error, 'error');
-        }
-        return { error: data.error };
-      }
-      
-      return data;
-    } catch (e) {
-      console.error("Fetch failed:", e);
-      
-      // Handle network errors with enhanced error handling
-      const networkError = {
-        success: false,
-        code: 'NETWORK_ERROR',
-        message: 'Network error. Please check your connection and try again.',
-        trace_id: `chat_network_${Date.now()}`
-      };
-      
-      if (typeof window.handleStandardizedResponse === 'function') {
-        window.handleStandardizedResponse(networkError, {
-          form: form,
-          toastOptions: { persistent: true }
+      // Parsed result (defensive defaults)
+      const amountMinor = Number(parsed?.amount_minor ?? 0);
+      const category = (parsed?.category || "uncategorized").toString();
+      const confidence = Number(parsed?.confidence ?? 0);
+
+      // 2) if we have a session, try to write via add_expense
+      // (If not logged in, backend will 401; we handle that gracefully)
+      let added = null;
+      try {
+        added = await safeFetchJSON(ENDPOINTS.add, {
+          method: "POST",
+          body: JSON.stringify({
+            description: text,   // keep the raw user text as description
+            source: "chat",      // frozen contract: 'chat'|'form'|'messenger'
+          }),
         });
-      } else if (typeof window.showToast === 'function') {
-        window.showToast(networkError.message, 'error');
+      } catch (e) {
+        // If unauthorized, just show the parse result and prompt login
+        if (String(e.message).includes("401") || String(e.message).toLowerCase().includes("unauthorized")) {
+          appendMsg(
+            "bot",
+            `I parsed **${amountMinor/100}** BDT as *${category}* (confidence ${Math.round(confidence*100)}%). ` +
+            `Log in to save this expense and see it in your totals.`
+          );
+          throw e; // still surface to console for devs
+        }
+        // Other errors bubble up after showing a friendly message
+        showError("Sorry, I couldn't save that just now. Please try again.");
+        throw e;
       }
-      
-      return { error: networkError.message };
+
+      // 3) success path: reflect write + idempotency status
+      const status = (added?.status || "created").toString();
+      const savedMinor = Number(added?.amount_minor ?? amountMinor);
+      appendMsg(
+        "bot",
+        status === "idempotent_replay"
+          ? `Already saved: **${savedMinor/100}** BDT as *${category}* (idempotent).`
+          : `Saved **${savedMinor/100}** BDT as *${category}*.`
+      );
+    } catch (err) {
+      // Friendly UI message already shown for common cases;
+      // ensure console visibility for debugging
+      console.error("[chat] submit error:", err);
     } finally {
-      clearTimeout(t);
+      setBusy(false);
+      input.value = "";
+      await sleep(10);
+      input.focus();
     }
-  }
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const text = (input.value || "").trim();
-    if (!text) {
-      // Clear any existing field errors for empty input
-      if (typeof window.clearFieldErrors === 'function') {
-        window.clearFieldErrors(form);
-      }
-      
-      // Show validation error for empty input
-      if (typeof window.displayFieldErrors === 'function') {
-        window.displayFieldErrors({ 'text': 'Please enter a message' }, form);
-      } else if (typeof window.showToast === 'function') {
-        window.showToast('Please enter a message', 'warning');
-      }
-      return;
-    }
-
-    // Clear any previous field errors
-    if (typeof window.clearFieldErrors === 'function') {
-      window.clearFieldErrors(form);
-    }
-
-    addBubble("user", text);
-    input.value = "";
-    sendBtn && (sendBtn.disabled = true);
-
-    const response = await sendMessage(text);
-    
-    // Handle response appropriately
-    if (response.error) {
-      // Error was already handled by sendMessage, just show a generic bot response
-      addBubble("bot", "I'm having trouble processing your message right now. Please try again.");
-    } else {
-      addBubble("bot", response.reply || "(no reply)");
-    }
-
-    sendBtn && (sendBtn.disabled = false);
-    input.focus();
   });
+
+  // Optional: enter-to-send without breaking IME
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      form.requestSubmit?.() || form.submit();
+    }
+  });
+
+  // Initial state
+  setBusy(false);
+  clearError();
 })();
