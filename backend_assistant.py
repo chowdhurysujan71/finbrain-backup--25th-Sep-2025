@@ -208,7 +208,8 @@ def add_expense(user_id: str, amount_minor: int, currency: str, category: str,
             occurred_at=datetime.utcnow(),
             source_message_id=stable_message_id,
             correlation_id=correlation_id,
-            notes=description
+            notes=description,
+            idempotency_key=idempotency_key
         )
         
         # Return standardized response

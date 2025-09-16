@@ -7,7 +7,7 @@ from utils.identity import psid_hash
 
 logger = logging.getLogger(__name__)
 
-def create_expense(user_id, amount, currency, category, occurred_at, source_message_id, correlation_id, notes):
+def create_expense(user_id, amount, currency, category, occurred_at, source_message_id, correlation_id, notes, idempotency_key=None):
     """
     Unified expense creation function - single source of truth for expense writes
     Both Chat and Quick Add must call this function synchronously
@@ -71,8 +71,23 @@ def create_expense(user_id, amount, currency, category, occurred_at, source_mess
         expense.correlation_id = correlation_id
         expense.unique_id = str(uuid.uuid4())
         expense.mid = source_message_id
-        # Set idempotency_key to bypass database security trigger
-        expense.idempotency_key = f"api:{correlation_id}"
+        # Set idempotency_key (use passed key or generate fallback)
+        expense.idempotency_key = idempotency_key or f"api:{correlation_id}"
+        
+        # UPSERT: Check for existing expense by idempotency_key before inserting
+        existing_expense = Expense.query.filter_by(idempotency_key=expense.idempotency_key).first()
+        if existing_expense:
+            logger.info(f"Idempotency: returning existing expense for key {expense.idempotency_key[:20]}***")
+            return {
+                'expense_id': existing_expense.id,
+                'correlation_id': existing_expense.correlation_id,
+                'occurred_at': existing_expense.created_at.isoformat(),
+                'category': existing_expense.category,
+                'amount': float(existing_expense.amount),
+                'currency': existing_expense.currency,
+                'description': existing_expense.description,
+                'status': 'idempotent_replay'
+            }
         
         # Atomic transaction
         db.session.add(expense)
@@ -137,28 +152,6 @@ def create_expense(user_id, amount, currency, category, occurred_at, source_mess
         
     except Exception as e:
         db.session.rollback()
-        
-        # Handle idempotency: if duplicate mid detected, return existing expense
-        if "ux_expenses_psid_mid" in str(e) and "duplicate key value" in str(e):
-            logger.info(f"Idempotency: returning existing expense for user {user_id[:10]}*** mid {source_message_id[:10]}***")
-            
-            # Find and return the existing expense
-            existing_expense = Expense.query.filter_by(
-                user_id_hash=user_id,
-                mid=source_message_id
-            ).first()
-            
-            if existing_expense:
-                return {
-                    'expense_id': existing_expense.id,
-                    'correlation_id': existing_expense.correlation_id,
-                    'occurred_at': existing_expense.created_at.isoformat(),
-                    'category': existing_expense.category,
-                    'amount': float(existing_expense.amount),
-                    'currency': existing_expense.currency,
-                    'description': existing_expense.description
-                }
-        
         logger.error(f"create_expense failed: {e}")
         raise
 
