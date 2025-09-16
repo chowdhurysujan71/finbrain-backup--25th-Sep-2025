@@ -87,5 +87,81 @@
         <!-- Toasts will be dynamically inserted here -->
     </div>
     
+    <!-- Auth State Manager -->
+    <script>
+    (() => {
+        'use strict';
+        
+        // Auth check with timeout protection
+        async function checkAuthState() {
+            try {
+                // Create AbortController for 10s timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                
+                const response = await fetch('/api/auth/me', {
+                    method: 'GET',
+                    credentials: 'include', // Include session cookies
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (response.ok) {
+                    const userData = await response.json();
+                    
+                    // Set global auth state
+                    window.__USER_ID__ = userData.user_id;
+                    window.__USER_EMAIL__ = userData.email;
+                    window.__USER_NAME__ = userData.name;
+                    
+                    // Add signed-in class to body
+                    document.body.classList.add('signed-in');
+                    document.body.classList.remove('signed-out');
+                    
+                    console.log('User authenticated:', userData.email);
+                } else {
+                    // Not authenticated
+                    window.__USER_ID__ = null;
+                    window.__USER_EMAIL__ = null;
+                    window.__USER_NAME__ = null;
+                    
+                    // Add signed-out class to body
+                    document.body.classList.add('signed-out');
+                    document.body.classList.remove('signed-in');
+                    
+                    console.log('User not authenticated');
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    console.warn('Auth check timeout after 10s');
+                } else {
+                    console.warn('Auth check failed:', error.message);
+                }
+                
+                // Default to signed-out on error
+                window.__USER_ID__ = null;
+                window.__USER_EMAIL__ = null;
+                window.__USER_NAME__ = null;
+                document.body.classList.add('signed-out');
+                document.body.classList.remove('signed-in');
+            }
+        }
+        
+        // Run auth check on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', checkAuthState);
+        } else {
+            checkAuthState();
+        }
+        
+        // Make checkAuthState available globally for manual refresh
+        window.refreshAuthState = checkAuthState;
+    })();
+    </script>
+    
 </body>
 </html>

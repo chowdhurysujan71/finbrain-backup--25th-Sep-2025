@@ -93,7 +93,7 @@ app.secret_key = session_secret
 app.config["SESSION_COOKIE_SECURE"] = True         # send cookie only over HTTPS
 app.config["SESSION_COOKIE_HTTPONLY"] = True       # JS cannot read cookie
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"      # or "None" + HTTPS if cross-site auth
-app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 7  # 7 days
+app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 30  # 30 days
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 

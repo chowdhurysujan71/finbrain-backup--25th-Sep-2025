@@ -191,33 +191,56 @@ def auth_login():
         if not user or not check_password_hash(user.password_hash, password):
             return jsonify({"error": "Invalid credentials"}), 401
         
-        # Create session
+        # Create session using Flask's built-in session system
+        session.permanent = True  # Make session permanent for 30-day lifetime
         session['user_id'] = user.user_id_hash
         session['email'] = email
         session['is_registered'] = True
         
-        # Create response with proper cookie setting
-        resp = jsonify({
+        # Return response (Flask handles secure session cookie automatically)
+        return jsonify({
             "success": True, 
             "message": "Login successful",
             "data": {"user_id": user.user_id_hash}
-        })
-        
-        # Set secure session cookie (as specified by user)
-        resp.set_cookie(
-            "session",
-            user.user_id_hash,           # Use user_id_hash as session token
-            httponly=True,
-            secure=True,                 # Replit URL is https, keep True
-            samesite="Lax",             # Lax for same-site requests
-            max_age=60*60*24*30,        # 30 days
-            path="/"
-        )
-        
-        return resp, 200
+        }), 200
         
     except Exception as e:
         return jsonify({"error": "Login failed. Please try again."}), 500
+
+@pwa_ui.route('/api/auth/me', methods=['GET'])
+def auth_me():
+    """
+    Check current user session and return user info or 401
+    Cheap and reliable endpoint for frontend auth state checking
+    """
+    from models import User
+    from flask import session, jsonify
+    
+    try:
+        # Check if user is logged in via session
+        user_id_hash = session.get('user_id')
+        if not user_id_hash:
+            return jsonify({"error": "Not authenticated"}), 401
+        
+        # Find user in database
+        user = User.query.filter_by(user_id_hash=user_id_hash).first()
+        if not user:
+            # Session is invalid, clear it
+            session.clear()
+            return jsonify({"error": "Invalid session"}), 401
+        
+        # Return user info with consistent user_id_hash
+        return jsonify({
+            "ok": True,
+            "user_id": user.user_id_hash,  # Use hash for consistency
+            "email": user.email,
+            "name": user.name or "User",
+            "id": user.id  # Include numeric ID if needed
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Auth check error: {e}")
+        return jsonify({"error": "Auth check failed"}), 500
 
 @pwa_ui.route('/auth/register', methods=['POST'])
 @limiter.limit("3 per minute")
@@ -272,7 +295,8 @@ def auth_register():
         db.session.add(user)
         db.session.commit()
         
-        # Create session
+        # Create permanent session (30-day lifetime)
+        session.permanent = True
         session['user_id'] = user_hash
         session['email'] = email
         session['is_registered'] = True
