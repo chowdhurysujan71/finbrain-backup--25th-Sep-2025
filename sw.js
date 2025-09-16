@@ -82,6 +82,11 @@ self.addEventListener('fetch', event => {
     const { request } = event;
     const url = new URL(request.url);
     
+    // Never cache API calls; always go network
+    if (url.pathname.startsWith('/api/')) {
+        return; // bypass SW completely for all API requests
+    }
+    
     // Skip non-GET requests and chrome-extension requests
     if (request.method !== 'GET' || url.protocol === 'chrome-extension:') {
         return;
