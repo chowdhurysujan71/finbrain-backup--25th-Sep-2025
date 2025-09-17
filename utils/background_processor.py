@@ -184,7 +184,7 @@ class BackgroundProcessor:
                     
                     # CRITICAL: router needs user_id_hash for data processing, but we preserve original PSID for messaging
                     response_text, intent, category, amount = production_router.route_message(
-                        job_text, user_hash, job_rid
+                        job_text, user_hash, job_rid, channel="messenger"
                     )
                     
                     # Send response within timeout

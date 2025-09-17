@@ -12,6 +12,10 @@ import hashlib
 from typing import Tuple, Optional, Dict, Any, List
 from datetime import datetime, timezone, timedelta
 
+log = logging.getLogger(__name__)
+
+def _H(u): return hashlib.sha256(str(u).encode()).hexdigest()[:8]
+
 # Money detection and unified parsing (enhanced) - inlined from deprecated router
 from parsers.expense import parse_amount_currency_category, parse_expense as parse_expense_enhanced
 
@@ -467,13 +471,16 @@ class ProductionRouter:
             response = "Something went wrong logging your expense. Please try again."
             return normalize(response), "expense_error", None, None
     
-    def route_message(self, text: str, psid_or_hash: str, rid: str = "") -> Tuple[str, str, Optional[str], Optional[float]]:
+    def route_message(self, text: str, psid_or_hash: str, rid: str = "", channel: str = "messenger") -> Tuple[str, str, Optional[str], Optional[float]]:
         """
         Single entry point for all message processing
         Now accepts either original PSID or user_id_hash for flexible processing
         Returns: (response_text, intent, category, amount)
         """
         start_time = time.time()
+        
+        # OBSERVABILITY: Log router entry for channel parity verification
+        log.info(f"[ROUTER] rid={rid} ch={channel} user={_H(psid_or_hash)} text={text!r}")
         
         # Determine if input is PSID (numeric) or hash (hex string)
         if psid_or_hash.isdigit() and len(psid_or_hash) >= 10:
