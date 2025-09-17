@@ -103,10 +103,28 @@ class BackgroundProcessor:
             logger.error(f"Request {rid}: Failed to enqueue message: {str(e)}")
             return False
     
+    def enqueue_message_web(self, rid: str, user_hash: str, text: str):
+        """mirrors enqueue_message(... psid ...) but skips PSID → hash, since we already have the hash"""
+        job = {"rid": rid, "user_hash": user_hash, "text": text, "channel": "web"}
+        
+        try:
+            future = self.executor.submit(self._process_job_safe, job)
+            logger.info(f"Request {rid}: Web message queued for background processing")
+            return {"ok": True, "rid": rid}
+        except Exception as e:
+            logger.error(f"Request {rid}: Failed to enqueue web message: {str(e)}")
+            return {"ok": False, "error": str(e)}
+    
     def _process_job_safe(self, job: MessageJob) -> None:
         """Process job with timeout protection and RL-2 support"""
         start_time = time.time()
-        psid_hash = resolve_user_id(psid=job.psid)
+        
+        # Handle both MessageJob (Messenger) and dict (web) formats
+        if isinstance(job, dict):
+            user_hash = job.get("user_hash")
+            psid_hash = user_hash
+        else:
+            psid_hash = resolve_user_id(psid=job.psid)
         intent = "unknown"
         category = None
         amount = None
@@ -119,14 +137,16 @@ class BackgroundProcessor:
                 # Check for pending reminders periodically
                 self._check_reminders_if_due()
                 
-                # Update 24-hour policy timestamp
-                update_user_message_timestamp(job.psid)
-                
-                # Check 24-hour policy compliance
-                if not is_within_24_hour_window(job.psid):
-                    log_webhook_success(psid_hash, job.mid, "24h_policy_block", None, None,
-                                      (time.time() - start_time) * 1000)
-                    return
+                # Handle Messenger-specific policy checks only for non-web jobs
+                if not isinstance(job, dict) or job.get("channel") != "web":
+                    # Update 24-hour policy timestamp
+                    update_user_message_timestamp(job.psid)
+                    
+                    # Check 24-hour policy compliance
+                    if not is_within_24_hour_window(job.psid):
+                        log_webhook_success(psid_hash, job.mid, "24h_policy_block", None, None,
+                                          (time.time() - start_time) * 1000)
+                        return
                 
                 try:
                     # PHASE 2: PCA Integration - Process message through PCA system first
@@ -135,10 +155,14 @@ class BackgroundProcessor:
                         from utils.pca_integration import integrate_pca_with_webhook
                         from datetime import datetime
                         
+                        # Extract job fields based on job type
+                        job_text = job.get("text") if isinstance(job, dict) else job.text
+                        job_mid = job.get("mid", "web-message") if isinstance(job, dict) else job.mid
+                        
                         should_continue, pca_result = integrate_pca_with_webhook(
                             user_id=psid_hash,
-                            message_text=job.text,
-                            message_id=job.mid,
+                            message_text=job_text,
+                            message_id=job_mid,
                             timestamp=datetime.utcnow()
                         )
                         
@@ -152,9 +176,14 @@ class BackgroundProcessor:
                         pca_result = {'pca_processed': False, 'error': str(pca_error)}
                     
                     # Use production router for all message processing (legacy flow continues)
+                    # Extract job fields based on job type  
+                    job_text = job.get("text") if isinstance(job, dict) else job.text
+                    job_rid = job.get("rid") if isinstance(job, dict) else job.rid
+                    job_channel = job.get("channel", "messenger") if isinstance(job, dict) else "messenger"
+                    
                     # CRITICAL: router needs user_id_hash for data processing, but we preserve original PSID for messaging
                     response_text, intent, category, amount = production_router.route_message(
-                        job.text, psid_hash, job.rid  # Pass hash to router for data processing
+                        job_text, user_hash, job_rid, channel=job_channel
                     )
                     
                     # Send response within timeout
