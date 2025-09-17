@@ -503,38 +503,30 @@ def entries_partial():
             logger.warning("Unauthorized access to /partials/entries - no session")
             return render_template('partials/entries.html', entries=[])
         
-        # Call the backend API function directly (no HTTP timeout issues)
-        from routes_backend_assistant import api_get_recent_expenses
-        from flask import g
+        # Call the backend function directly (bypass HTTP layer)
+        from backend_assistant import get_recent_expenses
+        from utils.identity import ensure_hashed
         
-        # Set up request context like the API endpoint does
-        g.user_id = session['user_id']
-        g.request_id = request.headers.get('X-Request-ID', 'partials-' + str(int(time.time())))
+        # Get user hash for database lookup  
+        user_id_hash = ensure_hashed(session['user_id'])
         
-        # Call the API function directly 
-        api_response = api_get_recent_expenses()
+        # Call the backend function directly with proper parameters
+        expenses_data = get_recent_expenses(user_id_hash, limit=10)
         
-        if api_response[1] == 200:  # Check status code
-            api_data = api_response[0].get_json() if hasattr(api_response[0], 'get_json') else api_response[0]
-            
-            # Convert API response to template format
-            entries = []
-            for expense in api_data:
-                entries.append({
-                    'id': expense.get('id', 0),
-                    'amount': float(expense.get('amount_minor', 0)) / 100,  # Convert to major units
-                    'category': (expense.get('category', 'uncategorized') or 'uncategorized').title(),
-                    'description': expense.get('description', '') or f"{(expense.get('category', 'uncategorized') or 'uncategorized').title()} expense",
-                    'date': expense.get('created_at', '')[:10] if expense.get('created_at') else '',  # Extract date part
-                    'time': expense.get('created_at', '')[11:16] if expense.get('created_at') and len(expense.get('created_at', '')) > 11 else '00:00'  # Extract time part
-                })
-            
-            logger.info(f"PWA entries loaded directly: {len(entries)} entries")
-            return render_template('partials/entries.html', entries=entries)
+        # Convert backend response to template format
+        entries = []
+        for expense in expenses_data:
+            entries.append({
+                'id': expense.get('id', 0),
+                'amount': float(expense.get('amount_minor', 0)) / 100,  # Convert to major units
+                'category': (expense.get('category', 'uncategorized') or 'uncategorized').title(),
+                'description': expense.get('description', '') or f"{(expense.get('category', 'uncategorized') or 'uncategorized').title()} expense",
+                'date': expense.get('created_at', '')[:10] if expense.get('created_at') else '',  # Extract date part
+                'time': expense.get('created_at', '')[11:16] if expense.get('created_at') and len(expense.get('created_at', '')) > 11 else '00:00'  # Extract time part
+            })
         
-        else:
-            logger.warning(f"Direct API call failed with status {api_response[1]}")
-            return render_template('partials/entries.html', entries=[])
+        logger.info(f"PWA entries loaded directly: {len(entries)} entries")
+        return render_template('partials/entries.html', entries=entries)
         
     except Exception as e:
         logger.error(f"Error fetching entries directly: {e}")
