@@ -129,12 +129,14 @@ def before_request():
     # SINGLE-SOURCE-OF-TRUTH: Set authenticated user context from session only
     g.user_id = get_user_id_from_session()
     
-    # SECURITY GUARDRAIL: Block writes when no authenticated user (unless dev mode)
-    is_write_method = request.method in ['POST', 'PUT', 'PATCH', 'DELETE']
+    # PRODUCTION SECURITY: Block ALL /api/* requests without authentication
     is_api_route = request.path.startswith('/api/')
     allow_guest_writes = os.environ.get('ALLOW_GUEST_WRITES', 'false').lower() == 'true'
     
-    if is_write_method and is_api_route and not g.user_id and not allow_guest_writes:
+    # Exception: Allow /api/auth/* routes for login/signup
+    is_auth_route = request.path.startswith('/api/auth/')
+    
+    if is_api_route and not is_auth_route and not g.user_id and not allow_guest_writes:
         return jsonify({
             'success': False,
             'error': 'Authentication required',
