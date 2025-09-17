@@ -1296,8 +1296,7 @@ def token_refresh_status():
 
 @app.route('/user/<path:q>/insights')
 def legacy_insights(q):
-    """Legacy insights endpoint - deprecated and disabled"""
-    return jsonify({"error": "deprecated_endpoint", "use": "/api/backend/chat"}), 410
+    return {"error":"deprecated_endpoint","use":"/api/backend/chat"}, 410
 
 @app.route('/user/<psid_hash>/category/<category_name>')
 @require_basic_auth  
