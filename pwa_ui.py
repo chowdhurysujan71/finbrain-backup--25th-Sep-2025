@@ -495,8 +495,7 @@ def entries_partial():
     MUST use session-authenticated API endpoints only
     """
     from flask import session
-    import requests
-    import os
+    import time
     
     try:
         # SECURITY: Only session-authenticated users can see entries
@@ -504,28 +503,19 @@ def entries_partial():
             logger.warning("Unauthorized access to /partials/entries - no session")
             return render_template('partials/entries.html', entries=[])
         
-        # UI GUARDRAIL: Call only the canonical backend API endpoint
-        # This enforces session authentication and unified read path
-        dev_domain = os.environ.get('REPLIT_DEV_DOMAIN', '')
-        if dev_domain and not dev_domain.startswith(('http://', 'https://')):
-            base_url = f'https://{dev_domain}'  # Add https:// scheme for Replit domains
-        else:
-            base_url = dev_domain or 'http://localhost:5000'
+        # Call the backend API function directly (no HTTP timeout issues)
+        from routes_backend_assistant import api_get_recent_expenses
+        from flask import g
         
-        # Use internal API call with session cookies
-        response = requests.post(
-            f"{base_url}/api/backend/get_recent_expenses",
-            json={"limit": 10},
-            cookies=request.cookies,  # Pass session cookies for authentication
-            headers={
-                'Content-Type': 'application/json',
-                'User-Agent': 'PWA-Internal-Client/1.0'
-            },
-            timeout=15  # Increased timeout from 5 to 15 seconds to fix UI loading issues
-        )
+        # Set up request context like the API endpoint does
+        g.user_id = session['user_id']
+        g.request_id = request.headers.get('X-Request-ID', 'partials-' + str(int(time.time())))
         
-        if response.status_code == 200:
-            api_data = response.json()
+        # Call the API function directly 
+        api_response = api_get_recent_expenses()
+        
+        if api_response[1] == 200:  # Check status code
+            api_data = api_response[0].get_json() if hasattr(api_response[0], 'get_json') else api_response[0]
             
             # Convert API response to template format
             entries = []
@@ -539,15 +529,15 @@ def entries_partial():
                     'time': expense.get('created_at', '')[11:16] if expense.get('created_at') and len(expense.get('created_at', '')) > 11 else '00:00'  # Extract time part
                 })
             
-            logger.info(f"PWA entries loaded via API: {len(entries)} entries")
+            logger.info(f"PWA entries loaded directly: {len(entries)} entries")
             return render_template('partials/entries.html', entries=entries)
         
         else:
-            logger.warning(f"API call failed with status {response.status_code}: {response.text}")
+            logger.warning(f"Direct API call failed with status {api_response[1]}")
             return render_template('partials/entries.html', entries=[])
         
     except Exception as e:
-        logger.error(f"Error fetching entries via API: {e}")
+        logger.error(f"Error fetching entries directly: {e}")
         # Fallback to empty state - NEVER bypass API endpoints
         return render_template('partials/entries.html', entries=[])
 
