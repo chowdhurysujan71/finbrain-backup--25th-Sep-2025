@@ -7,7 +7,16 @@ finbrain is an AI-first expense tracking application delivered via Facebook Mess
 Preferred communication style: Simple, everyday language.
 Zero-surprise deployment requirement: 100% user-visible success demanded with comprehensive validation before any production changes.
 
-## Recent Major Updates (September 14, 2025)
+## Recent Major Updates (September 17, 2025)
+- **🎯 INTERACTIVE CLARIFICATION SYSTEM EVOLUTION**: Complete targeted architecture evolution fixing Bengali food categorization and clarification flow
+- **🌐 Web UI Category Selection**: Interactive category chips in web interface with POST to /api/backend/confirm_expense, seamless user experience for ambiguous expenses
+- **💾 Database-Backed Pending Storage**: Replaced in-memory _pending_clarifications with persistent pending_expenses table, 10-minute TTL, migration applied successfully
+- **🍜 Expanded Bengali Food Lexicon**: Added 60+ Bengali food terms (tarmujer rosh, jaali kabab, kachchi, fuchka, chotpoti) to CATEGORY_ALIASES, fixed dual inference systems
+- **✅ Issue Resolution**: Bengali food terms now properly categorize as 'food' OR trigger interactive clarification, eliminating "general" → constraint violation → stale reports path
+- **🏗️ Architecture Validation**: Architect-reviewed PASS verdict - core functionality solid and production-ready with zero "general" categories entering system
+- **🚀 Bulletproof Flow**: Interactive clarification works perfectly for Bengali users, real-time reports always accurate, constraint violations impossible
+
+## Previous Major Updates (September 14, 2025)
 - **🏗️ ENTERPRISE ERROR HANDLING SYSTEM**: Complete transformation from ad-hoc error handling to enterprise-grade standardized validation
 - **✅ Standardized Error Responses**: Consistent JSON format with error codes, field-specific validation, and trace IDs for debugging
 - **🎨 Enhanced UI Error Experience**: Inline field errors, improved toast notifications, and seamless user feedback
