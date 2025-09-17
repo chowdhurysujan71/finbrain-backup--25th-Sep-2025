@@ -85,62 +85,8 @@ def require_backend_user_auth(f):
 
 @backend_api.route('/propose_expense', methods=['POST'])
 def api_propose_expense():
-    """
-    POST /api/backend/propose_expense
-    Input: {"text": "I spent 300 on lunch"}
-    Output: {"amount_minor": 30000, "currency": "BDT", "category": "food", "confidence": 0.8}
-    Enhanced with standardized error handling and validation
-    """
-    start_time = time.time()
-    
-    try:
-        data = request.get_json() or {}
-        
-        # Validate required fields
-        text_value = data.get('text')
-        if not text_value or not text_value.strip():
-            response, status_code = standardized_error_response(
-                code=ErrorCodes.VALIDATION_ERROR,
-                message="Text is required for expense analysis",
-                field_errors={"text": "Please provide expense text to analyze"},
-                status_code=400,
-                log_error=False
-            )
-            return jsonify(response), status_code
-        
-        # Validate text length
-        text = data['text'].strip()
-        if len(text) > 1000:
-            response, status_code = standardized_error_response(
-                code=ErrorCodes.VALIDATION_ERROR,
-                message="Text is too long",
-                field_errors={"text": "Text must be 1000 characters or less"},
-                status_code=400,
-                log_error=False
-            )
-            return jsonify(response), status_code
-        
-        result = propose_expense(text)
-        
-        # Log successful analysis
-        response_time = (time.time() - start_time) * 1000
-        api_logger.log_api_request(True, response_time, {
-            "text_length": len(text),
-            "confidence": result.get('confidence', 0),
-            "category": result.get('category', 'unknown')
-        })
-        
-        return jsonify(success_response(result, "Expense analysis completed"))
-        
-    except Exception as e:
-        response_time = (time.time() - start_time) * 1000
-        api_logger.error("Expense analysis error", {
-            "error_type": type(e).__name__,
-            "response_time_ms": response_time
-        }, e)
-        
-        response, status_code = internal_error(safe_error_message(e, "Failed to analyze expense text"))
-        return jsonify(response), status_code
+    """Legacy endpoint - use POST /api/backend/chat instead"""
+    return {"error": "endpoint_deprecated", "message": "Use POST /api/backend/chat instead"}, 410
 
 @backend_api.route('/add_expense', methods=['POST'])
 @require_backend_user_auth
@@ -580,113 +526,6 @@ def api_process_message():
         response, status_code = internal_error(safe_error_message(e, "Failed to process message"))
         return jsonify(response), status_code
 
-@backend_api.route('/chat', methods=['POST'])
-@require_backend_user_auth 
-def api_chat(authenticated_user_id):
-    """
-    POST /api/backend/chat
-    Unified chat endpoint - one brain, unified response shape
-    Input: {"message": "I spent 50 on coffee"}
-    Output: {
-      "messages": [{"role":"assistant", "content":"..."}],
-      "events": [{"type":"expense_added", "id": 123, "category":"food"}],
-      "recent": [/* last N expenses */]
-    }
-    Authentication: Required (session only - SECURITY HARDENED)
-    Calls handle_incoming_message internally, server decides all actions
-    """
-    import time
-    import uuid
-    start_time = time.time()
-    trace_id = str(uuid.uuid4())
-    
-    try:
-        data = request.get_json() or {}
-        
-        # Validate required fields
-        message_text = data.get('message')
-        if not message_text or not message_text.strip():
-            response, status_code = standardized_error_response(
-                code=ErrorCodes.VALIDATION_ERROR,
-                message="Message is required",
-                field_errors={"message": "Please provide a message to process"},
-                status_code=400,
-                log_error=False
-            )
-            return jsonify(response), status_code
-        
-        # Validate message length
-        message = message_text.strip()
-        if len(message) > 1000:
-            response, status_code = standardized_error_response(
-                code=ErrorCodes.VALIDATION_ERROR,
-                message="Message is too long",
-                field_errors={"message": "Message must be 1000 characters or less"},
-                status_code=400,
-                log_error=False
-            )
-            return jsonify(response), status_code
-        
-        # Call the existing message routing system (handle_incoming_message equivalent)
-        from utils.production_router import production_router
-        
-        response_text, intent, category, amount = production_router.route_message(
-            text=message,
-            psid_or_hash=authenticated_user_id,  # Use session user ID
-            rid=trace_id
-        )
-        
-        # Initialize unified response structure
-        unified_response = {
-            "messages": [{"role": "assistant", "content": response_text}],
-            "events": [],
-            "recent": []
-        }
-        
-        # Add events based on intent and outcomes
-        if intent == "log_expense" and amount:
-            unified_response["events"].append({
-                "type": "expense_added",
-                "category": category or "uncategorized", 
-                "amount_minor": int(float(amount) * 100) if amount else 0
-            })
-        elif intent == "summary" or "summary" in response_text.lower():
-            unified_response["events"].append({
-                "type": "summary_generated",
-                "period": "recent"
-            })
-        
-        # Always include recent expenses for expense-related interactions
-        if intent in ["log_expense", "summary"] or any(word in message.lower() for word in ["expense", "spent", "show", "recent"]):
-            try:
-                recent_expenses = get_recent_expenses(authenticated_user_id, 5)
-                unified_response["recent"] = recent_expenses
-            except Exception as e:
-                logger.warning(f"Failed to get recent expenses: {e}")
-        
-        # Log successful chat interaction
-        response_time = (time.time() - start_time) * 1000
-        api_logger.log_api_request(True, response_time, {
-            "user_prefix": authenticated_user_id[:8] + "***",
-            "message_length": len(message),
-            "intent": intent,
-            "response_length": len(response_text),
-            "events_count": len(unified_response["events"]),
-            "recent_count": len(unified_response["recent"])
-        })
-        
-        return jsonify(success_response(unified_response, "Chat processed successfully"))
-        
-    except Exception as e:
-        response_time = (time.time() - start_time) * 1000
-        api_logger.error("Chat processing error", {
-            "error_type": type(e).__name__,
-            "user_prefix": authenticated_user_id[:8] + "***" if 'authenticated_user_id' in locals() else "unknown",
-            "response_time_ms": response_time
-        }, e)
-        
-        response, status_code = internal_error(safe_error_message(e, "Failed to process chat message"))
-        return jsonify(response), status_code
 
 @backend_api.route('/user_summary', methods=['POST']) 
 @require_backend_user_auth
@@ -870,24 +709,19 @@ def handle_incoming_message(user_id, text, channel="web"):
     }
 
 @backend_api.route('/chat', methods=['POST'])
-def chat_web():
-    """Web chat endpoint - unified bridge to production router"""
-    from flask import g, request, current_app as app
-    from utils.web_frontend_bridge import route_web_text
-    
-    if not g.user_id:
-        return {"error":"auth_required"}, 401
-
+@require_backend_user_auth
+def api_chat(authenticated_user_id):
+    """Web chat endpoint - uses bridge exclusively as per specification"""
     text = (request.get_json(silent=True) or {}).get("message","").strip()
     if not text:
         return {"error":"empty_message"}, 400
 
-    app.logger.info(f"[{g.request_id}] chat start user={g.user_id} msg={text!r}")
-    
-    # Use bridge to route through same production pipeline as Messenger
-    out = route_web_text(session_user_id=g.user_id, text=text, rid=g.request_id, mode="sync")
-    
-    app.logger.info(f"[{g.request_id}] chat done")
+    # choose Mode A (sync) or Mode B (enqueue) based on your preference:
+    from utils.web_frontend_bridge import route_web_text
+    out = route_web_text(session_user_id=authenticated_user_id, text=text, mode="sync")  # or "enqueue"
+
+    # Normalize the response to your web UI shape (same as Messenger response_text)
+    # If production_router already returns structured payload, pass it through.
     return out, 200
 
 # Health check endpoint

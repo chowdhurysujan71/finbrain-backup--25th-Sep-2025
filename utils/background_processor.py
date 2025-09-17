@@ -144,7 +144,7 @@ class BackgroundProcessor:
                     
                     # Check 24-hour policy compliance
                     if not is_within_24_hour_window(job.psid):
-                        log_webhook_success(psid_hash, job.mid, "24h_policy_block", None, None,
+                        log_webhook_success(user_hash, job.mid, "24h_policy_block", None, None,
                                           (time.time() - start_time) * 1000)
                         return
                 
@@ -160,7 +160,7 @@ class BackgroundProcessor:
                         job_mid = job.get("mid", "web-message") if isinstance(job, dict) else job.mid
                         
                         should_continue, pca_result = integrate_pca_with_webhook(
-                            user_id=psid_hash,
+                            user_id=user_hash,
                             message_text=job_text,
                             message_id=job_mid,
                             timestamp=datetime.utcnow()
@@ -183,7 +183,7 @@ class BackgroundProcessor:
                     
                     # CRITICAL: router needs user_id_hash for data processing, but we preserve original PSID for messaging
                     response_text, intent, category, amount = production_router.route_message(
-                        job_text, user_hash, job_rid, channel=job_channel
+                        job_text, user_hash, job_rid
                     )
                     
                     # Send response within timeout
@@ -195,31 +195,38 @@ class BackgroundProcessor:
                                           processing_time * 1000)
                     
                     # Send response with clear error handling + debug echo for 24h
-                    try:
-                        # Always use AI templates - no debug footers
-                        from templates.replies_ai import clean_ai_reply
-                        clean_response = clean_ai_reply(response_text)
-                        # CRITICAL FIX: Use original PSID for Facebook message delivery
-                        response_sent = send_facebook_message(job.psid, clean_response)
-                        logger.info(f"Request {job.rid}: Response sent successfully to {job.psid[:10]}*** (hash: {psid_hash[:8]}...)")
-                    except ValueError as psid_error:
-                        # Invalid PSID - clear error, no fallback attempt
-                        logger.error(f"Request {job.rid}: PSID validation failed - {str(psid_error)}")
-                        response_sent = False
-                    except RuntimeError as api_error:
-                        # Facebook API error - clear error, try simple fallback
-                        logger.error(f"Request {job.rid}: Facebook API error - {str(api_error)}")
+                    # Only send Facebook messages for Messenger channel, skip for web
+                    if isinstance(job, dict) and job.get("channel") == "web":
+                        # Web channel - no Facebook message sending needed
+                        response_sent = True  # Web responses are handled via API return
+                        logger.info(f"Request {job_rid}: Web response processed (hash: {user_hash[:8]}...)")
+                    else:
+                        # Messenger channel - send Facebook message
                         try:
-                            # Clean AI fallback response
-                            response_sent = send_facebook_message(job.psid, "Got it! ✅")
-                            logger.info(f"Request {job.rid}: Fallback message sent successfully (hash: {psid_hash[:8]}...)")
-                        except Exception as fallback_error:
-                            logger.error(f"Request {job.rid}: Fallback send failed - {str(fallback_error)}")
+                            # Always use AI templates - no debug footers
+                            from templates.replies_ai import clean_ai_reply
+                            clean_response = clean_ai_reply(response_text)
+                            # CRITICAL FIX: Use original PSID for Facebook message delivery
+                            response_sent = send_facebook_message(job.psid, clean_response)
+                            logger.info(f"Request {job_rid}: Response sent successfully to {job.psid[:10]}*** (hash: {user_hash[:8]}...)")
+                        except ValueError as psid_error:
+                            # Invalid PSID - clear error, no fallback attempt
+                            logger.error(f"Request {job_rid}: PSID validation failed - {str(psid_error)}")
                             response_sent = False
-                    except Exception as unknown_error:
-                        # Unexpected error - log with full context
-                        logger.error(f"Request {job.rid}: Unexpected messaging error - {str(unknown_error)}")
-                        response_sent = False
+                        except RuntimeError as api_error:
+                            # Facebook API error - clear error, try simple fallback
+                            logger.error(f"Request {job_rid}: Facebook API error - {str(api_error)}")
+                            try:
+                                # Clean AI fallback response
+                                response_sent = send_facebook_message(job.psid, "Got it! ✅")
+                                logger.info(f"Request {job_rid}: Fallback message sent successfully (hash: {user_hash[:8]}...)")
+                            except Exception as fallback_error:
+                                logger.error(f"Request {job_rid}: Fallback send failed - {str(fallback_error)}")
+                                response_sent = False
+                        except Exception as unknown_error:
+                            # Unexpected error - log with full context
+                            logger.error(f"Request {job_rid}: Unexpected messaging error - {str(unknown_error)}")
+                            response_sent = False
                     
                 except Exception as processing_error:
                     logger.error(f"Request {job.rid}: Processing error: {str(processing_error)}")
