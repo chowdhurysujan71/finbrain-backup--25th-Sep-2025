@@ -30,6 +30,20 @@ def psid_hash(psid: str) -> str:
 # Legacy alias for backward compatibility
 psid_from_event = extract_sender_psid
 
+def user_hash_from_session_user_id(session_user_id: str) -> str:
+    """
+    Web identity parity: same user_id_hash format for web sessions as Messenger PSIDs
+    
+    Args:
+        session_user_id: User ID from web session
+        
+    Returns:
+        64-char hex hash compatible with Messenger user_id_hash format
+    """
+    salt = os.getenv("ID_SALT", "")
+    h = hashlib.sha256((salt + str(session_user_id)).encode()).hexdigest()
+    return h  # full 64 hex chars, same style you use for PSID hash
+
 def ensure_hashed(user_identifier: str) -> str:
     """
     Ensure user identifier is properly hashed

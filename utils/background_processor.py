@@ -342,14 +342,15 @@ class BackgroundProcessor:
         }
         
         # Add Redis job queue stats if available
-        if self.job_queue_enabled:
+        if self.job_queue_enabled and job_queue is not None:
             try:
                 queue_stats = job_queue.get_queue_stats()
-                stats.update({
-                    "redis_jobs_queued": queue_stats.get("queued", 0),
-                    "redis_jobs_retry": queue_stats.get("retry", 0),
-                    "redis_jobs_dlq": queue_stats.get("dlq", 0)
-                })
+                if queue_stats:
+                    stats.update({
+                        "redis_jobs_queued": queue_stats.get("queued", 0),
+                        "redis_jobs_retry": queue_stats.get("retry", 0),
+                        "redis_jobs_dlq": queue_stats.get("dlq", 0)
+                    })
             except Exception as e:
                 logger.warning(f"Failed to get Redis job stats: {e}")
                 
@@ -374,13 +375,13 @@ class BackgroundProcessor:
         while True:
             try:
                 # Process retry queue first
-                if self.job_queue_enabled:
+                if self.job_queue_enabled and job_queue is not None:
                     retry_jobs = job_queue.process_retry_queue()
                     if retry_jobs:
                         logger.info(f"Moved {len(retry_jobs)} jobs from retry to main queue")
                 
                 # Dequeue and process next job
-                if self.job_queue_enabled:
+                if self.job_queue_enabled and job_queue is not None:
                     job = job_queue.dequeue()
                     if job:
                         # Process job in dedicated thread to avoid blocking
@@ -398,13 +399,17 @@ class BackgroundProcessor:
         try:
             from app import app
             with app.app_context():
-                success = job_processor.process_job(job)
-                if success:
-                    logger.info(f"Redis job {job.job_id} processed successfully")
+                if job_processor is not None:
+                    success = job_processor.process_job(job)
+                    if success:
+                        logger.info(f"Redis job {job.job_id} processed successfully")
+                    else:
+                        logger.warning(f"Redis job {job.job_id} processing failed")
                 else:
-                    logger.warning(f"Redis job {job.job_id} processing failed")
+                    logger.error("Job processor not available")
         except Exception as e:
-            logger.error(f"Redis job {job.job_id} processing exception: {e}")
+            job_id = getattr(job, 'job_id', 'unknown')
+            logger.error(f"Redis job {job_id} processing exception: {e}")
 
     def shutdown(self) -> None:
         """Gracefully shutdown the background processor"""

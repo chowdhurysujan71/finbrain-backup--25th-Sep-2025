@@ -871,15 +871,22 @@ def handle_incoming_message(user_id, text, channel="web"):
 
 @backend_api.route('/chat', methods=['POST'])
 def chat_web():
-    """Web chat endpoint - unified handler same as Messenger brain"""
+    """Web chat endpoint - unified bridge to production router"""
     from flask import g, request, current_app as app
+    from utils.web_frontend_bridge import route_web_text
+    
     if not g.user_id:
         return {"error":"auth_required"}, 401
-    msg = (request.get_json(silent=True) or {}).get("message","").strip()
-    if not msg:
+
+    text = (request.get_json(silent=True) or {}).get("message","").strip()
+    if not text:
         return {"error":"empty_message"}, 400
-    app.logger.info(f"[{g.request_id}] chat start user={g.user_id} msg={msg!r}")
-    out = handle_incoming_message(g.user_id, msg, channel="web")  # <— SAME CORE
+
+    app.logger.info(f"[{g.request_id}] chat start user={g.user_id} msg={text!r}")
+    
+    # Use bridge to route through same production pipeline as Messenger
+    out = route_web_text(session_user_id=g.user_id, text=text, rid=g.request_id, mode="sync")
+    
     app.logger.info(f"[{g.request_id}] chat done")
     return out, 200
 
