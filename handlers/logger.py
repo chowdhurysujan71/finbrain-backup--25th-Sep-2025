@@ -15,8 +15,8 @@ def handle_log(user_id: str, text: str) -> Dict[str, str]:
     Log expense(s) from user message using unified create_expense function
     Returns dict with 'text' key containing confirmation
     """
-    from utils.db import create_expense
     import uuid
+    import backend_assistant as ba
     
     try:
         # Parse expense using same deterministic parser as propose_expense API
@@ -45,19 +45,19 @@ def handle_log(user_id: str, text: str) -> Dict[str, str]:
         occurred_at = datetime.now()
         source_message_id = f"chat_{int(time.time() * 1000000)}"
         
-        # Use unified create_expense function for each expense
+        # Use proper API endpoint to comply with database trigger requirements
         expense_results = []
         try:
             for exp in expenses:
-                result = create_expense(
+                # Convert to the format expected by add_expense API
+                result = ba.add_expense(
                     user_id=user_hash,
-                    amount=exp['amount'],
-                    currency='৳',
+                    amount_minor=int(exp['amount'] * 100),  # Convert to minor units
+                    currency='BDT',
                     category=exp['category'],
-                    occurred_at=occurred_at,
-                    source_message_id=source_message_id,
-                    correlation_id=str(uuid.uuid4()),  # Generate unique UUID for each expense
-                    notes=exp.get('description') or text
+                    description=exp.get('description') or text,
+                    source='chat',
+                    message_id=source_message_id
                 )
                 expense_results.append(result)
                 logged.append(f"{exp['amount']:.0f} for {exp['category']}")

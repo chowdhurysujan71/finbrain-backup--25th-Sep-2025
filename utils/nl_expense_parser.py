@@ -175,14 +175,14 @@ class NLExpenseParser:
         
         # Return highest scoring category (excluding 'other' unless no other matches)
         if max(category_scores.values()) == 0:
-            return 'other'
+            return 'uncategorized'
         
         # Get best category (prefer specific categories over 'other')
         sorted_categories = sorted(category_scores.items(), 
                                  key=lambda x: (x[1], 0 if x[0] == 'other' else 1), 
                                  reverse=True)
         
-        return sorted_categories[0][0] if sorted_categories[0][1] > 0 else 'other'
+        return sorted_categories[0][0] if sorted_categories[0][1] > 0 else 'uncategorized'
     
     def _try_ai_parse(self, text: str, language: str, user_id_hash: str = None) -> ExpenseParseResult:
         """Use AI parsing for complex natural language"""

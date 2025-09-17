@@ -36,7 +36,7 @@ class GeminiAdapter:
         return {
             "reply_text": f"Processed: {message['text'][:50]}...",
             "intent": "log_expense",
-            "category": "general",
+            "category": "uncategorized",
             "amount": 0.0,
             "confidence": 0.8,
             "intents": ["log_expense"]

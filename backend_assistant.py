@@ -104,7 +104,7 @@ def propose_expense(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
             return {
                 "amount_minor": amount_minor,
                 "currency": "BDT", 
-                "category": category,
+                "category": category or "uncategorized",
                 "description": raw_text.strip(),
                 "confidence": confidence,
                 "status": "needs_review"

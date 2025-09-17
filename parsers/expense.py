@@ -305,7 +305,7 @@ def infer_category_with_strength(text: str) -> str:
     Infer category from text with strength-based scoring.
     """
     text_lower = text.lower()
-    best_category = 'general'
+    best_category = 'uncategorized'
     best_strength = 0
     
     # Check each category alias
@@ -539,10 +539,10 @@ def _infer_category_from_context(context_text: str, user_hash: str = None) -> st
         Inferred category string
     """
     if not context_text:
-        return 'general'
+        return 'uncategorized'
     
     context_lower = context_text.lower()
-    best_category = 'general'
+    best_category = 'uncategorized'
     best_strength = 0
     
     # PRIORITY 1: Check user's learned preferences first
@@ -675,7 +675,7 @@ def _parse_standard_expense(normalized: str, original_text: str, now_ts: datetim
     result = {
         'amount': None,
         'currency': 'BDT',  # Default to BDT
-        'category': 'general',
+        'category': 'uncategorized',
         'merchant': None,
         'ts_client': None,
         'note': original_text
@@ -800,6 +800,6 @@ def parse_amount_currency_category(text: str) -> Dict[str, Any]:
     return {
         'amount': result.get('amount'),
         'currency': result.get('currency', 'BDT'),
-        'category': result.get('category', 'general'),
+        'category': result.get('category', 'uncategorized'),
         'note': result.get('note', text.strip())
     }
