@@ -126,20 +126,6 @@
     </section>
     
     <script>
-    // Unified User ID System - localStorage + X-User-ID header
-    function getOrCreateUserId() {
-        const KEY = 'finbrain_uid';
-        let id = localStorage.getItem(KEY);
-        if (!id) {
-            // UUIDv4-lite
-            id = ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-                (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-            );
-            localStorage.setItem(KEY, id);
-        }
-        return id;
-    }
-    
     // HTML escape utility
     function escapeHtml(s) {
         return s.replace(/[&<>"']/g, m => ({
@@ -156,8 +142,6 @@
         }
     }
     
-    // REMOVED: Conflicting inline chat script - now handled by chat-handler.js
-    
     // Auto-resize textarea (with safety check)
     document.addEventListener('DOMContentLoaded', () => {
         const chatInput = document.getElementById('chat-input');
@@ -168,58 +152,6 @@
             });
         }
     });
-    
-    // Refresh feed functionality
-    async function refreshFeed() {
-        try {
-            const res = await fetch('/api/backend/expenses?limit=20', { credentials: 'include' });
-            if (!res.ok) {
-                // Fallback to existing API if new endpoint doesn't exist
-                const fallbackRes = await fetch('/api/backend/get_recent_expenses', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ limit: 20 })
-                });
-                const fallbackData = await fallbackRes.json();
-                const expenses = fallbackData.data?.expenses || fallbackData.expenses || [];
-                renderRecentExpenses(expenses);
-                return;
-            }
-            const data = await res.json();
-            renderRecentExpenses(data.items || data.expenses || []);
-        } catch (error) {
-            console.warn('Feed refresh failed:', error);
-        }
-    }
-
-    // Render recent expenses
-    function renderRecentExpenses(expenses) {
-        const container = document.getElementById('recent-expenses-list');
-        if (!container) return;
-
-        if (!expenses || expenses.length === 0) {
-            container.innerHTML = '<p class="text-muted">No recent expenses yet. Add one above to get started!</p>';
-            return;
-        }
-
-        container.innerHTML = expenses.map(expense => {
-            const amount = expense.amount_minor ? (expense.amount_minor / 100).toFixed(2) : expense.amount?.toFixed(2) || '0.00';
-            const currency = expense.currency || '৳';
-            const category = expense.category || 'other';
-            const description = expense.description || expense.original_message || 'No description';
-            
-            return `
-                <div class="expense-row">
-                    <span class="expense-amount">${currency}${amount}</span>
-                    <span class="expense-separator">•</span>
-                    <span class="expense-category">${category}</span>
-                    <span class="expense-separator">•</span>
-                    <span class="expense-description">${escapeHtml(description)}</span>
-                </div>
-            `;
-        }).join('');
-    }
 
     // Form handling for quick add
     async function handleFormResponse(event) {
@@ -243,9 +175,6 @@
             
             // Clear the form
             form.reset();
-            
-            // Refresh the feed to show the new expense
-            await refreshFeed();
             
             // Also trigger HTMX refresh for backward compatibility
             htmx.trigger('#entries-section', 'expense-added');
@@ -275,8 +204,6 @@
         const submitBtn = document.getElementById('submit-btn');
         submitBtn.disabled = true;
         submitBtn.textContent = 'Adding...';
-        
-        // User ID is now working - debug removed
     });
     </script>
     
@@ -300,48 +227,6 @@
 </div>
 
 
-<script>
-// Enhanced form handling
-document.getElementById('expense-form').addEventListener('htmx:afterRequest', async function(event) {
-    if (event.detail.successful) {
-        // Reset form
-        this.reset();
-        
-        // Refresh the feed to show the new expense
-        await refreshFeed();
-        
-        // Show success toast
-        showToast('Expense added successfully!', 'success');
-        
-        // Trigger entries refresh for backward compatibility
-        document.body.dispatchEvent(new CustomEvent('expense-added'));
-    } else {
-        // Show error toast
-        showToast('Failed to add expense. Please try again.', 'error');
-    }
-});
-
-// Toast helper function
-function showToast(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-        <div class="toast-content">
-            <span class="toast-message">${message}</span>
-            <button class="toast-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
-        </div>
-    `;
-    
-    document.getElementById('toast-container').appendChild(toast);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        if (toast.parentElement) {
-            toast.remove();
-        }
-    }, 5000);
-}
-</script>
-
-<script src="/static/js/chat-handler.js?v=20250916_final&t=1758020837" defer></script>
+<!-- keep just this; remove older script tags -->
+<script src="/static/js/chat-handler.js?v=20250917_1" defer></script>
 {% endblock %}
