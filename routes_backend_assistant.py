@@ -31,6 +31,15 @@ logger = logging.getLogger(__name__)
 
 backend_api = Blueprint('backend_api', __name__, url_prefix='/api/backend')
 
+# Add no-cache headers to all API responses
+@backend_api.after_request
+def add_no_cache_headers(response):
+    """Add Cache-Control: no-store to all API responses to prevent caching"""
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
 def get_session_authenticated_user_id():
     """Get authenticated user ID from server-side session only (SECURITY HARDENED).
     
