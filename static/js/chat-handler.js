@@ -32,20 +32,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!text || sendBtn.disabled) return;
     sendBtn.disabled = true;
 
+    const rid = Math.random().toString(36).slice(2, 10); // client trace id
+
     try {
-      const res = await fetch('/api/backend/chat', {
+      // 1) auth
+      const a = await fetch('/api/backend/diag/auth', { credentials:'include' });
+      if (!a.ok) throw new Error('Not signed in');
+
+      // 2) chat roundtrip (SINGLE endpoint)
+      const r = await fetch('/api/backend/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type':'application/json', 'X-Request-ID': rid },
         credentials: 'include',
         body: JSON.stringify({ message: text })
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const data = await r.json().catch(()=> ({}));
+      if (!r.ok) throw new Error(`HTTP ${r.status} ${data.error||''}`);
+
+      console.log('[TRACE]', rid, 'reply:', data);
       renderUser(text);
-      renderAssistant(data); // expects data.messages[]
+      renderAssistant(data);      // expects {messages:[...]} etc.
       input.value = '';
     } catch (err) {
-      console.error(err);
+      console.error('[TRACE] fail', err);
       alert(`Chat failed: ${err.message}`);
     } finally {
       sendBtn.disabled = false;
@@ -55,6 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (!window.__chatBound) {
     form.addEventListener('submit', onSubmit);
-    window.__chatBound = true; // prevent duplicate bindings
+    window.__chatBound = true;
   }
 });

@@ -210,11 +210,6 @@ def after_request(response):
     
     return response
 
-# Kill legacy routes so they can't hijack traffic
-@app.route("/user/<path:q>/insights")
-def legacy_insights(q):
-    """Legacy insights endpoint - deprecated"""
-    return {"error":"deprecated_endpoint","use":"/api/backend/chat"}, 410
 
 # Add startup self-check for canonical router
 try:
@@ -1310,9 +1305,6 @@ def token_refresh_status():
             "timestamp": datetime.utcnow().isoformat()
         }), 500
 
-@app.route('/user/<path:q>/insights')
-def legacy_insights(q):
-    return {"error":"deprecated_endpoint","use":"/api/backend/chat"}, 410
 
 @app.route('/user/<psid_hash>/category/<category_name>')
 @require_basic_auth  
