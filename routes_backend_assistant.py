@@ -805,6 +805,54 @@ def api_echo():
     data = request.get_json(silent=True) or {}
     return jsonify({"ok": True, "got": data}), 200
 
+# Diagnostic endpoints for UAT testing
+@backend_api.route('/diag/auth', methods=['GET'])
+def diag_auth():
+    """Check authentication status"""
+    from flask import g
+    return {"ok": bool(g.user_id), "user_id": g.user_id}, (200 if g.user_id else 401)
+
+@backend_api.route('/diag/db', methods=['GET'])
+def diag_db():
+    """Check database connectivity and user expenses count"""
+    from flask import g
+    from sqlalchemy import text
+    if not g.user_id: 
+        return {"error":"auth_required"}, 401
+    n = db.session.execute(text("SELECT COUNT(*) FROM expenses WHERE user_id=:u"), {"u": g.user_id}).scalar()
+    return {"ok": True, "expense_count": int(n)}, 200
+
+@backend_api.route('/diag/add_test', methods=['POST'])
+def diag_add_test():
+    """Add test expense for diagnostics"""
+    from flask import g, request
+    from sqlalchemy import text
+    if not g.user_id: 
+        return {"error":"auth_required"}, 401
+    d = (request.get_json(silent=True) or {}).get("d","Diag entry")
+    db.session.execute(text("""
+      INSERT INTO expenses(user_id, amount_cents, currency, description, category, source, created_at)
+      VALUES (:u, 777, 'BDT', :d, 'test', 'web', NOW())
+    """), {"u": g.user_id, "d": d})
+    db.session.commit()
+    return {"ok": True}, 200
+
+@backend_api.route('/diag/ai', methods=['POST'])
+def diag_ai():
+    """Test AI connectivity"""
+    try:
+        from openai import OpenAI
+        client = OpenAI()
+        out = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role":"user","content":"ping"}]
+        )
+        txt = out.choices[0].message.content
+        return {"ok": True, "sample": txt[:80]}, 200
+    except Exception as e:
+        current_app.logger.exception("ai ping failed")
+        return {"ok": False, "error": str(e)}, 500
+
 
 def handle_incoming_message(user_id, text, channel="web"):
     """Route through the core brain"""
@@ -823,13 +871,16 @@ def handle_incoming_message(user_id, text, channel="web"):
 
 @backend_api.route('/chat', methods=['POST'])
 def chat_web():
-    from flask import g
+    """Web chat endpoint - unified handler same as Messenger brain"""
+    from flask import g, request, current_app as app
     if not g.user_id:
         return {"error":"auth_required"}, 401
-    text = (request.get_json() or {}).get("message","").strip()
-    if not text:
+    msg = (request.get_json(silent=True) or {}).get("message","").strip()
+    if not msg:
         return {"error":"empty_message"}, 400
-    out = handle_incoming_message(g.user_id, text, channel="web")
+    app.logger.info(f"[{g.request_id}] chat start user={g.user_id} msg={msg!r}")
+    out = handle_incoming_message(g.user_id, msg, channel="web")  # <— SAME CORE
+    app.logger.info(f"[{g.request_id}] chat done")
     return out, 200
 
 # Health check endpoint

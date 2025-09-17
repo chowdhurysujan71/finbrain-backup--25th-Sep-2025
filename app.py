@@ -116,18 +116,26 @@ limiter.init_app(app)
 from utils.logger import structured_logger
 
 @app.before_request
-def before_request():
+def attach_user_and_trace():
     """Capture request start time, generate request_id, set user context, and enforce auth"""
     import os
-    from flask import request, jsonify
+    from flask import request, jsonify, after_this_request
     from auth_helpers import get_user_id_from_session
     
     g.start_time = time.time()
     # Get request_id from header or generate new one
-    g.request_id = request.headers.get('X-Request-ID') or str(uuid.uuid4())
+    g.request_id = request.headers.get('X-Request-ID') or uuid.uuid4().hex[:12]
     
     # SINGLE-SOURCE-OF-TRUTH: Set authenticated user context from session only
     g.user_id = get_user_id_from_session()
+    
+    # Enhanced logging for trace middleware
+    app.logger.info(f"[{g.request_id}] → {request.method} {request.path} user={g.user_id or 'anon'}")
+    
+    @after_this_request
+    def add_trace_headers(resp):
+        resp.headers['X-Request-ID'] = g.request_id
+        return resp
     
     # PRODUCTION SECURITY: Block ALL /api/* requests without authentication
     is_api_route = request.path.startswith('/api/')
@@ -147,6 +155,8 @@ def before_request():
     # Check if existing logger already handles this to avoid duplication
     if not hasattr(g, 'logging_handled'):
         g.logging_handled = True
+    
+    return None
 
 @app.after_request
 def after_request(response):
@@ -199,6 +209,12 @@ def after_request(response):
         response.headers['X-Request-ID'] = g.request_id
     
     return response
+
+# Kill legacy routes so they can't hijack traffic
+@app.route("/user/<path:q>/insights")
+def legacy_insights(q):
+    """Legacy insights endpoint - deprecated"""
+    return {"error":"deprecated_endpoint","use":"/api/backend/chat"}, 410
 
 # Add startup self-check for canonical router
 try:
