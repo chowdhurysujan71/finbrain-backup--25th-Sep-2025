@@ -521,7 +521,7 @@ def entries_partial():
                 'Content-Type': 'application/json',
                 'User-Agent': 'PWA-Internal-Client/1.0'
             },
-            timeout=5
+            timeout=15  # Increased timeout from 5 to 15 seconds to fix UI loading issues
         )
         
         if response.status_code == 200:
