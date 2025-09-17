@@ -47,40 +47,45 @@
     });
   };
 
-  // Unified submit handler - only calls chat endpoint
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const text = (input.value || '').trim();
-    if (!text || sendBtn?.disabled) return;
-    if (sendBtn) sendBtn.disabled = true;
+  // Guard against multiple event listener bindings to prevent triple sends
+  if (!window.__chatBound) {
+    // Unified submit handler - only calls chat endpoint
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = (input.value || '').trim();
+      if (!text || sendBtn?.disabled) return;
+      if (sendBtn) sendBtn.disabled = true;
 
-    try {
-      const res = await fetch('/api/backend/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ message: text })
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();          // unified reply
-      renderUser(text);
-      renderAssistant(data);                   // expects data.messages[]
-      if (data.recent) renderRecent(data.recent);
-    } catch (err) {
-      toast(`Chat failed: ${err.message}`);
-    } finally {
-      if (sendBtn) sendBtn.disabled = false;
-      input.value = '';
-      input.focus();
-    }
-  });
+      try {
+        const res = await fetch('/api/backend/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ message: text })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();          // unified reply
+        renderUser(text);
+        renderAssistant(data);                   // expects data.messages[]
+        if (data.recent) renderRecent(data.recent);
+      } catch (err) {
+        toast(`Chat failed: ${err.message}`);
+      } finally {
+        if (sendBtn) sendBtn.disabled = false;
+        input.value = '';
+        input.focus();
+      }
+    });
 
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) { 
-      e.preventDefault(); 
-      form.requestSubmit?.() || form.submit(); 
-    }
-  });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) { 
+        e.preventDefault(); 
+        form.requestSubmit?.() || form.submit(); 
+      }
+    });
+
+    window.__chatBound = true;
+  }
 
   busy(false); clearErr();
 })();
