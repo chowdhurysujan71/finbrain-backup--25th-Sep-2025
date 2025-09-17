@@ -506,7 +506,11 @@ def entries_partial():
         
         # UI GUARDRAIL: Call only the canonical backend API endpoint
         # This enforces session authentication and unified read path
-        base_url = os.environ.get('REPLIT_DEV_DOMAIN', 'http://localhost:5000')
+        dev_domain = os.environ.get('REPLIT_DEV_DOMAIN', '')
+        if dev_domain and not dev_domain.startswith(('http://', 'https://')):
+            base_url = f'https://{dev_domain}'  # Add https:// scheme for Replit domains
+        else:
+            base_url = dev_domain or 'http://localhost:5000'
         
         # Use internal API call with session cookies
         response = requests.post(
