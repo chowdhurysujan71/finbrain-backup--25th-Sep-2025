@@ -571,6 +571,114 @@ def api_process_message():
         response, status_code = internal_error(safe_error_message(e, "Failed to process message"))
         return jsonify(response), status_code
 
+@backend_api.route('/chat', methods=['POST'])
+@require_backend_user_auth 
+def api_chat(authenticated_user_id):
+    """
+    POST /api/backend/chat
+    Unified chat endpoint - one brain, unified response shape
+    Input: {"message": "I spent 50 on coffee"}
+    Output: {
+      "messages": [{"role":"assistant", "content":"..."}],
+      "events": [{"type":"expense_added", "id": 123, "category":"food"}],
+      "recent": [/* last N expenses */]
+    }
+    Authentication: Required (session only - SECURITY HARDENED)
+    Calls handle_incoming_message internally, server decides all actions
+    """
+    import time
+    import uuid
+    start_time = time.time()
+    trace_id = str(uuid.uuid4())
+    
+    try:
+        data = request.get_json() or {}
+        
+        # Validate required fields
+        message_text = data.get('message')
+        if not message_text or not message_text.strip():
+            response, status_code = standardized_error_response(
+                code=ErrorCodes.VALIDATION_ERROR,
+                message="Message is required",
+                field_errors={"message": "Please provide a message to process"},
+                status_code=400,
+                log_error=False
+            )
+            return jsonify(response), status_code
+        
+        # Validate message length
+        message = message_text.strip()
+        if len(message) > 1000:
+            response, status_code = standardized_error_response(
+                code=ErrorCodes.VALIDATION_ERROR,
+                message="Message is too long",
+                field_errors={"message": "Message must be 1000 characters or less"},
+                status_code=400,
+                log_error=False
+            )
+            return jsonify(response), status_code
+        
+        # Call the existing message routing system (handle_incoming_message equivalent)
+        from utils.production_router import production_router
+        
+        response_text, intent, category, amount = production_router.route_message(
+            text=message,
+            psid_or_hash=authenticated_user_id,  # Use session user ID
+            rid=trace_id
+        )
+        
+        # Initialize unified response structure
+        unified_response = {
+            "messages": [{"role": "assistant", "content": response_text}],
+            "events": [],
+            "recent": []
+        }
+        
+        # Add events based on intent and outcomes
+        if intent == "log_expense" and amount:
+            unified_response["events"].append({
+                "type": "expense_added",
+                "category": category or "uncategorized", 
+                "amount_minor": int(float(amount) * 100) if amount else 0
+            })
+        elif intent == "summary" or "summary" in response_text.lower():
+            unified_response["events"].append({
+                "type": "summary_generated",
+                "period": "recent"
+            })
+        
+        # Always include recent expenses for expense-related interactions
+        if intent in ["log_expense", "summary"] or any(word in message.lower() for word in ["expense", "spent", "show", "recent"]):
+            try:
+                recent_expenses = get_recent_expenses(authenticated_user_id, 5)
+                unified_response["recent"] = recent_expenses
+            except Exception as e:
+                logger.warning(f"Failed to get recent expenses: {e}")
+        
+        # Log successful chat interaction
+        response_time = (time.time() - start_time) * 1000
+        api_logger.log_api_request(True, response_time, {
+            "user_prefix": authenticated_user_id[:8] + "***",
+            "message_length": len(message),
+            "intent": intent,
+            "response_length": len(response_text),
+            "events_count": len(unified_response["events"]),
+            "recent_count": len(unified_response["recent"])
+        })
+        
+        return jsonify(success_response(unified_response, "Chat processed successfully"))
+        
+    except Exception as e:
+        response_time = (time.time() - start_time) * 1000
+        api_logger.error("Chat processing error", {
+            "error_type": type(e).__name__,
+            "user_prefix": authenticated_user_id[:8] + "***" if 'authenticated_user_id' in locals() else "unknown",
+            "response_time_ms": response_time
+        }, e)
+        
+        response, status_code = internal_error(safe_error_message(e, "Failed to process chat message"))
+        return jsonify(response), status_code
+
 @backend_api.route('/user_summary', methods=['POST']) 
 @require_backend_user_auth
 def api_user_summary(authenticated_user_id):
@@ -688,50 +796,6 @@ def api_echo():
     data = request.get_json(silent=True) or {}
     return jsonify({"ok": True, "got": data}), 200
 
-@backend_api.route('/chat', methods=['POST'])
-def api_chat():
-    """Minimal non-stream chat that calls your core brain"""
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({"error": "auth_required"}), 401
-        
-    data = request.get_json(silent=True) or {}
-    text = (data.get("message") or "").strip()
-    if not text:
-        return jsonify({"error": "empty_message"}), 400
-
-    try:
-        # Use the EXACT same function that Messenger uses
-        from utils.production_router import production_router
-        from utils.user_id_resolution import resolve_user_id
-        
-        # Convert session user_id to hash format (same as Messenger flow)
-        user_id_hash = resolve_user_id(session_user_id=user_id)
-        
-        # Call the exact same function as Messenger background processor
-        response_text, intent, category, amount = production_router.route_message(
-            text, user_id_hash, "web-chat-request"  # Same params as Messenger line 156-158
-        )
-        
-        # Convert production_router response to expected chat format
-        response = {
-            "messages": [{
-                "type": "text",
-                "content": response_text or "No response"
-            }],
-            "metadata": {
-                "intent": intent,
-                "category": category,
-                "amount": amount,
-                "source": "production_router"
-            },
-            "structured": {}
-        }
-        
-        return jsonify(response), 200
-    except Exception as e:
-        current_app.logger.exception("chat failed")
-        return jsonify({"error": "server_error"}), 500
 
 # Health check endpoint
 @backend_api.route('/health', methods=['GET'])
