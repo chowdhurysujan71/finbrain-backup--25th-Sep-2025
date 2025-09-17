@@ -52,58 +52,55 @@
     }
   }
 
+  // Helper functions for rendering messages
+  const renderUser = (text) => addMsg("user", text);
+  const renderAssistant = (data) => {
+    // Handle the expected {"messages": [...]} format
+    const messages = data.messages || [];
+    messages.forEach(msg => {
+      if (msg.type === "text" && msg.content) {
+        addMsg("bot", msg.content);
+      }
+    });
+  };
+
+  async function onSubmit(e) {
+    e.preventDefault();
+    const text = (input.value || '').trim();
+    if (!text || btn?.disabled) return;
+    if (btn) btn.disabled = true;
+
+    try {
+      // quick auth check (optional)
+      const me = await fetch('/api/backend/ping', { credentials:'include' });
+      if (!me.ok) throw new Error('Not signed in');
+
+      const res = await fetch('/api/backend/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',                // <-- CRITICAL
+        body: JSON.stringify({ message: text })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({}));
+        throw new Error(`HTTP ${res.status} ${err.error||''}`);
+      }
+      const data = await res.json();
+      renderUser(text);
+      renderAssistant(data);                  // expect {"messages":[...]}
+      input.value = '';
+    } catch (err) {
+      console.error(err);
+      alert(`Chat failed: ${err.message}`);
+    } finally {
+      if (btn) btn.disabled = false;
+      input.focus();
+    }
+  }
+
   // Prevent double event bindings after re-renders
   if (!window.__chatBound) {
-    form.addEventListener("submit", async (ev) => {
-      ev.preventDefault(); clearErr();
-      const text = (input.value || "").trim();
-      if (!text) return;
-      addMsg("user", text);
-      busy(true);
-    try {
-      const parsed = await j("/api/backend/propose_expense", { text });
-      const {data: p} = parsed; // Unwrap standardized response envelope
-      
-      // Check if this is actually an expense (has amount and reasonable confidence)
-      if (p.amount_minor && p.confidence > 0.5) {
-        let saved;
-        try {
-          saved = await j("/api/backend/add_expense", { 
-            description: text, 
-            source: "chat",
-            amount_minor: p.amount_minor,
-            currency: p.currency || "BDT",
-            category: p.category
-          });
-          const {data: s} = saved; // Unwrap standardized response envelope
-          addMsg("bot", `Saved ${(s.amount_minor/100).toFixed(2)} BDT as ${s.category || "uncategorized"}.`);
-          await refreshRecent();
-        } catch (e) {
-          if (String(e.message).includes("401")) {
-            // User not authenticated - redirect to login
-            window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
-            return;
-          } else {
-            showErr("Couldn't save that right now. Please try again.");
-            console.error(e);
-          }
-        }
-      } else {
-        // Not an expense - show a helpful response
-        addMsg("bot", "I can help you log expenses like 'I spent 200 taka on groceries' or analyze your spending. What would you like to do?");
-      }
-    } catch (e) {
-      if (String(e.message).includes("401")) {
-        // User not authenticated - redirect to login
-        window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
-        return;
-      }
-      showErr("Sorry, I couldn't parse that message.");
-      console.error(e);
-    } finally {
-      busy(false); input.value = ""; input.focus();
-    }
-    });
+    form.addEventListener('submit', onSubmit);
 
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit?.() || form.submit(); }
