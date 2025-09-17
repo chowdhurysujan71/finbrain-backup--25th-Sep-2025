@@ -701,18 +701,31 @@ def api_chat():
         return jsonify({"error": "empty_message"}), 400
 
     try:
-        # Use the same function that processes messages from Messenger
-        from core.brain import process_user_message
-        result = process_user_message(user_id, text)
+        # Use the EXACT same function that Messenger uses
+        from utils.production_router import production_router
+        from utils.user_id_resolution import resolve_user_id
         
-        # Convert brain response format to expected chat format
+        # Convert session user_id to hash format (same as Messenger flow)
+        user_id_hash = resolve_user_id(session_user_id=user_id)
+        
+        # Call the exact same function as Messenger background processor
+        response_text, intent, category, amount = production_router.route_message(
+            text, user_id_hash, "web-chat-request"  # Same params as Messenger line 156-158
+        )
+        
+        # Convert production_router response to expected chat format
         response = {
             "messages": [{
                 "type": "text",
-                "content": result.get("reply", "No response")
+                "content": response_text or "No response"
             }],
-            "metadata": result.get("metadata", {}),
-            "structured": result.get("structured", {})
+            "metadata": {
+                "intent": intent,
+                "category": category,
+                "amount": amount,
+                "source": "production_router"
+            },
+            "structured": {}
         }
         
         return jsonify(response), 200
