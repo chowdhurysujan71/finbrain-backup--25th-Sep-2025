@@ -806,6 +806,97 @@ def api_echo():
     return jsonify({"ok": True, "got": data}), 200
 
 
+@backend_api.route('/chat', methods=['POST'])
+@require_backend_user_auth
+def api_chat(authenticated_user_id):
+    """Unified chat endpoint that calls production_router and returns standardized format"""
+    start_time = time.time()
+    
+    try:
+        data = request.get_json(silent=True) or {}
+        text = (data.get("message") or "").strip()
+        
+        if not text:
+            response, status_code = standardized_error_response(
+                code=ErrorCodes.VALIDATION_ERROR,
+                message="Message is required",
+                field_errors={"message": "Please provide a message"},
+                status_code=400,
+                log_error=False
+            )
+            return jsonify(response), status_code
+
+        # Use the EXACT same function that Messenger uses
+        from utils.production_router import production_router
+        from utils.user_id_resolution import resolve_user_id
+        
+        # Convert session user_id to hash format (same as Messenger flow)
+        user_id_hash = resolve_user_id(session_user_id=authenticated_user_id)
+        
+        # Call the exact same function as Messenger background processor
+        response_text, intent, category, amount = production_router.route_message(
+            text, user_id_hash, "web-chat-request"
+        )
+        
+        # Get recent expenses if this was an expense-related interaction
+        recent_expenses = []
+        events = []
+        
+        if intent in ["EXPENSE_LOG", "ADD_EXPENSE"] and amount and category:
+            # Add event for expense added
+            events.append({
+                "type": "expense_added",
+                "category": category,
+                "amount": amount
+            })
+            
+            # Get updated recent expenses
+            try:
+                recent_expenses = get_recent_expenses(authenticated_user_id, limit=5)
+            except Exception as e:
+                logger.warning(f"Failed to get recent expenses: {e}")
+        
+        # Convert production_router response to unified chat format
+        response_data = {
+            "messages": [{
+                "role": "assistant",
+                "content": response_text or "I'm here to help with your expenses!"
+            }],
+            "events": events,
+            "recent": recent_expenses or []
+        }
+        
+        # Log successful request
+        response_time = (time.time() - start_time) * 1000
+        api_logger.log_api_request(True, response_time, {
+            "user_prefix": authenticated_user_id[:8] + "***",
+            "text_length": len(text),
+            "intent": intent,
+            "category": category,
+            "events_count": len(events)
+        })
+        
+        return jsonify(response_data), 200
+        
+    except Exception as e:
+        response_time = (time.time() - start_time) * 1000
+        api_logger.error("Chat error", {
+            "error_type": type(e).__name__,
+            "user_prefix": authenticated_user_id[:8] + "***",
+            "response_time_ms": response_time
+        }, e)
+        
+        # Return unified format even on error
+        error_response = {
+            "messages": [{
+                "role": "assistant", 
+                "content": "I'm experiencing some technical difficulties. Please try again."
+            }],
+            "events": [],
+            "recent": []
+        }
+        return jsonify(error_response), 500
+
 # Health check endpoint
 @backend_api.route('/health', methods=['GET'])
 def api_health():
