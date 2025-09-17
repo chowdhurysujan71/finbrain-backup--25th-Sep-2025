@@ -77,40 +77,10 @@ self.addEventListener('activate', event => {
     );
 });
 
-// Fetch event - handle all network requests with caching strategies
-self.addEventListener('fetch', event => {
-    const { request } = event;
-    const url = new URL(request.url);
-    
-    // CRITICAL: Never intercept /ai-chat to prevent hanging
-    if (url.pathname === '/ai-chat') {
-        return; // bypass SW completely
-    }
-    
-    // Never cache API calls; always go network
-    if (url.pathname.startsWith('/api/')) {
-        return; // bypass SW completely for all API requests
-    }
-    
-    // Skip non-GET requests and chrome-extension requests
-    if (request.method !== 'GET' || url.protocol === 'chrome-extension:') {
-        return;
-    }
-    
-    // Different strategies based on request type
-    if (isNavigationRequest(request)) {
-        // Navigation requests - network first with offline fallback
-        event.respondWith(handleNavigationRequest(request));
-    } else if (isStaticAsset(request)) {
-        // Static assets - cache first
-        event.respondWith(handleStaticAsset(request));
-    } else if (isAPIRequest(request)) {
-        // API requests - network first with cache fallback
-        event.respondWith(handleAPIRequest(request));
-    } else {
-        // Default - network first
-        event.respondWith(handleDefaultRequest(request));
-    }
+self.addEventListener('fetch', (event) => {
+  const u = new URL(event.request.url);
+  if (u.pathname.startsWith('/api/')) return; // always go network
+  // static caching logic...
 });
 
 // Handle navigation requests (HTML pages)
