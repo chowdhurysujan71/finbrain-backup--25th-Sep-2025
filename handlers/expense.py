@@ -72,9 +72,23 @@ def handle_multi_expense_logging(psid_hash_val: str, mid: str, text: str, now: d
                 # Skip duplicate
                 continue
                 
-            # Create new expense
-            expense = _create_expense_from_data(psid_hash_val, derived_mid, expense_data, text, now, derived_mid)
-            db.session.add(expense)
+            # Create new expense using canonical path
+            import backend_assistant as ba
+            try:
+                expense_result = ba.add_expense(
+                    user_id=psid_hash_val,
+                    amount_minor=int(float(expense_data['amount']) * 100),
+                    currency=expense_data.get('currency', 'BDT'),
+                    category=expense_data.get('category'),
+                    description=expense_data.get('note', text),
+                    source='messenger',
+                    message_id=derived_mid
+                )
+                # Convert result back to expense_data format for consistency
+                expense_data['expense_id'] = expense_result.get('expense_id')
+            except Exception as e:
+                logger.error(f'Canonical expense creation failed: {e}')
+                continue
             
             logged_expenses.append(expense_data)
             total_amount += float(expense_data['amount'])
@@ -88,26 +102,8 @@ def handle_multi_expense_logging(psid_hash_val: str, mid: str, text: str, now: d
                 'amount': None
             }
         
-        # Update user totals using concurrent-safe UPSERT
-        from sqlalchemy import text as sql_text
-        
-        db.session.execute(sql_text("""
-            INSERT INTO users (user_id_hash, platform, total_expenses, expense_count, last_interaction, last_user_message_at)
-            VALUES (:user_hash, 'messenger', :total, :count, :now_ts, :now_ts)
-            ON CONFLICT (user_id_hash) DO UPDATE SET
-                total_expenses = COALESCE(users.total_expenses, 0) + :total,
-                expense_count = COALESCE(users.expense_count, 0) + :count,
-                last_interaction = :now_ts,
-                last_user_message_at = :now_ts
-        """), {
-            'user_hash': psid_hash_val,
-            'total': total_amount,
-            'count': len(logged_expenses),
-            'now_ts': now
-        })
-        
-        # Single atomic commit for both expenses and user totals
-        db.session.commit()
+        # Canonical path handles user totals automatically
+        # No manual commit needed - each canonical creation is atomic
         
         # Cache context for Q&A (2-minute TTL)
         _cache_expense_context(psid_hash_val, derived_mids, logged_expenses, now)
@@ -206,32 +202,22 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: Dict[str,
             'amount': float(existing.amount)
         }
     
-    # Atomic transaction: Create expense AND update user totals together
+    # Use canonical creation path instead of direct database operations
     try:
-        # Create new expense
-        expense = _create_expense_from_data(psid_hash_val, mid, expense_data, original_text, now, mid)
-        db.session.add(expense)
+        import backend_assistant as ba
+        # Create new expense using canonical add_expense
+        expense_result = ba.add_expense(
+            user_id=psid_hash_val,
+            amount_minor=int(float(expense_data['amount']) * 100),
+            currency=expense_data.get('currency', 'BDT'),
+            category=expense_data.get('category'),
+            description=expense_data.get('note', original_text),
+            source='messenger',
+            message_id=mid
+        )
         
-        # Update user totals using concurrent-safe UPSERT
-        amount = float(expense_data['amount'])
-        from sqlalchemy import text as sql_text
-        
-        db.session.execute(sql_text("""
-            INSERT INTO users (user_id_hash, platform, total_expenses, expense_count, last_interaction, last_user_message_at)
-            VALUES (:user_hash, 'messenger', :amount, 1, :now_ts, :now_ts)
-            ON CONFLICT (user_id_hash) DO UPDATE SET
-                total_expenses = COALESCE(users.total_expenses, 0) + :amount,
-                expense_count = COALESCE(users.expense_count, 0) + 1,
-                last_interaction = :now_ts,
-                last_user_message_at = :now_ts
-        """), {
-            'user_hash': psid_hash_val,
-            'amount': amount,
-            'now_ts': now
-        })
-        
-        # Single atomic commit for both expense and user totals
-        db.session.commit()
+        # Canonical path handles user totals automatically
+        # No manual user totals update needed
         
     except Exception as e:
         # Rollback entire transaction on any failure
@@ -372,14 +358,26 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
             # No candidates found - log as new expense and inform user
             log_correction_no_candidate(psid_hash_val, mid, "logged_as_new")
             
-            # Save as new expense with normal logging
-            new_expense = _create_new_expense(psid_hash_val, mid, target_expense, text, now, mid)
-            db.session.add(new_expense)
-            
-            # Update user totals
-            _update_user_totals(psid_hash_val, float(target_expense['amount']))
-            
-            db.session.commit()
+            # Save as new expense using canonical path
+            import backend_assistant as ba
+            try:
+                new_expense_result = ba.add_expense(
+                    user_id=psid_hash_val,
+                    amount_minor=int(float(target_expense['amount']) * 100),
+                    currency=target_expense.get('currency', 'BDT'),
+                    category=target_expense.get('category'),
+                    description=target_expense.get('note', text),
+                    source='messenger',
+                    message_id=mid
+                )
+            except Exception as e:
+                logger.error(f'Canonical correction expense creation failed: {e}')
+                return {
+                    'text': 'Unable to log correction. Please try again.',
+                    'intent': 'correction_error',
+                    'category': None,
+                    'amount': None
+                }
             
             response = format_correction_no_candidate_reply(
                 target_expense['amount'], 
@@ -436,24 +434,40 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
             'note': target_expense.get('note') or text
         }
         
-        # Create new corrected expense  
-        new_expense = _create_new_expense(psid_hash_val, mid, corrected_expense_data, text, now, mid)
-        db.session.add(new_expense)
-        db.session.flush()  # Get the new expense ID
-        
-        # Mark old expense as superseded
-        best_candidate.superseded_by = new_expense.id
-        best_candidate.corrected_at = now
-        best_candidate.corrected_reason = correction_reason
-        
-        # Update user totals (remove old, add new)
-        old_amount = float(best_candidate.amount)
-        new_amount = float(corrected_expense_data['amount'])
-        amount_difference = new_amount - old_amount
-        _update_user_totals(psid_hash_val, amount_difference)
-        
-        # Commit the transaction
-        db.session.commit()
+        # Create new corrected expense using canonical path
+        import backend_assistant as ba
+        try:
+            new_expense_result = ba.add_expense(
+                user_id=psid_hash_val,
+                amount_minor=int(float(corrected_expense_data['amount']) * 100),
+                currency=corrected_expense_data.get('currency', 'BDT'),
+                category=corrected_expense_data.get('category'),
+                description=corrected_expense_data.get('note', text),
+                source='messenger',
+                message_id=mid
+            )
+            
+            # Mark old expense as superseded
+            old_amount = float(best_candidate.amount)
+            new_amount = float(corrected_expense_data['amount'])
+            
+            # Update correction metadata on old expense
+            best_candidate.superseded_by = new_expense_result.get('expense_id')
+            best_candidate.corrected_at = now
+            best_candidate.corrected_reason = correction_reason
+            
+            # Commit the supersede operation
+            db.session.commit()
+            
+        except Exception as e:
+            logger.error(f'Canonical corrected expense creation failed: {e}')
+            db.session.rollback()
+            return {
+                'text': 'Unable to process correction. Please try again.',
+                'intent': 'correction_error',
+                'category': None,
+                'amount': None
+            }
         
         # Log successful correction
         log_correction_applied(
