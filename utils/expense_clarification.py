@@ -191,6 +191,32 @@ Just reply with the number or tell me what it was!"""
             # Clean up pending clarification
             del _pending_clarifications[clarification_id]
             
+            # CRITICAL FIX: Actually save the expense to database after clarification
+            try:
+                from backend_assistant import add_expense
+                from datetime import datetime
+                
+                # Extract expense data from clarification
+                amount = clarification_data['amount']
+                item = clarification_data['item']
+                
+                # Call add_expense to persist the clarified expense
+                expense_result = add_expense(
+                    user_id=user_hash,
+                    amount_minor=int(amount * 100),  # Convert to minor units (cents)
+                    currency="BDT",
+                    category=chosen_category,
+                    description=f"{item} for ৳{amount}",
+                    source="chat",
+                    message_id=clarification_data.get('mid')
+                )
+                
+                self.logger.info(f"Saved clarified expense: ৳{amount} for {item} as {chosen_category}")
+                
+            except Exception as e:
+                self.logger.error(f"Failed to save clarified expense: {e}")
+                # Still return success since clarification was handled, but log the error
+            
             # Generate confirmation message
             confirmation_message = self._generate_confirmation_message(
                 clarification_data['item'], clarification_data['amount'], chosen_category
@@ -201,7 +227,8 @@ Just reply with the number or tell me what it was!"""
                 'category': chosen_category,
                 'message': confirmation_message,
                 'original_expense': clarification_data,
-                'learned': True
+                'learned': True,
+                'expense_saved': True
             }
             
         except Exception as e:

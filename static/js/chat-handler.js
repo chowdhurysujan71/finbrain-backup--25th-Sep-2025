@@ -36,14 +36,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       // 1) auth
-      const a = await fetch('/api/backend/diag/auth', { credentials:'include' });
+      const a = await fetch('/api/backend/diag/auth', { credentials:'same-origin' });
       if (!a.ok) throw new Error('Not signed in');
 
       // 2) chat roundtrip (SINGLE endpoint)
       const r = await fetch('/api/backend/chat', {
         method: 'POST',
         headers: { 'Content-Type':'application/json', 'X-Request-ID': rid },
-        credentials: 'include',
+        credentials: 'same-origin',
         body: JSON.stringify({ message: text })
       });
       const data = await r.json().catch(()=> ({}));
