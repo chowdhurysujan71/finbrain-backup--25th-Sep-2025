@@ -125,6 +125,7 @@ class BackgroundProcessor:
             psid_hash = user_hash
         else:
             psid_hash = resolve_user_id(psid=job.psid)
+            user_hash = psid_hash  # CRITICAL: Ensure user_hash is set for production router call
         intent = "unknown"
         category = None
         amount = None
