@@ -6,13 +6,14 @@
   const form = must("chat-form");
   const input = must("chat-input");
   const messages = must("chat-messages");
-  const btn = get("chat-send");
+  const sendBtn = get("chat-send");
   const spin = get("chat-spinner");
   const err = get("chat-error");
 
-  const busy = v => { if (btn) btn.disabled = v; if (spin) spin.style.display = v ? "inline-block" : "none"; };
+  const busy = v => { if (sendBtn) sendBtn.disabled = v; if (spin) spin.style.display = v ? "inline-block" : "none"; };
   const showErr = m => { if (err){ err.textContent = m; err.style.display = "block"; } else console.error(m); };
   const clearErr = () => { if (err){ err.textContent = ""; err.style.display = "none"; } };
+  const toast = m => { if (window.showToast) window.showToast(m, 'error'); else console.error(m); };
 
   const addMsg = (role, text) => {
     const d = document.createElement("div");
@@ -21,36 +22,6 @@
     messages.appendChild(d);
     messages.scrollTop = messages.scrollHeight;
   };
-
-  const j = async (url, body) => {
-    const r = await fetch(url, {method:"POST", credentials:"include",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(body||{})});
-    let data; try { data = await r.json(); } catch { throw new Error(`Bad JSON (${r.status})`); }
-    if (!r.ok) throw new Error(data?.message || data?.error || `HTTP ${r.status}`);
-    return data;
-  };
-
-  async function refreshRecent() {
-    try {
-      const res = await j("/api/backend/get_recent_expenses", { limit: 10 });
-      const list = get("recent-expenses-list"); if (!list) return;
-      list.innerHTML = "";
-      (res.data?.expenses || []).forEach(e => {
-        const li = document.createElement("div");
-        li.className = "expense-row";
-        li.textContent = `${(e.amount_minor/100).toFixed(2)} ${e.currency||"BDT"} • ${e.category} • ${e.description||""}`;
-        list.appendChild(li);
-      });
-    } catch (e) {
-      if (String(e.message).includes("401")) {
-        // User not authenticated - redirect to login
-        window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
-        return;
-      }
-      console.warn("recent expenses:", e.message);
-    }
-  }
 
   // Helper functions for rendering messages
   const renderUser = (text) => addMsg("user", text);
@@ -63,51 +34,53 @@
       }
     });
   };
+  
+  const renderRecent = (recentData) => {
+    const list = get("recent-expenses-list"); 
+    if (!list) return;
+    list.innerHTML = "";
+    (recentData || []).forEach(e => {
+      const li = document.createElement("div");
+      li.className = "expense-row";
+      li.textContent = `${(e.amount_minor/100).toFixed(2)} ${e.currency||"BDT"} • ${e.category} • ${e.description||""}`;
+      list.appendChild(li);
+    });
+  };
 
-  async function onSubmit(e) {
+  // Unified submit handler - only calls chat endpoint
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = (input.value || '').trim();
-    if (!text || btn?.disabled) return;
-    if (btn) btn.disabled = true;
+    if (!text || sendBtn?.disabled) return;
+    if (sendBtn) sendBtn.disabled = true;
 
     try {
-      // quick auth check (optional)
-      const me = await fetch('/api/backend/ping', { credentials:'include' });
-      if (!me.ok) throw new Error('Not signed in');
-
       const res = await fetch('/api/backend/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',                // <-- CRITICAL
+        credentials: 'include',
         body: JSON.stringify({ message: text })
       });
-      if (!res.ok) {
-        const err = await res.json().catch(()=>({}));
-        throw new Error(`HTTP ${res.status} ${err.error||''}`);
-      }
-      const data = await res.json();
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();          // unified reply
       renderUser(text);
-      renderAssistant(data);                  // expect {"messages":[...]}
-      input.value = '';
+      renderAssistant(data);                   // expects data.messages[]
+      if (data.recent) renderRecent(data.recent);
     } catch (err) {
-      console.error(err);
-      alert(`Chat failed: ${err.message}`);
+      toast(`Chat failed: ${err.message}`);
     } finally {
-      if (btn) btn.disabled = false;
+      if (sendBtn) sendBtn.disabled = false;
+      input.value = '';
       input.focus();
     }
-  }
+  });
 
-  // Prevent double event bindings after re-renders
-  if (!window.__chatBound) {
-    form.addEventListener('submit', onSubmit);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { 
+      e.preventDefault(); 
+      form.requestSubmit?.() || form.submit(); 
+    }
+  });
 
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit?.() || form.submit(); }
-    });
-    
-    window.__chatBound = true;
-  }
-
-  busy(false); clearErr(); refreshRecent();
+  busy(false); clearErr();
 })();
