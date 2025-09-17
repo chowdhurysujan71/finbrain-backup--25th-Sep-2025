@@ -159,16 +159,7 @@
 
         <!-- Authentication Section -->
         <div class="app-auth" id="auth-section">
-            <div class="guest-auth" id="guest-auth" style="display: none;">
-                <h3>Get More Features</h3>
-                <p>Create an account to sync your data and get personalized insights</p>
-                <div class="auth-buttons">
-                    <a href="/login" class="link-button primary">Sign In</a>
-                    <a href="/register" class="link-button">Sign Up</a>
-                </div>
-            </div>
-            
-            <div class="user-auth" id="user-auth" style="display: none;">
+            <div class="user-auth" id="user-auth">
                 <button class="link-button danger" onclick="logoutUser()">
                     Sign Out
                 </button>
@@ -241,27 +232,32 @@ function showToast(message, type = 'info') {
     }, 5000);
 }
 
-// Authentication functions
+// Authentication functions  
 function checkAuthStatus() {
-    // Check if user is logged in from session/localStorage  
-    const isRegistered = sessionStorage.getItem('is_registered') === 'true';
-    const userEmail = sessionStorage.getItem('user_email');
-    
-    const accountStatus = document.getElementById('account-status');
-    const guestAuth = document.getElementById('guest-auth');
-    const userAuth = document.getElementById('user-auth');
-    
-    if (isRegistered && userEmail) {
-        // Registered user
-        accountStatus.textContent = `Signed in as ${userEmail}`;
-        guestAuth.style.display = 'none';
-        userAuth.style.display = 'block';
-    } else {
-        // Guest user
-        accountStatus.textContent = 'Anonymous Guest';
-        guestAuth.style.display = 'block';
-        userAuth.style.display = 'none';
-    }
+    // Verify authentication via /api/auth/me endpoint
+    fetch('/api/auth/me', { credentials: 'include' })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else if (response.status === 401) {
+                // Not authenticated - redirect to login
+                window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                return;
+            }
+            throw new Error('Auth check failed');
+        })
+        .then(data => {
+            if (data && data.user_id) {
+                // Authenticated user
+                const accountStatus = document.getElementById('account-status');
+                accountStatus.textContent = `Signed in as ${data.email || 'User'}`;
+            }
+        })
+        .catch(error => {
+            console.error('Auth check error:', error);
+            // On error, redirect to login
+            window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+        });
 }
 
 async function logoutUser() {
@@ -276,15 +272,11 @@ async function logoutUser() {
         const data = await response.json();
         
         if (data.success) {
-            // Clear session data
-            sessionStorage.removeItem('is_registered');
-            sessionStorage.removeItem('user_email');
-            
             showToast('Logged out successfully', 'success');
             
-            // Refresh auth status
+            // Redirect to login page
             setTimeout(() => {
-                checkAuthStatus();
+                window.location.href = '/login';
             }, 1000);
         } else {
             showToast('Logout failed. Please try again.', 'error');
@@ -308,21 +300,7 @@ document.addEventListener('DOMContentLoaded', function() {
     border-top: 1px solid var(--color-border);
 }
 
-.guest-auth h3 {
-    color: var(--color-fg);
-    font-size: 1.125rem;
-    margin-bottom: 0.5rem;
-}
-
-.guest-auth p {
-    color: var(--color-muted);
-    margin-bottom: 1rem;
-}
-
-.auth-buttons {
-    display: flex;
-    gap: 0.75rem;
-}
+/* Guest auth styles removed - authentication required */
 
 .link-button.primary {
     background: var(--color-primary);

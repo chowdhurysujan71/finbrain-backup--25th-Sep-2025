@@ -132,49 +132,45 @@ def handle_with_fallback_ai(user_id_hash, user_message, conversational_ai=None):
 def chat():
     """
     Expense input + recent entries list (HTMX partial hydrate)
-    Safe route that shows UI even if backend APIs aren't available
+    AUTHENTICATION REQUIRED
     """
-    from flask import g
-    user_id = getattr(g, 'user_id', None)
-    logger.info(f"PWA chat route accessed by user: {user_id or 'anonymous'}")
+    user = require_auth()  # Require authentication
+    logger.info(f"PWA chat route accessed by user: {user.user_id_hash}")
     
-    return render_template('chat.html', user_id=user_id)
+    return render_template('chat.html', user_id=user.user_id_hash)
 
 @pwa_ui.route('/report')
 def report():
     """
     Money Story summary cards + placeholder charts
-    Reads from existing endpoints if available, shows placeholders otherwise
+    AUTHENTICATION REQUIRED
     """
-    from flask import g
-    user_id = getattr(g, 'user_id', None)
-    logger.info(f"PWA report route accessed by user: {user_id or 'anonymous'}")
+    user = require_auth()  # Require authentication
+    logger.info(f"PWA report route accessed by user: {user.user_id_hash}")
     
-    return render_template('report.html', user_id=user_id)
+    return render_template('report.html', user_id=user.user_id_hash)
 
 @pwa_ui.route('/profile')
 def profile():
     """
     Profile summary showing user info if available
-    Safe fallback when no user context
+    AUTHENTICATION REQUIRED
     """
-    from flask import g
-    user_id = getattr(g, 'user_id', None)
-    logger.info(f"PWA profile route accessed by user: {user_id or 'anonymous'}")
+    user = require_auth()  # Require authentication
+    logger.info(f"PWA profile route accessed by user: {user.user_id_hash}")
     
-    return render_template('profile.html', user_id=user_id)
+    return render_template('profile.html', user_id=user.user_id_hash)
 
 @pwa_ui.route('/challenge')
 def challenge():
     """
     3-day challenge progress UI
-    Placeholder implementation for demo purposes
+    AUTHENTICATION REQUIRED
     """
-    from flask import g
-    user_id = getattr(g, 'user_id', None)
-    logger.info(f"PWA challenge route accessed by user: {user_id or 'anonymous'}")
+    user = require_auth()  # Require authentication
+    logger.info(f"PWA challenge route accessed by user: {user.user_id_hash}")
     
-    return render_template('challenge.html', user_id=user_id)
+    return render_template('challenge.html', user_id=user.user_id_hash)
 
 @pwa_ui.route('/login')
 def login():
