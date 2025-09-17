@@ -118,6 +118,11 @@ def api_add_expense(authenticated_user_id):
         currency = data.get('currency')
         category = data.get('category')
         
+        # Step 4: Server-side category validation guard - coerce any client/AI category
+        if category is not None:
+            from utils.categories import normalize_category
+            category = normalize_category(category)
+        
         # Validate amount_minor if provided
         if amount_minor is not None:
             if not isinstance(amount_minor, int) or amount_minor <= 0:
