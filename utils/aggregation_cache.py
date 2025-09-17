@@ -78,7 +78,8 @@ class AggregationCache:
             top_amount = categories[top_category]
             top_percentage = int((top_amount / total_amount) * 100) if total_amount > 0 else 0
         else:
-            top_category = "general"
+            from utils.categories import normalize_category
+            top_category = normalize_category(None)
             top_amount = 0.0
             top_percentage = 0
         
@@ -93,11 +94,12 @@ class AggregationCache:
     
     def _empty_aggregations(self) -> Dict:
         """Return empty aggregation structure"""
+        from utils.categories import normalize_category
         return {
             "total_logs": 0,
             "total_amount": 0.0,
             "categories": {},
-            "top_category": "general",
+            "top_category": normalize_category(None),
             "top_amount": 0.0,
             "top_percentage": 0
         }

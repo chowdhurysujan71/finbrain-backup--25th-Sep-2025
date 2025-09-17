@@ -1154,7 +1154,8 @@ class ProductionRouter:
             ).order_by(Expense.created_at.desc()).limit(3).all()
             
             for expense in recent_expenses:
-                if expense.category.lower() in ['general', 'other'] and item.lower() in expense.original_message.lower():
+                from utils.categories import normalize_category
+                if normalize_category(expense.category) == 'uncategorized' and item.lower() in expense.original_message.lower():
                     expense.category = category.title()
                     expense.description = f"{category.title()} expense: {item}"
                     db.session.commit()

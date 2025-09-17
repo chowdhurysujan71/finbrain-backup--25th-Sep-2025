@@ -421,7 +421,8 @@ def _extract_top_category(parsed_data: Dict[str, Any]) -> str:
     # For now, return a common category
     categories = parsed_data.get('categories', [])
     if categories:
-        return categories[0] if isinstance(categories[0], str) else categories[0].get('category', 'general')
+        from utils.categories import normalize_category
+        return categories[0] if isinstance(categories[0], str) else normalize_category(categories[0].get('category'))
     return 'transport'
 
 def _get_topic_suggestions(top_category: str) -> List[str]:

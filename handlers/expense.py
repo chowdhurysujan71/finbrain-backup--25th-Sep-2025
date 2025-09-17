@@ -423,7 +423,8 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
         # Create corrected expense data with smart categorization logic
         # Prioritize re-analyzed category from correction text over inherited category
         new_category = target_expense.get('category')
-        if not new_category or new_category in ['Other', 'general']:
+        from utils.categories import normalize_category
+        if not new_category or normalize_category(new_category) == 'uncategorized':
             # If correction didn't detect category or detected generic, inherit from original
             new_category = best_candidate.category
         
