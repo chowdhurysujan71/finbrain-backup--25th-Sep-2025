@@ -3,7 +3,7 @@ Routes for FinBrain Backend Assistant API
 Strict no-hallucination backend following exact specification
 """
 
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, g, current_app
 from functools import wraps
 from backend_assistant import (
     propose_expense, 
@@ -674,6 +674,51 @@ def api_user_expenses(authenticated_user_id):
         
         response, status_code = internal_error(safe_error_message(e, "Failed to retrieve user expenses"))
         return jsonify(response), status_code
+
+# Testing routes for pipeline verification
+@backend_api.route('/ping', methods=['GET'])
+def api_ping():
+    """Check if we're authenticated on APIs"""
+    user_id = session.get('user_id')
+    return jsonify({"ok": True, "user_id": user_id}), (200 if user_id else 401)
+
+@backend_api.route('/echo', methods=['POST'])
+def api_echo():
+    """Test POST JSON and get JSON back"""
+    data = request.get_json(silent=True) or {}
+    return jsonify({"ok": True, "got": data}), 200
+
+@backend_api.route('/chat', methods=['POST'])
+def api_chat():
+    """Minimal non-stream chat that calls your core brain"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "auth_required"}), 401
+        
+    data = request.get_json(silent=True) or {}
+    text = (data.get("message") or "").strip()
+    if not text:
+        return jsonify({"error": "empty_message"}), 400
+
+    try:
+        # Use the same function that processes messages from Messenger
+        from core.brain import process_user_message
+        result = process_user_message(user_id, text)
+        
+        # Convert brain response format to expected chat format
+        response = {
+            "messages": [{
+                "type": "text",
+                "content": result.get("reply", "No response")
+            }],
+            "metadata": result.get("metadata", {}),
+            "structured": result.get("structured", {})
+        }
+        
+        return jsonify(response), 200
+    except Exception as e:
+        current_app.logger.exception("chat failed")
+        return jsonify({"error": "server_error"}), 500
 
 # Health check endpoint
 @backend_api.route('/health', methods=['GET'])
