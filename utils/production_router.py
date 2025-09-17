@@ -394,8 +394,9 @@ class ProductionRouter:
             # Log each expense separately
             for i, expense in enumerate(expenses):
                 try:
+                    from utils.categories import normalize_category
                     amount = float(expense['amount'])
-                    category = expense.get('category', 'general')
+                    category = normalize_category(expense.get('category'))
                     note = expense.get('note', text)
                     
                     # Create unique ID for each expense
@@ -448,8 +449,9 @@ class ProductionRouter:
                 response = "I couldn't understand that expense. Try: 'spent 200 on groceries'"
                 return normalize(response), "parse_failed", None, None
             
+            from utils.categories import normalize_category
             amount = float(expense['amount'])
-            category = expense.get('category', 'general')
+            category = normalize_category(expense.get('category'))
             
             # Save expense to database
             save_expense(

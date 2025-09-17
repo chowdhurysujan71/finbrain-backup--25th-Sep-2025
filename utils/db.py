@@ -452,7 +452,8 @@ def upsert_expense_idempotent(psid_hash: str, mid: str, payload: Dict[str, Any])
         # Extract data from payload
         amount = Decimal(str(payload['amount']))
         currency = payload.get('currency', 'BDT')
-        category = payload.get('category', 'general')
+        from utils.categories import normalize_category
+        category = normalize_category(payload.get('category'))
         merchant = payload.get('merchant')
         description = payload.get('description', f"{category} expense")
         ts_client = payload.get('ts_client')  # Client-side timestamp

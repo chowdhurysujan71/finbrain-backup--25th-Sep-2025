@@ -133,10 +133,11 @@ def process_message_with_pca(user_id: str, message_text: str, message_id: str, t
                     from utils.canonical_command import CCSlots, CCIntent, CCDecision
                     
                     amount = float(money_matches[0])
+                    from utils.categories import normalize_category
                     slots = CCSlots(
                         amount=amount,
                         currency='BDT',
-                        category='general',
+                        category=normalize_category(None),
                         merchant_text='',
                         note=message_text[:100]
                     )
@@ -262,10 +263,11 @@ def process_dryrun_mode(user_id: str, message_text: str, message_id: str, cc_id:
                 cc_id=cc_id,
                 user_id=user_id,
                 intent=CCIntent.LOG_EXPENSE.value,
+                from utils.categories import normalize_category
                 slots=CCSlots(
                     amount=amount_value,
                     currency='BDT',
-                    category='general',  # Could be enhanced with AI categorization
+                    category=normalize_category(None),  # Could be enhanced with AI categorization
                     merchant_text=message_text[:100],
                     note=f"Auto-detected expense: ৳{amount_value}" if amount_value else "Expense pattern detected"
                 ),
@@ -413,6 +415,7 @@ def process_production_mode(user_id: str, message_text: str, message_id: str, cc
         
         # Generate CC based on detection
         if expense_detected and amount_value and amount_value > 0:
+            from utils.categories import normalize_category
             cc = CanonicalCommand(
                 cc_id=cc_id,
                 user_id=user_id,
@@ -420,7 +423,7 @@ def process_production_mode(user_id: str, message_text: str, message_id: str, cc
                 slots=CCSlots(
                     amount=amount_value,
                     currency='BDT',
-                    category='general',
+                    category=normalize_category(None),
                     merchant_text=message_text[:100],
                     note=f"Auto-expense: ৳{amount_value}"
                 ),
@@ -497,7 +500,8 @@ def apply_cc_transaction(cc: 'CanonicalCommand', user_id: str) -> bool:
             expense = Expense(
                 user_id=user.id,
                 amount=cc.slots.amount,
-                category=cc.slots.category or 'general',
+                from utils.categories import normalize_category
+                category=normalize_category(cc.slots.category),
                 description=cc.slots.note or cc.source_text[:100],
                 date=datetime.utcnow().date(),
                 created_at=datetime.utcnow(),

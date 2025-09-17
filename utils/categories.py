@@ -148,6 +148,59 @@ def add_category_keyword(category, keyword):
         logger.error(f"Error adding category keyword: {str(e)}")
         return False
 
+# Database-compliant categories (constraint enforcement)
+ALLOWED_CATEGORIES = {"food", "transport", "bills", "shopping", "uncategorized"}
+
+CATEGORY_MAPPING = {
+    # Current system mappings to DB-compliant categories
+    "food": "food",
+    "transport": "transport", 
+    "shopping": "shopping",
+    "groceries": "food",  # Map groceries to food
+    "utilities": "bills",  # Map utilities to bills
+    "entertainment": "shopping",  # Map to shopping for now
+    "health": "shopping",  # Map to shopping for now
+    "education": "shopping",  # Map to shopping for now
+    "personal care": "shopping",  # Map to shopping for now
+    "misc": "uncategorized",
+    
+    # Legacy mappings that cause constraint violations
+    "general": "uncategorized",
+    "other": "uncategorized",
+    
+    # Additional common mappings
+    "grocery": "food",
+    "medicine": "shopping",
+    "gas": "bills",
+    "electricity": "bills",
+    "internet": "bills",
+}
+
+def normalize_category(raw_category: str) -> str:
+    """
+    Normalize category to ensure database constraint compliance.
+    
+    CRITICAL: Prevents database constraint violations that cause expense creation failures.
+    All expense write operations MUST use this function to normalize categories.
+    
+    Args:
+        raw_category: Raw category from AI/parsing/user input
+        
+    Returns:
+        Database-compliant category from ALLOWED_CATEGORIES
+    """
+    if not raw_category:
+        return "uncategorized"
+    
+    # Normalize to lowercase and strip whitespace
+    normalized = raw_category.lower().strip()
+    
+    # Apply mapping
+    mapped_category = CATEGORY_MAPPING.get(normalized, normalized)
+    
+    # Ensure it's in allowed set, fallback to uncategorized
+    return mapped_category if mapped_category in ALLOWED_CATEGORIES else "uncategorized"
+
 def get_category_suggestions(description):
     """Get category suggestions with confidence scores"""
     try:

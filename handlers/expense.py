@@ -270,11 +270,13 @@ def _create_expense_from_data(psid_hash_val: str, unique_id: str, expense_data: 
     """
     Create Expense record from parsed expense data.
     """
+    from utils.categories import normalize_category
+    
     expense = Expense()
     expense.user_id = psid_hash_val
     expense.amount = expense_data['amount']
     expense.currency = expense_data.get('currency', 'BDT')
-    expense.category = expense_data.get('category', 'general')
+    expense.category = normalize_category(expense_data.get('category'))
     expense.description = expense_data.get('note', original_text)
     expense.date = (expense_data.get('ts_client') or now).date()
     expense.time = (expense_data.get('ts_client') or now).time()
@@ -550,11 +552,13 @@ def _create_new_expense(psid_hash_val: str, mid: str, expense_data: Dict[str, An
     Returns:
         New Expense instance
     """
+    from utils.categories import normalize_category
+    
     expense = Expense()
     expense.user_id = psid_hash_val
     expense.amount = expense_data['amount']
     expense.currency = expense_data.get('currency', 'BDT')
-    expense.category = expense_data.get('category', 'general')
+    expense.category = normalize_category(expense_data.get('category'))
     expense.description = expense_data.get('note', original_text)
     expense.date = (expense_data.get('ts_client') or now).date()
     expense.time = (expense_data.get('ts_client') or now).time()

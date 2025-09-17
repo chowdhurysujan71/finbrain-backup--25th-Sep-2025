@@ -229,7 +229,8 @@ def create_fallback_cc(user_id: str, cc_id: str, source_text: str, amount: Optio
     """Create a fallback CC when AI parsing fails but amount is detected"""
     if amount and amount > 0:
         # Money event - create RAW_ONLY CC
-        slots = CCSlots(amount=amount, currency="BDT", category="general")
+        from utils.categories import normalize_category
+        slots = CCSlots(amount=amount, currency="BDT", category=normalize_category(None))
         return CanonicalCommand(
             cc_id=cc_id,
             user_id=user_id,
