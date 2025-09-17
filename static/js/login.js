@@ -31,42 +31,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Handle guest data merging if guest ID exists
-    const guestId = localStorage.getItem('finbrain_user_id');
-    const linkToken = localStorage.getItem('finbrain_link_token');
-    if (guestId) {
-      try {
-        // Prepare request payload with both guest_id and link_token for security
-        const linkPayload = { guest_id: guestId };
-        if (linkToken) {
-          linkPayload.link_token = linkToken;
-        }
-        
-        const linkRes = await fetch('/api/auth/link-guest', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          credentials: 'include',
-          body: JSON.stringify(linkPayload)
-        });
-        
-        if (linkRes.ok) {
-          const linkData = await linkRes.json().catch(() => ({}));
-          console.log('Guest data merged:', linkData);
-          // Remove both guest ID and link token after successful linking
-          localStorage.removeItem('finbrain_user_id');
-          localStorage.removeItem('finbrain_link_token');
-        } else {
-          const errorData = await linkRes.json().catch(() => ({}));
-          if (linkRes.status === 401) {
-            console.warn('Guest data merge failed due to expired or invalid token. Continuing with login.');
-          } else {
-            console.warn('Failed to merge guest data, but login successful:', errorData.error || 'Unknown error');
-          }
-        }
-      } catch (linkError) {
-        console.warn('Error merging guest data:', linkError);
-      }
-    }
+    // Clean up any old guest data from localStorage
+    localStorage.removeItem('finbrain_user_id');
+    localStorage.removeItem('finbrain_link_token');
+    
+    console.log('Login successful - cleaned up old guest data');
 
     location.href = '/chat';
   });

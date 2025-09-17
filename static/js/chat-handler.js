@@ -43,8 +43,12 @@
         list.appendChild(li);
       });
     } catch (e) {
-      // 401 when not logged in is fine—just skip rendering
-      if (!String(e.message).includes("401")) console.warn("recent expenses:", e.message);
+      if (String(e.message).includes("401")) {
+        // User not authenticated - redirect to login
+        window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+        return;
+      }
+      console.warn("recent expenses:", e.message);
     }
   }
 
@@ -76,7 +80,9 @@
           await refreshRecent();
         } catch (e) {
           if (String(e.message).includes("401")) {
-            addMsg("bot", `Parsed ${(p.amount_minor/100).toFixed(2)} BDT as ${p.category || "uncategorized"}. Log in to save.`);
+            // User not authenticated - redirect to login
+            window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+            return;
           } else {
             showErr("Couldn't save that right now. Please try again.");
             console.error(e);
@@ -87,6 +93,11 @@
         addMsg("bot", "I can help you log expenses like 'I spent 200 taka on groceries' or analyze your spending. What would you like to do?");
       }
     } catch (e) {
+      if (String(e.message).includes("401")) {
+        // User not authenticated - redirect to login
+        window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+        return;
+      }
       showErr("Sorry, I couldn't parse that message.");
       console.error(e);
     } finally {

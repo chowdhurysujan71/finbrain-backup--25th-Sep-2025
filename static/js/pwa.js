@@ -29,91 +29,39 @@
         console.log('[PWA] FinBrain PWA initialized successfully');
     }
     
-    // User Session Management for PWA
+    // Session-based Authentication Check
     async function initializeUserSession() {
-        // Get or create persistent user ID for anonymous PWA users
-        let userId = localStorage.getItem('finbrain_user_id');
-        let linkToken = localStorage.getItem('finbrain_link_token');
+        console.log('[PWA] Checking authentication status...');
         
-        if (!userId) {
-            userId = `pwa_user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            console.log('[PWA] Created new user ID:', userId);
-            
-            // Generate secure link token for this guest ID
-            try {
-                const tokenResponse = await fetch('/api/auth/generate-guest-token', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ guest_id: userId })
-                });
-                
-                if (tokenResponse.ok) {
-                    const tokenData = await tokenResponse.json();
-                    linkToken = tokenData.link_token;
-                    
-                    // Store both values in localStorage
-                    localStorage.setItem('finbrain_user_id', userId);
-                    localStorage.setItem('finbrain_link_token', linkToken);
-                    
-                    console.log('[PWA] Generated secure guest session with token');
-                } else {
-                    // Fallback: store guest ID without token (reduced security but functional)
-                    localStorage.setItem('finbrain_user_id', userId);
-                    console.warn('[PWA] Failed to generate secure token, using guest ID only');
-                }
-            } catch (error) {
-                // Network error - store guest ID for now, can retry token generation later
-                localStorage.setItem('finbrain_user_id', userId);
-                console.warn('[PWA] Network error generating token:', error.message);
-            }
-        } else {
-            console.log('[PWA] Using existing user ID:', userId);
-            // Check if we have a token, generate one if missing
-            if (!linkToken) {
-                console.log('[PWA] Generating missing link token for existing guest');
-                try {
-                    const tokenResponse = await fetch('/api/auth/generate-guest-token', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ guest_id: userId })
-                    });
-                    
-                    if (tokenResponse.ok) {
-                        const tokenData = await tokenResponse.json();
-                        linkToken = tokenData.link_token;
-                        localStorage.setItem('finbrain_link_token', linkToken);
-                        console.log('[PWA] Generated missing link token');
-                    }
-                } catch (error) {
-                    console.warn('[PWA] Could not generate link token:', error.message);
-                }
-            }
-        }
+        // Clean up any old guest data from localStorage
+        localStorage.removeItem('finbrain_user_id');
+        localStorage.removeItem('finbrain_link_token');
         
-        // Set up HTMX to send user ID with all requests
-        if (typeof htmx !== 'undefined') {
-            document.body.addEventListener('htmx:configRequest', (event) => {
-                event.detail.headers['X-User-ID'] = userId;
-                // User ID successfully attached to all requests
+        try {
+            // Check if user is authenticated via session
+            const authResponse = await fetch('/api/auth/me', {
+                method: 'GET',
+                credentials: 'include'
             });
-        }
-        
-        // Also set up for regular form submissions
-        const forms = document.querySelectorAll('form');
-        forms.forEach(form => {
-            // Add user ID as hidden field
-            if (!form.querySelector('input[name="user_id"]')) {
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'user_id';
-                hiddenInput.value = userId;
-                form.appendChild(hiddenInput);
+            
+            if (authResponse.ok) {
+                const userData = await authResponse.json();
+                console.log('[PWA] User authenticated:', userData.user?.email || 'Unknown');
+                // User is logged in - continue with normal PWA functionality
+                return;
+            } else if (authResponse.status === 401) {
+                // User not authenticated - redirect to login
+                console.log('[PWA] User not authenticated, redirecting to login');
+                if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+                    window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                }
+                return;
             }
-        });
-        
-        // Store user ID and token globally for other functions to use
-        window.finbrainUserId = userId;
-        window.finbrainLinkToken = linkToken;
+        } catch (error) {
+            console.error('[PWA] Error checking authentication:', error);
+            // Network error - show offline message but don't redirect
+            showToast('Unable to verify authentication. Please check your connection.', 'warning');
+        }
     }
     
     // Service Worker Registration
@@ -543,17 +491,10 @@
         return new Promise((resolve, reject) => {
             const formData = new FormData(form);
             
-            // Add user ID if available
-            if (window.finbrainUserId) {
-                formData.append('user_id', window.finbrainUserId);
-            }
-            
             fetch(endpoint, {
                 method: 'POST',
-                body: formData,
-                headers: {
-                    'X-User-ID': window.finbrainUserId || ''
-                }
+                credentials: 'include',
+                body: formData
             })
             .then(response => response.json())
             .then(data => {
