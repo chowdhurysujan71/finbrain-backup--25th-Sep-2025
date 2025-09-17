@@ -66,19 +66,98 @@ CATEGORY_ALIASES = {
     'drinking': ('food', 8),
     'restaurant': ('food', 9),
     'meal': ('food', 9),
-    # Bengali Food Items - ADDED FOR KHICHURI ISSUE
+    # Bengali Food Items - COMPREHENSIVE VOCABULARY FOR PROPER CATEGORIZATION
+    # Traditional Main Dishes
     'khichuri': ('food', 10),
     'rice': ('food', 9),
     'dal': ('food', 9),
     'curry': ('food', 9),
     'biriyani': ('food', 10),
+    'biryani': ('food', 10),
+    'kacchi biriyani': ('food', 10),
+    'kacchi biryani': ('food', 10),
     'chicken': ('food', 9),
     'beef': ('food', 9),
     'fish': ('food', 9),
     'vegetable': ('food', 8),
     'egg': ('food', 8),
+    'polao': ('food', 10),
+    'pulao': ('food', 10),
+    'tehari': ('food', 10),
+    'fried rice': ('food', 9),
+    
+    # Bengali Meat Dishes - INCLUDING SPECIFIC TERMS FROM USER ISSUE  
+    'tarmujer rosh': ('food', 10),  # Traditional Bengali roasted meat dish
+    'jaali kabab': ('food', 10),    # Bengali kebab variety
+    'shami kabab': ('food', 10),
+    'boti kabab': ('food', 10),
+    'seekh kabab': ('food', 10),
+    'kobiraji': ('food', 10),
+    'cutlet': ('food', 9),
+    'roast': ('food', 9),
+    'beef roast': ('food', 10),
+    'mutton': ('food', 9),
+    'goat': ('food', 9),
+    'hilsa': ('food', 10),
+    'rui fish': ('food', 10),
+    'katla': ('food', 10),
+    'prawn': ('food', 9),
+    'shrimp': ('food', 9),
     'omelette': ('food', 9),
     'omelet': ('food', 9),
+    
+    # Bengali Street Food & Snacks
+    'fuchka': ('food', 10),
+    'pani puri': ('food', 10),
+    'chotpoti': ('food', 10),
+    'jhalmuri': ('food', 10),
+    'chatpati': ('food', 10),
+    'haleem': ('food', 10),
+    'bharta': ('food', 10),
+    'bhorta': ('food', 10),
+    'begun bharta': ('food', 10),
+    'aloo bharta': ('food', 10),
+    'shutki': ('food', 10),
+    'pitha': ('food', 10),
+    'chitoi pitha': ('food', 10),
+    'vapa pitha': ('food', 10),
+    'patishapta': ('food', 10),
+    'nakshi pitha': ('food', 10),
+    
+    # Bengali Sweets & Desserts
+    'mishti': ('food', 10),
+    'roshogolla': ('food', 10),
+    'rasgulla': ('food', 10),
+    'chomchom': ('food', 10),
+    'sandesh': ('food', 10),
+    'kalo jam': ('food', 10),
+    'jilapi': ('food', 10),
+    'jalebi': ('food', 10),
+    'doi': ('food', 10),
+    'mishti doi': ('food', 10),
+    'payesh': ('food', 10),
+    'kheer': ('food', 9),
+    'firni': ('food', 10),
+    'shemaiyer payesh': ('food', 10),
+    'chanar payesh': ('food', 10),
+    'malai': ('food', 9),
+    'kulfi': ('food', 9),
+    'falooda': ('food', 9),
+    
+    # Bengali Beverages & Drinks
+    'cha': ('food', 9),
+    'dudh cha': ('food', 9),
+    'lemon cha': ('food', 9),
+    'borhani': ('food', 10),
+    'lassi': ('food', 9),
+    'matha': ('food', 10),
+    'shorbot': ('food', 10),
+    'tamarind drink': ('food', 9),
+    'coconut water': ('food', 9),
+    'sugarcane juice': ('food', 9),
+    'fresh lime': ('food', 9),
+    
+    # International Food Common in Bangladesh
     'steak': ('food', 9),
     'brunch': ('food', 9),
     'snack': ('food', 8),
@@ -92,6 +171,9 @@ CATEGORY_ALIASES = {
     'bread': ('food', 8),
     'cake': ('food', 8),
     'dessert': ('food', 8),
+    'chinese': ('food', 9),
+    'thai': ('food', 9),
+    'continental': ('food', 9),
     
     # Transport (strength: 9)
     'transport': ('transport', 9),
@@ -576,11 +658,36 @@ def _infer_category_from_context(context_text: str, user_hash: str = None) -> st
         'transport': ['uber', 'taxi', 'cng', 'bus', 'ride', 'lyft', 'grab', 'pathao', 'fuel', 'petrol', 'gas station', 'gas pump', 'paid gas', 'gas tank', 'fill gas', 'filled gas'],
         # Pets & Animals - MOVED BEFORE FOOD FOR PRIORITY IN CAT FOOD ISSUE
         'pets': ['cat', 'dog', 'pet', 'pets', 'animal', 'vet', 'veterinary', 'cat food', 'dog food', 'pet food', 'pet supplies', 'pet store'],
-        # Food (strong indicators) - ADDED BENGALI FOODS + DRINKS FOR JUICE ISSUE + BRUNCH/OMELETTE FIX
-        'food': ['breakfast', 'lunch', 'dinner', 'brunch', 'coffee', 'tea', 'restaurant', 'meal', 'pizza', 'burger', 'food', 
-                 'juice', 'fruit', 'water', 'milk', 'drink', 'beverage', 'soda', 'smoothie', 'shake', 'lassi', 'borhani', 
-                 'drank', 'drinking', 'khichuri', 'rice', 'dal', 'curry', 'biriyani', 'chicken', 'beef', 'fish', 'vegetable', 'egg',
-                 'omelette', 'omelet', 'steak', 'snack', 'sandwich', 'soup', 'salad', 'pasta', 'noodles', 'bread', 'cake', 'dessert'],
+        # Food (strong indicators) - COMPREHENSIVE BENGALI FOOD VOCABULARY  
+        'food': [
+                 # Basic meals and international food
+                 'breakfast', 'lunch', 'dinner', 'brunch', 'coffee', 'tea', 'restaurant', 'meal', 'pizza', 'burger', 'food', 
+                 'juice', 'fruit', 'water', 'milk', 'drink', 'beverage', 'soda', 'smoothie', 'shake', 'snack', 'sandwich', 
+                 'soup', 'salad', 'pasta', 'noodles', 'bread', 'cake', 'dessert', 'steak', 'omelette', 'omelet',
+                 'drank', 'drinking', 'chinese', 'thai', 'continental',
+                 
+                 # Traditional Bengali Main Dishes
+                 'khichuri', 'rice', 'dal', 'curry', 'biriyani', 'biryani', 'kacchi biriyani', 'kacchi biryani', 
+                 'chicken', 'beef', 'fish', 'vegetable', 'egg', 'polao', 'pulao', 'tehari', 'fried rice',
+                 
+                 # Bengali Meat Dishes - INCLUDING SPECIFIC TERMS FROM USER ISSUE
+                 'tarmujer rosh', 'jaali kabab', 'shami kabab', 'boti kabab', 'seekh kabab', 'kobiraji', 'cutlet', 
+                 'roast', 'beef roast', 'mutton', 'goat', 'hilsa', 'rui fish', 'katla', 'prawn', 'shrimp',
+                 
+                 # Bengali Street Food & Snacks  
+                 'fuchka', 'pani puri', 'chotpoti', 'jhalmuri', 'chatpati', 'haleem', 'bharta', 'bhorta', 
+                 'begun bharta', 'aloo bharta', 'shutki', 'pitha', 'chitoi pitha', 'vapa pitha', 'patishapta', 
+                 'nakshi pitha',
+                 
+                 # Bengali Sweets & Desserts
+                 'mishti', 'roshogolla', 'rasgulla', 'chomchom', 'sandesh', 'kalo jam', 'jilapi', 'jalebi', 
+                 'doi', 'mishti doi', 'payesh', 'kheer', 'firni', 'shemaiyer payesh', 'chanar payesh', 
+                 'malai', 'kulfi', 'falooda',
+                 
+                 # Bengali Beverages & Drinks  
+                 'cha', 'dudh cha', 'lemon cha', 'borhani', 'lassi', 'matha', 'shorbot', 'tamarind drink', 
+                 'coconut water', 'sugarcane juice', 'fresh lime'
+                 ],
         # Shopping
         'shopping': ['shopping', 'clothes', 'grocery', 'groceries', 'market', 'store', 'buy', 'bought'],
         # Health

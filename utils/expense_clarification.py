@@ -6,7 +6,7 @@ Handles natural conversation flow for ambiguous expense categorization
 import logging
 import json
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from utils.expense_ambiguity import ambiguity_detector
 from utils.expense_learning import user_learning_system
@@ -14,8 +14,7 @@ from utils.brand_normalizer import normalize
 
 logger = logging.getLogger(__name__)
 
-# Temporary storage for pending clarifications (in production, use Redis)
-_pending_clarifications = {}
+# Database-backed storage has replaced in-memory _pending_clarifications
 
 class ExpenseClarificationHandler:
     """Handles conversational clarification for ambiguous expenses"""
@@ -83,19 +82,48 @@ class ExpenseClarificationHandler:
                               ambiguity_result: Dict) -> Dict[str, Any]:
         """Initiate clarification conversation with user"""
         
-        # Store pending clarification
+        # Import database models
+        from models import PendingExpense
+        from db_base import db
+        import json
+        
+        # Store pending clarification in database
         clarification_id = f"{user_hash}_{mid}_{int(datetime.utcnow().timestamp())}"
         
-        _pending_clarifications[clarification_id] = {
-            'user_hash': user_hash,
-            'original_text': original_text,
-            'amount': amount,
-            'item': item,
-            'mid': mid,
-            'options': ambiguity_result['options'],
-            'created_at': datetime.utcnow(),
-            'expires_at': datetime.utcnow() + timedelta(minutes=10)
-        }
+        # Check if user already has a pending clarification - replace if exists
+        existing = PendingExpense.find_by_user(user_hash)
+        if existing:
+            db.session.delete(existing)
+        
+        # Create new pending expense record
+        pending_expense = PendingExpense(
+            pending_id=clarification_id,
+            user_id_hash=user_hash,
+            amount_minor=int(amount * 100),  # Convert to minor units
+            currency='BDT',
+            description=f"{item} for ৳{amount}",
+            suggested_category=ambiguity_result.get('auto_category'),
+            original_text=original_text,
+            item=item,
+            mid=mid,
+            options_json=json.dumps(ambiguity_result['options']),
+            created_at=datetime.now(timezone.utc),
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=10)
+        )
+        
+        try:
+            db.session.add(pending_expense)
+            db.session.commit()
+        except Exception as e:
+            self.logger.error(f"Failed to store pending clarification: {e}")
+            db.session.rollback()
+            # Fall back to in-memory for this request
+            return {
+                'needs_clarification': False,
+                'category': 'other',
+                'confidence': 0,
+                'note': 'Error storing clarification - defaulted to Other'
+            }
         
         # Generate conversational clarification message
         clarification_message = self._generate_clarification_message(
@@ -188,8 +216,20 @@ Just reply with the number or tell me what it was!"""
                 user_hash, clarification_data['item'], options_shown, chosen_category
             )
             
-            # Clean up pending clarification
-            del _pending_clarifications[clarification_id]
+            # Clean up pending clarification from database
+            from models import PendingExpense
+            from db_base import db
+            
+            try:
+                pending_record = db.session.query(PendingExpense).filter(
+                    PendingExpense.pending_id == clarification_id
+                ).first()
+                if pending_record:
+                    db.session.delete(pending_record)
+                    db.session.commit()
+            except Exception as e:
+                self.logger.error(f"Failed to delete pending clarification: {e}")
+                db.session.rollback()
             
             # CRITICAL FIX: Actually save the expense to database after clarification
             try:
@@ -240,27 +280,29 @@ Just reply with the number or tell me what it was!"""
             }
     
     def _find_pending_clarification(self, user_hash: str) -> Optional[Dict[str, Any]]:
-        """Find pending clarification for user"""
-        now = datetime.utcnow()
+        """Find pending clarification for user using database"""
+        from models import PendingExpense
+        from db_base import db
         
-        # Clean up expired clarifications
-        expired_keys = []
-        for key, data in _pending_clarifications.items():
-            if data['expires_at'] < now:
-                expired_keys.append(key)
-        
-        for key in expired_keys:
-            del _pending_clarifications[key]
-        
-        # Find user's pending clarification
-        for clarification_id, data in _pending_clarifications.items():
-            if data['user_hash'] == user_hash and data['expires_at'] > now:
-                return {
-                    'clarification_id': clarification_id,
-                    'data': data
-                }
-        
-        return None
+        try:
+            # Clean up expired clarifications first
+            PendingExpense.cleanup_expired()
+            
+            # Find user's active pending clarification
+            pending_expense = PendingExpense.find_by_user(user_hash)
+            if not pending_expense:
+                return None
+            
+            # Convert to expected format for backward compatibility
+            return {
+                'clarification_id': pending_expense.pending_id,
+                'data': pending_expense.to_dict()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error finding pending clarification: {e}")
+            # Graceful degradation - return None if database fails
+            return None
     
     def _parse_clarification_response(self, response: str, options: List[Dict]) -> Optional[str]:
         """Parse user's clarification response"""

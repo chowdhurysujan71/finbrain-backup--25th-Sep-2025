@@ -274,3 +274,57 @@ class GrowthCounter(db.Model):
     
     def __repr__(self):
         return f'<GrowthCounter {self.counter_name}: {self.counter_value}>'
+
+class PendingExpense(db.Model):
+    """Temporary storage for expenses awaiting user clarification"""
+    __tablename__ = 'pending_expenses'
+    
+    pending_id = db.Column(db.String(255), primary_key=True)  # Format: {user_hash}_{mid}_{timestamp}
+    user_id_hash = db.Column(db.String(255), nullable=False, index=True)  # SHA-256 hashed user identifier
+    amount_minor = db.Column(db.BigInteger, nullable=False)  # Amount in minor units (cents)
+    currency = db.Column(db.String(10), nullable=False, default='BDT')  # Currency code
+    description = db.Column(db.Text, nullable=False)  # Expense description
+    suggested_category = db.Column(db.String(50), nullable=True)  # AI's suggested category
+    original_text = db.Column(db.Text, nullable=False)  # Original user input
+    item = db.Column(db.String(255), nullable=False)  # The main expense item
+    mid = db.Column(db.String(255), nullable=True)  # Message ID for tracking
+    options_json = db.Column(db.Text, nullable=False)  # JSON serialized clarification options
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime(timezone=True), nullable=False)  # TTL: 10 minutes from creation
+    
+    def __repr__(self):
+        return f'<PendingExpense {self.pending_id}: {self.item} - ৳{self.amount_minor/100:.0f}>'
+    
+    @classmethod
+    def cleanup_expired(cls):
+        """Remove expired pending expenses"""
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
+        expired_count = db.session.query(cls).filter(cls.expires_at < now).delete()
+        if expired_count > 0:
+            db.session.commit()
+        return expired_count
+    
+    @classmethod
+    def find_by_user(cls, user_id_hash: str):
+        """Find active pending expense for user"""
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
+        return db.session.query(cls).filter(
+            cls.user_id_hash == user_id_hash,
+            cls.expires_at > now
+        ).first()
+    
+    def to_dict(self):
+        """Convert to dictionary format for compatibility with existing code"""
+        import json
+        return {
+            'user_hash': self.user_id_hash,
+            'original_text': self.original_text,
+            'amount': self.amount_minor / 100.0,  # Convert back to major units
+            'item': self.item,
+            'mid': self.mid,
+            'options': json.loads(self.options_json) if self.options_json else [],
+            'created_at': self.created_at,
+            'expires_at': self.expires_at
+        }

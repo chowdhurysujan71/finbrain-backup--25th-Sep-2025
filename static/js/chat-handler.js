@@ -12,6 +12,12 @@ const addMsg = (role, text) => {
 
 const renderUser = (text) => addMsg("user", text);
 const renderAssistant = (data) => {
+  // Handle clarification responses
+  if (data.needs_clarification) {
+    renderClarificationRequest(data);
+    return;
+  }
+  
   // Handle the expected {"messages": [...]} format
   const messages = data.messages || [];
   messages.forEach(msg => {
@@ -19,6 +25,117 @@ const renderAssistant = (data) => {
       addMsg("bot", msg.content);
     }
   });
+};
+
+const renderClarificationRequest = (data) => {
+  const messages = document.getElementById('chat-messages');
+  if (!messages) return;
+  
+  // Create clarification message container
+  const clarificationDiv = document.createElement("div");
+  clarificationDiv.className = "msg msg-bot clarification-msg";
+  
+  // Add the clarification message text
+  const messageText = document.createElement("div");
+  messageText.className = "clarification-text";
+  messageText.textContent = data.message || "I need some clarification to categorize this expense correctly.";
+  clarificationDiv.appendChild(messageText);
+  
+  // Add category selection chips
+  if (data.options && data.options.length > 0) {
+    const optionsContainer = document.createElement("div");
+    optionsContainer.className = "clarification-options";
+    
+    data.options.forEach((option, index) => {
+      const optionChip = document.createElement("button");
+      optionChip.className = "clarification-chip";
+      optionChip.textContent = option.display_name || option.name || option;
+      optionChip.dataset.category = option.category || option.display_name || option;
+      optionChip.dataset.clarificationId = data.clarification_id;
+      
+      optionChip.addEventListener('click', () => handleCategorySelection(optionChip));
+      optionsContainer.appendChild(optionChip);
+    });
+    
+    // Add "Other" option
+    const otherChip = document.createElement("button");
+    otherChip.className = "clarification-chip clarification-chip-other";
+    otherChip.textContent = "Other";
+    otherChip.dataset.category = "other";
+    otherChip.dataset.clarificationId = data.clarification_id;
+    otherChip.addEventListener('click', () => handleCategorySelection(otherChip));
+    optionsContainer.appendChild(otherChip);
+    
+    clarificationDiv.appendChild(optionsContainer);
+  }
+  
+  messages.appendChild(clarificationDiv);
+  messages.scrollTop = messages.scrollHeight;
+};
+
+const handleCategorySelection = async (chipElement) => {
+  const category = chipElement.dataset.category;
+  const clarificationId = chipElement.dataset.clarificationId;
+  
+  if (!category || !clarificationId) {
+    console.error('Missing category or clarification ID');
+    return;
+  }
+  
+  // Disable all chips to prevent double-clicking
+  const allChips = document.querySelectorAll('.clarification-chip');
+  allChips.forEach(chip => {
+    chip.disabled = true;
+    chip.classList.add('loading');
+  });
+  
+  try {
+    // Send category selection to backend
+    const response = await fetch('/api/backend/confirm_expense', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        clarification_id: clarificationId,
+        selected_category: category
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok && result.success) {
+      // Show success message
+      addMsg("bot", result.message || `Great! I've categorized it as ${category}.`);
+      
+      // Hide the clarification options
+      const clarificationMsg = chipElement.closest('.clarification-msg');
+      if (clarificationMsg) {
+        const optionsContainer = clarificationMsg.querySelector('.clarification-options');
+        if (optionsContainer) {
+          optionsContainer.style.display = 'none';
+        }
+        // Add selected indicator
+        const selectedIndicator = document.createElement('div');
+        selectedIndicator.className = 'selected-category';
+        selectedIndicator.textContent = `✓ Selected: ${category}`;
+        clarificationMsg.appendChild(selectedIndicator);
+      }
+    } else {
+      throw new Error(result.error || 'Failed to confirm category');
+    }
+    
+  } catch (error) {
+    console.error('Error confirming category:', error);
+    addMsg("bot", "Sorry, something went wrong. Please try again.");
+    
+    // Re-enable chips
+    allChips.forEach(chip => {
+      chip.disabled = false;
+      chip.classList.remove('loading');
+    });
+  }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -40,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!a.ok) throw new Error('Not signed in');
 
       // 2) chat roundtrip (SINGLE endpoint)
-      const r = await fetch('/api/backend/chat', {
+      const r = await fetch('/ai-chat', {
         method: 'POST',
         headers: { 'Content-Type':'application/json', 'X-Request-ID': rid },
         credentials: 'same-origin',
@@ -51,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       console.log('[TRACE]', rid, 'reply:', data);
       renderUser(text);
-      renderAssistant(data);      // expects {messages:[...]} etc.
+      renderAssistant(data);      // handles both messages and clarification
       input.value = '';
     } catch (err) {
       console.error('[TRACE] fail', err);

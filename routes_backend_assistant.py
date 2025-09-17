@@ -88,6 +88,130 @@ def api_propose_expense():
     """Legacy endpoint - use POST /api/backend/chat instead"""
     return {"error": "endpoint_deprecated", "message": "Use POST /api/backend/chat instead"}, 410
 
+@backend_api.route('/confirm_expense', methods=['POST'])
+@require_backend_user_auth
+def api_confirm_expense(authenticated_user_id):
+    """
+    POST /api/backend/confirm_expense
+    Input: {"clarification_id": "user_hash_mid_timestamp", "selected_category": "food"}
+    Output: {"success": true, "message": "Expense categorized as food", "expense_id": 123}
+    Authentication: Required (session only)
+    Completes a pending expense clarification by applying the user's selected category
+    """
+    import uuid, time, json
+    start = time.time()
+    trace_id = str(uuid.uuid4())
+    
+    try:
+        data = request.get_json() or {}
+        
+        # Validate required fields
+        clarification_id = data.get('clarification_id', '').strip()
+        selected_category = data.get('selected_category', '').strip()
+        
+        field_errors = {}
+        if not clarification_id:
+            field_errors['clarification_id'] = "clarification_id is required"
+        if not selected_category:
+            field_errors['selected_category'] = "selected_category is required"
+            
+        if field_errors:
+            response, status_code = standardized_error_response(
+                code=ErrorCodes.VALIDATION_ERROR,
+                message="Invalid confirmation data provided",
+                field_errors=field_errors,
+                status_code=400,
+                log_error=False
+            )
+            return jsonify(response), status_code
+        
+        # Validate category
+        from utils.categories import normalize_category
+        normalized_category = normalize_category(selected_category)
+        
+        # Use the clarification handler to complete the expense
+        from utils.expense_clarification import expense_clarification_handler
+        from utils.identity import psid_hash
+        
+        # Get user hash for clarification lookup
+        user_hash = psid_hash(authenticated_user_id)
+        
+        # Handle the clarification response
+        confirmation_result = expense_clarification_handler.handle_clarification_response(
+            user_hash, selected_category
+        )
+        
+        if not confirmation_result:
+            response, status_code = standardized_error_response(
+                code=ErrorCodes.NOT_FOUND,
+                message="Clarification not found or expired",
+                status_code=404,
+                log_error=False
+            )
+            return jsonify(response), status_code
+        
+        if not confirmation_result.get('success'):
+            # Handle retry case or other failures
+            message = confirmation_result.get('message', 'Failed to confirm category')
+            if confirmation_result.get('retry'):
+                response, status_code = standardized_error_response(
+                    code=ErrorCodes.VALIDATION_ERROR,
+                    message=message,
+                    status_code=400,
+                    log_error=False
+                )
+            else:
+                response, status_code = internal_error(message)
+            return jsonify(response), status_code
+        
+        # Success - expense has been created/updated with the selected category
+        expense_data = confirmation_result.get('expense_data', {})
+        latency = int((time.time() - start) * 1000)
+        
+        # Log success
+        api_logger.log_request({
+            "endpoint": "/api/backend/confirm_expense",
+            "method": "POST", 
+            "user_id": authenticated_user_id,
+            "trace_id": trace_id,
+            "clarification_id": clarification_id,
+            "selected_category": normalized_category,
+            "latency_ms": latency,
+            "status": "success",
+            "expense_id": expense_data.get('expense_id')
+        })
+        
+        # Return success response
+        response_data = success_response(
+            message=f"Great! I've categorized it as {normalized_category}.",
+            data={
+                "expense_id": expense_data.get('expense_id'),
+                "category": normalized_category,
+                "amount": expense_data.get('amount'),
+                "description": expense_data.get('description'),
+                "trace_id": trace_id
+            }
+        )
+        return jsonify(response_data), 200
+        
+    except Exception as e:
+        latency = int((time.time() - start) * 1000)
+        
+        # Log error
+        api_logger.log_error({
+            "endpoint": "/api/backend/confirm_expense",
+            "method": "POST",
+            "user_id": authenticated_user_id,
+            "trace_id": trace_id,
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "latency_ms": latency
+        })
+        
+        response, status_code = internal_error("Failed to confirm expense category")
+        return jsonify(response), status_code
+
+
 @backend_api.route('/add_expense', methods=['POST'])
 @require_backend_user_auth
 def api_add_expense(authenticated_user_id):
