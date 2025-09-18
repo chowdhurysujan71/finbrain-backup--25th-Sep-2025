@@ -8,7 +8,7 @@ import logging
 import unicodedata
 from decimal import Decimal, InvalidOperation
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 
 logger = logging.getLogger("parsers.expense")
 
@@ -367,6 +367,62 @@ CATEGORY_ALIASES = {
     'pet supplies': ('pets', 9),
     'pet store': ('pets', 9)
 }
+
+# Vague trailing tokens that should be overridden by description inference
+VAGUE_TRAILING_TOKENS = {
+    'general', 'misc', 'miscellaneous', 'other', 'others', 'etc', 'various',
+    'stuff', 'things', 'items', 'random', 'mixed', 'multiple',
+    # Bengali equivalents
+    'সাধারণ', 'বিবিধ', 'অন্যান্য', 'ইত্যাদি'
+}
+
+def infer_category_from_description(text: str) -> Optional[Tuple[str, int]]:
+    """
+    Infer category from description using CATEGORY_ALIASES when trailing token is vague.
+    
+    Uses existing CATEGORY_ALIASES with word boundary matching to find the highest-strength
+    category match. Returns None if no strong match (strength >= 8) is found.
+    
+    Args:
+        text: The text to analyze for category clues
+        
+    Returns:
+        Tuple of (category, strength) if strong match found, None otherwise
+        
+    Examples:
+        >>> infer_category_from_description("Coffee 120 general")
+        ('food', 9)  # coffee alias strength 9 beats vague 'general'
+        >>> infer_category_from_description("Something 120 general") 
+        None  # no strong description match found
+        >>> infer_category_from_description("Biryani 250 misc")
+        ('food', 10)  # biryani alias strength 10 beats vague 'misc'
+    """
+    if not text:
+        return None
+    
+    best_category = None
+    best_strength = 0
+    min_confidence_threshold = 8  # Require minimum confidence for override
+    
+    # Check each category alias using word boundary matching
+    for keyword, (category, strength) in CATEGORY_ALIASES.items():
+        if has_word_boundary_match(text, keyword):
+            # Boost strength if word appears after "on" or "for" with word boundaries
+            # Pattern: "on food", "for coffee", etc.
+            boost_pattern = rf'(?<![A-Za-z0-9\u0980-\u09FF])(?:on|for)\s+\w*\s*(?<![A-Za-z0-9\u0980-\u09FF]){re.escape(keyword)}(?![A-Za-z0-9\u0980-\u09FF])'
+            if re.search(boost_pattern, text, re.IGNORECASE):
+                strength += 2
+            
+            if strength > best_strength:
+                best_strength = strength
+                best_category = category
+    
+    # Only return result if it meets minimum confidence threshold
+    if best_strength >= min_confidence_threshold:
+        return (best_category, best_strength)
+    
+    return None
+
 
 def has_word_boundary_match(text: str, alias: str) -> bool:
     """
@@ -1011,8 +1067,20 @@ def _infer_category_from_context(context_text: str, user_hash: str = None) -> st
             # Don't fail parsing if learning system has issues
             pass
     
-    # PRIORITY 2: Use global CATEGORY_ALIASES for comprehensive matching (includes Bengali script)
+    # PRIORITY 2: Check for vague trailing tokens and use description inference if found
     words = context_lower.split()
+    trailing_token = words[-1] if words else ''
+    
+    if trailing_token in VAGUE_TRAILING_TOKENS:
+        # Trailing token is vague - try description inference to find stronger category
+        description_result = infer_category_from_description(context_text)
+        if description_result:
+            category, strength = description_result
+            if strength > best_strength:
+                best_strength = strength
+                best_category = category
+    
+    # PRIORITY 3: Use global CATEGORY_ALIASES for comprehensive matching (includes Bengali script)
     for word in words:
         if word in CATEGORY_ALIASES:
             category, strength = CATEGORY_ALIASES[word]
@@ -1029,11 +1097,11 @@ def _infer_category_from_context(context_text: str, user_hash: str = None) -> st
                 best_strength = strength
                 best_category = two_word_phrase
     
-    # If we found a good match in CATEGORY_ALIASES, return it
+    # If we found a good match, return it
     if best_strength > 8:  # High confidence threshold
         return best_category
     
-    # PRIORITY 3: Enhanced category matching with context-specific boosts (fallback)
+    # PRIORITY 4: Enhanced category matching with context-specific boosts (fallback)
     category_keywords = {
         # Bills - HIGHEST PRIORITY FOR UTILITY BILLS
         'bills': ['gas bill', 'electricity bill', 'electric bill', 'water bill', 'power bill', 'utility bill', 'internet bill', 'phone bill', 'rent', 'utilities'],
