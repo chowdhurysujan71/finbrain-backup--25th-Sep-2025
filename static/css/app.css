@@ -962,18 +962,20 @@ h1, h2, h3, h4, h5, h6 {
 .loading-spinner {
     color: var(--color-muted);
     font-size: var(--font-size-sm);
+    position: relative;
 }
 
+/* Simple animated dots after any loading text */
 .loading-spinner:after {
-    content: "Loading...";
-    animation: loadingDots 1.5s steps(4, end) infinite;
+    content: "";
+    animation: loadingDots 1.5s infinite;
 }
 
 @keyframes loadingDots {
-    0% { content: "Loading"; }
-    25% { content: "Loading."; }
-    50% { content: "Loading.."; }
-    75% { content: "Loading..."; }
+    0% { content: ""; }
+    25% { content: "."; }
+    50% { content: ".."; }
+    75% { content: "..."; }
 }
 
 /* ===== RESPONSIVE BREAKPOINTS ===== */
