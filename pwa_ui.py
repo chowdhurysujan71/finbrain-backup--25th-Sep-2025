@@ -51,6 +51,14 @@ def get_user_id():
     # Return None for unauthenticated users - no header fallback
     return None
 
+def _safe_get_user_id():
+    """Safely get user ID from Flask g context with error handling"""
+    try:
+        return getattr(g, 'user_id', 'anonymous')
+    except RuntimeError:
+        # g is not available outside of request context
+        return 'anonymous'
+
 # Request logging for chat debugging
 @pwa_ui.before_app_request
 def _debug_chat_requests():
@@ -190,21 +198,32 @@ def register():
 @limiter.limit("5 per minute")
 def auth_login():
     """
-    Process user login by proxying to backend authentication API
+    Process user login with CAPTCHA protection to prevent automated abuse
     """
     from models import User
     from db_base import db
     from werkzeug.security import check_password_hash
     from flask import session, request, jsonify
+    from utils.captcha import verify_session_captcha
     
     try:
         data = request.get_json(silent=True) or {}
         
         email = data.get('email', '').lower().strip()
         password = data.get('password', '')
+        captcha_answer = data.get('captcha_answer', '').strip()
         
         if not email or not password:
             return jsonify({"error": "Email and password required"}), 400
+        
+        if not captcha_answer:
+            return jsonify({"error": "CAPTCHA answer required"}), 400
+        
+        # Verify CAPTCHA before processing authentication
+        captcha_valid, captcha_error = verify_session_captcha(captcha_answer)
+        if not captcha_valid:
+            logger.warning(f"Failed CAPTCHA attempt for login: {email} - {captcha_error}")
+            return jsonify({"error": f"CAPTCHA failed: {captcha_error}"}), 400
         
         user = User.query.filter_by(email=email).first()
         if not user or not check_password_hash(user.password_hash, password):
@@ -265,13 +284,14 @@ def auth_me():
 @limiter.limit("3 per minute")
 def auth_register():
     """
-    Process user registration with comprehensive validation and standardized error handling
+    Process user registration with CAPTCHA protection and comprehensive validation
     """
     from models import User
     from db_base import db
     from werkzeug.security import generate_password_hash
     from flask import session, request, jsonify
     from utils.identity import psid_hash
+    from utils.captcha import verify_session_captcha
     import uuid
     import time
     
@@ -281,9 +301,19 @@ def auth_register():
         email = data.get('email', '').lower().strip()
         password = data.get('password', '')
         name = data.get('name', '').strip()
+        captcha_answer = data.get('captcha_answer', '').strip()
         
         if not email or not password:
             return jsonify({"error": "Email and password required"}), 400
+        
+        if not captcha_answer:
+            return jsonify({"error": "CAPTCHA answer required"}), 400
+        
+        # Verify CAPTCHA before processing registration
+        captcha_valid, captcha_error = verify_session_captcha(captcha_answer)
+        if not captcha_valid:
+            logger.warning(f"Failed CAPTCHA attempt for registration: {email} - {captcha_error}")
+            return jsonify({"error": f"CAPTCHA failed: {captcha_error}"}), 400
         
         # Check if user exists
         existing_user = User.query.filter_by(email=email).first()
@@ -329,6 +359,31 @@ def auth_register():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Registration failed. Please try again."}), 500
+
+@pwa_ui.route('/api/auth/captcha', methods=['GET'])
+@limiter.limit("10 per minute")
+def generate_captcha():
+    """
+    Generate CAPTCHA for authentication endpoints
+    Returns a math question for the user to solve
+    """
+    from utils.captcha import generate_session_captcha
+    from flask import jsonify
+    
+    try:
+        captcha_data = generate_session_captcha()
+        return jsonify({
+            "success": True,
+            "question": captcha_data['question']
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error generating CAPTCHA: {e}")
+        return jsonify({
+            "success": False,
+            "error": "Failed to generate CAPTCHA",
+            "question": "What is 2 + 2?"  # Fallback
+        }), 500
 
 @pwa_ui.route('/auth/logout', methods=['POST'])
 def auth_logout():
@@ -413,14 +468,15 @@ def link_guest_data():
         # Verify the guest token
         is_valid, token_data = verify_guest_token(link_token, guest_id)
         if not is_valid:
-            logger.warning(f"Invalid guest token attempt from user {user.user_id_hash[:8]}*** for guest {guest_id[:8]}***: {token_data.get('error', 'Unknown error')}")
+            error_msg = token_data.get('error', 'Unknown error') if token_data else 'Unknown error'
+            logger.warning(f"Invalid guest token attempt from user {user.user_id_hash[:8]}*** for guest {guest_id[:8]}***: {error_msg}")
             return jsonify({
                 "error": "Invalid or expired link token",
                 "details": "Guest data merge requires valid authentication token"
             }), 401
         
         # Check for token reuse (basic replay protection)
-        token_nonce = token_data.get('nonce', '')
+        token_nonce = token_data.get('nonce', '') if token_data else ''
         if token_nonce and is_token_recently_used(guest_id, token_nonce):
             logger.warning(f"Token reuse attempt from user {user.user_id_hash[:8]}*** for guest {guest_id[:8]}***")
             return jsonify({"error": "Token has already been used"}), 401
@@ -519,10 +575,10 @@ def entries_partial():
             entries.append({
                 'id': expense.get('id', 0),
                 'amount': float(expense.get('amount_minor', 0)) / 100,  # Convert to major units
-                'category': (expense.get('category', 'uncategorized') or 'uncategorized').title(),
-                'description': expense.get('description', '') or f"{(expense.get('category', 'uncategorized') or 'uncategorized').title()} expense",
-                'date': expense.get('created_at', '')[:10] if expense.get('created_at') else '',  # Extract date part
-                'time': expense.get('created_at', '')[11:16] if expense.get('created_at') and len(expense.get('created_at', '')) > 11 else '00:00'  # Extract time part
+                'category': str(expense.get('category', 'uncategorized') or 'uncategorized').title(),
+                'description': expense.get('description', '') or f"{str(expense.get('category', 'uncategorized') or 'uncategorized').title()} expense",
+                'date': str(expense.get('created_at', ''))[:10] if expense.get('created_at') and isinstance(expense.get('created_at'), str) else '',  # Extract date part
+                'time': str(expense.get('created_at', ''))[11:16] if expense.get('created_at') and isinstance(expense.get('created_at'), str) and len(str(expense.get('created_at', ''))) > 11 else '00:00'  # Extract time part
             })
         
         logger.info(f"PWA entries loaded directly: {len(entries)} entries")
@@ -616,7 +672,7 @@ def ai_chat():
         return jsonify({
             "reply": f"Server error: {type(e).__name__}",
             "data": {"intent": "error", "category": None, "amount": None},
-            "user_id": getattr(g, 'user_id', 'anonymous'),
+            "user_id": _safe_get_user_id(),
             "metadata": {
                 "source": "ai-chat",
                 "latency_ms": latency_ms

@@ -1,10 +1,12 @@
-"""Task scheduling for automated reports"""
+"""Task scheduling for automated reports and security cleanup"""
 import os
 import logging
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 from utils.report_generator import send_daily_reports, send_weekly_reports
+from utils.pending_expenses_cleanup import run_pending_expenses_cleanup
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +40,19 @@ def init_scheduler():
             replace_existing=True
         )
         
+        # Pending expenses cleanup every 7 minutes (security requirement)
+        scheduler.add_job(
+            func=run_pending_expenses_cleanup,
+            trigger=IntervalTrigger(minutes=7),
+            id='pending_expenses_cleanup',
+            name='Clean up expired pending expenses',
+            replace_existing=True,
+            max_instances=1  # Prevent overlapping cleanup jobs
+        )
+        
         # Start the scheduler
         scheduler.start()
-        logger.info("Scheduler initialized successfully")
+        logger.info("Scheduler initialized successfully with security cleanup jobs")
         
         return scheduler
         
@@ -109,3 +121,27 @@ def trigger_weekly_report_now():
     except Exception as e:
         logger.error(f"Error triggering weekly reports: {str(e)}")
         return {'success': False, 'error': str(e)}
+
+def trigger_pending_expenses_cleanup_now():
+    """Manually trigger pending expenses cleanup for testing"""
+    try:
+        logger.info("Manually triggering pending expenses cleanup")
+        result = run_pending_expenses_cleanup()
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error triggering pending expenses cleanup: {str(e)}")
+        return {'success': False, 'error': str(e)}
+
+def get_pending_expenses_cleanup_stats():
+    """Get current pending expenses statistics"""
+    try:
+        from utils.pending_expenses_cleanup import pending_expenses_cleanup
+        from app import app
+        
+        with app.app_context():
+            return pending_expenses_cleanup.get_pending_expenses_stats()
+        
+    except Exception as e:
+        logger.error(f"Error getting pending expenses stats: {str(e)}")
+        return {'error': str(e)}
