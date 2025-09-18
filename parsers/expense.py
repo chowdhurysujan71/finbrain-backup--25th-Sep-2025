@@ -167,9 +167,11 @@ CATEGORY_ALIASES = {
     # Bengali Sweets & Desserts
     'mishti': ('food', 10),
     'roshogolla': ('food', 10),
+    'rosogolla': ('food', 10),        # Alternative spelling
     'rasgulla': ('food', 10),
     'chomchom': ('food', 10),
     'sandesh': ('food', 10),
+    'sondesh': ('food', 10),          # Alternative spelling
     'kalo jam': ('food', 10),
     'jilapi': ('food', 10),
     'jalebi': ('food', 10),
@@ -177,12 +179,28 @@ CATEGORY_ALIASES = {
     'mishti doi': ('food', 10),
     'payesh': ('food', 10),
     'kheer': ('food', 9),
+    'khir': ('food', 9),              # Alternative spelling
     'firni': ('food', 10),
     'shemaiyer payesh': ('food', 10),
     'chanar payesh': ('food', 10),
     'malai': ('food', 9),
     'kulfi': ('food', 9),
     'falooda': ('food', 9),
+    
+    # Traditional Indian Sweets
+    'laddu': ('food', 9),             # Round sweet
+    'laddoo': ('food', 9),            # Alternative spelling
+    'barfi': ('food', 9),             # Milk sweet
+    'peda': ('food', 9),              # Milk sweet
+    'halwa': ('food', 9),             # Sweet pudding
+    'halua': ('food', 9),             # Bengali spelling
+    'balushahi': ('food', 8),         # Traditional sweet
+    'soan papdi': ('food', 8),        # Layered sweet
+    
+    # Vermicelli & Festival Sweets
+    'semai': ('food', 9),             # Vermicelli sweet
+    'shemai': ('food', 9),            # Vermicelli (festival)
+    'dudh puli': ('food', 10),        # Milk dumpling
     
     # Bengali Beverages & Drinks
     'cha': ('food', 9),
