@@ -180,17 +180,38 @@ def chat():
     Expense input + recent entries list (HTMX partial hydrate)
     AUTHENTICATION REQUIRED
     """
-    from flask import make_response
-    import time
+    from flask import make_response, request
+    import time, hashlib
     user = require_auth()  # Require authentication
     logger.info(f"PWA chat route accessed by user: {user.user_id_hash}")
     
-    # Add timestamp for aggressive cache busting
+    # Nuclear cache busting with multiple strategies
     timestamp = int(time.time())
-    response = make_response(render_template('chat.html', user_id=user.user_id_hash, timestamp=timestamp))
-    response.headers['Cache-Control'] = 'no-store, must-revalidate'
+    cache_bust = hashlib.md5(f"{timestamp}{user.user_id_hash}".encode()).hexdigest()[:8]
+    
+    # Force HTML regeneration by adding unique context
+    template_context = {
+        'user_id': user.user_id_hash, 
+        'timestamp': timestamp,
+        'cache_bust': cache_bust,
+        'build_id': 'FINAL-2025-09-18T16:00+06',
+        'force_reload': True
+    }
+    
+    response = make_response(render_template('chat.html', **template_context))
+    
+    # NUCLEAR HTTP headers - prevent ALL caching
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
+    response.headers['Expires'] = 'Thu, 01 Jan 1970 00:00:00 GMT'
+    response.headers['Last-Modified'] = 'Thu, 01 Jan 1970 00:00:00 GMT'
+    response.headers['ETag'] = f'"{cache_bust}"'
+    response.headers['Vary'] = 'Cache-Control'
+    
+    # Force browsers to revalidate
+    if request.headers.get('Cache-Control') == 'max-age=0':
+        logger.info(f"[CACHE-BUST] Forced reload detected for user: {user.user_id_hash}")
+    
     return response
 
 @pwa_ui.route('/report')

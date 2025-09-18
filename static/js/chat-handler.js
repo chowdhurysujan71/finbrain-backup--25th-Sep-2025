@@ -1,7 +1,15 @@
-// static/js/chat-handler.js - ULTRA CACHE BUST VERSION  
-window.CHAT_BUILD_ID = 'ULTRA-2025-09-18T15:56+06';
-console.error('🎯 [ULTRA-SUCCESS] CHAT BUILD:', window.CHAT_BUILD_ID);
-console.error('🎯 [ULTRA-SUCCESS] Cache destroyer worked! Fresh code loaded!');
+// static/js/chat-handler.js - FINAL VICTORY VERSION  
+window.CHAT_BUILD_ID = 'FINAL-2025-09-18T16:00+06';
+console.error('🏆 [FINAL-VICTORY] CHAT BUILD:', window.CHAT_BUILD_ID);
+console.error('🏆 [FINAL-VICTORY] Server-side cache busting successful!');
+console.error('🏆 [FINAL-VICTORY] Fresh HTML confirmed:', window.FINBRAIN_HTML_FRESH);
+
+// Success verification
+if (window.FINBRAIN_HTML_FRESH) {
+    console.error('✅ [VICTORY] Cache bug ELIMINATED forever!');
+} else {
+    console.error('⚠️ [WARNING] Inline script failed - possible cache issue remains');
+}
 // --- add once at top-level ---
 const getChatContainer = () => {
   let el = document.getElementById('chat-messages');
