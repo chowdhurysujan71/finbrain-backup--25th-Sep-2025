@@ -219,11 +219,28 @@ try:
 except Exception as e:
     app.logger.error(f"[BOOT][FATAL] Failed to load canonical router: {e}")
 
-# Configure the database (guaranteed to exist due to validation)
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+# Configure the database with enhanced SSL and connection handling
+database_url = os.environ.get("DATABASE_URL")
+
+# Enhanced database connection configuration for SSL stability
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
+    "pool_recycle": 280,  # Recycle connections before 5 minute timeout
+    "pool_pre_ping": True,  # Test connections before use
+    "pool_timeout": 30,  # Connection timeout from pool
+    "pool_size": 10,  # Maximum number of permanent connections in pool
+    "max_overflow": 20,  # Maximum overflow connections
+    "echo": False,  # Disable SQL echoing for performance
+    "connect_args": {
+        "connect_timeout": 30,  # PostgreSQL connection timeout
+        "sslmode": "prefer",  # Use SSL if available, fallback to non-SSL
+        "application_name": "finbrain_app",  # Help identify app in database logs
+        # PostgreSQL-specific SSL retry settings
+        "keepalives_idle": 600,  # TCP keepalive idle time (10 minutes)
+        "keepalives_interval": 30,  # TCP keepalive interval (30 seconds)
+        "keepalives_count": 3,  # Number of keepalive probes
+        "tcp_user_timeout": 30000,  # TCP user timeout (30 seconds)
+    }
 }
 
 # Initialize the app with the extension

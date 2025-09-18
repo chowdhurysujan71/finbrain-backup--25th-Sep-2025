@@ -14,23 +14,61 @@ logger = logging.getLogger(__name__)
 pwa_ui = Blueprint('pwa_ui', __name__)
 
 def require_auth():
-    """Helper function to ensure user is authenticated via session"""
+    """Helper function to ensure user is authenticated via session with DB retry logic"""
     from models import User
     from flask import session, abort
+    from sqlalchemy.exc import OperationalError, DisconnectionError
+    from db_base import db
+    import time
     
     # Check if user is logged in via session
     user_id_hash = session.get('user_id')
     if not user_id_hash:
         abort(401)
     
-    # Find user in database
-    user = User.query.filter_by(user_id_hash=user_id_hash).first()
-    if not user:
-        # Session is invalid, clear it
-        session.clear()
-        abort(401)
+    # Find user in database with retry logic for SSL connection issues
+    max_retries = 3
+    retry_delay = 0.1  # 100ms initial delay
     
-    return user
+    for attempt in range(max_retries):
+        try:
+            user = User.query.filter_by(user_id_hash=user_id_hash).first()
+            if not user:
+                # Session is invalid, clear it
+                session.clear()
+                abort(401)
+            
+            return user
+            
+        except (OperationalError, DisconnectionError) as e:
+            # Handle SSL connection errors and other database connectivity issues
+            if attempt < max_retries - 1:
+                # Log the retry attempt
+                logger.warning(f"Database connection error in require_auth (attempt {attempt + 1}/{max_retries}): {str(e)[:100]}...")
+                
+                # Dispose of current connection pool to force fresh connections
+                try:
+                    db.engine.dispose()
+                except Exception as dispose_error:
+                    logger.debug(f"Engine dispose error: {dispose_error}")
+                
+                # Exponential backoff with jitter
+                delay = retry_delay * (2 ** attempt) + (time.time() % 0.1)
+                time.sleep(delay)
+                continue
+            else:
+                # Last attempt failed, log error and abort
+                logger.error(f"Database connection failed after {max_retries} attempts in require_auth: {str(e)}")
+                # Return 503 Service Unavailable instead of 500 for DB connectivity issues
+                abort(503)
+        
+        except Exception as e:
+            # Handle non-connection related database errors
+            logger.error(f"Non-connection database error in require_auth: {str(e)}")
+            abort(500)
+    
+    # This should never be reached due to the loop structure, but just in case
+    abort(503)
 
 # Safe JSON helper function
 def _json():
