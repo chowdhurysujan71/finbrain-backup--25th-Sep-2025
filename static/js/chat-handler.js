@@ -1,41 +1,49 @@
-// static/js/chat-handler.js
+// static/js/chat-handler.js - ROBUST VERSION
+// --- add once at top-level ---
+const getChatContainer = () => {
+  let el = document.getElementById('chat-messages');
+  if (!el) {
+    const root = document.querySelector('#chat') || document.body;
+    el = document.createElement('div');
+    el.id = 'chat-messages';
+    el.className = 'chat-messages';
+    root.appendChild(el);
+    console.warn('[CHAT] created #chat-messages on the fly');
+  }
+  el.classList.remove('hidden');
+  return el;
+};
+
 const addMsg = (role, text) => {
-  const messages = document.getElementById('chat-messages');
-  if (!messages) return;
-  
-  const d = document.createElement("div");
-  d.className = role === "user" ? "msg msg-user" : "msg msg-bot";
-  d.textContent = text;
+  const messages = getChatContainer();
+  const d = document.createElement('div');
+  d.className = role === 'user' ? 'msg msg-user' : 'msg msg-bot';
+  d.textContent = String(text || '');
   messages.appendChild(d);
   messages.scrollTop = messages.scrollHeight;
 };
 
 const renderUser = (text) => addMsg("user", text);
+
+// replace your renderAssistant with this:
 const renderAssistant = (data) => {
-  // Handle clarification responses
-  if (data.needs_clarification) {
-    renderClarificationRequest(data);
-    return;
-  }
-  
-  // Handle the direct reply format from AI
-  if (data.reply) {
-    addMsg("bot", data.reply);
-    return;
-  }
-  
-  // Handle the expected {"messages": [...]} format (legacy support)
-  const messages = data.messages || [];
-  messages.forEach(msg => {
-    if (msg.content) {
-      addMsg("bot", msg.content);
+  try {
+    if (data && data.needs_clarification) return renderClarificationRequest(data);
+    if (data && typeof data.reply === 'string' && data.reply.trim()) {
+      addMsg('bot', data.reply.trim()); return;
     }
-  });
+    const msgs = Array.isArray(data?.messages) ? data.messages : [];
+    let rendered = false;
+    for (const m of msgs) if (m?.content) { addMsg('bot', m.content); rendered = true; }
+    if (!rendered) addMsg('bot', 'Sorry, I couldn\'t parse that reply.');
+  } catch (e) {
+    console.error('[CHAT] renderAssistant error', e);
+    addMsg('bot', 'Something went wrong rendering the reply.');
+  }
 };
 
 const renderClarificationRequest = (data) => {
-  const messages = document.getElementById('chat-messages');
-  if (!messages) return;
+  const messages = getChatContainer();
   
   // Create clarification message container
   const clarificationDiv = document.createElement("div");
@@ -79,16 +87,16 @@ const renderClarificationRequest = (data) => {
   messages.scrollTop = messages.scrollHeight;
 };
 
-const handleCategorySelection = async (chipElement) => {
-  const category = chipElement.dataset.category;
-  const clarificationId = chipElement.dataset.clarificationId;
+const handleCategorySelection = async (chip) => {
+  const category = chip.dataset.category;
+  const clarificationId = chip.dataset.clarificationId;
   
   if (!category || !clarificationId) {
     console.error('Missing category or clarification ID');
     return;
   }
   
-  // Disable all chips to prevent double-clicking
+  // Disable all chips and show loading state
   const allChips = document.querySelectorAll('.clarification-chip');
   allChips.forEach(chip => {
     chip.disabled = true;
@@ -100,23 +108,28 @@ const handleCategorySelection = async (chipElement) => {
     const response = await fetch('/api/backend/confirm_expense', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       credentials: 'same-origin',
       body: JSON.stringify({
         clarification_id: clarificationId,
-        selected_category: category
+        category: category
       })
     });
     
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
     const result = await response.json();
     
-    if (response.ok && result.success) {
+    if (result.success) {
       // Show success message
-      addMsg("bot", result.message || `Great! I've categorized it as ${category}.`);
+      const confirmationMsg = result.message || `✅ Expense categorized as "${category}"`;
+      addMsg("bot", confirmationMsg);
       
-      // Hide the clarification options
-      const clarificationMsg = chipElement.closest('.clarification-msg');
+      // Hide/disable the clarification options
+      const clarificationMsg = chip.closest('.clarification-msg');
       if (clarificationMsg) {
         const optionsContainer = clarificationMsg.querySelector('.clarification-options');
         if (optionsContainer) {
@@ -172,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await r.json().catch(()=> ({}));
       if (!r.ok) throw new Error(`HTTP ${r.status} ${data.error||''}`);
 
-      console.log('[TRACE]', rid, 'reply:', data);
+      console.log('[TRACE]', rid, 'raw reply object:', data);
       renderUser(text);
       renderAssistant(data);      // handles both messages and clarification
       input.value = '';
