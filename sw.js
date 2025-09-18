@@ -1,9 +1,10 @@
 // finbrain PWA Service Worker
 // Handles caching, offline functionality, and background sync
 
-const CACHE_NAME = 'finbrain-v1.0.0';
-const STATIC_CACHE_NAME = 'finbrain-static-v1.0.0';
-const API_CACHE_NAME = 'finbrain-api-v1.0.0';
+const VERSION = 'v1.4.0';
+const CACHE_NAME = `finbrain-${VERSION}`;
+const STATIC_CACHE_NAME = `finbrain-static-${VERSION}`;
+const API_CACHE_NAME = `finbrain-api-${VERSION}`;
 
 // Resources to precache on install
 const PRECACHE_URLS = [
@@ -77,35 +78,42 @@ self.addEventListener('activate', event => {
     );
 });
 
-// Fetch event - handle all network requests with caching strategies
-self.addEventListener('fetch', event => {
-    const { request } = event;
-    const url = new URL(request.url);
-    
-    // Never cache API calls; always go network
-    if (url.pathname.startsWith('/api/')) {
-        return; // bypass SW completely for all API requests
+// Main fetch event listener with network-only strategy for APIs
+self.addEventListener('fetch', (event) => {
+    // Skip interception for API endpoints - let them go directly to network
+    if (isAPIRequest(event.request)) {
+        console.log('[SW] API request bypassing service worker:', event.request.url);
+        return; // Don't use respondWith - let request go to network directly
     }
     
-    // Skip non-GET requests and chrome-extension requests
-    if (request.method !== 'GET' || url.protocol === 'chrome-extension:') {
-        return;
-    }
-    
-    // Different strategies based on request type
-    if (isNavigationRequest(request)) {
-        // Navigation requests - network first with offline fallback
-        event.respondWith(handleNavigationRequest(request));
-    } else if (isStaticAsset(request)) {
-        // Static assets - cache first
-        event.respondWith(handleStaticAsset(request));
-    } else if (isAPIRequest(request)) {
-        // API requests - network first with cache fallback
-        event.respondWith(handleAPIRequest(request));
-    } else {
-        // Default - network first
-        event.respondWith(handleDefaultRequest(request));
-    }
+    // Handle all other requests with caching strategies
+    event.respondWith(
+        (async () => {
+            try {
+                if (isNavigationRequest(event.request)) {
+                    return await handleNavigationRequest(event.request);
+                } else if (isStaticAsset(event.request)) {
+                    return await handleStaticAsset(event.request);
+                } else {
+                    return await handleDefaultRequest(event.request);
+                }
+            } catch (error) {
+                console.error('[SW] Request handling failed:', error);
+                
+                // Try to serve from cache as fallback
+                const cachedResponse = await caches.match(event.request);
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                
+                // Return basic offline response
+                return new Response('Service temporarily unavailable', {
+                    status: 503,
+                    statusText: 'Service Unavailable'
+                });
+            }
+        })()
+    );
 });
 
 // Handle navigation requests (HTML pages)
@@ -246,13 +254,16 @@ function isStaticAsset(request) {
            url.pathname.includes('.svg');
 }
 
+// Identify API endpoints that should never be cached
 function isAPIRequest(request) {
     const url = new URL(request.url);
     return url.pathname.startsWith('/api/') ||
+           url.pathname.startsWith('/ai-chat') ||
            url.pathname.startsWith('/webhook/') ||
            url.pathname.startsWith('/partials/') ||
            url.pathname.includes('/expense') ||
-           url.pathname.includes('/health');
+           url.pathname.includes('/health') ||
+           url.pathname.includes('/chat') && request.method === 'POST';
 }
 
 // Background sync for offline actions (future enhancement)
@@ -316,7 +327,7 @@ self.addEventListener('push', event => {
     };
     
     event.waitUntil(
-        self.registration.showNotification('FinBrain', options)
+        self.registration.showNotification('finbrain', options)
     );
 });
 
