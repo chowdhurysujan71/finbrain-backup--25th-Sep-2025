@@ -33,6 +33,7 @@ class PCAFlags:
         self.global_kill_switch = os.environ.get('PCA_KILL_SWITCH', 'false').lower() == 'true'
         self.enable_clarifiers = os.environ.get('ENABLE_CLARIFIERS', 'false').lower() == 'true'
         self.web_clarifier_ui = os.environ.get('FEATURE_WEB_CLARIFIER_UI', 'true').lower() == 'true'
+        self.category_normalization = os.environ.get('FEATURE_CATEGORY_NORMALIZATION', 'true').lower() == 'true'
         
         # Validate thresholds
         if self.tau_high <= self.tau_low:
@@ -47,7 +48,8 @@ class PCAFlags:
                    f"slo_budget_ms={self.slo_budget_ms}, "
                    f"global_kill={self.global_kill_switch}, "
                    f"clarifiers={self.enable_clarifiers}, "
-                   f"web_clarifier_ui={self.web_clarifier_ui}")
+                   f"web_clarifier_ui={self.web_clarifier_ui}, "
+                   f"category_normalization={self.category_normalization}")
     
     def _get_pca_mode(self) -> PCAMode:
         """Get PCA mode from environment with validation"""
@@ -123,6 +125,10 @@ class PCAFlags:
         """Check if web clarification UI should be enabled"""
         return self.web_clarifier_ui and not self.global_kill_switch
     
+    def should_normalize_categories(self) -> bool:
+        """Check if category normalization guard should be enabled"""
+        return self.category_normalization and not self.global_kill_switch
+    
     def get_clarifier_thresholds(self) -> tuple:
         """Get clarifier decision thresholds for confidence scoring"""
         return self.tau_high, self.tau_low
@@ -140,6 +146,8 @@ class PCAFlags:
             'snapshots_enabled': self.should_log_snapshots(),
             'clarifiers_enabled': self.should_enable_clarifiers(),
             'enable_clarifiers_flag': self.enable_clarifiers,
+            'category_normalization_enabled': self.should_normalize_categories(),
+            'category_normalization_flag': self.category_normalization,
             'version': 'pca-v1.1-clarifiers'
         }
 
