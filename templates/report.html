@@ -113,6 +113,8 @@ let reportData = {
 // API Helper Functions
 async function apiCall(endpoint, data = {}) {
     try {
+        console.log(`[Report] Making API call to ${endpoint} with data:`, data);
+        
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
@@ -122,27 +124,37 @@ async function apiCall(endpoint, data = {}) {
             body: JSON.stringify(data)
         });
 
+        console.log(`[Report] API response status: ${response.status}`);
+
         if (!response.ok) {
             if (response.status === 401) {
+                console.warn('[Report] User not authenticated, redirecting to login');
                 // User not authenticated, redirect to login
                 window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
                 return null;
             }
-            throw new Error(`API call failed: ${response.status}`);
+            
+            const errorText = await response.text();
+            console.error(`[Report] API error ${response.status}:`, errorText);
+            throw new Error(`API call failed: ${response.status} - ${errorText}`);
         }
 
         const result = await response.json();
+        console.log(`[Report] API response from ${endpoint}:`, result);
         
         // Check if response has expected structure
         if (result.success && result.data) {
+            console.log(`[Report] Extracted data from ${endpoint}:`, result.data);
             return result.data;
         } else if (result.data) {
+            console.log(`[Report] Using direct data from ${endpoint}:`, result.data);
             return result.data;
         } else {
+            console.log(`[Report] Using full result from ${endpoint}:`, result);
             return result;
         }
     } catch (error) {
-        console.error(`API call to ${endpoint} failed:`, error);
+        console.error(`[Report] API call to ${endpoint} failed:`, error);
         throw error;
     }
 }
@@ -185,12 +197,27 @@ async function loadSummaryData() {
     try {
         console.log('[Report] Loading summary data...');
         
+        // Show loading state
+        ['today', 'week', 'month'].forEach(period => {
+            const totalElement = document.getElementById(`${period}-total`);
+            const changeElement = document.getElementById(`${period}-change`);
+            if (totalElement) totalElement.innerHTML = '<div class="loading-spinner">Loading...</div>';
+            if (changeElement) changeElement.innerHTML = '<div class="loading-spinner">Loading...</div>';
+        });
+        
         // Fetch totals for different periods
+        console.log('[Report] Fetching totals from API...');
         const [todayData, weekData, monthData] = await Promise.all([
             apiCall('/api/backend/get_totals', { period: 'day' }),
             apiCall('/api/backend/get_totals', { period: 'week' }),
             apiCall('/api/backend/get_totals', { period: 'month' })
         ]);
+
+        console.log('[Report] Received API responses:', {
+            today: todayData,
+            week: weekData, 
+            month: monthData
+        });
 
         reportData.today = todayData;
         reportData.week = weekData;
@@ -204,22 +231,39 @@ async function loadSummaryData() {
         console.log('[Report] Summary data loaded successfully');
     } catch (error) {
         console.error('[Report] Failed to load summary data:', error);
-        showError('Failed to load spending summary. Please refresh the page.');
+        
+        // Try to show a user-friendly error message
+        const errorMessage = error.message || 'Unknown error occurred';
+        if (typeof showError === 'function') {
+            showError(`Failed to load spending summary: ${errorMessage}. Please refresh the page.`);
+        } else {
+            console.error('[Report] showError function not available');
+        }
         
         // Show error state in summary cards
         ['today', 'week', 'month'].forEach(period => {
-            document.getElementById(`${period}-total`).innerHTML = '<span class="error-text">Error</span>';
-            document.getElementById(`${period}-change`).innerHTML = '<span class="error-text">Unable to load</span>';
+            const totalElement = document.getElementById(`${period}-total`);
+            const changeElement = document.getElementById(`${period}-change`);
+            if (totalElement) totalElement.innerHTML = '<span class="error-text">Error</span>';
+            if (changeElement) changeElement.innerHTML = '<span class="error-text">Unable to load</span>';
         });
     }
 }
 
 // Update Summary Card
 function updateSummaryCard(period, data) {
+    console.log(`[Report] Updating summary card for ${period} with data:`, data);
+    
     const totalElement = document.getElementById(`${period}-total`);
     const changeElement = document.getElementById(`${period}-change`);
     
+    if (!totalElement || !changeElement) {
+        console.error(`[Report] DOM elements not found for period: ${period}`);
+        return;
+    }
+    
     if (!data) {
+        console.warn(`[Report] No data provided for ${period}`);
         totalElement.innerHTML = '<span class="error-text">No data</span>';
         changeElement.innerHTML = '<span class="error-text">Unable to load</span>';
         return;
@@ -227,10 +271,14 @@ function updateSummaryCard(period, data) {
 
     // Update total amount
     const totalMinor = data.total_minor || 0;
-    totalElement.textContent = formatCurrency(totalMinor);
+    const formattedAmount = formatCurrency(totalMinor);
+    console.log(`[Report] Formatted amount for ${period}: ${formattedAmount} (from ${totalMinor})`);
+    totalElement.textContent = formattedAmount;
 
     // Update change/status
     const expenseCount = data.expenses_count || 0;
+    console.log(`[Report] Expense count for ${period}: ${expenseCount}`);
+    
     if (expenseCount === 0) {
         changeElement.innerHTML = '<span class="summary-change neutral">No expenses yet</span>';
         changeElement.className = 'summary-change neutral';
@@ -238,6 +286,8 @@ function updateSummaryCard(period, data) {
         changeElement.innerHTML = `<span class="summary-change neutral">${expenseCount} expense${expenseCount !== 1 ? 's' : ''}</span>`;
         changeElement.className = 'summary-change neutral';
     }
+    
+    console.log(`[Report] Successfully updated ${period} card`);
 }
 
 // Load Categories Data

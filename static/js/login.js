@@ -3,6 +3,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('login-form');
   const err  = document.getElementById('auth-error');
   const spin = document.getElementById('auth-spinner');
+  const captchaQuestion = document.getElementById('captcha-question');
+
+  // Load CAPTCHA on page load
+  async function loadCaptcha() {
+    try {
+      const res = await fetch('/api/auth/captcha');
+      const data = await res.json();
+      if (data.success && captchaQuestion) {
+        captchaQuestion.textContent = data.question;
+      }
+    } catch (e) {
+      console.error('Failed to load CAPTCHA:', e);
+      if (captchaQuestion) {
+        captchaQuestion.textContent = 'What is 2 + 2?';
+      }
+    }
+  }
+
+  loadCaptcha();
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -15,7 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         credentials: 'include',
-        body: JSON.stringify({ email: form.email.value, password: form.password.value })
+        body: JSON.stringify({ 
+          email: form.email.value, 
+          password: form.password.value,
+          captcha_answer: form.captcha.value
+        })
       });
       data = await res.json().catch(() => ({}));
     } catch (e) {

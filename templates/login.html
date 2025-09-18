@@ -30,6 +30,15 @@
                        required autocomplete="current-password">
             </div>
 
+            <div class="form-group">
+                <label for="captcha" class="form-label">Security Question</label>
+                <div id="captcha-question" class="captcha-question">Loading...</div>
+                <input type="number" id="captcha" name="captcha" 
+                       class="form-input" placeholder="Enter your answer"
+                       required>
+                <small class="form-help">Please solve the math problem above</small>
+            </div>
+
             <button type="submit" class="btn btn-primary btn-full" id="login-btn">
                 <span class="btn-text">Sign In</span>
                 <span class="btn-loading" style="display: none;">Signing in...</span>
