@@ -89,25 +89,51 @@ if not session_secret:
     
 app.secret_key = session_secret
 
-# Session cookie hardening (works in dev & prod; tune SameSite if cross-site)
+# Session cookie hardening for cross-subdomain authentication
 app.config["SESSION_COOKIE_SECURE"] = True         # send cookie only over HTTPS
 app.config["SESSION_COOKIE_HTTPONLY"] = True       # JS cannot read cookie
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"      # or "None" + HTTPS if cross-site auth
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"      # Required for subdomain redirects
+
+# SECURITY FIX: Conditional session cookie domain - only for production
+if env == 'production' or env == 'prod':
+    app.config["SESSION_COOKIE_DOMAIN"] = ".finbrain.app"  # Share cookies across finbrain.app subdomains in production
+    logger.info("✓ Session cookies configured for finbrain.app subdomains (production)")
+else:
+    # In development, don't set domain to allow localhost sessions
+    logger.info("✓ Session cookies configured for localhost (development)")
+
+app.config["SESSION_COOKIE_NAME"] = "fbn.sid"      # Custom session cookie name
 app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 30  # 30 days
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configure CORS and rate limiting - SECURITY HARDENED: Specific origins only
-allowed_origins = [
-    os.getenv("APP_ORIGIN", "http://localhost:5000"),
-    "https://*.replit.app",
-    "https://*.repl.co"
-]
+# SECURITY CRITICAL FIX: Restrict CORS to exact finbrain.app origins only
+if env == 'production' or env == 'prod':
+    # Production: Only allow exact finbrain.app subdomains
+    finbrain_origins = [
+        "https://finbrain.app",
+        "https://login.finbrain.app", 
+        "https://app.finbrain.app",
+        "https://chat.finbrain.app",
+        "https://admin.finbrain.app"
+    ]
+    logger.info(f"✓ CORS configured for production with exact origins: {finbrain_origins}")
+else:
+    # Development: Allow localhost and any finbrain.app subdomain for testing
+    finbrain_origins = [
+        os.getenv("APP_ORIGIN", "http://localhost:5000"),
+        "http://localhost:5000",
+        "https://*.finbrain.app",
+        "https://finbrain.app"
+    ]
+    logger.info(f"✓ CORS configured for development: {finbrain_origins}")
 
+# SECURITY FIX: Limit CORS scope to specific routes only, remove global wildcard
 CORS(app, supports_credentials=True, resources={
-    r"/api/*": {"origins": allowed_origins},  # FIXED: No wildcard with credentials
-    r"/ai-chat": {"origins": allowed_origins},
-    r"/auth/*": {"origins": allowed_origins}  # FIXED: No wildcard with credentials
+    r"/api/*": {"origins": finbrain_origins},
+    r"/ai-chat": {"origins": finbrain_origins}, 
+    r"/auth/*": {"origins": finbrain_origins}
+    # Removed global r"/*" route for security
 })
 from utils.rate_limiting import limiter
 limiter.init_app(app)
@@ -117,10 +143,11 @@ from utils.logger import structured_logger
 
 @app.before_request
 def attach_user_and_trace():
-    """Capture request start time, generate request_id, set user context, and enforce auth"""
+    """Capture request start time, generate request_id, set user context, and enforce subdomain auth"""
     import os
-    from flask import request, jsonify, after_this_request
-    from auth_helpers import get_user_id_from_session
+    from flask import request, jsonify, after_this_request, redirect, url_for
+    from auth_helpers import get_user_id_from_session, get_subdomain, is_protected_subdomain, validate_return_to_url
+    from urllib.parse import quote
     
     g.start_time = time.time()
     # Get request_id from header or generate new one
@@ -129,13 +156,32 @@ def attach_user_and_trace():
     # SINGLE-SOURCE-OF-TRUTH: Set authenticated user context from session only
     g.user_id = get_user_id_from_session()
     
+    # Get current subdomain for routing logic
+    current_subdomain = get_subdomain()
+    
     # Enhanced logging for trace middleware
-    app.logger.info(f"[{g.request_id}] → {request.method} {request.path} user={g.user_id or 'anon'}")
+    app.logger.info(f"[{g.request_id}] → {request.method} {request.path} user={g.user_id or 'anon'} subdomain={current_subdomain or 'localhost'}")
     
     @after_this_request
     def add_trace_headers(resp):
         resp.headers['X-Request-ID'] = g.request_id
         return resp
+    
+    # SUBDOMAIN AUTHENTICATION ENFORCEMENT
+    # Redirect unauthenticated users from protected subdomains to login.finbrain.app
+    if current_subdomain and is_protected_subdomain(current_subdomain) and not g.user_id:
+        # Skip auth redirect for auth-related routes to prevent redirect loops
+        if not (request.path.startswith('/auth/') or request.path.startswith('/api/auth/')):
+            # Build returnTo URL with current subdomain and path
+            return_to_url = f"https://{current_subdomain}.finbrain.app{request.path}"
+            if request.query_string:
+                return_to_url += f"?{request.query_string.decode('utf-8')}"
+            
+            # Redirect to login subdomain with returnTo parameter
+            login_url = f"https://login.finbrain.app/login?returnTo={quote(return_to_url)}"
+            
+            app.logger.info(f"[{g.request_id}] Redirecting unauthenticated user from {current_subdomain}.finbrain.app to login")
+            return redirect(login_url, code=302)
     
     # PRODUCTION SECURITY: Block ALL /api/* requests without authentication
     is_api_route = request.path.startswith('/api/')
@@ -160,12 +206,22 @@ def attach_user_and_trace():
 
 @app.after_request
 def after_request(response):
-    """Log request completion with structured JSON format and add cache control for APIs"""
+    """Log request completion with structured JSON format, add cache control and security headers"""
     # Add no-cache headers for all API endpoints to prevent stale cached responses
     if request.path.startswith('/api/') or request.path.startswith('/ai-chat'):
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, proxy-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
+    
+    # Add security headers for all responses
+    # HSTS (HTTP Strict Transport Security) - Force HTTPS for 1 year, include subdomains
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+    
+    # Additional security headers
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     
     if hasattr(g, 'start_time') and hasattr(g, 'request_id') and hasattr(g, 'logging_handled'):
         try:

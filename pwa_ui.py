@@ -221,9 +221,18 @@ def challenge():
 @pwa_ui.route('/login')
 def login():
     """
-    Login page for user registration system
+    Login page for user registration system with returnTo support
     """
-    return render_template('login.html')
+    from flask import request
+    from auth_helpers import validate_return_to_url
+    
+    # Get and validate returnTo parameter
+    return_to = request.args.get('returnTo', '')
+    if return_to and not validate_return_to_url(return_to):
+        # Invalid returnTo URL, ignore it for security
+        return_to = ''
+    
+    return render_template('login.html', return_to=return_to)
 
 @pwa_ui.route('/register')
 def register():
@@ -236,13 +245,14 @@ def register():
 @limiter.limit("5 per minute")
 def auth_login():
     """
-    Process user login with CAPTCHA protection to prevent automated abuse
+    Process user login with CAPTCHA protection and returnTo redirect support
     """
     from models import User
     from db_base import db
     from werkzeug.security import check_password_hash
-    from flask import session, request, jsonify
+    from flask import session, request, jsonify, redirect
     from utils.captcha import verify_session_captcha
+    from auth_helpers import validate_return_to_url
     
     try:
         data = request.get_json(silent=True) or {}
@@ -250,6 +260,7 @@ def auth_login():
         email = data.get('email', '').lower().strip()
         password = data.get('password', '')
         captcha_answer = data.get('captcha_answer', '').strip()
+        return_to = data.get('returnTo', '').strip()
         
         if not email or not password:
             return jsonify({"error": "Email and password required"}), 400
@@ -273,14 +284,48 @@ def auth_login():
         session['email'] = email
         session['is_registered'] = True
         
-        # Return response (Flask handles secure session cookie automatically)
-        return jsonify({
-            "success": True, 
-            "message": "Login successful",
-            "data": {"user_id": user.user_id_hash}
-        }), 200
+        logger.info(f"User {email} logged in successfully")
+        
+        # UX IMPROVEMENT: Detect AJAX vs form submission for proper response handling
+        is_ajax_request = (
+            request.headers.get('X-Requested-With') == 'XMLHttpRequest' or
+            'application/json' in request.headers.get('Accept', '') or
+            request.headers.get('Content-Type', '').startswith('application/json')
+        )
+        
+        # Handle returnTo redirect for subdomain authentication
+        if return_to and validate_return_to_url(return_to):
+            logger.info(f"Redirecting authenticated user to: {return_to}")
+            
+            if is_ajax_request:
+                # AJAX request: return JSON with redirect instruction
+                return jsonify({
+                    "success": True, 
+                    "message": "Login successful",
+                    "redirect": return_to,
+                    "data": {"user_id": user.user_id_hash}
+                }), 200
+            else:
+                # Non-AJAX request: server-side redirect for robustness
+                logger.info(f"Server-side redirect for non-AJAX login to: {return_to}")
+                return redirect(return_to, code=302)
+        
+        # Default response when no returnTo specified
+        if is_ajax_request:
+            # AJAX request: return JSON response
+            return jsonify({
+                "success": True, 
+                "message": "Login successful",
+                "data": {"user_id": user.user_id_hash}
+            }), 200
+        else:
+            # Non-AJAX request: redirect to default authenticated page
+            default_redirect = "/chat"  # Default page for authenticated users
+            logger.info(f"Server-side redirect for non-AJAX login to default: {default_redirect}")
+            return redirect(default_redirect, code=302)
         
     except Exception as e:
+        logger.error(f"Login error: {e}")
         return jsonify({"error": "Login failed. Please try again."}), 500
 
 @pwa_ui.route('/api/auth/me', methods=['GET'])
@@ -426,16 +471,45 @@ def generate_captcha():
 @pwa_ui.route('/auth/logout', methods=['POST'])
 def auth_logout():
     """
-    Process user logout
+    Process user logout with cross-subdomain cookie clearing
     """
-    from flask import session
+    from flask import session, make_response, jsonify
     
+    # Clear the session
     session.clear()
-    return jsonify({
+    
+    # Create response
+    response = make_response(jsonify({
         'success': True,
         'message': 'Logged out successfully',
         'redirect': '/login'
-    })
+    }))
+    
+    # Clear the custom session cookie for all finbrain.app subdomains
+    # This ensures the cookie is cleared across all subdomains
+    response.set_cookie(
+        'fbn.sid',  # Our custom session cookie name
+        '',  # Empty value
+        domain='.finbrain.app',  # Clear for all subdomains
+        expires=0,  # Immediate expiration
+        httponly=True,
+        secure=True,
+        samesite='Lax'
+    )
+    
+    # Also clear the default Flask session cookie as a fallback
+    response.set_cookie(
+        'session',  # Default Flask session cookie name
+        '',  # Empty value
+        domain='.finbrain.app',  # Clear for all subdomains
+        expires=0,  # Immediate expiration
+        httponly=True,
+        secure=True,
+        samesite='Lax'
+    )
+    
+    logger.info("User logged out successfully, cookies cleared for all subdomains")
+    return response
 
 @pwa_ui.route('/api/auth/generate-guest-token', methods=['POST'])
 @limiter.limit("20 per minute")
