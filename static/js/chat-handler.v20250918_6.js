@@ -32,16 +32,59 @@ const renderUser = (text) => addMsg("user", text);
 // replace your renderAssistant with this:
 const renderAssistant = (data) => {
   try {
-    if (data && data.needs_clarification) return renderClarificationRequest(data);
-    if (data && typeof data.reply === 'string' && data.reply.trim()) {
-      addMsg('bot', data.reply.trim()); return;
+    console.info('[CHAT] Rendering assistant response:', data);
+    
+    // Check for clarification requests first
+    if (data && data.needs_clarification) {
+      return renderClarificationRequest(data);
     }
+    
+    // Check for simple string reply
+    if (data && typeof data.reply === 'string' && data.reply.trim()) {
+      addMsg('bot', data.reply.trim());
+      return;
+    }
+    
+    // Check for complex reply object with messages
+    if (data && data.reply && typeof data.reply === 'object') {
+      // Try reply.messages first (finbrain_route format)
+      const replyMsgs = Array.isArray(data.reply.messages) ? data.reply.messages : [];
+      if (replyMsgs.length > 0) {
+        let rendered = false;
+        for (const m of replyMsgs) {
+          if (m?.content) { 
+            addMsg('bot', m.content); 
+            rendered = true; 
+          }
+        }
+        if (rendered) return;
+      }
+      
+      // Try reply.text as fallback
+      if (data.reply.text && typeof data.reply.text === 'string') {
+        addMsg('bot', data.reply.text);
+        return;
+      }
+    }
+    
+    // Check for top-level messages array (alternative format)
     const msgs = Array.isArray(data?.messages) ? data.messages : [];
-    let rendered = false;
-    for (const m of msgs) if (m?.content) { addMsg('bot', m.content); rendered = true; }
-    if (!rendered) addMsg('bot', 'Sorry, I couldn\'t parse that reply.');
+    if (msgs.length > 0) {
+      let rendered = false;
+      for (const m of msgs) {
+        if (m?.content) { 
+          addMsg('bot', m.content); 
+          rendered = true; 
+        }
+      }
+      if (rendered) return;
+    }
+    
+    // If nothing worked, show fallback message
+    console.warn('[CHAT] Could not parse assistant response, showing fallback');
+    addMsg('bot', 'I received your message but had trouble formatting the response.');
   } catch (e) {
-    console.error('[CHAT] renderAssistant error', e);
+    console.error('[CHAT] renderAssistant error', e, data);
     addMsg('bot', 'Something went wrong rendering the reply.');
   }
 };
