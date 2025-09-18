@@ -1043,6 +1043,46 @@ h1, h2, h3, h4, h5, h6 {
     scroll-behavior: smooth;
 }
 
+/* ===== CHAT MESSAGES ===== */
+.msg {
+    margin-bottom: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+    max-width: 75%;
+    word-wrap: break-word;
+    animation: messageSlideIn 0.3s ease-out;
+    line-height: 1.5;
+    font-size: var(--font-size-sm);
+}
+
+.msg-user {
+    background: var(--color-primary);
+    color: white;
+    margin-left: auto;
+    border-bottom-right-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+}
+
+.msg-bot {
+    background: var(--color-bg);
+    color: var(--color-fg);
+    border: 1px solid var(--color-border);
+    margin-right: auto;
+    border-bottom-left-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+}
+
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* ===== CLARIFICATION UI ===== */
 .clarification-msg {
     background-color: var(--color-primary-50);
