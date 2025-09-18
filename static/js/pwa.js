@@ -75,6 +75,12 @@
                 
                 console.log('[PWA] Service Worker registered successfully:', swRegistration.scope);
                 
+                // Handle service worker controller changes (force refresh for updates)
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    console.log('[PWA] Service worker controller changed - refreshing page for updates');
+                    window.location.reload();
+                });
+                
                 // Handle updates
                 swRegistration.addEventListener('updatefound', () => {
                     const newWorker = swRegistration.installing;
