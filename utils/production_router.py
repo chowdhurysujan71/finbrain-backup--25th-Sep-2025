@@ -261,30 +261,19 @@ INSIGHT_RE = re.compile(
 def _norm_text(s: str) -> str:
     return " ".join((s or "").strip().lower().split())
 
-def is_summary_request(text: str) -> str | None:
-    t = (text or "").lower().strip()
-
-    # canonical quick hits
-    if "weekly summary" in t:  return "week"
-    if "monthly summary" in t: return "month"
-
-    # robust patterns (SHOW/SEE/DISPLAY ... EXPENSES/SPENDING ... THIS/THE WEEK/MONTH)
-    if re.search(r'\b(show|see|display|view|tell|give|what)(\s+me)?\s+(my\s+)?(expenses?|spend(ing)?)\s+(for\s+)?(this|the)\s+week\b', t):
-        return "week"
-    if re.search(r'\b(show|see|display|view|tell|give|what)(\s+me)?\s+(my\s+)?(expenses?|spend(ing)?)\s+(for\s+)?(this|the)\s+month\b', t):
-        return "month"
-
-    # short forms
-    if re.search(r'\b(this|the)\s+week\b', t) and ("summary" in t or "expenses" in t or "spending" in t):
-        return "week"
-    if re.search(r'\b(this|the)\s+month\b', t) and ("summary" in t or "expenses" in t or "spending" in t):
-        return "month"
-
-    return None
-
 def _is_summary_command(text: str) -> bool:
-    """Legacy wrapper for backward compatibility"""
-    return is_summary_request(text) is not None
+    if not text:
+        return False
+    
+    # Enhanced summary detection with Bengali support
+    bengali_summary_terms = ["সারাংশ", "খরচের সারাংশ", "মাসের খরচ", "আমার খরচ", "কত খরচ করেছি"]
+    english_summary_terms = {"summary", "recap", "report", "overview", "show my spending", "spending summary"}
+    
+    normalized = _norm_text(text)
+    
+    return (bool(SUMMARY_RE.search(text)) or 
+            normalized in english_summary_terms or
+            any(term in text for term in bengali_summary_terms))
 
 def _is_insight_command(text: str) -> bool:
     """Check if text is asking for financial insights/coaching"""
@@ -625,30 +614,11 @@ class ProductionRouter:
             
             # Step 1.4: SUMMARY/ANALYSIS DETECTION (AFTER REPORT)
             # Skip summary detection for category-specific queries - let deterministic router handle them  
-            period = is_summary_request(text)
-            if period and not self._is_category_specific_query(text) and not self._is_report_command(text):
-                logger.info(f"[ROUTER] Summary command detected: '{text[:50]}...' -> {period}")
+            if _is_summary_command(text) and not self._is_category_specific_query(text) and not self._is_report_command(text):
+                logger.info(f"[ROUTER] Summary command detected: '{text[:50]}...'")
                 try:
-                    if period == "week":
-                        try:
-                            from handlers.summary import handle_summary as proper_handler
-                            result = proper_handler(user_hash, "week")
-                            summary_response = result.get('text', 'Unable to generate weekly summary.')
-                        except Exception as e:
-                            logger.error(f"Weekly summary handler error: {e}")
-                            summary_response = "Unable to generate weekly summary at this time."
-                    elif period == "month":
-                        try:
-                            from handlers.summary import handle_summary as proper_handler
-                            result = proper_handler(user_hash, "month")
-                            summary_response = result.get('text', 'Unable to generate monthly summary.')
-                        except Exception as e:
-                            logger.error(f"Monthly summary handler error: {e}")
-                            summary_response = "Unable to generate monthly summary at this time."
-                    else:
-                        # Fallback to old handler
-                        summary_response = handle_summary(user_hash, text)
-                    self._log_routing_decision(rid, user_hash, "summary", f"analysis_provided_{period}")
+                    summary_response = handle_summary(user_hash, text)
+                    self._log_routing_decision(rid, user_hash, "summary", "analysis_provided")
                     self._record_processing_time(time.time() - start_time)
                     return normalize(summary_response), "analysis", None, None
                 except Exception as e:

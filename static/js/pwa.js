@@ -75,12 +75,6 @@
                 
                 console.log('[PWA] Service Worker registered successfully:', swRegistration.scope);
                 
-                // Handle service worker controller changes (force refresh for updates)
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    console.log('[PWA] New SW controlling page → reload');
-                    window.location.reload();
-                });
-                
                 // Handle updates
                 swRegistration.addEventListener('updatefound', () => {
                     const newWorker = swRegistration.installing;
@@ -283,12 +277,11 @@
         // Update form submit buttons
         const submitButtons = document.querySelectorAll('button[type="submit"]');
         submitButtons.forEach(button => {
-            const base = button.dataset.baseLabel || (button.dataset.baseLabel = button.textContent.replace(' (Offline)',''));
             if (online) {
                 button.disabled = false;
-                button.textContent = base;
+                button.textContent = button.textContent.replace(' (Offline)', '');
             } else {
-                button.textContent = `${base} (Offline)`;
+                button.textContent = button.textContent + ' (Offline)';
             }
         });
         

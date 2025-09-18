@@ -272,7 +272,7 @@ async function logoutUser() {
         const data = await response.json();
         
         if (data.success) {
-            showToast('Signed out successfully', 'success');
+            showToast('Logged out successfully', 'success');
             
             // Redirect to login page
             setTimeout(() => {

@@ -178,47 +178,12 @@ def handle_with_fallback_ai(user_id_hash, user_message, conversational_ai=None):
 def chat():
     """
     Expense input + recent entries list (HTMX partial hydrate)
-    AUTHENTICATION REQUIRED - Redirects to login if not authenticated
+    AUTHENTICATION REQUIRED
     """
-    from flask import make_response, request, redirect, url_for, session
-    import time, hashlib
-    
-    # Check authentication and redirect if not logged in
-    user_id_hash = session.get('user_id')
-    if not user_id_hash:
-        return redirect(url_for('pwa_ui.login', returnTo='/chat'))
-    
-    user = require_auth()  # Get authenticated user
+    user = require_auth()  # Require authentication
     logger.info(f"PWA chat route accessed by user: {user.user_id_hash}")
     
-    # Nuclear cache busting with multiple strategies
-    timestamp = int(time.time())
-    cache_bust = hashlib.md5(f"{timestamp}{user.user_id_hash}".encode()).hexdigest()[:8]
-    
-    # Force HTML regeneration by adding unique context
-    template_context = {
-        'user_id': user.user_id_hash, 
-        'timestamp': timestamp,
-        'cache_bust': cache_bust,
-        'build_id': 'FINAL-2025-09-18T16:00+06',
-        'force_reload': True
-    }
-    
-    response = make_response(render_template('chat.html', **template_context))
-    
-    # NUCLEAR HTTP headers - prevent ALL caching
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = 'Thu, 01 Jan 1970 00:00:00 GMT'
-    response.headers['Last-Modified'] = 'Thu, 01 Jan 1970 00:00:00 GMT'
-    response.headers['ETag'] = f'"{cache_bust}"'
-    response.headers['Vary'] = 'Cache-Control'
-    
-    # Force browsers to revalidate
-    if request.headers.get('Cache-Control') == 'max-age=0':
-        logger.info(f"[CACHE-BUST] Forced reload detected for user: {user.user_id_hash}")
-    
-    return response
+    return render_template('chat.html', user_id=user.user_id_hash)
 
 @pwa_ui.route('/report')
 def report():
@@ -226,13 +191,10 @@ def report():
     Money Story summary cards + placeholder charts
     AUTHENTICATION REQUIRED
     """
-    from flask import make_response
     user = require_auth()  # Require authentication
     logger.info(f"PWA report route accessed by user: {user.user_id_hash}")
     
-    response = make_response(render_template('report.html', user_id=user.user_id_hash))
-    response.headers['Cache-Control'] = 'no-store, must-revalidate'
-    return response
+    return render_template('report.html', user_id=user.user_id_hash)
 
 @pwa_ui.route('/profile')
 def profile():
@@ -803,39 +765,8 @@ def ai_chat():
                 }
             }), 200
 
-        # Use FinBrain AI router with fallback safety net
-        try:
-            reply = finbrain_route(text, request)
-            if not reply or "messages" not in reply:
-                raise RuntimeError("empty_brain_reply")
-        except Exception:
-            current_app.logger.exception("chat brain failed; using fallback")
-            # --- emergency intent shim (never silent) ---
-            t = text.lower()
-            if ("show" in t or "see" in t or "display" in t or "summary" in t) and "week" in t:
-                try:
-                    from handlers.summary import handle_summary as proper_handler
-                    from utils.identity import psid_hash
-                    user_hash = psid_hash(user_id) if hasattr(user_id, '__len__') else user_id
-                    result = proper_handler(user_hash, "week")
-                    reply = result.get('text', 'Unable to generate weekly summary.')
-                except Exception as e:
-                    current_app.logger.error(f"Weekly summary fallback failed: {e}")
-                    reply = "Unable to generate weekly summary at this time."
-            elif ("show" in t or "see" in t or "display" in t or "summary" in t) and "month" in t:
-                try:
-                    from handlers.summary import handle_summary as proper_handler
-                    from utils.identity import psid_hash
-                    user_hash = psid_hash(user_id) if hasattr(user_id, '__len__') else user_id
-                    result = proper_handler(user_hash, "month")
-                    reply = result.get('text', 'Unable to generate monthly summary.')
-                except Exception as e:
-                    current_app.logger.error(f"Monthly summary fallback failed: {e}")
-                    reply = "Unable to generate monthly summary at this time."
-            else:
-                # Deterministic help response
-                reply = "I can help you track expenses and view summaries. Try saying 'show my expenses this week' or 'I spent 200 taka on lunch'."
-        
+        # Use FinBrain AI router
+        reply = finbrain_route(text, request)
         latency_ms = int((time.time() - start_time) * 1000)
         
         return jsonify({
