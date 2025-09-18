@@ -1,4 +1,6 @@
 // static/js/chat-handler.js - ROBUST VERSION
+window.CHAT_BUILD_ID = 'chat-2025-09-18T12:05+06';
+console.info('[CHAT] build', window.CHAT_BUILD_ID);
 // --- add once at top-level ---
 const getChatContainer = () => {
   let el = document.getElementById('chat-messages');

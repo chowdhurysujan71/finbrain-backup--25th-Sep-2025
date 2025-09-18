@@ -77,7 +77,7 @@
                 
                 // Handle service worker controller changes (force refresh for updates)
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    console.log('[PWA] Service worker controller changed - refreshing page for updates');
+                    console.log('[PWA] New SW controlling page → reload');
                     window.location.reload();
                 });
                 

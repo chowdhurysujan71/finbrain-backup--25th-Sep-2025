@@ -180,10 +180,13 @@ def chat():
     Expense input + recent entries list (HTMX partial hydrate)
     AUTHENTICATION REQUIRED
     """
+    from flask import make_response
     user = require_auth()  # Require authentication
     logger.info(f"PWA chat route accessed by user: {user.user_id_hash}")
     
-    return render_template('chat.html', user_id=user.user_id_hash)
+    response = make_response(render_template('chat.html', user_id=user.user_id_hash))
+    response.headers['Cache-Control'] = 'no-store, must-revalidate'
+    return response
 
 @pwa_ui.route('/report')
 def report():
@@ -191,10 +194,13 @@ def report():
     Money Story summary cards + placeholder charts
     AUTHENTICATION REQUIRED
     """
+    from flask import make_response
     user = require_auth()  # Require authentication
     logger.info(f"PWA report route accessed by user: {user.user_id_hash}")
     
-    return render_template('report.html', user_id=user.user_id_hash)
+    response = make_response(render_template('report.html', user_id=user.user_id_hash))
+    response.headers['Cache-Control'] = 'no-store, must-revalidate'
+    return response
 
 @pwa_ui.route('/profile')
 def profile():
