@@ -765,8 +765,39 @@ def ai_chat():
                 }
             }), 200
 
-        # Use FinBrain AI router
-        reply = finbrain_route(text, request)
+        # Use FinBrain AI router with fallback safety net
+        try:
+            reply = finbrain_route(text, request)
+            if not reply or "messages" not in reply:
+                raise RuntimeError("empty_brain_reply")
+        except Exception:
+            current_app.logger.exception("chat brain failed; using fallback")
+            # --- emergency intent shim (never silent) ---
+            t = text.lower()
+            if ("show" in t or "see" in t or "display" in t or "summary" in t) and "week" in t:
+                try:
+                    from handlers.summary import handle_summary as proper_handler
+                    from utils.identity import psid_hash
+                    user_hash = psid_hash(user_id) if hasattr(user_id, '__len__') else user_id
+                    result = proper_handler(user_hash, "week")
+                    reply = result.get('text', 'Unable to generate weekly summary.')
+                except Exception as e:
+                    current_app.logger.error(f"Weekly summary fallback failed: {e}")
+                    reply = "Unable to generate weekly summary at this time."
+            elif ("show" in t or "see" in t or "display" in t or "summary" in t) and "month" in t:
+                try:
+                    from handlers.summary import handle_summary as proper_handler
+                    from utils.identity import psid_hash
+                    user_hash = psid_hash(user_id) if hasattr(user_id, '__len__') else user_id
+                    result = proper_handler(user_hash, "month")
+                    reply = result.get('text', 'Unable to generate monthly summary.')
+                except Exception as e:
+                    current_app.logger.error(f"Monthly summary fallback failed: {e}")
+                    reply = "Unable to generate monthly summary at this time."
+            else:
+                # Deterministic help response
+                reply = "I can help you track expenses and view summaries. Try saying 'show my expenses this week' or 'I spent 200 taka on lunch'."
+        
         latency_ms = int((time.time() - start_time) * 1000)
         
         return jsonify({
