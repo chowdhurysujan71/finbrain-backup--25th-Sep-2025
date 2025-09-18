@@ -1,15 +1,22 @@
-// static/js/chat-handler.js - ROBUST VERSION
-window.CHAT_BUILD_ID = 'chat-2025-09-18T14:45+06';
-console.info('[CHAT] build', window.CHAT_BUILD_ID);
+// static/js/chat-handler.js - NUCLEAR CACHE BUST VERSION
+window.CHAT_BUILD_ID = 'NUCLEAR-2025-09-18T15:00+06';
+console.error('🚀 [NUCLEAR] CHAT BUILD:', window.CHAT_BUILD_ID);
 
-// Cache-busting detection
+// Nuclear cache detection
 const scriptSrc = document.currentScript?.src || 'unknown';
-console.info('[CHAT] script loaded from:', scriptSrc);
+console.error('🚀 [NUCLEAR] Script URL:', scriptSrc);
 
-// Auto-reload detection for stale cache
-if (scriptSrc.includes('20250917') || !scriptSrc.includes('20250918')) {
-    console.warn('[CACHE-BUST] Detected stale script, forcing reload...');
-    location.reload(true);
+// NUCLEAR: Force reload if ANY old version detected
+if (scriptSrc.includes('20250917') || !scriptSrc.includes('NUCLEAR')) {
+    console.error('🚨 [NUCLEAR] STALE CACHE DETECTED - FORCE RELOAD!');
+    // Clear everything and reload
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations()
+            .then(rs => Promise.all(rs.map(r => r.unregister())))
+            .then(() => location.reload(true));
+    } else {
+        location.reload(true);
+    }
 }
 // --- add once at top-level ---
 const getChatContainer = () => {
