@@ -181,11 +181,16 @@ def chat():
     AUTHENTICATION REQUIRED
     """
     from flask import make_response
+    import time
     user = require_auth()  # Require authentication
     logger.info(f"PWA chat route accessed by user: {user.user_id_hash}")
     
-    response = make_response(render_template('chat.html', user_id=user.user_id_hash))
+    # Add timestamp for aggressive cache busting
+    timestamp = int(time.time())
+    response = make_response(render_template('chat.html', user_id=user.user_id_hash, timestamp=timestamp))
     response.headers['Cache-Control'] = 'no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
     return response
 
 @pwa_ui.route('/report')

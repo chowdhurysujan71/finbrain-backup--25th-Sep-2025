@@ -1,6 +1,16 @@
 // static/js/chat-handler.js - ROBUST VERSION
-window.CHAT_BUILD_ID = 'chat-2025-09-18T12:05+06';
+window.CHAT_BUILD_ID = 'chat-2025-09-18T14:45+06';
 console.info('[CHAT] build', window.CHAT_BUILD_ID);
+
+// Cache-busting detection
+const scriptSrc = document.currentScript?.src || 'unknown';
+console.info('[CHAT] script loaded from:', scriptSrc);
+
+// Auto-reload detection for stale cache
+if (scriptSrc.includes('20250917') || !scriptSrc.includes('20250918')) {
+    console.warn('[CACHE-BUST] Detected stale script, forcing reload...');
+    location.reload(true);
+}
 // --- add once at top-level ---
 const getChatContainer = () => {
   let el = document.getElementById('chat-messages');
