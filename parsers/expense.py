@@ -5,6 +5,7 @@ Handles natural language expense parsing with correction context support
 
 import re
 import logging
+import unicodedata
 from decimal import Decimal, InvalidOperation
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
@@ -367,20 +368,192 @@ CATEGORY_ALIASES = {
     'pet store': ('pets', 9)
 }
 
-def normalize_text_for_parsing(text: str) -> str:
+def clean_unicode_spaces(text: str) -> str:
     """
-    Normalize text for parsing: handle Bangla numerals, clean spacing, handle multipliers.
+    Clean and normalize various Unicode space characters to regular ASCII spaces.
+    
+    Handles:
+    - \u00A0 (non-breaking space)
+    - \u2009 (thin space)
+    - \u200A (hair space)
+    - \u202F (narrow no-break space)
+    - \u205F (medium mathematical space)
+    - \u3000 (ideographic space)
+    - Multiple consecutive spaces collapsed to single space
+    
+    Args:
+        text: Input text with various Unicode spaces
+        
+    Returns:
+        Text with normalized ASCII spaces
     """
     if not text:
         return ""
     
-    normalized = text
+    # Map of Unicode space characters to replace with regular space
+    unicode_spaces = {
+        '\u00A0': ' ',  # non-breaking space
+        '\u2009': ' ',  # thin space
+        '\u200A': ' ',  # hair space
+        '\u202F': ' ',  # narrow no-break space
+        '\u205F': ' ',  # medium mathematical space
+        '\u3000': ' ',  # ideographic space
+        '\u1680': ' ',  # ogham space mark
+        '\u2000': ' ',  # en quad
+        '\u2001': ' ',  # em quad
+        '\u2002': ' ',  # en space
+        '\u2003': ' ',  # em space
+        '\u2004': ' ',  # three-per-em space
+        '\u2005': ' ',  # four-per-em space
+        '\u2006': ' ',  # six-per-em space
+        '\u2007': ' ',  # figure space
+        '\u2008': ' ',  # punctuation space
+        '\u200B': '',   # zero width space (remove completely)
+        '\u200C': '',   # zero width non-joiner (remove completely)
+        '\u200D': '',   # zero width joiner (remove completely)
+        '\uFEFF': '',   # zero width no-break space (BOM, remove completely)
+    }
     
-    # Convert Bangla numerals to ASCII
+    # Replace Unicode spaces with regular spaces or remove zero-width characters
+    normalized = text
+    for unicode_space, replacement in unicode_spaces.items():
+        normalized = normalized.replace(unicode_space, replacement)
+    
+    # Collapse multiple consecutive spaces into single space
+    normalized = re.sub(r'\s+', ' ', normalized)
+    
+    return normalized.strip()
+
+
+def harmonize_punctuation(text: str) -> str:
+    """
+    Convert Bengali and other Unicode punctuation to ASCII equivalents.
+    
+    Mappings:
+    - । (Bengali danda) → .
+    - ॥ (Bengali double danda) → ..
+    - ؟ (Arabic question mark) → ?
+    - ؛ (Arabic semicolon) → ;
+    - ، (Arabic comma) → ,
+    - Various quotation marks to ASCII quotes
+    
+    Args:
+        text: Input text with Unicode punctuation
+        
+    Returns:
+        Text with ASCII punctuation
+    """
+    if not text:
+        return ""
+    
+    # Bengali and Unicode punctuation mappings
+    punctuation_map = {
+        '।': '.',      # Bengali danda to period
+        '॥': '..',     # Bengali double danda to double period
+        '؟': '?',      # Arabic question mark
+        '؛': ';',      # Arabic semicolon
+        '،': ',',      # Arabic comma
+        '\u2018': "'", # Left single quotation mark (fixed with Unicode escape)
+        '\u2019': "'", # Right single quotation mark (fixed with Unicode escape)
+        '\u201C': '"', # Left double quotation mark (fixed with Unicode escape)
+        '\u201D': '"', # Right double quotation mark (fixed with Unicode escape)
+        '‚': '\'',     # Single low-9 quotation mark
+        '„': '"',     # Double low-9 quotation mark
+        '‹': '<',     # Single left-pointing angle quotation mark
+        '›': '>',     # Single right-pointing angle quotation mark
+        '«': '"',     # Left-pointing double angle quotation mark
+        '»': '"',     # Right-pointing double angle quotation mark
+        '–': '-',     # En dash to hyphen
+        '—': '-',     # Em dash to hyphen
+        '…': '...',   # Horizontal ellipsis to three dots
+    }
+    
+    # Apply punctuation normalization
+    normalized = text
+    for unicode_punct, ascii_punct in punctuation_map.items():
+        normalized = normalized.replace(unicode_punct, ascii_punct)
+    
+    return normalized
+
+
+def normalize_bengali_text(text: str) -> str:
+    """
+    Comprehensive Bengali text normalization for improved parsing and matching.
+    
+    Performs:
+    1. Unicode NFKC normalization (handles composed characters)
+    2. ZWJ/ZWNJ cleanup (Zero Width Joiner/Non-Joiner removal)
+    3. Unicode space normalization
+    4. Bengali punctuation harmonization
+    5. Bangla numeral conversion to ASCII
+    
+    Args:
+        text: Raw Bengali/mixed text input
+        
+    Returns:
+        Normalized text ready for parsing
+    
+    Example:
+        Input: "বিরি‌য়ানি   ১২০ ৳"  # biryani with ZWJ, extra spaces, Bengali numerals
+        Output: "বিরিয়ানি 120 ৳"   # normalized for proper matching
+    """
+    if not text:
+        return ""
+    
+    # Step 1: Unicode NFKC normalization
+    # This handles composed characters and ensures consistent Unicode representation
+    normalized = unicodedata.normalize('NFKC', text)
+    
+    # Step 2: Remove Zero Width Joiner (ZWJ) and Zero Width Non-Joiner (ZWNJ)
+    # These characters can cause matching issues with Bengali text
+    # ZWJ (\u200D) - used to join characters
+    # ZWNJ (\u200C) - used to prevent joining
+    normalized = normalized.replace('\u200C', '')  # Remove ZWNJ
+    normalized = normalized.replace('\u200D', '')  # Remove ZWJ
+    
+    # Step 3: Clean Unicode spaces and zero-width characters
+    normalized = clean_unicode_spaces(normalized)
+    
+    # Step 4: Harmonize punctuation to ASCII
+    normalized = harmonize_punctuation(normalized)
+    
+    # Step 5: Convert Bangla numerals to ASCII (preserving existing functionality)
     for bangla, ascii_num in BANGLA_NUMERALS.items():
         normalized = normalized.replace(bangla, ascii_num)
     
-    # Handle k/K shorthand multipliers
+    return normalized.strip()
+
+
+def normalize_text_for_parsing(text: str) -> str:
+    """
+    Enhanced text normalization for parsing with comprehensive Bengali support.
+    
+    Features:
+    - Unicode NFKC normalization (composed characters)
+    - ZWJ/ZWNJ cleanup (Zero Width Joiner/Non-Joiner)
+    - Unicode space collapse and normalization
+    - Bengali punctuation harmonization
+    - Bangla numeral conversion to ASCII
+    - K/k shorthand multiplier handling
+    - Artifact removal for clean parsing
+    
+    Args:
+        text: Input text to normalize
+        
+    Returns:
+        Normalized text optimized for expense parsing
+        
+    Example:
+        Input: "বিরি‌য়ানি   ১২০k ৳।"  # biryani with ZWJ, spaces, numerals, multiplier, punctuation
+        Output: "বিরিয়ানি 120000 ৳."      # fully normalized for parsing
+    """
+    if not text:
+        return ""
+    
+    # Step 1: Apply comprehensive Bengali normalization
+    normalized = normalize_bengali_text(text)
+    
+    # Step 2: Handle k/K shorthand multipliers (preserve existing functionality)
     k_pattern = re.compile(r'(\d+(?:\.\d+)?)k\b', re.IGNORECASE)
     for match in k_pattern.finditer(normalized):
         original = match.group(0)
@@ -388,9 +561,12 @@ def normalize_text_for_parsing(text: str) -> str:
         # Replace 1.2k with 1200, preserve context
         normalized = normalized.replace(original, str(int(number) if number.is_integer() else number))
     
-    # Normalize spacing and remove artifacts
-    normalized = re.sub(r'\s+', ' ', normalized)
+    # Step 3: Final cleanup - remove non-essential characters while preserving currency and punctuation
+    # Keep word characters, spaces, currency symbols, basic punctuation, and parentheses
     normalized = re.sub(r'[^\w\s$£€₹৳.,()-]', ' ', normalized)
+    
+    # Step 4: Final space normalization
+    normalized = re.sub(r'\s+', ' ', normalized)
     
     return normalized.strip()
 
@@ -782,7 +958,29 @@ def _infer_category_from_context(context_text: str, user_hash: str = None) -> st
             # Don't fail parsing if learning system has issues
             pass
     
-    # Enhanced category matching with context-specific boosts
+    # PRIORITY 2: Use global CATEGORY_ALIASES for comprehensive matching (includes Bengali script)
+    words = context_lower.split()
+    for word in words:
+        if word in CATEGORY_ALIASES:
+            category, strength = CATEGORY_ALIASES[word]
+            if strength > best_strength:
+                best_strength = strength
+                best_category = category
+    
+    # Also check multi-word combinations in CATEGORY_ALIASES
+    for i in range(len(words) - 1):
+        two_word_phrase = f"{words[i]} {words[i+1]}"
+        if two_word_phrase in CATEGORY_ALIASES:
+            category, strength = CATEGORY_ALIASES[two_word_phrase]
+            if strength > best_strength:
+                best_strength = strength
+                best_category = two_word_phrase
+    
+    # If we found a good match in CATEGORY_ALIASES, return it
+    if best_strength > 8:  # High confidence threshold
+        return best_category
+    
+    # PRIORITY 3: Enhanced category matching with context-specific boosts (fallback)
     category_keywords = {
         # Bills - HIGHEST PRIORITY FOR UTILITY BILLS
         'bills': ['gas bill', 'electricity bill', 'electric bill', 'water bill', 'power bill', 'utility bill', 'internet bill', 'phone bill', 'rent', 'utilities'],
