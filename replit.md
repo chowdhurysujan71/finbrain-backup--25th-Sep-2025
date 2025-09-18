@@ -7,7 +7,15 @@ finbrain is an AI-first expense tracking application delivered via Facebook Mess
 Preferred communication style: Simple, everyday language.
 Zero-surprise deployment requirement: 100% user-visible success demanded with comprehensive validation before any production changes.
 
-## Recent Major Updates (September 17, 2025)
+## Recent Major Updates (September 18, 2025)
+- **🔒 COMPREHENSIVE SECURITY HARDENING COMPLETED**: Executed complete security audit and hardening transformation addressing all critical abuse resistance gaps
+- **🛡️ CAPTCHA Protection Implementation**: Added math-based CAPTCHA system to /auth/login and /auth/register endpoints with 5-minute TTL, rate limiting (10/min), and session-based verification to prevent automated abuse
+- **🗂️ TTL Cleanup Mechanism Deployed**: Created automated pending_expenses cleanup system with batched processing, 7-minute scheduled runs, and comprehensive statistics tracking to prevent database bloat
+- **🔧 Type Safety Resolution**: Fixed all LSP diagnostics including null checking, type guards, and Flask context safety while maintaining full authentication functionality
+- **🏛️ Architect Validation**: Received PASS rating confirming security improvements address audit findings and system is deployment-ready with resolved observability bugs
+- **⚡ Production-Ready Security**: System now PASS on all security categories - user data properly hashed, injection protection active, abuse resistance enhanced, DoS limits enforced, admin auth secured
+
+## Previous Major Updates (September 17, 2025)
 - **🎯 INTERACTIVE CLARIFICATION SYSTEM EVOLUTION**: Complete targeted architecture evolution fixing Bengali food categorization and clarification flow
 - **🌐 Web UI Category Selection**: Interactive category chips in web interface with POST to /api/backend/confirm_expense, seamless user experience for ambiguous expenses
 - **💾 Database-Backed Pending Storage**: Replaced in-memory _pending_clarifications with persistent pending_expenses table, 10-minute TTL, migration applied successfully
