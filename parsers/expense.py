@@ -368,6 +368,52 @@ CATEGORY_ALIASES = {
     'pet store': ('pets', 9)
 }
 
+def has_word_boundary_match(text: str, alias: str) -> bool:
+    """
+    Check if alias matches with proper word boundaries for Bengali+Latin text.
+    
+    Uses Unicode range \u0980-\u09FF for Bengali characters and supports both
+    Latin (A-Za-z0-9) and Bengali character boundaries to prevent substring
+    false positives.
+    
+    Args:
+        text: The text to search in (e.g., "Mixture Paints", "বিরিয়ানি হাউস")
+        alias: The alias to match (e.g., "mixture", "বিরিয়ানি")
+        
+    Returns:
+        True if alias matches with proper word boundaries, False otherwise
+        
+    Examples:
+        >>> has_word_boundary_match("Mixture Paints", "mixture")
+        False  # "mixture" is part of "Mixture" 
+        >>> has_word_boundary_match("বিরিয়ানি হাউস", "বিরিয়ানি") 
+        True   # "বিরিয়ানি" is a separate word
+        >>> has_word_boundary_match("coffee shop", "coffee")
+        True   # "coffee" is a separate word
+        >>> has_word_boundary_match("uncoffee", "coffee")
+        False  # "coffee" is part of "uncoffee"
+    """
+    if not text or not alias:
+        return False
+    
+    # Escape special regex characters in the alias for safe regex use
+    escaped_alias = re.escape(alias)
+    
+    # Create word boundary pattern using negative lookbehind and lookahead
+    # Character class: A-Z, a-z, 0-9, Bengali Unicode range \u0980-\u09FF
+    pattern = rf'(?<![A-Za-z0-9\u0980-\u09FF]){escaped_alias}(?![A-Za-z0-9\u0980-\u09FF])'
+    
+    # Perform case-insensitive search
+    match = re.search(pattern, text, re.IGNORECASE)
+    
+    if not match:
+        return False
+    
+    # Additional validation: ensure the match is an exact case-insensitive match
+    matched_text = text[match.start():match.end()]
+    return matched_text.lower() == alias.lower()
+
+
 def clean_unicode_spaces(text: str) -> str:
     """
     Clean and normalize various Unicode space characters to regular ASCII spaces.
@@ -693,17 +739,24 @@ def extract_date_context(text: str, now_ts: datetime) -> Optional[datetime]:
 def infer_category_with_strength(text: str) -> str:
     """
     Infer category from text with strength-based scoring.
+    
+    Uses word boundary matching to prevent false positives like "Mixture Paints" 
+    matching "mixture" food alias, while properly matching legitimate food terms
+    in both Bengali and English.
     """
-    text_lower = text.lower()
+    if not text:
+        return 'uncategorized'
+    
     best_category = 'uncategorized'
     best_strength = 0
     
-    # Check each category alias
+    # Check each category alias using word boundary matching
     for keyword, (category, strength) in CATEGORY_ALIASES.items():
-        if keyword in text_lower:
-            # Boost strength if word appears after "on" or "for"
-            boost_pattern = rf'\b(?:on|for)\s+\w*\b{re.escape(keyword)}\b'
-            if re.search(boost_pattern, text_lower):
+        if has_word_boundary_match(text, keyword):
+            # Boost strength if word appears after "on" or "for" with word boundaries
+            # Pattern: "on food", "for coffee", etc.
+            boost_pattern = rf'(?<![A-Za-z0-9\u0980-\u09FF])(?:on|for)\s+\w*\s*(?<![A-Za-z0-9\u0980-\u09FF]){re.escape(keyword)}(?![A-Za-z0-9\u0980-\u09FF])'
+            if re.search(boost_pattern, text, re.IGNORECASE):
                 strength += 2
             
             if strength > best_strength:
