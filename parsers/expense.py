@@ -61,7 +61,6 @@ CATEGORY_ALIASES = {
     'smoothie': ('food', 9),
     'shake': ('food', 9),
     'lassi': ('food', 9),
-    'borhani': ('food', 9),
     'drank': ('food', 8),
     'drinking': ('food', 8),
     'restaurant': ('food', 9),
@@ -69,11 +68,15 @@ CATEGORY_ALIASES = {
     # Bengali Food Items - COMPREHENSIVE VOCABULARY FOR PROPER CATEGORIZATION
     # Traditional Main Dishes
     'khichuri': ('food', 10),
+    'kichuri': ('food', 10),       # Alternative spelling
+    'kachchi': ('food', 10),        # Critical! Short form of kacchi biryani
     'rice': ('food', 9),
     'dal': ('food', 9),
     'curry': ('food', 9),
     'biriyani': ('food', 10),
     'biryani': ('food', 10),
+    'birani': ('food', 10),       # Common misspelling
+    'biriani': ('food', 10),      # Variant
     'kacchi biriyani': ('food', 10),
     'kacchi biryani': ('food', 10),
     'chicken': ('food', 9),
@@ -174,6 +177,39 @@ CATEGORY_ALIASES = {
     'chinese': ('food', 9),
     'thai': ('food', 9),
     'continental': ('food', 9),
+    
+    # Bengali Script Food Aliases - COMPREHENSIVE COVERAGE FOR PROPER CATEGORIZATION
+    # Traditional Main Dishes in Bengali Script
+    'কাচ্চি': ('food', 10),          # kachchi (missing key term!)
+    'বিরিয়ানি': ('food', 10),      # biryani
+    'বিরানি': ('food', 10),         # birani variant
+    'খিচুড়ি': ('food', 10),        # khichuri
+    'টেহারি': ('food', 10),         # tehari
+    'তেহারি': ('food', 10),         # alternative spelling
+    'মোরগ পোলাও': ('food', 10),     # morog polao
+    
+    # Bengali Street Food & Snacks in Bengali Script
+    'ফুচকা': ('food', 10),          # fuchka
+    'চটপটি': ('food', 10),          # chotpoti
+    'ভর্তা': ('food', 10),          # bhorta
+    'হালিম': ('food', 10),          # haleem
+    'সমোসা': ('food', 9),           # shingara/samosa
+    
+    # Bengali Sweets & Desserts in Bengali Script
+    'মিষ্টি': ('food', 9),          # mishti (sweets)
+    'মিষ্টি দই': ('food', 10),       # mishti doi
+    'রসগোল্লা': ('food', 10),       # rosogolla
+    'সন্দেশ': ('food', 10),         # sandesh
+    'চমচম': ('food', 10),           # chomchom
+    'জিলাপি': ('food', 10),         # jalebi
+    
+    # Bengali Beverages in Bengali Script
+    'কফি': ('food', 9),            # coffee (critical for "Coffee 120 general" fix)
+    'চা': ('food', 9),             # tea
+    'বরহানি': ('food', 10),        # borhani
+    'লাচ্ছি': ('food', 9),          # lassi
+    'শরবত': ('food', 8),           # shorbot
+    'লেবু পানি': ('food', 8),       # lemon water
     
     # Transport (strength: 9)
     'transport': ('transport', 9),
