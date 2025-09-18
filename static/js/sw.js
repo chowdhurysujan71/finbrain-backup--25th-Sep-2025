@@ -1,9 +1,10 @@
 // finbrain PWA Service Worker
 // Handles caching, offline functionality, and background sync
 
-const CACHE_NAME = 'finbrain-v1.3.0-canary';
-const STATIC_CACHE_NAME = 'finbrain-static-v1.3.0-canary';
-const API_CACHE_NAME = 'finbrain-api-v1.3.0-canary';
+const VERSION = 'v1.4.0';
+const CACHE_NAME = `finbrain-${VERSION}`;
+const STATIC_CACHE_NAME = `finbrain-static-${VERSION}`;
+const API_CACHE_NAME = `finbrain-api-${VERSION}`;
 
 // Resources to precache on install
 const PRECACHE_URLS = [
@@ -77,10 +78,42 @@ self.addEventListener('activate', event => {
     );
 });
 
+// Main fetch event listener with network-only strategy for APIs
 self.addEventListener('fetch', (event) => {
-  const u = new URL(event.request.url);
-  if (u.pathname.startsWith('/api/')) return; // always go network
-  // static caching logic...
+    // Skip interception for API endpoints - let them go directly to network
+    if (isAPIRequest(event.request)) {
+        console.log('[SW] API request bypassing service worker:', event.request.url);
+        return; // Don't use respondWith - let request go to network directly
+    }
+    
+    // Handle all other requests with caching strategies
+    event.respondWith(
+        (async () => {
+            try {
+                if (isNavigationRequest(event.request)) {
+                    return await handleNavigationRequest(event.request);
+                } else if (isStaticAsset(event.request)) {
+                    return await handleStaticAsset(event.request);
+                } else {
+                    return await handleDefaultRequest(event.request);
+                }
+            } catch (error) {
+                console.error('[SW] Request handling failed:', error);
+                
+                // Try to serve from cache as fallback
+                const cachedResponse = await caches.match(event.request);
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                
+                // Return basic offline response
+                return new Response('Service temporarily unavailable', {
+                    status: 503,
+                    statusText: 'Service Unavailable'
+                });
+            }
+        })()
+    );
 });
 
 // Handle navigation requests (HTML pages)
@@ -221,13 +254,16 @@ function isStaticAsset(request) {
            url.pathname.includes('.svg');
 }
 
+// Identify API endpoints that should never be cached
 function isAPIRequest(request) {
     const url = new URL(request.url);
     return url.pathname.startsWith('/api/') ||
+           url.pathname.startsWith('/ai-chat') ||
            url.pathname.startsWith('/webhook/') ||
            url.pathname.startsWith('/partials/') ||
            url.pathname.includes('/expense') ||
-           url.pathname.includes('/health');
+           url.pathname.includes('/health') ||
+           url.pathname.includes('/chat') && request.method === 'POST';
 }
 
 // Background sync for offline actions (future enhancement)
