@@ -134,10 +134,24 @@ CATEGORY_ALIASES = {
     
     # Bengali Street Food & Snacks
     'fuchka': ('food', 10),
+    'phuchka': ('food', 10),
+    'puchka': ('food', 10),
     'pani puri': ('food', 10),
+    'gol gappa': ('food', 10),
     'chotpoti': ('food', 10),
+    'chatpoti': ('food', 10),
     'jhalmuri': ('food', 10),
     'chatpati': ('food', 10),
+    'chat': ('food', 8),
+    'chanachur': ('food', 10),
+    'nimki': ('food', 9),
+    'bhel puri': ('food', 10),
+    'dahi puri': ('food', 10),
+    'papri chaat': ('food', 10),
+    'papri chat': ('food', 10),
+    'aloo chop': ('food', 9),
+    'beguni': ('food', 9),
+    'piazu': ('food', 9),
     'haleem': ('food', 10),
     'bharta': ('food', 10),
     'bhorta': ('food', 10),
@@ -206,6 +220,18 @@ CATEGORY_ALIASES = {
     'naan': ('food', 8),            # Bread
     'shingara': ('food', 10),       # Bengali samosa
     'singara': ('food', 10),        # Alternative spelling
+    
+    # Rolls & Wraps
+    'roll': ('food', 8),
+    'kebab roll': ('food', 9),
+    'kabab roll': ('food', 9),
+    'shawarma': ('food', 9),
+    'shorma': ('food', 9),
+    
+    # Popular Fast Foods
+    'momo': ('food', 9),
+    'hotdog': ('food', 8),
+    'hot dog': ('food', 8),
     
     # Bengali Script Food Aliases - COMPREHENSIVE COVERAGE FOR PROPER CATEGORIZATION
     # Traditional Main Dishes in Bengali Script
