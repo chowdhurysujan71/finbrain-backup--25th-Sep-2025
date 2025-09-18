@@ -31,7 +31,7 @@ class ExpenseValidator:
     # Valid expense categories (from existing system)
     VALID_CATEGORIES = {
         'food', 'transport', 'shopping', 'entertainment', 'bills', 
-        'healthcare', 'education', 'travel', 'other'
+        'healthcare', 'education', 'travel', 'other', 'uncategorized'
     }
     
     @staticmethod
