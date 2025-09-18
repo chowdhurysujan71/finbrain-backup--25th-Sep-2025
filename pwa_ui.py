@@ -178,11 +178,17 @@ def handle_with_fallback_ai(user_id_hash, user_message, conversational_ai=None):
 def chat():
     """
     Expense input + recent entries list (HTMX partial hydrate)
-    AUTHENTICATION REQUIRED
+    AUTHENTICATION REQUIRED - Redirects to login if not authenticated
     """
-    from flask import make_response, request
+    from flask import make_response, request, redirect, url_for, session
     import time, hashlib
-    user = require_auth()  # Require authentication
+    
+    # Check authentication and redirect if not logged in
+    user_id_hash = session.get('user_id')
+    if not user_id_hash:
+        return redirect(url_for('pwa_ui.login', returnTo='/chat'))
+    
+    user = require_auth()  # Get authenticated user
     logger.info(f"PWA chat route accessed by user: {user.user_id_hash}")
     
     # Nuclear cache busting with multiple strategies
