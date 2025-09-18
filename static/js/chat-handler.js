@@ -1,13 +1,22 @@
 // static/js/chat-handler.js
 const addMsg = (role, text) => {
+  console.log('[CHAT] addMsg called:', {role, text, textLength: text.length});
   const messages = document.getElementById('chat-messages');
-  if (!messages) return;
+  console.log('[CHAT] chat-messages element:', messages);
+  
+  if (!messages) {
+    console.error('[CHAT] ERROR: chat-messages element not found!');
+    return;
+  }
   
   const d = document.createElement("div");
   d.className = role === "user" ? "msg msg-user" : "msg msg-bot";
   d.textContent = text;
+  console.log('[CHAT] Created message div:', d.className, d.textContent);
+  
   messages.appendChild(d);
   messages.scrollTop = messages.scrollHeight;
+  console.log('[CHAT] Message added successfully. Messages container now has', messages.children.length, 'children');
 };
 
 const renderUser = (text) => addMsg("user", text);
