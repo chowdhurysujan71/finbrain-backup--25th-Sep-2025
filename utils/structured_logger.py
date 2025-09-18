@@ -80,7 +80,7 @@ class StructuredLogger:
     
     def _create_log_entry(self, level: str, message: str, extra_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Create structured log entry"""
-        entry = {
+        entry: Dict[str, Any] = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "level": level,
             "message": message,

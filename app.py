@@ -1389,6 +1389,222 @@ def user_categories_list(psid_hash):
         logger.error(f"Categories list error: {str(e)}")
         return jsonify({"error": "Failed to get categories list"}), 500
 
+@app.route('/user/<psid_hash>/insights')
+@require_basic_auth  
+def user_insights(psid_hash):
+    """Get AI-powered spending insights for a specific user"""
+    try:
+        from handlers.insight import handle_insight
+        from models import User
+        
+        # Find user by PSID hash
+        user = User.query.filter_by(user_id_hash=psid_hash).first()
+        if not user:
+            return f"""
+            <!DOCTYPE html>
+            <html lang="en" data-bs-theme="dark">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>User Not Found - finbrain Admin</title>
+                <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+            </head>
+            <body>
+                <div class="container mt-4">
+                    <div class="alert alert-danger">
+                        <h4>User Not Found</h4>
+                        <p>No user found with hash: {psid_hash[:8]}...</p>
+                        <a href="/admin" class="btn btn-primary">Back to Admin Dashboard</a>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """, 404
+            
+        # Generate insights using the existing handler
+        result = handle_insight(psid_hash)
+        
+        if result and "text" in result:
+            insights_text = result["text"]
+            
+            # Create user-friendly HTML page displaying the insights
+            return f"""
+            <!DOCTYPE html>
+            <html lang="en" data-bs-theme="dark">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>AI Insights - {user.first_name or 'User'} - finbrain Admin</title>
+                <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+                <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+                <style>
+                    .insights-content {{
+                        background: linear-gradient(135deg, #667eea, #764ba2);
+                        border-radius: 15px;
+                        padding: 30px;
+                        color: white;
+                        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                        margin: 20px 0;
+                        line-height: 1.6;
+                        font-size: 1.1em;
+                    }}
+                    .user-header {{
+                        background: rgba(255,255,255,0.1);
+                        border-radius: 10px;
+                        padding: 20px;
+                        margin-bottom: 20px;
+                    }}
+                    .back-btn {{
+                        background: rgba(255,255,255,0.2);
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 25px;
+                        color: white;
+                        text-decoration: none;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        transition: all 0.3s ease;
+                    }}
+                    .back-btn:hover {{
+                        background: rgba(255,255,255,0.3);
+                        color: white;
+                        text-decoration: none;
+                    }}
+                </style>
+            </head>
+            <body>
+                <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+                    <div class="container">
+                        <a class="navbar-brand" href="/admin">
+                            <i class="fas fa-brain me-2"></i>finbrain Admin
+                        </a>
+                        <div class="navbar-nav ms-auto">
+                            <a class="nav-link" href="/admin">
+                                <i class="fas fa-chart-bar me-1"></i>Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </nav>
+
+                <div class="container mt-4">
+                    <div class="row">
+                        <div class="col-12">
+                            <a href="/admin" class="back-btn mb-3">
+                                <i class="fas fa-arrow-left"></i>
+                                Back to Admin Dashboard
+                            </a>
+                            
+                            <div class="user-header">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-user-circle fa-3x text-primary me-3"></i>
+                                    <div>
+                                        <h2 class="mb-1">{user.first_name or 'User'}'s AI Insights</h2>
+                                        <p class="mb-0 text-muted">
+                                            <i class="fas fa-hashtag me-1"></i>{psid_hash[:12]}...
+                                            <span class="ms-3">
+                                                <i class="fas fa-calendar me-1"></i>Generated: {datetime.utcnow().strftime('%B %d, %Y at %I:%M %p')}
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="insights-content">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="fas fa-robot fa-2x me-3"></i>
+                                    <h3 class="mb-0">AI-Powered Spending Insights</h3>
+                                </div>
+                                <div style="white-space: pre-wrap;">{insights_text}</div>
+                            </div>
+
+                            <div class="card mt-4">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="fas fa-info-circle me-2 text-info"></i>About These Insights
+                                    </h5>
+                                    <p class="card-text text-muted">
+                                        These insights are generated by our AI system based on the user's spending patterns and recent activity. 
+                                        The analysis includes category breakdowns, spending trends, and personalized recommendations.
+                                    </p>
+                                    <div class="row text-center">
+                                        <div class="col-md-4">
+                                            <div class="p-3">
+                                                <i class="fas fa-chart-pie fa-2x text-success mb-2"></i>
+                                                <h6>Smart Analysis</h6>
+                                                <small>Category-based insights</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="p-3">
+                                                <i class="fas fa-lightbulb fa-2x text-warning mb-2"></i>
+                                                <h6>Recommendations</h6>
+                                                <small>Actionable suggestions</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="p-3">
+                                                <i class="fas fa-clock fa-2x text-primary mb-2"></i>
+                                                <h6>Real-time</h6>
+                                                <small>Up-to-date analysis</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+            </body>
+            </html>
+            """
+        else:
+            return f"""
+            <!DOCTYPE html>
+            <html lang="en" data-bs-theme="dark">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Insights Error - finbrain Admin</title>
+                <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+            </head>
+            <body>
+                <div class="container mt-4">
+                    <div class="alert alert-warning">
+                        <h4>Could Not Generate Insights</h4>
+                        <p>Unable to generate AI insights for user {user.first_name or 'Unknown'}. This may be due to insufficient data or a temporary AI service issue.</p>
+                        <a href="/admin" class="btn btn-primary">Back to Admin Dashboard</a>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """, 500
+            
+    except Exception as e:
+        logger.error(f"User insights error: {str(e)}")
+        return f"""
+        <!DOCTYPE html>
+        <html lang="en" data-bs-theme="dark">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Insights Error - finbrain Admin</title>
+            <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+        </head>
+        <body>
+            <div class="container mt-4">
+                <div class="alert alert-danger">
+                    <h4>Error Loading Insights</h4>
+                    <p>An error occurred while generating user insights. Please try again later.</p>
+                    <a href="/admin" class="btn btn-primary">Back to Admin Dashboard</a>
+                </div>
+            </div>
+        </body>
+        </html>
+        """, 500
+
 @app.route("/ops/pca/status")
 @require_basic_auth
 def pca_status():
