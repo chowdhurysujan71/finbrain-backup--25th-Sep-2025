@@ -32,6 +32,7 @@ class PCAFlags:
         self.canary_users = self._get_canary_users()
         self.global_kill_switch = os.environ.get('PCA_KILL_SWITCH', 'false').lower() == 'true'
         self.enable_clarifiers = os.environ.get('ENABLE_CLARIFIERS', 'false').lower() == 'true'
+        self.web_clarifier_ui = os.environ.get('FEATURE_WEB_CLARIFIER_UI', 'true').lower() == 'true'
         
         # Validate thresholds
         if self.tau_high <= self.tau_low:
@@ -45,7 +46,8 @@ class PCAFlags:
                    f"tau_high={self.tau_high}, tau_low={self.tau_low}, "
                    f"slo_budget_ms={self.slo_budget_ms}, "
                    f"global_kill={self.global_kill_switch}, "
-                   f"clarifiers={self.enable_clarifiers}")
+                   f"clarifiers={self.enable_clarifiers}, "
+                   f"web_clarifier_ui={self.web_clarifier_ui}")
     
     def _get_pca_mode(self) -> PCAMode:
         """Get PCA mode from environment with validation"""
@@ -116,6 +118,10 @@ class PCAFlags:
         return (self.enable_clarifiers and 
                 self.mode in [PCAMode.DRYRUN, PCAMode.ON] and 
                 not self.global_kill_switch)
+    
+    def should_enable_web_clarifier_ui(self) -> bool:
+        """Check if web clarification UI should be enabled"""
+        return self.web_clarifier_ui and not self.global_kill_switch
     
     def get_clarifier_thresholds(self) -> tuple:
         """Get clarifier decision thresholds for confidence scoring"""

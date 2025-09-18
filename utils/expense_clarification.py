@@ -5,6 +5,7 @@ Handles natural conversation flow for ambiguous expense categorization
 
 import logging
 import json
+import time
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime, timedelta, timezone
 
@@ -13,6 +14,40 @@ from utils.expense_learning import user_learning_system
 from utils.brand_normalizer import normalize
 
 logger = logging.getLogger(__name__)
+
+# In-memory storage for web clarifications (10-min TTL)
+_pending_clarifications: Dict[str, Dict] = {}
+
+def _store_pending_clarification(clarification_id: str, data: Dict):
+    """Store clarification in memory with TTL"""
+    data['expires_at'] = time.time() + 600  # 10 minutes
+    _pending_clarifications[clarification_id] = data
+    logger.info(f"Stored pending clarification: {clarification_id}")
+
+def _get_pending_clarification(clarification_id: str) -> Optional[Dict]:
+    """Get clarification from memory, cleanup expired"""
+    _cleanup_expired_clarifications()
+    return _pending_clarifications.get(clarification_id)
+
+def _cleanup_expired_clarifications():
+    """Remove expired clarifications"""
+    current_time = time.time()
+    expired_keys = [k for k, v in _pending_clarifications.items() 
+                   if v.get('expires_at', 0) < current_time]
+    for key in expired_keys:
+        del _pending_clarifications[key]
+        logger.debug(f"Cleaned up expired clarification: {key}")
+
+def _remove_pending_clarification(clarification_id: str):
+    """Remove a specific clarification from memory"""
+    if clarification_id in _pending_clarifications:
+        del _pending_clarifications[clarification_id]
+        logger.info(f"Removed pending clarification: {clarification_id}")
+
+def _get_pending_clarifications_count() -> int:
+    """Get count of pending clarifications (for testing)"""
+    _cleanup_expired_clarifications()
+    return len(_pending_clarifications)
 
 # Database-backed storage has replaced in-memory _pending_clarifications
 
@@ -82,13 +117,62 @@ class ExpenseClarificationHandler:
                               ambiguity_result: Dict) -> Dict[str, Any]:
         """Initiate clarification conversation with user"""
         
+        from utils.pca_flags import pca_flags
+        
+        clarification_id = f"{user_hash}_{mid}_{int(datetime.utcnow().timestamp())}"
+        
+        # Check if web clarifier UI is enabled
+        if pca_flags.should_enable_web_clarifier_ui():
+            # Use in-memory storage for web UI
+            return self._initiate_clarification_web(
+                user_hash, original_text, amount, item, mid, ambiguity_result, clarification_id
+            )
+        else:
+            # Use database storage (existing implementation)
+            return self._initiate_clarification_db(
+                user_hash, original_text, amount, item, mid, ambiguity_result, clarification_id
+            )
+    
+    def _initiate_clarification_web(self, user_hash: str, original_text: str, 
+                                  amount: float, item: str, mid: str, 
+                                  ambiguity_result: Dict, clarification_id: str) -> Dict[str, Any]:
+        """Initiate clarification using in-memory storage for web UI"""
+        
+        # Store in memory with 10-minute TTL
+        clarification_data = {
+            'user_hash': user_hash,
+            'original_text': original_text,
+            'amount': amount,
+            'item': item,
+            'mid': mid,
+            'options': ambiguity_result['options'],
+            'suggested_category': ambiguity_result.get('auto_category')
+        }
+        
+        _store_pending_clarification(clarification_id, clarification_data)
+        
+        # Generate conversational clarification message
+        clarification_message = self._generate_clarification_message(
+            item, amount, ambiguity_result['options']
+        )
+        
+        return {
+            'needs_clarification': True,
+            'clarification_id': clarification_id,
+            'message': clarification_message,
+            'options': ambiguity_result['options'],
+            'temporary_category': 'pending_clarification'
+        }
+    
+    def _initiate_clarification_db(self, user_hash: str, original_text: str, 
+                                 amount: float, item: str, mid: str, 
+                                 ambiguity_result: Dict, clarification_id: str) -> Dict[str, Any]:
+        """Initiate clarification using database storage (existing implementation)"""
+        
         # Import database models
         from models import PendingExpense
         from db_base import db
         import json
-        
-        # Store pending clarification in database
-        clarification_id = f"{user_hash}_{mid}_{int(datetime.utcnow().timestamp())}"
         
         # Check if user already has a pending clarification - replace if exists
         existing = PendingExpense.find_by_user(user_hash)
@@ -216,20 +300,8 @@ Just reply with the number or tell me what it was!"""
                 user_hash, clarification_data['item'], options_shown, chosen_category
             )
             
-            # Clean up pending clarification from database
-            from models import PendingExpense
-            from db_base import db
-            
-            try:
-                pending_record = db.session.query(PendingExpense).filter(
-                    PendingExpense.pending_id == clarification_id
-                ).first()
-                if pending_record:
-                    db.session.delete(pending_record)
-                    db.session.commit()
-            except Exception as e:
-                self.logger.error(f"Failed to delete pending clarification: {e}")
-                db.session.rollback()
+            # Clean up pending clarification from storage
+            self._remove_pending_clarification(clarification_id)
             
             # CRITICAL FIX: Actually save the expense to database after clarification
             try:
@@ -280,6 +352,38 @@ Just reply with the number or tell me what it was!"""
             }
     
     def _find_pending_clarification(self, user_hash: str) -> Optional[Dict[str, Any]]:
+        """Find pending clarification for user using database or in-memory storage"""
+        from utils.pca_flags import pca_flags
+        
+        # Check if web clarifier UI is enabled
+        if pca_flags.should_enable_web_clarifier_ui():
+            # Use in-memory storage
+            return self._find_pending_clarification_memory(user_hash)
+        else:
+            # Use database storage (existing implementation)
+            return self._find_pending_clarification_db(user_hash)
+    
+    def _find_pending_clarification_memory(self, user_hash: str) -> Optional[Dict[str, Any]]:
+        """Find pending clarification for user using in-memory storage"""
+        try:
+            # Cleanup expired entries
+            _cleanup_expired_clarifications()
+            
+            # Search through all pending clarifications for this user
+            for clarification_id, data in _pending_clarifications.items():
+                if data.get('user_hash') == user_hash:
+                    return {
+                        'clarification_id': clarification_id,
+                        'data': data
+                    }
+            
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Error finding pending clarification in memory: {e}")
+            return None
+    
+    def _find_pending_clarification_db(self, user_hash: str) -> Optional[Dict[str, Any]]:
         """Find pending clarification for user using database"""
         from models import PendingExpense
         from db_base import db
@@ -303,6 +407,34 @@ Just reply with the number or tell me what it was!"""
             self.logger.error(f"Error finding pending clarification: {e}")
             # Graceful degradation - return None if database fails
             return None
+    
+    def _remove_pending_clarification(self, clarification_id: str):
+        """Remove pending clarification from storage"""
+        from utils.pca_flags import pca_flags
+        
+        # Check if web clarifier UI is enabled
+        if pca_flags.should_enable_web_clarifier_ui():
+            # Use in-memory storage
+            _remove_pending_clarification(clarification_id)
+        else:
+            # Use database storage
+            self._remove_pending_clarification_db(clarification_id)
+    
+    def _remove_pending_clarification_db(self, clarification_id: str):
+        """Remove pending clarification from database"""
+        from models import PendingExpense
+        from db_base import db
+        
+        try:
+            pending_record = db.session.query(PendingExpense).filter(
+                PendingExpense.pending_id == clarification_id
+            ).first()
+            if pending_record:
+                db.session.delete(pending_record)
+                db.session.commit()
+        except Exception as e:
+            self.logger.error(f"Failed to delete pending clarification: {e}")
+            db.session.rollback()
     
     def _parse_clarification_response(self, response: str, options: List[Dict]) -> Optional[str]:
         """Parse user's clarification response"""
