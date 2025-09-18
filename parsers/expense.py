@@ -284,6 +284,29 @@ CATEGORY_ALIASES = {
     'শরবত': ('food', 8),           # shorbot
     'লেবু পানি': ('food', 8),       # lemon water
     
+    # Emoji Food & Beverage Aliases - Modern user inputs with food/beverage emojis
+    # These help parse inputs like "☕ 120", "🍔 350", "🍛 250" correctly
+    '☕': ('food', 9),            # coffee emoji (critical for "☕ 120" inputs)
+    '🍔': ('food', 9),            # burger
+    '🍕': ('food', 9),            # pizza  
+    '🌯': ('food', 9),            # wrap/burrito
+    '🥤': ('food', 8),            # beverage cup
+    '🍛': ('food', 9),            # curry/rice dish (good for Bengali context)
+    '🍜': ('food', 9),            # noodles/ramen
+    '🍰': ('food', 8),            # cake/dessert
+    '🧁': ('food', 8),            # cupcake
+    '🍪': ('food', 8),            # cookie
+    '🍫': ('food', 8),            # chocolate
+    '🍎': ('food', 7),            # apple (generic fruit)
+    '🥛': ('food', 8),            # milk
+    '🍺': ('food', 8),            # beer/alcohol
+    '🥟': ('food', 9),            # dumpling (like momo)
+    '🍳': ('food', 8),            # fried egg/cooking
+    '🫖': ('food', 9),            # teapot
+    '🍵': ('food', 9),            # tea cup
+    '🍭': ('food', 8),            # lollipop/candy
+    '🍩': ('food', 8),            # donut
+    
     # Transport (strength: 9)
     'transport': ('transport', 9),
     'taxi': ('transport', 10),
