@@ -61,7 +61,13 @@ def create_expense(user_id, amount, currency, category, occurred_at, source_mess
         expense.amount = Decimal(str(amount_float))
         # Use Decimal arithmetic to avoid floating-point precision errors
         expense.amount_minor = int(Decimal(str(amount_float)).quantize(Decimal('0.01')) * 100)
-        expense.category = category.lower()
+        # Apply category normalization guard if enabled
+        from utils.pca_flags import pca_flags
+        if pca_flags.should_normalize_categories():
+            from utils.category_guard import normalize_category_for_save
+            expense.category = normalize_category_for_save(category)
+        else:
+            expense.category = category.lower()  # Existing behavior
         expense.currency = currency or '৳'
         expense.date = occurred_at.date()
         expense.time = occurred_at.time()
@@ -121,13 +127,13 @@ def create_expense(user_id, amount, currency, category, occurred_at, source_mess
             monthly_summary.month = current_month
             monthly_summary.total_amount = amount_float
             monthly_summary.expense_count = 1
-            monthly_summary.categories = {category.lower(): amount_float}
+            monthly_summary.categories = {expense.category: amount_float}
             db.session.add(monthly_summary)
         else:
             monthly_summary.total_amount = float(monthly_summary.total_amount) + amount_float
             monthly_summary.expense_count += 1
             categories = monthly_summary.categories or {}
-            categories[category.lower()] = categories.get(category.lower(), 0) + amount_float
+            categories[expense.category] = categories.get(expense.category, 0) + amount_float
             monthly_summary.categories = categories
             monthly_summary.updated_at = datetime.utcnow()
         
@@ -136,7 +142,7 @@ def create_expense(user_id, amount, currency, category, occurred_at, source_mess
         
         # Log telemetry
         try:
-            TelemetryTracker.track_expense_logged(user_id, amount_float, category.lower())
+            TelemetryTracker.track_expense_logged(user_id, amount_float, expense.category)
         except Exception as e:
             logger.warning(f"Telemetry logging failed: {e}")
         
@@ -144,7 +150,7 @@ def create_expense(user_id, amount, currency, category, occurred_at, source_mess
             'expense_id': expense.id,
             'correlation_id': correlation_id,
             'occurred_at': occurred_at.isoformat(),
-            'category': category.lower(),
+            'category': expense.category,
             'amount': amount_float,
             'currency': currency or '৳',
             'description': expense.description
