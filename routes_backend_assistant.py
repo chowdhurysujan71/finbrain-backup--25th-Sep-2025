@@ -5,6 +5,7 @@ Strict no-hallucination backend following exact specification
 
 from flask import Blueprint, request, jsonify, session, g, current_app
 from functools import wraps
+from db_base import db
 from backend_assistant import (
     propose_expense, 
     add_expense,
@@ -143,7 +144,7 @@ def api_confirm_expense(authenticated_user_id):
         
         if not confirmation_result:
             response, status_code = standardized_error_response(
-                code=ErrorCodes.NOT_FOUND,
+                code=ErrorCodes.RESOURCE_NOT_FOUND,
                 message="Clarification not found or expired",
                 status_code=404,
                 log_error=False
@@ -169,7 +170,7 @@ def api_confirm_expense(authenticated_user_id):
         latency = int((time.time() - start) * 1000)
         
         # Log success
-        api_logger.log_request({
+        api_logger.info("Expense confirmation successful", {
             "endpoint": "/api/backend/confirm_expense",
             "method": "POST", 
             "user_id": authenticated_user_id,
@@ -198,7 +199,7 @@ def api_confirm_expense(authenticated_user_id):
         latency = int((time.time() - start) * 1000)
         
         # Log error
-        api_logger.log_error({
+        api_logger.error("Expense confirmation failed", {
             "endpoint": "/api/backend/confirm_expense",
             "method": "POST",
             "user_id": authenticated_user_id,
@@ -206,7 +207,7 @@ def api_confirm_expense(authenticated_user_id):
             "error_type": type(e).__name__,
             "error_message": str(e),
             "latency_ms": latency
-        })
+        }, e)
         
         response, status_code = internal_error("Failed to confirm expense category")
         return jsonify(response), status_code
@@ -788,7 +789,7 @@ def diag_db():
     if not g.user_id: 
         return {"error":"auth_required"}, 401
     n = db.session.execute(text("SELECT COUNT(*) FROM expenses WHERE user_id=:u"), {"u": g.user_id}).scalar()
-    return {"ok": True, "expense_count": int(n)}, 200
+    return {"ok": True, "expense_count": int(n or 0)}, 200
 
 @backend_api.route('/diag/add_test', methods=['POST'])
 def diag_add_test():
@@ -815,8 +816,11 @@ def diag_ai():
             model="gpt-3.5-turbo",
             messages=[{"role":"user","content":"ping"}]
         )
-        txt = out.choices[0].message.content
-        return {"ok": True, "sample": txt[:80]}, 200
+        if out and out.choices and len(out.choices) > 0:
+            txt = out.choices[0].message.content or "No content"
+        else:
+            txt = "No response from AI"
+        return {"ok": True, "sample": (txt or "")[:80]}, 200
     except Exception as e:
         current_app.logger.exception("ai ping failed")
         return {"ok": False, "error": str(e)}, 500

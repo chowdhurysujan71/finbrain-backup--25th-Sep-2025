@@ -19,8 +19,12 @@
                 <h3 class="summary-title">Today</h3>
                 <div class="summary-icon">📅</div>
             </div>
-            <div class="summary-value">৳450</div>
-            <div class="summary-change positive">+৳50 vs yesterday</div>
+            <div class="summary-value" id="today-total">
+                <div class="loading-spinner">Loading...</div>
+            </div>
+            <div class="summary-change" id="today-change">
+                <div class="loading-spinner">Loading...</div>
+            </div>
         </div>
 
         <div class="card summary-card">
@@ -28,8 +32,12 @@
                 <h3 class="summary-title">This Week</h3>
                 <div class="summary-icon">📊</div>
             </div>
-            <div class="summary-value">৳2,340</div>
-            <div class="summary-change negative">-৳120 vs last week</div>
+            <div class="summary-value" id="week-total">
+                <div class="loading-spinner">Loading...</div>
+            </div>
+            <div class="summary-change" id="week-change">
+                <div class="loading-spinner">Loading...</div>
+            </div>
         </div>
 
         <div class="card summary-card">
@@ -37,8 +45,12 @@
                 <h3 class="summary-title">This Month</h3>
                 <div class="summary-icon">📈</div>
             </div>
-            <div class="summary-value">৳8,750</div>
-            <div class="summary-change neutral">On track with budget</div>
+            <div class="summary-value" id="month-total">
+                <div class="loading-spinner">Loading...</div>
+            </div>
+            <div class="summary-change" id="month-change">
+                <div class="loading-spinner">Loading...</div>
+            </div>
         </div>
     </section>
 
@@ -46,50 +58,8 @@
     <section class="card categories-section" aria-labelledby="categories-title">
         <h2 id="categories-title" class="card-title">Top Categories This Month</h2>
         
-        <div class="categories-list">
-            <div class="category-item">
-                <div class="category-info">
-                    <span class="category-icon">🍽️</span>
-                    <span class="category-name">Food & Dining</span>
-                </div>
-                <div class="category-amount">৳3,200</div>
-                <div class="category-bar">
-                    <div class="category-progress" style="width: 85%"></div>
-                </div>
-            </div>
-
-            <div class="category-item">
-                <div class="category-info">
-                    <span class="category-icon">🚗</span>
-                    <span class="category-name">Transport</span>
-                </div>
-                <div class="category-amount">৳1,800</div>
-                <div class="category-bar">
-                    <div class="category-progress" style="width: 60%"></div>
-                </div>
-            </div>
-
-            <div class="category-item">
-                <div class="category-info">
-                    <span class="category-icon">🛍️</span>
-                    <span class="category-name">Shopping</span>
-                </div>
-                <div class="category-amount">৳1,200</div>
-                <div class="category-bar">
-                    <div class="category-progress" style="width: 40%"></div>
-                </div>
-            </div>
-
-            <div class="category-item">
-                <div class="category-info">
-                    <span class="category-icon">💡</span>
-                    <span class="category-name">Bills & Utilities</span>
-                </div>
-                <div class="category-amount">৳950</div>
-                <div class="category-bar">
-                    <div class="category-progress" style="width: 30%"></div>
-                </div>
-            </div>
+        <div class="categories-list" id="categories-list">
+            <div class="loading-spinner">Loading categories...</div>
         </div>
     </section>
 
@@ -97,30 +67,8 @@
     <section class="card insights-section" aria-labelledby="insights-title">
         <h2 id="insights-title" class="card-title">AI Insights</h2>
         
-        <div class="insights-list">
-            <div class="insight-item insight-tip">
-                <div class="insight-icon">💡</div>
-                <div class="insight-content">
-                    <h3 class="insight-title">Spending Pattern</h3>
-                    <p class="insight-text">You spend 40% more on weekends. Consider meal planning to save ৳500/month.</p>
-                </div>
-            </div>
-
-            <div class="insight-item insight-warning">
-                <div class="insight-icon">⚠️</div>
-                <div class="insight-content">
-                    <h3 class="insight-title">Budget Alert</h3>
-                    <p class="insight-text">Food spending is 20% above your target. You have ৳300 left in this category.</p>
-                </div>
-            </div>
-
-            <div class="insight-item insight-success">
-                <div class="insight-icon">🎯</div>
-                <div class="insight-content">
-                    <h3 class="insight-title">Good Progress</h3>
-                    <p class="insight-text">Transportation costs are down 15% this month. Great job using public transport!</p>
-                </div>
-            </div>
+        <div class="insights-list" id="insights-list">
+            <div class="loading-spinner">Generating insights...</div>
         </div>
     </section>
 
@@ -153,12 +101,332 @@
 </div>
 
 <script>
-function showExportOptions() {
-    showToast('Export feature coming soon! You\'ll be able to download your data as CSV or PDF.', 'info');
+// Global variables for data storage
+let reportData = {
+    today: null,
+    week: null,
+    month: null,
+    expenses: [],
+    categories: {}
+};
+
+// API Helper Functions
+async function apiCall(endpoint, data = {}) {
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include', // Include session cookies
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                // User not authenticated, redirect to login
+                window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                return null;
+            }
+            throw new Error(`API call failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        // Check if response has expected structure
+        if (result.success && result.data) {
+            return result.data;
+        } else if (result.data) {
+            return result.data;
+        } else {
+            return result;
+        }
+    } catch (error) {
+        console.error(`API call to ${endpoint} failed:`, error);
+        throw error;
+    }
 }
 
-function showBudgetSettings() {
-    showToast('Budget management coming soon! Set spending limits for each category.', 'info');
+// Format currency amount
+function formatCurrency(amountMinor) {
+    if (amountMinor === null || amountMinor === undefined) return '৳0';
+    const amount = amountMinor / 100;
+    return `৳${amount.toLocaleString('en-BD', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+// Get category icon
+function getCategoryIcon(category) {
+    const icons = {
+        'food': '🍽️',
+        'transport': '🚗',
+        'shopping': '🛍️',
+        'bills': '💡',
+        'uncategorized': '📦',
+        'other': '📦'
+    };
+    return icons[category.toLowerCase()] || '📦';
+}
+
+// Format category name
+function formatCategoryName(category) {
+    const names = {
+        'food': 'Food & Dining',
+        'transport': 'Transport',
+        'shopping': 'Shopping',
+        'bills': 'Bills & Utilities',
+        'uncategorized': 'Other',
+        'other': 'Other'
+    };
+    return names[category.toLowerCase()] || category.charAt(0).toUpperCase() + category.slice(1);
+}
+
+// Load Summary Data
+async function loadSummaryData() {
+    try {
+        console.log('[Report] Loading summary data...');
+        
+        // Fetch totals for different periods
+        const [todayData, weekData, monthData] = await Promise.all([
+            apiCall('/api/backend/get_totals', { period: 'day' }),
+            apiCall('/api/backend/get_totals', { period: 'week' }),
+            apiCall('/api/backend/get_totals', { period: 'month' })
+        ]);
+
+        reportData.today = todayData;
+        reportData.week = weekData;
+        reportData.month = monthData;
+
+        // Update summary cards
+        updateSummaryCard('today', todayData);
+        updateSummaryCard('week', weekData);
+        updateSummaryCard('month', monthData);
+
+        console.log('[Report] Summary data loaded successfully');
+    } catch (error) {
+        console.error('[Report] Failed to load summary data:', error);
+        showError('Failed to load spending summary. Please refresh the page.');
+        
+        // Show error state in summary cards
+        ['today', 'week', 'month'].forEach(period => {
+            document.getElementById(`${period}-total`).innerHTML = '<span class="error-text">Error</span>';
+            document.getElementById(`${period}-change`).innerHTML = '<span class="error-text">Unable to load</span>';
+        });
+    }
+}
+
+// Update Summary Card
+function updateSummaryCard(period, data) {
+    const totalElement = document.getElementById(`${period}-total`);
+    const changeElement = document.getElementById(`${period}-change`);
+    
+    if (!data) {
+        totalElement.innerHTML = '<span class="error-text">No data</span>';
+        changeElement.innerHTML = '<span class="error-text">Unable to load</span>';
+        return;
+    }
+
+    // Update total amount
+    const totalMinor = data.total_minor || 0;
+    totalElement.textContent = formatCurrency(totalMinor);
+
+    // Update change/status
+    const expenseCount = data.expenses_count || 0;
+    if (expenseCount === 0) {
+        changeElement.innerHTML = '<span class="summary-change neutral">No expenses yet</span>';
+        changeElement.className = 'summary-change neutral';
+    } else {
+        changeElement.innerHTML = `<span class="summary-change neutral">${expenseCount} expense${expenseCount !== 1 ? 's' : ''}</span>`;
+        changeElement.className = 'summary-change neutral';
+    }
+}
+
+// Load Categories Data
+async function loadCategoriesData() {
+    try {
+        console.log('[Report] Loading categories data...');
+        
+        // Get recent expenses to calculate category totals
+        const expensesData = await apiCall('/api/backend/get_recent_expenses', { limit: 100 });
+        
+        if (!expensesData || !Array.isArray(expensesData)) {
+            throw new Error('Invalid expenses data received');
+        }
+
+        reportData.expenses = expensesData;
+
+        // Calculate category totals from recent expenses
+        const categoryTotals = {};
+        let totalSpent = 0;
+
+        expensesData.forEach(expense => {
+            const category = expense.category || 'other';
+            const amount = expense.amount_minor || expense.amount * 100 || 0;
+            
+            if (!categoryTotals[category]) {
+                categoryTotals[category] = 0;
+            }
+            categoryTotals[category] += amount;
+            totalSpent += amount;
+        });
+
+        reportData.categories = categoryTotals;
+
+        // Update categories display
+        updateCategoriesDisplay(categoryTotals, totalSpent);
+
+        console.log('[Report] Categories data loaded successfully');
+    } catch (error) {
+        console.error('[Report] Failed to load categories data:', error);
+        showError('Failed to load category breakdown. Please refresh the page.');
+        
+        document.getElementById('categories-list').innerHTML = '<div class="error-text">Unable to load categories</div>';
+    }
+}
+
+// Update Categories Display
+function updateCategoriesDisplay(categoryTotals, totalSpent) {
+    const categoriesList = document.getElementById('categories-list');
+    
+    if (totalSpent === 0) {
+        categoriesList.innerHTML = '<div class="no-data">No expenses recorded yet. Start by adding some expenses!</div>';
+        return;
+    }
+
+    // Sort categories by amount (descending)
+    const sortedCategories = Object.entries(categoryTotals)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5); // Show top 5 categories
+
+    const categoriesHTML = sortedCategories.map(([category, amountMinor]) => {
+        const percentage = Math.round((amountMinor / totalSpent) * 100);
+        const formattedAmount = formatCurrency(amountMinor);
+        const icon = getCategoryIcon(category);
+        const name = formatCategoryName(category);
+
+        return `
+            <div class="category-item">
+                <div class="category-info">
+                    <span class="category-icon">${icon}</span>
+                    <span class="category-name">${name}</span>
+                </div>
+                <div class="category-amount">${formattedAmount}</div>
+                <div class="category-bar">
+                    <div class="category-progress" style="width: ${percentage}%"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    categoriesList.innerHTML = categoriesHTML;
+}
+
+// Load Insights Data
+async function loadInsightsData() {
+    try {
+        console.log('[Report] Loading insights data...');
+        
+        // Generate insights based on the data we have
+        const insights = generateInsights();
+        updateInsightsDisplay(insights);
+
+        console.log('[Report] Insights data loaded successfully');
+    } catch (error) {
+        console.error('[Report] Failed to load insights data:', error);
+        document.getElementById('insights-list').innerHTML = '<div class="error-text">Unable to generate insights</div>';
+    }
+}
+
+// Generate Insights
+function generateInsights() {
+    const insights = [];
+    const { today, week, month, expenses, categories } = reportData;
+
+    // Insight 1: Spending summary
+    if (month && month.total_minor > 0) {
+        const monthlyAmount = formatCurrency(month.total_minor);
+        const expenseCount = month.expenses_count || 0;
+        insights.push({
+            type: 'info',
+            icon: '📊',
+            title: 'Monthly Summary',
+            text: `You've spent ${monthlyAmount} across ${expenseCount} expense${expenseCount !== 1 ? 's' : ''} this month.`
+        });
+    }
+
+    // Insight 2: Top category analysis
+    if (Object.keys(categories).length > 0) {
+        const topCategory = Object.entries(categories)
+            .sort(([,a], [,b]) => b - a)[0];
+        
+        if (topCategory) {
+            const [categoryName, amount] = topCategory;
+            const formattedAmount = formatCurrency(amount);
+            const categoryDisplayName = formatCategoryName(categoryName);
+            
+            insights.push({
+                type: 'tip',
+                icon: '💡',
+                title: 'Top Spending Category',
+                text: `${categoryDisplayName} is your biggest expense at ${formattedAmount}. Consider reviewing these purchases.`
+            });
+        }
+    }
+
+    // Insight 3: Recent activity
+    if (week && today) {
+        const weeklyAvg = week.total_minor / 7;
+        const todayAmount = today.total_minor || 0;
+        
+        if (todayAmount > weeklyAvg * 1.5) {
+            insights.push({
+                type: 'warning',
+                icon: '⚠️',
+                title: 'High Spending Day',
+                text: `Today's spending is above your weekly average. Consider reviewing your purchases.`
+            });
+        } else if (todayAmount === 0 && week.total_minor > 0) {
+            insights.push({
+                type: 'success',
+                icon: '🎯',
+                title: 'No Spending Today',
+                text: `Great job! You haven't spent anything today. Keep up the mindful spending!`
+            });
+        }
+    }
+
+    // Default insight if no data
+    if (insights.length === 0) {
+        insights.push({
+            type: 'info',
+            icon: '🚀',
+            title: 'Get Started',
+            text: 'Start tracking your expenses to see personalized insights and spending patterns!'
+        });
+    }
+
+    return insights.slice(0, 3); // Show max 3 insights
+}
+
+// Update Insights Display
+function updateInsightsDisplay(insights) {
+    const insightsList = document.getElementById('insights-list');
+    
+    const insightsHTML = insights.map(insight => `
+        <div class="insight-item insight-${insight.type}">
+            <div class="insight-icon">${insight.icon}</div>
+            <div class="insight-content">
+                <h3 class="insight-title">${insight.title}</h3>
+                <p class="insight-text">${insight.text}</p>
+            </div>
+        </div>
+    `).join('');
+
+    insightsList.innerHTML = insightsHTML;
+}
+
+// Error Handling
+function showError(message) {
+    showToast(message, 'error');
 }
 
 // Toast helper function (same as chat.html)
@@ -172,7 +440,17 @@ function showToast(message, type = 'info') {
         </div>
     `;
     
-    document.getElementById('toast-container').appendChild(toast);
+    const toastContainer = document.getElementById('toast-container');
+    if (toastContainer) {
+        toastContainer.appendChild(toast);
+    } else {
+        // Create toast container if it doesn't exist
+        const container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1000;';
+        document.body.appendChild(container);
+        container.appendChild(toast);
+    }
     
     setTimeout(() => {
         if (toast.parentElement) {
@@ -180,5 +458,38 @@ function showToast(message, type = 'info') {
         }
     }, 5000);
 }
+
+// Quick Actions
+function showExportOptions() {
+    showToast('Export feature coming soon! You\'ll be able to download your data as CSV or PDF.', 'info');
+}
+
+function showBudgetSettings() {
+    showToast('Budget management coming soon! Set spending limits for each category.', 'info');
+}
+
+// Initialize Report
+async function initializeReport() {
+    console.log('[Report] Initializing report page...');
+    
+    try {
+        // Load all data in parallel
+        await Promise.all([
+            loadSummaryData(),
+            loadCategoriesData()
+        ]);
+        
+        // Load insights after other data is ready
+        await loadInsightsData();
+        
+        console.log('[Report] Report initialization completed successfully');
+    } catch (error) {
+        console.error('[Report] Failed to initialize report:', error);
+        showError('Failed to load report data. Please refresh the page.');
+    }
+}
+
+// Start loading data when page loads
+document.addEventListener('DOMContentLoaded', initializeReport);
 </script>
 {% endblock %}
