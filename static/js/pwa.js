@@ -1,10 +1,10 @@
-// FinBrain PWA JavaScript
+// finbrain PWA JavaScript
 // Handles PWA installation, offline detection, and enhanced functionality
 
 (function() {
     'use strict';
     
-    console.log('[PWA] Initializing FinBrain PWA...');
+    console.log('[PWA] Initializing finbrain PWA...');
     
     // Global state
     let deferredPrompt;
@@ -26,7 +26,7 @@
         setupNotifications();
         setupPerformanceOptimizations();
         
-        console.log('[PWA] FinBrain PWA initialized successfully');
+        console.log('[PWA] finbrain PWA initialized successfully');
     }
     
     // Session-based Authentication Check
@@ -185,7 +185,7 @@
                     console.log('[PWA] Install prompt outcome:', outcome);
                     
                     if (outcome === 'accepted') {
-                        showToast('FinBrain is being installed!', 'success');
+                        showToast('finbrain is being installed!', 'success');
                     }
                     
                     // Clear the deferred prompt
@@ -199,10 +199,10 @@
                 } else {
                     // No browser prompt available - show manual instructions
                     console.log('[PWA] Showing manual install instructions');
-                    showToast(`To install FinBrain:
-• Chrome: Click ⋮ menu → "Install FinBrain..."
+                    showToast(`To install finbrain:
+• Chrome: Click ⋮ menu → "Install finbrain..."
 • Safari: Share → "Add to Home Screen"  
-• Edge: Click ⋯ menu → "Apps" → "Install FinBrain"
+• Edge: Click ⋯ menu → "Apps" → "Install finbrain"
 • Firefox: Address bar install icon`, 'info', { duration: 10000 });
                     
                     // Hide the banner after showing instructions
@@ -229,7 +229,7 @@
         // Listen for successful installation
         window.addEventListener('appinstalled', () => {
             console.log('[PWA] App successfully installed');
-            showToast('FinBrain installed successfully!', 'success');
+            showToast('finbrain installed successfully!', 'success');
             
             // Hide install banner
             if (installBanner) {
@@ -624,7 +624,7 @@
     };
     
     // Expose useful PWA functions globally
-    window.FinBrainPWA = {
+    window.finbrainPWA = {
         isOnline: () => isOnline,
         isInstalled: isAppInstalled,
         triggerInstall: () => {
@@ -633,7 +633,7 @@
                 deferredPrompt.prompt();
             } else {
                 console.log('[PWA] No deferred prompt available');
-                showToast('To install FinBrain:\n• Chrome: Click ⋮ → "Install FinBrain..."\n• Safari: Share → "Add to Home Screen"\n• Edge: Click ⋯ → "Apps" → "Install FinBrain"', 'info', { duration: 8000 });
+                showToast('To install finbrain:\n• Chrome: Click ⋮ → "Install finbrain..."\n• Safari: Share → "Add to Home Screen"\n• Edge: Click ⋯ → "Apps" → "Install finbrain"', 'info', { duration: 8000 });
             }
         },
         requestNotificationPermission: async () => {
@@ -653,6 +653,6 @@
     window.enhancedFormSubmit = enhancedFormSubmit;
     window.handleLegacyResponse = handleLegacyResponse;
     
-    console.log('[PWA] FinBrain PWA setup complete');
+    console.log('[PWA] finbrain PWA setup complete');
     
 })();

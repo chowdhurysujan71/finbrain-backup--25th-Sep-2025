@@ -1,4 +1,4 @@
-// FinBrain PWA Service Worker
+// finbrain PWA Service Worker
 // Handles caching, offline functionality, and background sync
 
 const CACHE_NAME = 'finbrain-v1.3.0-canary';
@@ -291,7 +291,7 @@ self.addEventListener('push', event => {
     };
     
     event.waitUntil(
-        self.registration.showNotification('FinBrain', options)
+        self.registration.showNotification('finbrain', options)
     );
 });
 

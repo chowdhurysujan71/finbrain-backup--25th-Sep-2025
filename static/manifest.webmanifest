@@ -1,6 +1,6 @@
 {
-  "name": "FinBrain - AI Expense Tracker",
-  "short_name": "FinBrain",
+  "name": "finbrain - AI Expense Tracker",
+  "short_name": "finbrain",
   "description": "AI-powered bilingual expense tracking platform",
   "start_url": "/",
   "display": "standalone",

@@ -1,4 +1,4 @@
-// FinBrain PWA Service Worker
+// finbrain PWA Service Worker
 // Handles caching, offline functionality, and background sync
 
 const CACHE_NAME = 'finbrain-v1.0.0';
