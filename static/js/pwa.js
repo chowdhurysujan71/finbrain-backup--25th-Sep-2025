@@ -283,11 +283,12 @@
         // Update form submit buttons
         const submitButtons = document.querySelectorAll('button[type="submit"]');
         submitButtons.forEach(button => {
+            const base = button.dataset.baseLabel || (button.dataset.baseLabel = button.textContent.replace(' (Offline)',''));
             if (online) {
                 button.disabled = false;
-                button.textContent = button.textContent.replace(' (Offline)', '');
+                button.textContent = base;
             } else {
-                button.textContent = button.textContent + ' (Offline)';
+                button.textContent = `${base} (Offline)`;
             }
         });
         
