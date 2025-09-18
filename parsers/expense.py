@@ -1,6 +1,115 @@
 """
 Enhanced Expense Parser for FinBrain
 Handles natural language expense parsing with correction context support
+
+===================================================================================
+ALIAS SCORING POLICY AND PRECEDENCE RULES
+===================================================================================
+
+Category aliases use a strength-based scoring system where higher values indicate stronger confidence:
+
+Scoring Levels:
+- exact=10: Perfect matches, canonical terms (e.g., 'biryani', 'coffee', 'kachchi')
+- canonical=10: Standard spellings and official names (e.g., 'biriyani', 'roshogolla')
+- variants=9: Common variations and transliterations (e.g., 'biriani', 'kichuri')  
+- generics=7-8: Broader food terms (e.g., 'lunch', 'dinner', 'snack', 'tea')
+- risky≤6: Terms that might have false positives (use with caution)
+
+Tie-breaking Rules:
+1. Higher strength wins
+2. For equal strength: longer/more specific term wins
+3. Description alias inference beats unknown trailing tokens
+4. Strong aliases override vague trailing tokens (general, misc, other)
+
+Processing Pipeline:
+1. User learned preferences (highest priority)
+2. Vague trailing token detection + description inference
+3. Global CATEGORY_ALIASES matching with word boundaries
+4. Enhanced keyword matching fallback
+
+===================================================================================
+BENGALI LANGUAGE SUPPORT
+===================================================================================
+
+The parser includes comprehensive Bengali language support:
+
+Bengali Script Support:
+- Full Unicode Bengali character range (\u0980-\u09FF)
+- Bengali aliases for common food items (বিরিয়ানি, কফি, চা, etc.)
+- Emoji aliases for modern inputs (☕, 🍔, 🍛, etc.)
+
+Morphology Handling (Suffix Stripping):
+- Plural markers: গুলো, গুলি, রা
+- Counters/quantifiers: টা, টি, খানা  
+- Case markers/postpositions: এর, তে, য়ে, যে, কে, তো
+- Special phonological cases: চায়ের → চা
+
+Text Normalization:
+- Unicode NFKC normalization (composed characters)
+- ZWJ/ZWNJ cleanup (Zero Width Joiner/Non-Joiner removal)
+- Bengali punctuation harmonization (। → ., ॥ → ..)
+- Bangla numeral conversion to ASCII (১২০ → 120)
+- Unicode space normalization and collapse
+
+Word Boundary Matching:
+- Handles both Latin (A-Za-z0-9) and Bengali (\u0980-\u09FF) boundaries
+- Morphology-aware matching (বিরিয়ানিগুলো matches বিরিয়ানি alias)
+- Prevents substring false positives
+
+===================================================================================
+VAGUE TOKEN HANDLING
+===================================================================================
+
+The system detects vague trailing tokens and uses description inference to override them:
+
+Vague Trailing Tokens (VAGUE_TRAILING_TOKENS):
+- English: general, misc, miscellaneous, other, others, etc, various, stuff, things, items, random, mixed, multiple
+- Bengali: সাধারণ, বিবিধ, অন্যান্য, ইত্যাদি
+
+Processing Logic:
+1. Identify vague trailing token at end of text
+2. Run infer_category_from_description() on full text
+3. If strong match found (strength >= 8), override vague category
+4. Prevents "Coffee 120 general" from being categorized as "general"
+
+Examples:
+- "Coffee 120 general" → food (coffee alias strength 9 > vague general)
+- "Biryani 250 misc" → food (biryani alias strength 10 > vague misc)
+- "Something 120 general" → general (no strong description match found)
+
+===================================================================================
+CATEGORY_ALIASES STRUCTURE
+===================================================================================
+
+The CATEGORY_ALIASES dictionary maps keywords to (category, strength) tuples:
+
+Structure: 'keyword': ('category', strength_score)
+
+Category Coverage:
+- Food & Dining: Comprehensive Bengali cuisine vocabulary (900+ terms)
+  - Traditional dishes: kachchi, biryani, khichuri, polao, tehari
+  - Street food: fuchka, chotpoti, jhalmuri, haleem
+  - Sweets: mishti doi, roshogolla, sandesh, chomchom
+  - Beverages: cha, coffee, borhani, lassi
+  - Bengali script: কাচ্চি, বিরিয়ানি, কফি, চা
+  - Emojis: ☕, 🍔, 🍛, 🥤
+
+- Transport: uber, taxi, cng, bus, fuel
+- Shopping: clothes, grocery, market
+- Health: medicine, pharmacy, doctor
+- Bills: internet, phone, rent, utilities, gas bill
+- Entertainment: movie, cinema, game, travel
+- Education: school, tuition
+- Pets: cat food, dog food, vet, pet supplies
+
+Strength Guidelines:
+- 10: Exact matches, canonical terms, brand names
+- 9: Common variations, frequent usage patterns
+- 8: Broader category terms, generic descriptors
+- 7: Related terms with some ambiguity
+- ≤6: High ambiguity, use with caution
+
+===================================================================================
 """
 
 import re
