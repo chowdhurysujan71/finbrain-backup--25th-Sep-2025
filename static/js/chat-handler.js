@@ -1,23 +1,7 @@
-// static/js/chat-handler.js - NUCLEAR CACHE BUST VERSION
-window.CHAT_BUILD_ID = 'NUCLEAR-2025-09-18T15:00+06';
-console.error('🚀 [NUCLEAR] CHAT BUILD:', window.CHAT_BUILD_ID);
-
-// Nuclear cache detection
-const scriptSrc = document.currentScript?.src || 'unknown';
-console.error('🚀 [NUCLEAR] Script URL:', scriptSrc);
-
-// NUCLEAR: Force reload if ANY old version detected
-if (scriptSrc.includes('20250917') || !scriptSrc.includes('NUCLEAR')) {
-    console.error('🚨 [NUCLEAR] STALE CACHE DETECTED - FORCE RELOAD!');
-    // Clear everything and reload
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations()
-            .then(rs => Promise.all(rs.map(r => r.unregister())))
-            .then(() => location.reload(true));
-    } else {
-        location.reload(true);
-    }
-}
+// static/js/chat-handler.js - ULTRA CACHE BUST VERSION  
+window.CHAT_BUILD_ID = 'ULTRA-2025-09-18T15:56+06';
+console.error('🎯 [ULTRA-SUCCESS] CHAT BUILD:', window.CHAT_BUILD_ID);
+console.error('🎯 [ULTRA-SUCCESS] Cache destroyer worked! Fresh code loaded!');
 // --- add once at top-level ---
 const getChatContainer = () => {
   let el = document.getElementById('chat-messages');

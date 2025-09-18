@@ -233,6 +233,8 @@
 </div>
 
 
+<!-- CACHE DESTROYER: Load first to force cache clearing -->
+<script src="/static/js/cache-destroyer.js?ultra={{ timestamp }}" defer></script>
 <!-- keep just this; remove older script tags -->
 <script src="/static/js/chat-handler.js?NUCLEAR={{ timestamp }}&bust={{ timestamp }}" defer></script>
 {% endblock %}
