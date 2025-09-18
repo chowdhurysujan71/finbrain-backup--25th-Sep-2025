@@ -18,7 +18,13 @@ const renderAssistant = (data) => {
     return;
   }
   
-  // Handle the expected {"messages": [...]} format
+  // Handle the direct reply format from AI
+  if (data.reply) {
+    addMsg("bot", data.reply);
+    return;
+  }
+  
+  // Handle the expected {"messages": [...]} format (legacy support)
   const messages = data.messages || [];
   messages.forEach(msg => {
     if (msg.content) {
