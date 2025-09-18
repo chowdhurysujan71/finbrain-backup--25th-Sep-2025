@@ -43,6 +43,16 @@ BANGLA_NUMERALS = {
     '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
 }
 
+# Bengali morphological suffixes for proper word matching
+BENGALI_SUFFIXES = {
+    # Plural markers
+    'গুলো', 'গুলি', 'রা',
+    # Counters/quantifiers  
+    'টা', 'টি', 'খানা',
+    # Case markers/postpositions
+    'এর', 'তে', 'য়ে', 'যে', 'কে', 'তো'
+}
+
 # Category aliases for intelligent matching
 CATEGORY_ALIASES = {
     # Food & Dining (strength: 10)
@@ -376,6 +386,66 @@ VAGUE_TRAILING_TOKENS = {
     'সাধারণ', 'বিবিধ', 'অন্যান্য', 'ইত্যাদি'
 }
 
+def strip_bengali_suffixes(word: str) -> str:
+    """
+    Strip Bengali morphological suffixes from a word.
+    
+    Removes plural markers (গুলো, গুলি, রা), counters/quantifiers (টা, টি, খানা),
+    and case markers/postpositions (এর, তে, য়ে, যে, কে, তো) to enable proper
+    matching with category aliases.
+    
+    Handles Bengali phonological changes like 'চা' + 'য়' + 'এর' → 'চায়ের'.
+    
+    Args:
+        word: Input Bengali word with possible suffixes
+        
+    Returns:
+        Word with Bengali morphological suffixes removed
+        
+    Examples:
+        >>> strip_bengali_suffixes('বিরিয়ানিগুলো')
+        'বিরিয়ানি'
+        >>> strip_bengali_suffixes('ভর্তাটা')
+        'ভর্তা'
+        >>> strip_bengali_suffixes('কফিতে')
+        'কফি'
+        >>> strip_bengali_suffixes('চায়ের')
+        'চা'
+        >>> strip_bengali_suffixes('rice')  # Non-Bengali word unchanged
+        'rice'
+    """
+    if not word:
+        return word
+    
+    # Special cases for common Bengali phonological changes
+    # Handle genitive forms where linking consonants are added
+    special_cases = {
+        'চায়ের': 'চা',     # চা + য়ের → চায়ের
+        'খায়ের': 'খা',     # খা + য়ের → খায়ের (if needed)
+    }
+    
+    if word in special_cases:
+        return special_cases[word]
+    
+    # Try removing each suffix from the end of the word
+    for suffix in BENGALI_SUFFIXES:
+        if word.endswith(suffix):
+            # Remove the suffix and return the root word
+            root_word = word[:-len(suffix)]
+            # Only return if we have a meaningful root left (at least 1 character)
+            if root_word:
+                # Handle cases where linking consonants need to be removed
+                # For example: if we have a 'য়' before the suffix, remove it too
+                if root_word.endswith('য়') and len(root_word) > 1:
+                    potential_root = root_word[:-1]
+                    # Only remove 'য়' if the resulting root is at least 1 character
+                    if potential_root:
+                        root_word = potential_root
+                return root_word
+    
+    # If no suffix found, return the original word
+    return word
+
 def infer_category_from_description(text: str) -> Optional[Tuple[str, int]]:
     """
     Infer category from description using CATEGORY_ALIASES when trailing token is vague.
@@ -428,26 +498,30 @@ def has_word_boundary_match(text: str, alias: str) -> bool:
     """
     Check if alias matches with proper word boundaries for Bengali+Latin text.
     
+    Enhanced to support Bengali morphology - checks both original word forms
+    and suffix-stripped forms to handle cases like 'বিরিয়ানিগুলো' matching
+    'বিরিয়ানি' alias.
+    
     Uses Unicode range \u0980-\u09FF for Bengali characters and supports both
     Latin (A-Za-z0-9) and Bengali character boundaries to prevent substring
     false positives.
     
     Args:
-        text: The text to search in (e.g., "Mixture Paints", "বিরিয়ানি হাউস")
-        alias: The alias to match (e.g., "mixture", "বিরিয়ানি")
+        text: The text to search in (e.g., "বিরিয়ানিগুলো খেয়েছি", "কফিতে চিনি")
+        alias: The alias to match (e.g., "বিরিয়ানি", "কফি")
         
     Returns:
-        True if alias matches with proper word boundaries, False otherwise
+        True if alias matches with proper word boundaries (original or suffix-stripped), False otherwise
         
     Examples:
-        >>> has_word_boundary_match("Mixture Paints", "mixture")
-        False  # "mixture" is part of "Mixture" 
-        >>> has_word_boundary_match("বিরিয়ানি হাউস", "বিরিয়ানি") 
-        True   # "বিরিয়ানি" is a separate word
+        >>> has_word_boundary_match("বিরিয়ানিগুলো খেয়েছি", "বিরিয়ানি")
+        True   # "বিরিয়ানিগুলো" → "বিরিয়ানি" after suffix stripping
+        >>> has_word_boundary_match("কফিতে চিনি", "কফি") 
+        True   # "কফিতে" → "কফি" after suffix stripping
         >>> has_word_boundary_match("coffee shop", "coffee")
-        True   # "coffee" is a separate word
+        True   # "coffee" is a separate word (no suffix stripping needed)
         >>> has_word_boundary_match("uncoffee", "coffee")
-        False  # "coffee" is part of "uncoffee"
+        False  # "coffee" is part of "uncoffee" and no valid suffix
     """
     if not text or not alias:
         return False
@@ -459,15 +533,27 @@ def has_word_boundary_match(text: str, alias: str) -> bool:
     # Character class: A-Z, a-z, 0-9, Bengali Unicode range \u0980-\u09FF
     pattern = rf'(?<![A-Za-z0-9\u0980-\u09FF]){escaped_alias}(?![A-Za-z0-9\u0980-\u09FF])'
     
-    # Perform case-insensitive search
+    # First try: Check for direct match (original functionality)
     match = re.search(pattern, text, re.IGNORECASE)
+    if match:
+        # Additional validation: ensure the match is an exact case-insensitive match
+        matched_text = text[match.start():match.end()]
+        if matched_text.lower() == alias.lower():
+            return True
     
-    if not match:
-        return False
+    # Second try: Check for morphologically-derived match
+    # Extract words from text and check if any word, after suffix stripping, matches the alias
+    # Use word boundary pattern to extract complete words
+    word_pattern = r'[A-Za-z0-9\u0980-\u09FF]+'
+    words = re.findall(word_pattern, text)
     
-    # Additional validation: ensure the match is an exact case-insensitive match
-    matched_text = text[match.start():match.end()]
-    return matched_text.lower() == alias.lower()
+    for word in words:
+        # Try suffix-stripped version
+        stripped_word = strip_bengali_suffixes(word)
+        if stripped_word.lower() == alias.lower():
+            return True
+    
+    return False
 
 
 def clean_unicode_spaces(text: str) -> str:
@@ -1081,21 +1167,12 @@ def _infer_category_from_context(context_text: str, user_hash: str = None) -> st
                 best_category = category
     
     # PRIORITY 3: Use global CATEGORY_ALIASES for comprehensive matching (includes Bengali script)
-    for word in words:
-        if word in CATEGORY_ALIASES:
-            category, strength = CATEGORY_ALIASES[word]
+    # Enhanced with morphology-aware matching for Bengali suffixes
+    for alias, (category, strength) in CATEGORY_ALIASES.items():
+        if has_word_boundary_match(context_text, alias):
             if strength > best_strength:
                 best_strength = strength
                 best_category = category
-    
-    # Also check multi-word combinations in CATEGORY_ALIASES
-    for i in range(len(words) - 1):
-        two_word_phrase = f"{words[i]} {words[i+1]}"
-        if two_word_phrase in CATEGORY_ALIASES:
-            category, strength = CATEGORY_ALIASES[two_word_phrase]
-            if strength > best_strength:
-                best_strength = strength
-                best_category = two_word_phrase
     
     # If we found a good match, return it
     if best_strength > 8:  # High confidence threshold
