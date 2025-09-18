@@ -233,18 +233,6 @@
 </div>
 
 
-<!-- FINAL SOLUTION: Server-side cache busting with build verification -->
-<script>
-// IMMEDIATE INLINE CACHE VERIFICATION - NO EXTERNAL DEPENDENCIES
-console.error('🎯 [FINAL] HTML BUILD: {{ build_id }}');
-console.error('🎯 [FINAL] Cache Bust: {{ cache_bust }}');
-console.error('🎯 [FINAL] Timestamp: {{ timestamp }}');
-
-// If this inline script executes, HTML is fresh!
-window.FINBRAIN_HTML_FRESH = true;
-window.FINBRAIN_BUILD_ID = '{{ build_id }}';
-</script>
-
-<!-- Load main chat handler with aggressive cache busting -->
-<script src="/static/js/chat-handler.js?FINAL={{ cache_bust }}&t={{ timestamp }}&v=ULTRA" defer></script>
+<!-- Battle-tested solution: New versioned bundle -->
+<script src="/static/js/chat-handler.v20250918_6.js?v=6" defer></script>
 {% endblock %}
