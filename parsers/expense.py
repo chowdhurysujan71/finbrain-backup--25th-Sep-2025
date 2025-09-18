@@ -525,35 +525,30 @@ def strip_bengali_suffixes(word: str) -> str:
     """
     if not word:
         return word
-    
-    # Special cases for common Bengali phonological changes
-    # Handle genitive forms where linking consonants are added
-    special_cases = {
-        'চায়ের': 'চা',     # চা + য়ের → চায়ের
-        'খায়ের': 'খা',     # খা + য়ের → খায়ের (if needed)
-    }
-    
+    # Only process words containing Bengali characters
+    if not re.search(r'[\u0980-\u09FF]', word):
+        return word
+        
+    # Handle special cases first
+    special_cases = {'চায়ের': 'চা'}
     if word in special_cases:
         return special_cases[word]
-    
-    # Try removing each suffix from the end of the word
-    for suffix in BENGALI_SUFFIXES:
-        if word.endswith(suffix):
-            # Remove the suffix and return the root word
-            root_word = word[:-len(suffix)]
-            # Only return if we have a meaningful root left (at least 1 character)
-            if root_word:
-                # Handle cases where linking consonants need to be removed
-                # For example: if we have a 'য়' before the suffix, remove it too
-                if root_word.endswith('য়') and len(root_word) > 1:
-                    potential_root = root_word[:-1]
-                    # Only remove 'য়' if the resulting root is at least 1 character
-                    if potential_root:
-                        root_word = potential_root
-                return root_word
-    
-    # If no suffix found, return the original word
-    return word
+        
+    # Longest-first iterative suffix removal
+    suffixes = sorted(BENGALI_SUFFIXES, key=len, reverse=True)
+    root = word
+    changed = True
+    while changed:
+        changed = False
+        for suf in suffixes:
+            if root.endswith(suf) and len(root) > len(suf):
+                root = root[:-len(suf)]
+                # Clean up linking consonant
+                if root.endswith('য়'):
+                    root = root[:-1]
+                changed = True
+                break
+    return root
 
 def infer_category_from_description(text: str) -> Optional[Tuple[str, int]]:
     """
@@ -597,7 +592,7 @@ def infer_category_from_description(text: str) -> Optional[Tuple[str, int]]:
                 best_category = category
     
     # Only return result if it meets minimum confidence threshold
-    if best_strength >= min_confidence_threshold:
+    if best_strength >= min_confidence_threshold and best_category is not None:
         return (best_category, best_strength)
     
     return None
@@ -632,36 +627,24 @@ def has_word_boundary_match(text: str, alias: str) -> bool:
         >>> has_word_boundary_match("uncoffee", "coffee")
         False  # "coffee" is part of "uncoffee" and no valid suffix
     """
+    # Apply normalization to both operands first
+    text = normalize_bengali_text(text)
+    alias = normalize_bengali_text(alias)
     if not text or not alias:
         return False
-    
-    # Escape special regex characters in the alias for safe regex use
-    escaped_alias = re.escape(alias)
-    
-    # Create word boundary pattern using negative lookbehind and lookahead
-    # Character class: A-Z, a-z, 0-9, Bengali Unicode range \u0980-\u09FF
-    pattern = rf'(?<![A-Za-z0-9\u0980-\u09FF]){escaped_alias}(?![A-Za-z0-9\u0980-\u09FF])'
-    
-    # First try: Check for direct match (original functionality)
-    match = re.search(pattern, text, re.IGNORECASE)
-    if match:
-        # Additional validation: ensure the match is an exact case-insensitive match
-        matched_text = text[match.start():match.end()]
-        if matched_text.lower() == alias.lower():
+        
+    # Apply word boundary regex with normalized text
+    escaped = re.escape(alias)
+    boundary = r'[A-Za-z0-9\u0980-\u09FF_]'  # include underscore as word char
+    pattern = rf'(?<!{boundary}){escaped}(?!{boundary})'
+    if re.search(pattern, text, flags=re.IGNORECASE):
+        return True
+        
+    # Morphology-aware fallback for Bengali
+    for word in re.findall(r'[A-Za-z0-9\u0980-\u09FF]+', text):
+        base = strip_bengali_suffixes(word)
+        if base.lower() == alias.lower():
             return True
-    
-    # Second try: Check for morphologically-derived match
-    # Extract words from text and check if any word, after suffix stripping, matches the alias
-    # Use word boundary pattern to extract complete words
-    word_pattern = r'[A-Za-z0-9\u0980-\u09FF]+'
-    words = re.findall(word_pattern, text)
-    
-    for word in words:
-        # Try suffix-stripped version
-        stripped_word = strip_bengali_suffixes(word)
-        if stripped_word.lower() == alias.lower():
-            return True
-    
     return False
 
 
@@ -1221,7 +1204,7 @@ def _extract_targeted_context(text: str, amount_info: dict) -> str:
     
     return ' '.join(target_words)
 
-def _infer_category_from_context(context_text: str, user_hash: str = None) -> str:
+def _infer_category_from_context(context_text: str, user_hash: Optional[str] = None) -> str:
     """
     Infer category from context text using a ±6 word window with user learning integration.
     
@@ -1337,12 +1320,13 @@ def _infer_category_from_context(context_text: str, user_hash: str = None) -> st
     
     for category, keywords in category_keywords.items():
         for keyword in keywords:
-            if keyword in context_lower:
+            if has_word_boundary_match(context_text, keyword):
                 # Base strength
                 strength = 8
                 
-                # Boost if keyword appears multiple times
-                if context_lower.count(keyword) > 1:
+                # Boost if keyword appears multiple times - use word boundary matches for counting
+                keyword_matches = len(re.findall(rf'(?<![A-Za-z0-9\u0980-\u09FF_]){re.escape(keyword)}(?![A-Za-z0-9\u0980-\u09FF_])', context_text, re.IGNORECASE))
+                if keyword_matches > 1:
                     strength += 2
                 
                 # Boost for exact category matches
