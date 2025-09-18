@@ -87,6 +87,10 @@ CATEGORY_ALIASES = {
     'polao': ('food', 10),
     'pulao': ('food', 10),
     'tehari': ('food', 10),
+    'tehri': ('food', 10),          # Alternative spelling
+    'morog polao': ('food', 10),    # Chicken polao - high frequency term
+    'briyani': ('food', 10),        # Another biryani variant
+    'biryaniy': ('food', 10),       # Typo variant
     'fried rice': ('food', 9),
     
     # Bengali Meat Dishes - INCLUDING SPECIFIC TERMS FROM USER ISSUE  
@@ -99,6 +103,10 @@ CATEGORY_ALIASES = {
     'cutlet': ('food', 9),
     'roast': ('food', 9),
     'beef roast': ('food', 10),
+    'beef bhuna': ('food', 10),     # Popular Bengali dish
+    'chicken roast': ('food', 10),  # Popular dish
+    'chicken curry': ('food', 9),   # Common term
+    'fish curry': ('food', 9),      # Very common in BD
     'mutton': ('food', 9),
     'goat': ('food', 9),
     'hilsa': ('food', 10),
@@ -177,6 +185,12 @@ CATEGORY_ALIASES = {
     'chinese': ('food', 9),
     'thai': ('food', 9),
     'continental': ('food', 9),
+    'luchi': ('food', 9),           # Bengali puri
+    'paratha': ('food', 9),         # Flatbread
+    'porota': ('food', 9),          # Local spelling
+    'naan': ('food', 8),            # Bread
+    'shingara': ('food', 10),       # Bengali samosa
+    'singara': ('food', 10),        # Alternative spelling
     
     # Bengali Script Food Aliases - COMPREHENSIVE COVERAGE FOR PROPER CATEGORIZATION
     # Traditional Main Dishes in Bengali Script
