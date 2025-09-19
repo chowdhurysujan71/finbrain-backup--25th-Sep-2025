@@ -417,6 +417,17 @@ with app.app_context():
     except Exception as e:
         logger.warning(f"Assets API registration failed: {e}")
     
+    # Register Data Integrity API (Nightly Check System)
+    try:
+        from routes.integrity_api import integrity_api
+        if 'integrity_api' not in app.blueprints:
+            app.register_blueprint(integrity_api, url_prefix='/api')
+            logger.info("✓ Data Integrity API routes registered")
+    except ImportError as e:
+        logger.info(f"Data Integrity API not loaded: {e}")
+    except Exception as e:
+        logger.warning(f"Data Integrity API registration failed: {e}")
+    
     # Register Redis Smoke Test endpoint
     logger.info("Attempting to register Redis smoke test endpoint...")
     try:
@@ -443,6 +454,21 @@ with app.app_context():
     logger.info("Initializing background processor...")
     from utils.background_processor import background_processor
     logger.info(f"Background processor ready: {background_processor.get_stats()}")
+    
+    # Initialize data integrity scheduler
+    logger.info("Initializing data integrity scheduler...")
+    try:
+        from utils.integrity_scheduler import integrity_scheduler
+        integrity_scheduler.start()
+        logger.info("✓ Data integrity scheduler started (nightly checks enabled)")
+        
+        # Register cleanup on shutdown
+        import atexit
+        atexit.register(integrity_scheduler.stop)
+        
+    except Exception as e:
+        logger.error(f"Failed to start data integrity scheduler: {e}")
+        # Don't fail app startup if scheduler fails to start
     
     # Log centralized configuration for observability
     from config import AI_RL_USER_LIMIT, AI_RL_WINDOW_SEC, AI_RL_GLOBAL_LIMIT, MSG_MAX_CHARS, TIMEZONE, CURRENCY_SYMBOL
