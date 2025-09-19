@@ -428,6 +428,17 @@ with app.app_context():
     except Exception as e:
         logger.warning(f"Data Integrity API registration failed: {e}")
     
+    # Register Deploy Probe API (Post-Deploy Validation System)
+    try:
+        from routes.deploy_probe import deploy_probe
+        if 'deploy_probe' not in app.blueprints:
+            app.register_blueprint(deploy_probe)
+            logger.info("✓ Deploy Probe API routes registered")
+    except ImportError as e:
+        logger.info(f"Deploy Probe API not loaded: {e}")
+    except Exception as e:
+        logger.warning(f"Deploy Probe API registration failed: {e}")
+    
     # Register Redis Smoke Test endpoint
     logger.info("Attempting to register Redis smoke test endpoint...")
     try:
