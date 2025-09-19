@@ -3,10 +3,24 @@ const addMsg = (role, text) => {
   const messages = document.getElementById('chat-messages');
   if (!messages) return;
   
-  const d = document.createElement("div");
-  d.className = role === "user" ? "msg msg-user" : "msg msg-bot";
-  d.textContent = text;
-  messages.appendChild(d);
+  const messageDiv = document.createElement("div");
+  messageDiv.className = role === "user" ? "message user-message" : "message ai-message";
+  
+  // Create avatar
+  const avatar = document.createElement("div");
+  avatar.className = "message-avatar";
+  avatar.textContent = role === "user" ? "👤" : "🤖";
+  
+  // Create content with XSS protection
+  const content = document.createElement("div");
+  content.className = "message-content";
+  const paragraph = document.createElement("p");
+  paragraph.textContent = text; // textContent prevents XSS
+  content.appendChild(paragraph);
+  
+  messageDiv.appendChild(avatar);
+  messageDiv.appendChild(content);
+  messages.appendChild(messageDiv);
   messages.scrollTop = messages.scrollHeight;
 };
 
@@ -18,7 +32,13 @@ const renderAssistant = (data) => {
     return;
   }
   
-  // Handle the expected {"messages": [...]} format
+  // Handle the actual backend response format: {"reply": "text", ...}
+  if (data.reply) {
+    addMsg("bot", data.reply);
+    return;
+  }
+  
+  // Handle the expected {"messages": [...]} format (fallback)
   const messages = data.messages || [];
   messages.forEach(msg => {
     if (msg.content) {
