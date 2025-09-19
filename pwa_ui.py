@@ -765,31 +765,19 @@ def ai_chat_test():
         'expense_logged': False
     })
 
-def finbrain_route(text, request_obj):
-    """Updated wrapper that uses the production router facade for authenticated users"""
+def finbrain_route(text, user_id):
+    """Production router for authenticated users only - no anonymous fallback"""
     from utils.production_router import route_message
-    from utils.identity import psid_hash
-    from flask import session
-    import uuid
     
-    # Use authenticated user ID from session for persistent data storage
-    authenticated_user_id = session.get('user_id')
+    assert user_id, "user_id required for expense tracking"
     
-    if authenticated_user_id:
-        # Use the authenticated user's ID (already hashed)
-        user_hash = authenticated_user_id
-    else:
-        # Fallback for anonymous users (expenses won't persist)
-        uid = f"pwa_anonymous_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
-        user_hash = psid_hash(uid)
-    
-    # Call the same production facade that FB Messenger uses for 100% success
+    # Call the same production facade that FB Messenger uses
     response_text, intent, category, amount = route_message(
-        user_id_hash=user_hash,
+        user_id_hash=user_id,
         text=text,
         channel="web",
         locale="en",
-        meta={"user_agent": request_obj.headers.get('User-Agent', 'unknown')}
+        meta={"source": "ai_chat_authenticated"}
     )
     
     return response_text
@@ -797,53 +785,46 @@ def finbrain_route(text, request_obj):
 @pwa_ui.route('/ai-chat', methods=['POST'])
 @limiter.limit("8 per minute")
 def ai_chat():
-    """AI chat endpoint with proper metadata structure for prod gate compliance"""
-    start_time = time.time()
-    try:
-        data = request.get_json(force=True) or {}
-        text = (data.get("text") or data.get("message") or "").strip()
-        
-        # Get user ID from Flask session for authenticated users
-        from flask import session
-        user_id = session.get('user_id', 'anonymous')
-        
-        if not text:
+    """AI chat endpoint - requires authentication to track expenses"""
+    from utils.user_id import require_auth
+    
+    @require_auth
+    def _ai_chat_authenticated(user_id):
+        start_time = time.time()
+        try:
+            data = request.get_json(force=True) or {}
+            text = (data.get("text") or data.get("message") or "").strip()
+            
+            if not text:
+                return jsonify({"error": "Message is required"}), 400
+
+            # Use FinBrain AI router with explicit user_id
+            reply = finbrain_route(text, user_id)
             latency_ms = int((time.time() - start_time) * 1000)
+            
             return jsonify({
-                "reply": "Say something and I'll respond.",
-                "data": {"intent": "help", "category": None, "amount": None},
+                "reply": reply,
+                "data": {"intent": "chat", "category": "general", "amount": None},
                 "user_id": user_id,
                 "metadata": {
                     "source": "ai-chat",
                     "latency_ms": latency_ms
                 }
             }), 200
-
-        # Use FinBrain AI router
-        reply = finbrain_route(text, request)
-        latency_ms = int((time.time() - start_time) * 1000)
-        
-        return jsonify({
-            "reply": reply,
-            "data": {"intent": "chat", "category": "general", "amount": None},
-            "user_id": user_id,
-            "metadata": {
-                "source": "ai-chat",
-                "latency_ms": latency_ms
-            }
-        }), 200
-    except Exception as e:
-        latency_ms = int((time.time() - start_time) * 1000)
-        # Make sure the client always gets proper structure even on error
-        return jsonify({
-            "reply": f"Server error: {type(e).__name__}",
-            "data": {"intent": "error", "category": None, "amount": None},
-            "user_id": _safe_get_user_id(),
-            "metadata": {
-                "source": "ai-chat",
-                "latency_ms": latency_ms
-            }
-        }), 200
+        except Exception as e:
+            latency_ms = int((time.time() - start_time) * 1000)
+            return jsonify({
+                "reply": f"Server error: {type(e).__name__}",
+                "data": {"intent": "error", "category": None, "amount": None},
+                "user_id": user_id,
+                "metadata": {
+                    "source": "ai-chat",
+                    "latency_ms": latency_ms
+                }
+            }), 500
+    
+    # CRITICAL: Ensure the decorated function is actually called
+    return _ai_chat_authenticated()
 
 @pwa_ui.route('/expense', methods=['POST'])
 def add_expense():

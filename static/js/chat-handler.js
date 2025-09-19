@@ -1,4 +1,33 @@
 // static/js/chat-handler.js
+
+// Toast notification utility
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #dc3545;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 4px;
+    z-index: 1000;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  `;
+  
+  document.body.appendChild(toast);
+  
+  // Remove after 4 seconds
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.parentNode.removeChild(toast);
+    }
+  }, 4000);
+}
+
 const addMsg = (role, text) => {
   const messages = document.getElementById('chat-messages');
   if (!messages) return;
@@ -172,9 +201,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const rid = Math.random().toString(36).slice(2, 10); // client trace id
 
     try {
-      // 1) auth
+      // 1) auth check
       const a = await fetch('/api/auth/me', { credentials:'same-origin' });
-      if (!a.ok) throw new Error('Not signed in');
+      if (!a.ok) {
+        // User not authenticated, redirect to login
+        showToast('Please log in to track expenses.');
+        window.location.href = '/login?returnTo=/chat';
+        return;
+      }
 
       // 2) chat roundtrip (SINGLE endpoint)
       const r = await fetch('/ai-chat', {
@@ -183,6 +217,15 @@ document.addEventListener('DOMContentLoaded', () => {
         credentials: 'same-origin',
         body: JSON.stringify({ message: text })
       });
+      
+      // Handle 401 from AI chat endpoint
+      if (r.status === 401) {
+        const data = await r.json().catch(() => ({}));
+        showToast(data.error || 'Please log in to track expenses.');
+        window.location.href = '/login?returnTo=/chat';
+        return;
+      }
+      
       const data = await r.json().catch(()=> ({}));
       if (!r.ok) throw new Error(`HTTP ${r.status} ${data.error||''}`);
 
@@ -192,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
       input.value = '';
     } catch (err) {
       console.error('[TRACE] fail', err);
-      alert(`Chat failed: ${err.message}`);
+      showToast(`Chat failed: ${err.message}`);
     } finally {
       sendBtn.disabled = false;
       input.focus();
