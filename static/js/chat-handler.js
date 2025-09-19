@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       // 1) auth
-      const a = await fetch('/api/backend/diag/auth', { credentials:'same-origin' });
+      const a = await fetch('/api/auth/me', { credentials:'same-origin' });
       if (!a.ok) throw new Error('Not signed in');
 
       // 2) chat roundtrip (SINGLE endpoint)
