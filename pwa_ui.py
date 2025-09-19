@@ -272,6 +272,24 @@ def challenge():
     
     return render_template('challenge.html', user_id=user.user_id_hash)
 
+@pwa_ui.route('/admin/chat')
+def admin_chat():
+    """
+    Admin chat interface
+    AUTHENTICATION REQUIRED - Redirects to login if not authenticated
+    """
+    from flask import Response, redirect
+    
+    user = require_auth_or_redirect()
+    if isinstance(user, Response):
+        # This is a redirect response
+        return user
+    
+    logger.info(f"Admin chat route accessed by user: {user.user_id_hash}")
+    
+    # For now, redirect to regular chat - later can be enhanced with admin features
+    return redirect('/chat')
+
 @pwa_ui.route('/login')
 def login():
     """
