@@ -2,7 +2,7 @@
 Diagnostic endpoint for tracing write/read path inconsistencies
 """
 from flask import Blueprint, request, jsonify
-from utils.crypto import ensure_hashed
+from utils.identity import ensure_hashed
 from models import Expense, User
 from db_base import db
 
@@ -23,7 +23,7 @@ def quickscan():
     if not (psid or psid_hash):
         return jsonify({"error": "provide psid or psid_hash"}), 400
     
-    user_id = ensure_hashed(psid if psid else psid_hash)
+    user_id = ensure_hashed(psid or psid_hash or "")
     
     # Check expenses table
     expenses = Expense.query.filter_by(user_id=user_id).all()

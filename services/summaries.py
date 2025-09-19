@@ -62,7 +62,7 @@ def fetch_expense_totals(psid: str, start: datetime, end: datetime):
     """Fetch expense totals from database for given timeframe"""
     try:
         from models import Expense
-        from utils.crypto import ensure_hashed
+        from utils.identity import ensure_hashed
         
         # Use consistent hashing
         user_hash = ensure_hashed(psid)

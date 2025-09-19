@@ -3,6 +3,7 @@ Unified cryptographic utilities to eliminate hash inconsistencies
 """
 import hashlib
 import logging
+from utils.identity import ensure_hashed as identity_ensure_hashed
 
 logger = logging.getLogger(__name__)
 
@@ -16,25 +17,18 @@ def ensure_hashed(psid_or_hash: str) -> str:
     """
     Ensure we have a consistently hashed user identifier
     
+    CRITICAL: This function now delegates to utils.identity.ensure_hashed() 
+    to ensure ALL hashing uses the same salted method: SHA256(ID_SALT|id)
+    
     Args:
         psid_or_hash: Either a raw PSID or already-hashed identifier
         
     Returns:
-        SHA-256 hash of the identifier
+        SHA-256 hash of the identifier using consistent salted method
     """
     if not psid_or_hash:
         raise ValueError("psid_or_hash cannot be empty")
     
-    # If it's already a 64-character hex string, return as-is
-    if is_sha256_hex(psid_or_hash):
-        return psid_or_hash.lower()
-    
-    # Otherwise, hash it
-    result = hashlib.sha256(psid_or_hash.encode('utf-8')).hexdigest()
-    
-    # Strict validation in debug mode
-    import os
-    if os.environ.get('STRICT_IDS', 'false').lower() == 'true':
-        assert is_sha256_hex(result), f"Generated hash is invalid: {result}"
-    
-    return result
+    # Delegate to identity module for consistent salted hashing
+    # This fixes the hash inconsistency that broke reconciliation
+    return identity_ensure_hashed(psid_or_hash)
