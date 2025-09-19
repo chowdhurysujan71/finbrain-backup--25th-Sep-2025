@@ -766,22 +766,22 @@ def ai_chat_test():
     })
 
 def finbrain_route(text, request_obj):
-    """Updated wrapper that uses the production router facade for 100% success rate"""
+    """Updated wrapper that uses the production router facade for authenticated users"""
     from utils.production_router import route_message
     from utils.identity import psid_hash
+    from flask import session
     import uuid
     
-    # Get stable user ID from X-User-ID header (set by frontend localStorage)
-    uid = request_obj.headers.get('X-User-ID')
+    # Use authenticated user ID from session for persistent data storage
+    authenticated_user_id = session.get('user_id')
     
-    if not uid:
-        # Fallback: generate stable ID for this session and store in cookie
-        uid = request_obj.cookies.get('user_id')
-        if not uid:
-            uid = f"pwa_user_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
-    
-    # Generate stable hash for data processing (like FB Messenger)
-    user_hash = psid_hash(uid) if uid.startswith('pwa_') else uid
+    if authenticated_user_id:
+        # Use the authenticated user's ID (already hashed)
+        user_hash = authenticated_user_id
+    else:
+        # Fallback for anonymous users (expenses won't persist)
+        uid = f"pwa_anonymous_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+        user_hash = psid_hash(uid)
     
     # Call the same production facade that FB Messenger uses for 100% success
     response_text, intent, category, amount = route_message(
@@ -803,9 +803,9 @@ def ai_chat():
         data = request.get_json(force=True) or {}
         text = (data.get("text") or data.get("message") or "").strip()
         
-        # Get user ID from Flask g context (single-source-of-truth)
-        from flask import g
-        user_id = getattr(g, 'user_id', None) or 'anonymous'
+        # Get user ID from Flask session for authenticated users
+        from flask import session
+        user_id = session.get('user_id', 'anonymous')
         
         if not text:
             latency_ms = int((time.time() - start_time) * 1000)
