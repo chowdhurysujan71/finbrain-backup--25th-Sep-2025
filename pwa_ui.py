@@ -215,7 +215,17 @@ def report():
     Money Story summary cards + placeholder charts
     AUTHENTICATION REQUIRED
     """
-    user = require_auth()  # Require authentication
+    from flask import Response
+    user = require_auth_or_redirect()  # Require authentication or redirect to login
+    
+    # If it's a redirect response, return it directly
+    if isinstance(user, Response):
+        return user
+        
+    if not user:  # In case it returns None instead of redirecting
+        from flask import redirect
+        return redirect("/login?returnTo=/report")
+    
     logger.info(f"PWA report route accessed by user: {user.user_id_hash}")
     
     return render_template('report.html', user_id=user.user_id_hash)
@@ -226,7 +236,17 @@ def profile():
     Profile summary showing user info if available
     AUTHENTICATION REQUIRED
     """
-    user = require_auth()  # Require authentication
+    from flask import Response
+    user = require_auth_or_redirect()  # Require authentication or redirect to login
+    
+    # If it's a redirect response, return it directly
+    if isinstance(user, Response):
+        return user
+        
+    if not user:  # In case it returns None instead of redirecting
+        from flask import redirect
+        return redirect("/login?returnTo=/profile")
+    
     logger.info(f"PWA profile route accessed by user: {user.user_id_hash}")
     
     return render_template('profile.html', user_id=user.user_id_hash)
@@ -237,7 +257,17 @@ def challenge():
     3-day challenge progress UI
     AUTHENTICATION REQUIRED
     """
-    user = require_auth()  # Require authentication
+    from flask import Response
+    user = require_auth_or_redirect()  # Require authentication or redirect to login
+    
+    # If it's a redirect response, return it directly
+    if isinstance(user, Response):
+        return user
+        
+    if not user:  # In case it returns None instead of redirecting
+        from flask import redirect
+        return redirect("/login?returnTo=/challenge")
+    
     logger.info(f"PWA challenge route accessed by user: {user.user_id_hash}")
     
     return render_template('challenge.html', user_id=user.user_id_hash)
