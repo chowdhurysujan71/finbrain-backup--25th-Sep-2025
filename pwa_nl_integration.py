@@ -4,13 +4,15 @@ Integrates the NL expense parser with the existing form-based expense system
 """
 
 import logging
+import hashlib
 from flask import request, jsonify, render_template, redirect, url_for
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
 from utils.nl_expense_parser import parse_nl_expense, ExpenseParseResult
 from utils.expense_editor import edit_last_expense, expense_editor
 from utils.db import save_expense
 from utils.identity import psid_hash
+from utils.categories import normalize_category
 from models import Expense
 from db_base import db
 from utils.db_guard import assert_single_db_instance
@@ -39,10 +41,10 @@ def handle_nl_expense_entry(text: str, user_id_hash: str) -> Dict[str, Any]:
                 user_identifier=user_id_hash,
                 description=result.description or text,
                 amount=result.amount,
-                category=result.category,
+                category=normalize_category(result.category or 'other'),
                 platform='pwa',
                 original_message=text,
-                unique_id=f"nl_{user_id_hash}_{hash(text)}",
+                unique_id=f"nl_{user_id_hash}_{hashlib.sha256(text.encode()).hexdigest()[:16]}",
                 db_session=db
             )
             
@@ -108,9 +110,9 @@ def handle_nl_expense_entry(text: str, user_id_hash: str) -> Dict[str, Any]:
 def handle_clarification_response(
     original_text: str, 
     user_id_hash: str,
-    confirmed_amount: float = None,
-    confirmed_category: str = None,
-    confirmed_description: str = None
+    confirmed_amount: Optional[float] = None,
+    confirmed_category: Optional[str] = None,
+    confirmed_description: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Handle user's clarification response and save the expense
@@ -126,15 +128,28 @@ def handle_clarification_response(
         Dict with save results
     """
     try:
+        # Validate required parameters
+        if confirmed_amount is None:
+            return {
+                "success": False,
+                "error": "Amount is required for expense confirmation"
+            }
+        
+        if confirmed_category is None:
+            return {
+                "success": False,
+                "error": "Category is required for expense confirmation"
+            }
+        
         # Save the clarified expense
         expense_result = save_expense(
             user_identifier=user_id_hash,
             description=confirmed_description or original_text,
             amount=confirmed_amount,
-            category=confirmed_category,
+            category=normalize_category(confirmed_category),
             platform='pwa',
             original_message=original_text,
-            unique_id=f"nl_clarified_{user_id_hash}_{hash(original_text)}",
+            unique_id=f"nl_clarified_{user_id_hash}_{hashlib.sha256(original_text.encode()).hexdigest()[:16]}",
             db_session=db
         )
         
@@ -174,10 +189,10 @@ def handle_clarification_response(
 
 def handle_edit_last_expense_request(
     user_id_hash: str,
-    new_amount: float = None,
-    new_category: str = None,
-    new_description: str = None,
-    reason: str = None
+    new_amount: Optional[float] = None,
+    new_category: Optional[str] = None,
+    new_description: Optional[str] = None,
+    reason: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Handle "Edit Last Expense" functionality
@@ -221,8 +236,8 @@ def get_expense_edit_history(user_id_hash: str, expense_id: int) -> List[Dict]:
 # Template rendering helpers
 def render_clarification_ui(
     original_text: str,
-    detected_amount: float = None,
-    suggested_categories: List[Dict] = None
+    detected_amount: Optional[float] = None,
+    suggested_categories: Optional[List[Dict]] = None
 ) -> str:
     """Render the clarification UI for low-confidence parsing"""
     

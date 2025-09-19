@@ -159,18 +159,24 @@ CATEGORY_MAPPING = {
     "groceries": "food",  # Map groceries to food
     "utilities": "bills",  # Map utilities to bills
     "entertainment": "shopping",  # Map to shopping for now
-    "health": "shopping",  # Map to shopping for now
+    "health": "shopping",  # Map to shopping (health not in ALLOWED_CATEGORIES)
     "education": "shopping",  # Map to shopping for now
     "personal care": "shopping",  # Map to shopping for now
-    "misc": "uncategorized",
+    "misc": "uncategorized",  # Map to uncategorized (other not in ALLOWED_CATEGORIES)
     
-    # Legacy mappings that cause constraint violations
-    "general": "uncategorized",
-    "other": "uncategorized",
+    # Legacy mappings that cause constraint violations - FIXED
+    "general": "uncategorized",  # Map to uncategorized (other not in ALLOWED_CATEGORIES)
+    "other": "uncategorized",  # Map to uncategorized
+    
+    # New mappings for reconciliation fix - using ALLOWED_CATEGORIES only
+    "wellness": "shopping",  # wellness → shopping (closest allowed category for health-related)
+    "salon": "shopping",     # salon → shopping (closest allowed category for health-related)
+    "spa": "shopping",       # spa → shopping (closest allowed category for health-related)
+    "miscellaneous": "uncategorized",  # miscellaneous → uncategorized
     
     # Additional common mappings
     "grocery": "food",
-    "medicine": "shopping",
+    "medicine": "shopping",  # medicine → shopping (closest allowed category for health-related)
     "gas": "bills",
     "electricity": "bills",
     "internet": "bills",

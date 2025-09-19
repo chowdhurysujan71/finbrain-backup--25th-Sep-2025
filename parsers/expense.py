@@ -445,6 +445,9 @@ CATEGORY_ALIASES = {
     'medicine': ('health', 10),
     'pharmacy': ('health', 9),
     'doctor': ('health', 9),
+    'wellness': ('health', 8),
+    'salon': ('health', 8),
+    'spa': ('health', 8),
     
     # Bills (strength: 9) - ENHANCED FOR GAS BILL ISSUE
     'internet': ('bills', 10),
@@ -484,7 +487,12 @@ CATEGORY_ALIASES = {
     'dog food': ('pets', 10),
     'pet food': ('pets', 10),
     'pet supplies': ('pets', 9),
-    'pet store': ('pets', 9)
+    'pet store': ('pets', 9),
+    
+    # General/Other category mappings - for vague terms that should map to 'other'
+    'general': ('other', 6),  # Lower strength so it can be overridden by description inference
+    'misc': ('other', 6),
+    'miscellaneous': ('other', 6)
 }
 
 # Vague trailing tokens that should be overridden by description inference
