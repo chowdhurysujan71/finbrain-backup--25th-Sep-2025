@@ -25,6 +25,20 @@ def require_auth():
     user_id_hash = session.get('user_id')
     if not user_id_hash:
         abort(401)
+
+def require_auth_or_redirect():
+    """Helper function to redirect to login if user is not authenticated"""
+    from models import User
+    from flask import session, redirect, url_for, request
+    from sqlalchemy.exc import OperationalError, DisconnectionError
+    from db_base import db
+    import time
+    
+    # Check if user is logged in via session
+    user_id_hash = session.get('user_id')
+    if not user_id_hash:
+        # Redirect to login with returnTo parameter
+        return redirect(f"/login?returnTo={request.path}")
     
     # Find user in database with retry logic for SSL connection issues
     max_retries = 3
@@ -34,9 +48,9 @@ def require_auth():
         try:
             user = User.query.filter_by(user_id_hash=user_id_hash).first()
             if not user:
-                # Session is invalid, clear it
+                # Session is invalid, clear it and redirect
                 session.clear()
-                abort(401)
+                return redirect(f"/login?returnTo={request.path}")
             
             return user
             
@@ -44,7 +58,7 @@ def require_auth():
             # Handle SSL connection errors and other database connectivity issues
             if attempt < max_retries - 1:
                 # Log the retry attempt
-                logger.warning(f"Database connection error in require_auth (attempt {attempt + 1}/{max_retries}): {str(e)[:100]}...")
+                logger.warning(f"Database connection error in require_auth_or_redirect (attempt {attempt + 1}/{max_retries}): {str(e)[:100]}...")
                 
                 # Dispose of current connection pool to force fresh connections
                 try:
@@ -58,17 +72,17 @@ def require_auth():
                 continue
             else:
                 # Last attempt failed, log error and abort
-                logger.error(f"Database connection failed after {max_retries} attempts in require_auth: {str(e)}")
+                logger.error(f"Database connection failed after {max_retries} attempts in require_auth_or_redirect: {str(e)}")
                 # Return 503 Service Unavailable instead of 500 for DB connectivity issues
+                from flask import abort
                 abort(503)
         
         except Exception as e:
             # Handle non-connection related database errors
-            logger.error(f"Non-connection database error in require_auth: {str(e)}")
+            logger.error(f"Non-connection database error in require_auth_or_redirect: {str(e)}")
+            from flask import abort
             abort(500)
     
-    # This should never be reached due to the loop structure, but just in case
-    abort(503)
 
 # Safe JSON helper function
 def _json():
@@ -180,7 +194,17 @@ def chat():
     Expense input + recent entries list (HTMX partial hydrate)
     AUTHENTICATION REQUIRED
     """
-    user = require_auth()  # Require authentication
+    from flask import Response
+    user = require_auth_or_redirect()  # Require authentication or redirect to login
+    
+    # If it's a redirect response, return it directly
+    if isinstance(user, Response):
+        return user
+        
+    if not user:  # In case it returns None instead of redirecting
+        from flask import redirect
+        return redirect("/login?returnTo=/chat")
+    
     logger.info(f"PWA chat route accessed by user: {user.user_id_hash}")
     
     return render_template('chat.html', user_id=user.user_id_hash)
