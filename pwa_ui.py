@@ -804,45 +804,47 @@ def finbrain_route(text, user_id):
 @limiter.limit("8 per minute")
 def ai_chat():
     """AI chat endpoint - requires authentication to track expenses"""
-    from utils.user_id import require_auth
+    from utils.user_id import get_canonical_user_id
     
-    @require_auth
-    def _ai_chat_authenticated(user_id):
-        start_time = time.time()
-        try:
-            data = request.get_json(force=True) or {}
-            text = (data.get("text") or data.get("message") or "").strip()
-            
-            if not text:
-                return jsonify({"error": "Message is required"}), 400
+    # Get authenticated user ID
+    user_id = get_canonical_user_id()
+    if not user_id:
+        return jsonify({"error": "Please log in to track expenses"}), 401
+    
+    start_time = time.time()
+    try:
+        data = request.get_json(force=True) or {}
+        text = (data.get("text") or data.get("message") or "").strip()
+        
+        if not text:
+            return jsonify({"error": "Message is required"}), 400
 
-            # Use FinBrain AI router with explicit user_id
-            reply = finbrain_route(text, user_id)
-            latency_ms = int((time.time() - start_time) * 1000)
-            
-            return jsonify({
-                "reply": reply,
-                "data": {"intent": "chat", "category": "general", "amount": None},
-                "user_id": user_id,
-                "metadata": {
-                    "source": "ai-chat",
-                    "latency_ms": latency_ms
-                }
-            }), 200
-        except Exception as e:
-            latency_ms = int((time.time() - start_time) * 1000)
-            return jsonify({
-                "reply": f"Server error: {type(e).__name__}",
-                "data": {"intent": "error", "category": None, "amount": None},
-                "user_id": user_id,
-                "metadata": {
-                    "source": "ai-chat",
-                    "latency_ms": latency_ms
-                }
-            }), 500
-    
-    # CRITICAL: Ensure the decorated function is actually called
-    return _ai_chat_authenticated()
+        # Use FinBrain AI router with explicit user_id
+        logger.info(f"Processing AI chat message for user {user_id[:8]}***: '{text[:50]}...'")
+        reply = finbrain_route(text, user_id)
+        latency_ms = int((time.time() - start_time) * 1000)
+        
+        return jsonify({
+            "reply": reply,
+            "data": {"intent": "chat", "category": "general", "amount": None},
+            "user_id": user_id[:8] + "***",  # Truncated for privacy
+            "metadata": {
+                "source": "ai-chat",
+                "latency_ms": latency_ms
+            }
+        }), 200
+    except Exception as e:
+        logger.error(f"AI chat error for user {user_id[:8]}***: {type(e).__name__}: {str(e)}")
+        latency_ms = int((time.time() - start_time) * 1000)
+        return jsonify({
+            "reply": f"Server error: {type(e).__name__}",
+            "data": {"intent": "error", "category": None, "amount": None},
+            "user_id": user_id[:8] + "***",
+            "metadata": {
+                "source": "ai-chat",
+                "latency_ms": latency_ms
+            }
+        }), 500
 
 @pwa_ui.route('/expense', methods=['POST'])
 def add_expense():
