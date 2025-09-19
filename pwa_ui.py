@@ -798,16 +798,35 @@ def finbrain_route(text, user_id):
         meta={"source": "ai_chat_authenticated"}
     )
     
-    return response_text
+    return response_text, intent, category, amount
 
 @pwa_ui.route('/ai-chat', methods=['POST'])
 @limiter.limit("8 per minute")
 def ai_chat():
     """AI chat endpoint - requires authentication to track expenses"""
+    from flask import session
+    from finbrain.structured import logger as structured_logger
+    import json
+    import os
     
-    # Get authenticated user ID from middleware-set g.user_id
-    user_id = getattr(g, 'user_id', None)
-    if not user_id:
+    # Get request_id from middleware
+    request_id = getattr(g, 'request_id', 'unknown')
+    
+    # Get session user ID
+    session_user_id = session.get('user_id')
+    
+    # Get resolved user ID from middleware-set g.user_id
+    resolved_user_id = getattr(g, 'user_id', None)
+    
+    # Authentication failure logging (FIX: Remove json.dumps to avoid double-encoding)
+    if not resolved_user_id:
+        from finbrain.structured import emit_telemetry
+        emit_telemetry({
+            "request_id": request_id,
+            "auth_failed": True,
+            "route": "/ai-chat",
+            "reason": "unauthenticated"
+        })
         return jsonify({"error": "Please log in to track expenses"}), 401
     
     start_time = time.time()
@@ -817,28 +836,109 @@ def ai_chat():
         
         if not text:
             return jsonify({"error": "Message is required"}), 400
+        
+        # The db_user_id passed to finbrain_route is the same as resolved_user_id
+        db_user_id = resolved_user_id
+        
+        # FIX: Add user_id consistency validation
+        user_id_consistent = (session_user_id == resolved_user_id == db_user_id)
+        
+        # Structured logging at start of handler (FIX: Remove json.dumps to avoid double-encoding)
+        from finbrain.structured import emit_telemetry
+        emit_telemetry({
+            "request_id": request_id,
+            "route": "/ai-chat",
+            "session_user_id": session_user_id,
+            "resolved_user_id": resolved_user_id,
+            "db_user_id": db_user_id,
+            "user_id_consistent": user_id_consistent,
+            "message": text[:40],  # First 40 characters
+            "env": "prod"
+        })
+        
+        # FIX: Emit warning if user IDs are inconsistent
+        if not user_id_consistent:
+            logger.warning(f"User ID inconsistency detected: session={session_user_id}, resolved={resolved_user_id}, db={db_user_id}")
 
         # Use FinBrain AI router with explicit user_id
-        logger.info(f"Processing AI chat message for user {user_id[:8]}***: '{text[:50]}...'")
-        reply = finbrain_route(text, user_id)
+        logger.info(f"Processing AI chat message for user {resolved_user_id[:8]}***: '{text[:50]}...'")
+        reply, intent, category, amount = finbrain_route(text, db_user_id)
+        
+        # Check if an expense was successfully saved
+        expense_intents = ["expense_logged", "ai_expense_logged", "log_single", "log_expense"]
+        expense_id = None
+        if intent in expense_intents and amount is not None:
+            # FIX: Get the expense_id by looking up the most recent expense for this user
+            try:
+                from models import Expense
+                from db_base import db
+                from datetime import datetime, timedelta
+                
+                # Look for the most recent expense created within the last 5 seconds
+                recent_cutoff = datetime.utcnow() - timedelta(seconds=5)
+                recent_expense = db.session.query(Expense).filter(
+                    Expense.user_id_hash == db_user_id,
+                    Expense.created_at >= recent_cutoff,
+                    Expense.amount == amount
+                ).order_by(Expense.created_at.desc()).first()
+                
+                if recent_expense:
+                    expense_id = recent_expense.id
+                    
+            except Exception as e:
+                logger.warning(f"Could not retrieve expense_id for logging: {e}")
+            
+            # FIX: Log expense_saved with expense_id and without json.dumps
+            emit_telemetry({
+                "request_id": request_id,
+                "expense_saved": True,
+                "id": expense_id,  # FIX: Include the primary key as required
+                "amount": amount,
+                "source": "ai-chat",
+                "category": category,
+                "intent": intent
+            })
+        
         latency_ms = int((time.time() - start_time) * 1000)
+        
+        # FIX: Add success logging with request_id, status=200, latency_ms
+        emit_telemetry({
+            "request_id": request_id,
+            "status": 200,
+            "latency_ms": latency_ms,
+            "route": "/ai-chat",
+            "success": True
+        })
         
         return jsonify({
             "reply": reply,
-            "data": {"intent": "chat", "category": "general", "amount": None},
-            "user_id": user_id[:8] + "***",  # Truncated for privacy
+            "data": {"intent": intent or "chat", "category": category or "general", "amount": amount},
+            "user_id": resolved_user_id[:8] + "***",  # Truncated for privacy
             "metadata": {
                 "source": "ai-chat",
                 "latency_ms": latency_ms
             }
         }), 200
     except Exception as e:
-        logger.error(f"AI chat error for user {user_id[:8]}***: {type(e).__name__}: {str(e)}")
+        # FIX: Handle case where resolved_user_id might be None to prevent NameError
+        safe_user_id = resolved_user_id[:8] + "***" if resolved_user_id else "unknown"
+        logger.error(f"AI chat error for user {safe_user_id}: {type(e).__name__}: {str(e)}")
         latency_ms = int((time.time() - start_time) * 1000)
+        
+        # Log error event
+        emit_telemetry({
+            "request_id": request_id,
+            "status": 500,
+            "latency_ms": latency_ms,
+            "route": "/ai-chat",
+            "error": type(e).__name__,
+            "success": False
+        })
+        
         return jsonify({
             "reply": f"Server error: {type(e).__name__}",
             "data": {"intent": "error", "category": None, "amount": None},
-            "user_id": user_id[:8] + "***",
+            "user_id": safe_user_id,
             "metadata": {
                 "source": "ai-chat",
                 "latency_ms": latency_ms
