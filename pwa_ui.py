@@ -804,10 +804,9 @@ def finbrain_route(text, user_id):
 @limiter.limit("8 per minute")
 def ai_chat():
     """AI chat endpoint - requires authentication to track expenses"""
-    from utils.user_id import get_canonical_user_id
     
-    # Get authenticated user ID
-    user_id = get_canonical_user_id()
+    # Get authenticated user ID from middleware-set g.user_id
+    user_id = getattr(g, 'user_id', None)
     if not user_id:
         return jsonify({"error": "Please log in to track expenses"}), 401
     
