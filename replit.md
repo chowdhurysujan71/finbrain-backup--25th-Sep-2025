@@ -7,7 +7,14 @@ finbrain is an AI-first expense tracking application delivered via Facebook Mess
 Preferred communication style: Simple, everyday language.
 Zero-surprise deployment requirement: 100% user-visible success demanded with comprehensive validation before any production changes.
 
-## Recent Major Updates (September 18, 2025)
+## Recent Major Updates (September 20, 2025)
+- **🎯 WEB-ONLY ARCHITECTURE CONSOLIDATION COMPLETE**: Successfully consolidated from multi-channel (Messenger + forms + web) to web-only architecture for simplified, stable operations
+- **🚫 MESSENGER DEPRECATION DEPLOYED**: Added 410 Gone responses to /webhook/messenger with clear migration messaging, completely retired Messenger integration and removed boot dependencies
+- **🔄 BACKEND WRITE PATH UNIFIED**: Verified all expense creation routes funnel through backend_assistant.add_expense() canonical API with proper idempotency and validation
+- **🧪 DEPLOYMENT CONFIDENCE SCRIPT**: Created comprehensive automated validation with CAPTCHA solver, health checks, auth testing, and expense pipeline validation for zero-surprise deployments
+- **🏗️ PRODUCTION ARCHITECTURE**: System now runs completely independent of Facebook environment variables, enabling clean web-only deployment and simplified maintenance
+
+## Previous Major Updates (September 18, 2025)
 - **🔒 COMPREHENSIVE SECURITY HARDENING COMPLETED**: Executed complete security audit and hardening transformation addressing all critical abuse resistance gaps
 - **🛡️ CAPTCHA Protection Implementation**: Added math-based CAPTCHA system to /auth/login and /auth/register endpoints with 5-minute TTL, rate limiting (10/min), and session-based verification to prevent automated abuse
 - **🗂️ TTL Cleanup Mechanism Deployed**: Created automated pending_expenses cleanup system with batched processing, 7-minute scheduled runs, and comprehensive statistics tracking to prevent database bloat

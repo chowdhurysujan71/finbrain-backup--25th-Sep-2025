@@ -24,8 +24,8 @@ def validate_required_environment():
         'DATABASE_URL',
         'ADMIN_USER', 
         'ADMIN_PASS',
-        'FACEBOOK_PAGE_ACCESS_TOKEN',
-        'FACEBOOK_VERIFY_TOKEN'
+        'SESSION_SECRET',
+        'ID_SALT'
     ]
     
     missing_envs = []
@@ -41,7 +41,7 @@ def validate_required_environment():
             logger.critical(f"  - {env_var}")
         sys.exit(1)
     
-    logger.info("✓ All required environment variables present")
+    logger.info("✓ All required environment variables present (web-only architecture)")
     return True
 
 # Validate environment before any Flask initialization
@@ -1183,25 +1183,13 @@ def webhook_messenger():
     user_agent = request.headers.get('User-Agent', 'unknown')[:100]
     logger.warning(f"Deprecated Messenger webhook accessed from {client_ip} - User-Agent: {user_agent}")
     
-    if request.method == "GET":
-        # Still handle verification for Facebook's webhook management
-        verify_token = request.args.get("hub.verify_token")
-        challenge = request.args.get("hub.challenge")
-        mode = request.args.get("hub.mode")
-        
-        expected_token = os.environ.get("FACEBOOK_VERIFY_TOKEN")
-        if mode == "subscribe" and verify_token == expected_token:
-            logger.info("Webhook verification (deprecated service)")
-            return challenge or ""
-        else:
-            return "Verification token mismatch", 403
-    
-    # All POST requests get deprecation response
+    # Return 410 Gone for all requests - service completely discontinued
     return jsonify({
-        "error": "Messenger logging discontinued. Please use the web app at finbrain.app for expense tracking.",
-        "status": "service_deprecated",
-        "alternative": "Visit finbrain.app to continue tracking expenses",
-        "timestamp": datetime.utcnow().isoformat()
+        "error": "Messenger integration discontinued. Please use the web app for expense tracking.",
+        "status": "service_permanently_discontinued", 
+        "alternative": "Visit the web application to continue tracking expenses",
+        "timestamp": datetime.utcnow().isoformat(),
+        "deprecation_notice": "This endpoint has been permanently retired. Web-only architecture active."
     }), 410
 
 @app.route('/diagnose/router', methods=['GET'])
