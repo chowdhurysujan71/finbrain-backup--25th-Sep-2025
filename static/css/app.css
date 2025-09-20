@@ -400,8 +400,28 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
-.expense-form-card {
-    background: linear-gradient(135deg, var(--color-primary-50) 0%, var(--color-bg) 100%);
+/* Legacy .expense-form-card removed - web-only architecture */
+
+.cta-content {
+    text-align: center;
+    padding: var(--space-4) 0;
+}
+
+.cta-examples {
+    margin-bottom: var(--space-6);
+    text-align: left;
+}
+
+.cta-examples ul {
+    margin: var(--space-3) 0 0 var(--space-4);
+}
+
+.cta-examples code {
+    background: var(--color-surface);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    font-family: monospace;
+    font-size: var(--font-size-sm);
 }
 
 .entries-section {
