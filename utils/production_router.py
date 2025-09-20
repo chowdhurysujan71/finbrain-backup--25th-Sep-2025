@@ -437,41 +437,87 @@ class ProductionRouter:
             return self._handle_single_expense_logging(text, psid, psid_hash, rid)
 
     def _handle_single_expense_logging(self, text: str, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
-        """Handle logging a single expense (existing logic)"""
+        """Handle logging a single expense with enhanced backend assistant and clarifier support"""
         try:
-            from parsers.expense import parse_expense
-            from backend_assistant import add_expense
-            from datetime import datetime
+            import backend_assistant as ba
+            import json
             
-            # Parse single expense
-            expense = parse_expense(text, datetime.now())
+            # Use enhanced backend assistant with confidence scoring and clarifier support
+            expense_result = ba.propose_expense(text)
             
-            if not expense:
-                response = "I couldn't understand that expense. Try: 'spent 200 on groceries'"
+            # Extract confidence and clarifier data
+            confidence = expense_result.get('confidence', 0.0)
+            clarify_data = expense_result.get('clarify')
+            status = expense_result.get('status')
+            
+            # Log clarifier decision for observability 
+            logger.info(f"[CLARIFY] rid={rid} missing={clarify_data.get('missing') if clarify_data else None} conf={confidence:.2f}")
+            
+            # Handle confidence==0.5 cases with clarifier (if enabled)
+            if confidence == 0.5 and clarify_data and clarify_data.get('question'):
+                # Feature flag check for ENABLE_CLARIFIERS
+                import os
+                enable_clarifiers = os.environ.get('ENABLE_CLARIFIERS', 'false').lower() == 'true'
+                
+                if enable_clarifiers:
+                    # Return clarification response with structured data for web UI
+                    clarify_response = {
+                        "type": "clarify",
+                        "question": clarify_data['question'],
+                        "chips": clarify_data.get('chips', []),
+                        "missing": clarify_data.get('missing'),
+                        "draft": clarify_data.get('draft')
+                    }
+                    
+                    # For non-web channels, return text-only clarification 
+                    response_text = clarify_data['question']
+                    if clarify_data.get('chips'):
+                        response_text += f" (Options: {', '.join(clarify_data['chips'])})"
+                        
+                    self._log_routing_decision(rid, psid_hash, "clarification_needed", f"missing_{clarify_data.get('missing')}")
+                    return normalize(response_text), "clarify", None, None
+            
+            # Handle confidence < 0.7 (needs review)
+            if confidence < 0.7:
+                if confidence == 0.0:
+                    # Complete parse failure
+                    response = "I couldn't understand that expense. Try: 'spent 200 on groceries'"
+                    self._log_routing_decision(rid, psid_hash, "parse_failed", f"confidence_{confidence}")
+                    return normalize(response), "parse_failed", None, None
+                else:
+                    # Low confidence but some fields detected
+                    response = "I'm not fully confident about that expense. Could you be more specific?"
+                    self._log_routing_decision(rid, psid_hash, "needs_review", f"confidence_{confidence}")
+                    return normalize(response), "needs_review", None, None
+            
+            # High confidence (>= 0.7) - proceed with logging
+            amount_minor = expense_result.get('amount_minor')
+            category = expense_result.get('category', 'uncategorized')
+            currency = expense_result.get('currency', 'BDT')
+            description = expense_result.get('description', text.strip())
+            
+            if amount_minor is None:
+                response = "I couldn't detect the amount. Try: 'spent 200 on groceries'"
                 return normalize(response), "parse_failed", None, None
             
-            from utils.categories import normalize_category
-            amount = float(expense['amount'])
-            category = normalize_category(expense.get('category'))
-            
             # Save expense using CANONICAL SINGLE WRITER (spec compliance)
-            import backend_assistant as ba
             ba.add_expense(
                 user_id=psid_hash,
-                amount_minor=int(amount * 100),  # Convert to minor units
-                currency='BDT',
+                amount_minor=amount_minor,
+                currency=currency,
                 category=category,
-                description=f"{category} expense",
-                source='messenger',  # Single expense is messenger based
+                description=description,
+                source='chat',  # Web-only architecture
                 message_id=rid
             )
             
+            amount = amount_minor / 100.0  # Convert back to display units
             response = f"✅ Logged: ৳{amount:.0f} for {category}"
-            self._log_routing_decision(rid, psid_hash, "single_expense", f"logged_{amount}_{category}")
+            self._log_routing_decision(rid, psid_hash, "expense_logged", f"logged_{amount}_{category}_conf_{confidence}")
             return normalize(response), "expense_logged", category, amount
             
         except Exception as e:
-            logger.error(f"Single expense logging failed: {e}")
+            logger.error(f"Enhanced single expense logging failed: {e}")
             response = "Something went wrong logging your expense. Please try again."
             return normalize(response), "expense_error", None, None
     

@@ -18,7 +18,7 @@ from utils.db_guard import assert_single_db_instance
 assert_single_db_instance(db)
 from models import Expense, User
 from sqlalchemy import text, and_, func
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 import logging
 from utils.identity import ensure_hashed
 from utils.single_writer_guard import canonical_writer_context
@@ -124,9 +124,9 @@ def propose_expense(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
         # Convert amount to minor units only if we have a valid amount
         amount_minor = int(amount * 100) if amount is not None else None
         
-        # Apply confidence threshold rule from specification
+        # Apply confidence threshold rule from specification with clarifier support
         if confidence < 0.7:
-            return {
+            result = {
                 "amount_minor": amount_minor,
                 "currency": "BDT", 
                 "category": category or "uncategorized",
@@ -134,6 +134,13 @@ def propose_expense(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
                 "confidence": confidence,
                 "status": "needs_review"
             }
+            
+            # For confidence==0.5, add clarifier information
+            if confidence == 0.5:
+                clarify_data = craft_clarify_question(result)
+                result["clarify"] = clarify_data
+                
+            return result
         
         return {
             "amount_minor": amount_minor,
@@ -152,6 +159,65 @@ def propose_expense(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
             "category": None,
             "description": raw_text.strip(),
             "confidence": 0.0
+        }
+
+def craft_clarify_question(parsed: Dict[str, Union[str, int, float, None]]) -> Dict[str, Any]:
+    """
+    Generate targeted clarification questions for missing fields.
+    Used when confidence==0.5 (exactly one field missing).
+    
+    Args:
+        parsed: Backend assistant parsed expense dict
+        
+    Returns:
+        Dict with question, chips, missing field, and draft data
+    """
+    import os
+    
+    # Feature flag check - fail closed
+    enable_clarifiers = os.environ.get('ENABLE_CLARIFIERS', 'false').lower() == 'true'
+    if not enable_clarifiers:
+        return {"question": "I couldn't fully understand that expense. Try: 'spent 200 on groceries'", "chips": [], "missing": None, "draft": None}
+    
+    amount_minor = parsed.get('amount_minor')
+    category = parsed.get('category')
+    currency = parsed.get('currency', 'BDT')
+    description = parsed.get('description', '')
+    
+    # Determine what's missing
+    if amount_minor is None and category is not None:
+        # Missing amount
+        return {
+            "question": "How much was it?",
+            "chips": ["৳50", "৳100", "৳200", "৳500"],
+            "missing": "amount",
+            "draft": {
+                "amount_minor": None,
+                "currency": currency,
+                "category": category,
+                "description": description
+            }
+        }
+    elif amount_minor is not None and (category is None or category == 'uncategorized'):
+        # Missing category
+        return {
+            "question": "Which category fits best?",
+            "chips": ["Food", "Transport", "Bills", "Shopping", "Other"],
+            "missing": "category",
+            "draft": {
+                "amount_minor": amount_minor,
+                "currency": currency,
+                "category": None,
+                "description": description
+            }
+        }
+    else:
+        # Fallback for edge cases
+        return {
+            "question": "I couldn't understand that expense. Try: 'spent 200 on groceries'",
+            "chips": [],
+            "missing": None,
+            "draft": None
         }
 
 def canonical(s: str) -> str:
