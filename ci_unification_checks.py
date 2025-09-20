@@ -51,12 +51,42 @@ def run_sql_check(query, description, max_allowed=0):
         print(f"❌ SQL check failed: {e}")
         return False
 
+def run_security_checks():
+    """Run security vulnerability checks"""
+    print("\n🔒 SECURITY CHECKS")
+    print("=" * 60)
+    
+    try:
+        import subprocess
+        result = subprocess.run([
+            sys.executable, 'security_checks.py'
+        ], capture_output=True, text=True, cwd='.')
+        
+        print(result.stdout)
+        if result.stderr:
+            print("Security check warnings:", result.stderr)
+        
+        if result.returncode != 0:
+            print("❌ FAIL: Security violations detected")
+            return False
+        else:
+            print("✅ PASS: No security violations found")
+            return True
+    except Exception as e:
+        print(f"❌ Security checks failed to run: {e}")
+        return False
+
 def main():
     """Run all unification regression checks"""
     print("🚀 Starting Database Unification CI Checks")
     print("=" * 60)
     
     all_passed = True
+    
+    # Run security checks first
+    security_passed = run_security_checks()
+    if not security_passed:
+        all_passed = False
     
     # A) Check for fragmented reads in codebase
     print("\n📁 A) Code Pattern Checks - No fragmented reads")
