@@ -147,20 +147,19 @@ def handle_with_fallback_ai(user_id_hash, user_message, conversational_ai=None):
                     elif any(word in user_message.lower() for word in ['shop', 'buy', 'purchase', 'store']):
                         category = 'shopping'
                     
-                    # Save expense using existing system (with timeout protection)
-                    from utils.db import save_expense
+                    # Save expense using CANONICAL SINGLE WRITER (spec compliance)
+                    import backend_assistant as ba
                     import uuid
                     
                     logger.info(f"Attempting to save expense: {amount} taka for {category}")
-                    result = save_expense(
-                        user_identifier=user_id_hash,
-                        description=user_message,
-                        amount=amount,
+                    result = ba.add_expense(
+                        user_id=user_id_hash,
+                        amount_minor=int(amount * 100),  # Convert to minor units
+                        currency='BDT',
                         category=category,
-                        platform="pwa",
-                        original_message=user_message,
-                        unique_id=str(uuid.uuid4()),
-                        mid=f"pwa_chat_{int(time.time())}"
+                        description=user_message,
+                        source='chat',  # Web chat uses 'chat' source per spec
+                        message_id=f"pwa_chat_{int(time.time())}"
                     )
                     logger.info(f"Expense saved successfully: {result}")
                     return f"✅ Logged expense: ৳{amount} for {category}"

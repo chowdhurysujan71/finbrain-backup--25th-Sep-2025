@@ -67,15 +67,16 @@ def process_expense_message(user_identifier, message, platform, unique_id):
         # Categorize expense
         category = categorize_expense(description + ' ' + message)
         
-        # Save to database
-        result = save_expense(
-            user_identifier=user_identifier,
-            description=description,
-            amount=amount,
+        # Save to database using CANONICAL SINGLE WRITER (spec compliance)
+        import backend_assistant as ba
+        result = ba.add_expense(
+            user_id=user_identifier,
+            amount_minor=int(amount * 100),  # Convert to minor units
+            currency='BDT',
             category=category,
-            platform=platform,
-            original_message=message,
-            unique_id=unique_id
+            description=description,
+            source='form',  # This appears to be form-based input
+            message_id=unique_id
         )
         
         if result['success']:

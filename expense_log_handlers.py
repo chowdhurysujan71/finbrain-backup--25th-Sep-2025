@@ -30,26 +30,23 @@ def handle_expense_log_intent(user_id: str, text: str, signals: Dict[str, Any]) 
         parsed_expense = parse_amount_currency_category(text)
         
         if parsed_expense and parsed_expense.get('amount', 0) > 0:
-            # Store expense using unified create_expense function
+            # Store expense using CANONICAL SINGLE WRITER (spec compliance)
             try:
-                from utils.db import create_expense
+                import backend_assistant as ba
                 from datetime import datetime
                 import uuid
                 
                 # Generate proper metadata for unified function
-                correlation_id = str(uuid.uuid4())
-                occurred_at = datetime.now()
                 source_message_id = f"chat_expense_{int(time.time() * 1000000)}"
                 
-                expense_record = create_expense(
+                expense_record = ba.add_expense(
                     user_id=user_id,
-                    amount=parsed_expense['amount'],
-                    currency='৳',
+                    amount_minor=int(parsed_expense['amount'] * 100),  # Convert to minor units
+                    currency='BDT',
                     category=parsed_expense.get('category', 'General'),
-                    occurred_at=occurred_at,
-                    source_message_id=source_message_id,
-                    correlation_id=correlation_id,
-                    notes=parsed_expense.get('description', text[:50])
+                    description=parsed_expense.get('description', text[:50]),
+                    source='chat',  # Intent handler is chat-based
+                    message_id=source_message_id
                 )
             except Exception as db_error:
                 logger.error(f"Unified expense creation failed: {db_error}")

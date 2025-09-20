@@ -402,15 +402,16 @@ class ProductionRouter:
                     # Create unique ID for each expense
                     unique_id = f"{rid}_multi_{i+1}"
                     
-                    # Save expense to database
-                    save_expense(
-                        user_identifier=psid_hash,
-                        description=f"{category} expense",
-                        amount=amount,
+                    # Save expense using CANONICAL SINGLE WRITER (spec compliance)
+                    import backend_assistant as ba
+                    ba.add_expense(
+                        user_id=psid_hash,
+                        amount_minor=int(amount * 100),  # Convert to minor units
+                        currency='BDT',
                         category=category,
-                        platform="facebook",
-                        original_message=text,
-                        unique_id=unique_id
+                        description=f"{category} expense",
+                        source='messenger',  # Multi-expense is messenger based
+                        message_id=unique_id
                     )
                     
                     logged_expenses.append(f"৳{amount:.0f} for {category}")
@@ -453,15 +454,16 @@ class ProductionRouter:
             amount = float(expense['amount'])
             category = normalize_category(expense.get('category'))
             
-            # Save expense to database
-            save_expense(
-                user_identifier=psid_hash,
-                description=f"{category} expense",
-                amount=amount,
+            # Save expense using CANONICAL SINGLE WRITER (spec compliance)
+            import backend_assistant as ba
+            ba.add_expense(
+                user_id=psid_hash,
+                amount_minor=int(amount * 100),  # Convert to minor units
+                currency='BDT',
                 category=category,
-                platform="facebook",
-                original_message=text,
-                unique_id=rid
+                description=f"{category} expense",
+                source='messenger',  # Single expense is messenger based
+                message_id=rid
             )
             
             response = f"✅ Logged: ৳{amount:.0f} for {category}"

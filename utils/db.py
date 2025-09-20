@@ -9,8 +9,10 @@ logger = logging.getLogger(__name__)
 
 def create_expense(user_id, amount, currency, category, occurred_at, source_message_id, correlation_id, notes, idempotency_key=None):
     """
-    Unified expense creation function - single source of truth for expense writes
-    Both Chat and Quick Add must call this function synchronously
+    🚨 DEPRECATED: Use backend_assistant.add_expense() instead.
+    
+    This function violates the single writer principle and will be removed.
+    All expense writes must go through backend_assistant.add_expense() for spec compliance.
     
     Args:
         user_id: User identifier (already hashed)
@@ -25,6 +27,14 @@ def create_expense(user_id, amount, currency, category, occurred_at, source_mess
     Returns:
         dict: {expense_id, correlation_id, occurred_at, category, amount, currency}
     """
+    import warnings
+    warnings.warn(
+        "create_expense() is deprecated. Use backend_assistant.add_expense() instead. "
+        "This function violates the single writer principle and will be removed.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    logger.warning("DEPRECATED: create_expense() called. Migrate to backend_assistant.add_expense()")
     from models import Expense, User, MonthlySummary
     from utils.tracer import trace_event
     from utils.telemetry import TelemetryTracker
@@ -196,7 +206,20 @@ def get_or_create_user(user_identifier, platform, db_session=None):
         raise
 
 def save_expense(user_identifier, description, amount, category, platform, original_message, unique_id, mid=None, db_session=None):
-    """Save expense to database and update monthly summaries"""
+    """
+    🚨 DEPRECATED: Use backend_assistant.add_expense() instead.
+    
+    This function violates the single writer principle and will be removed.
+    All expense writes must go through backend_assistant.add_expense() for spec compliance.
+    """
+    import warnings
+    warnings.warn(
+        "save_expense() is deprecated. Use backend_assistant.add_expense() instead. "
+        "This function violates the single writer principle and will be removed.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    logger.warning("DEPRECATED: save_expense() called. Migrate to backend_assistant.add_expense()")
     from models import Expense, User, MonthlySummary
     from utils.tracer import trace_event
     from utils.identity import psid_hash
@@ -415,7 +438,10 @@ def get_user_expenses(user_identifier, limit=10):
 
 def upsert_expense_idempotent(psid_hash: str, mid: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Enhanced idempotent expense saving with comprehensive payload support.
+    🚨 DEPRECATED: Use backend_assistant.add_expense() instead.
+    
+    This function violates the single writer principle and will be removed.
+    All expense writes must go through backend_assistant.add_expense() for spec compliance.
     
     Args:
         psid_hash: User PSID hash (already hashed)
@@ -425,6 +451,14 @@ def upsert_expense_idempotent(psid_hash: str, mid: str, payload: Dict[str, Any])
     Returns:
         Dict with keys: duplicate, success, timestamp, expense_id, etc.
     """
+    import warnings
+    warnings.warn(
+        "upsert_expense_idempotent() is deprecated. Use backend_assistant.add_expense() instead. "
+        "This function violates the single writer principle and will be removed.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    logger.warning("DEPRECATED: upsert_expense_idempotent() called. Migrate to backend_assistant.add_expense()")
     from models import Expense, User, MonthlySummary
     from utils.tracer import trace_event
     from datetime import datetime, date
@@ -462,7 +496,7 @@ def upsert_expense_idempotent(psid_hash: str, mid: str, payload: Dict[str, Any])
         amount = Decimal(str(payload['amount']))
         currency = payload.get('currency', 'BDT')
         from utils.categories import normalize_category
-        category = normalize_category(payload.get('category'))
+        category = normalize_category(payload.get('category') or 'uncategorized')
         merchant = payload.get('merchant')
         description = payload.get('description', f"{category} expense")
         ts_client = payload.get('ts_client')  # Client-side timestamp
@@ -584,9 +618,19 @@ def ensure_idempotency_index():
 
 def save_expense_idempotent(user_identifier, description, amount, category, currency, platform, original_message, unique_id, db_session=None):
     """
-    Legacy compatibility wrapper for save_expense_idempotent.
-    Calls the new upsert_expense_idempotent function.
+    🚨 DEPRECATED: Use backend_assistant.add_expense() instead.
+    
+    This function violates the single writer principle and will be removed.
+    All expense writes must go through backend_assistant.add_expense() for spec compliance.
     """
+    import warnings
+    warnings.warn(
+        "save_expense_idempotent() is deprecated. Use backend_assistant.add_expense() instead. "
+        "This function violates the single writer principle and will be removed.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    logger.warning("DEPRECATED: save_expense_idempotent() called. Migrate to backend_assistant.add_expense()")
     payload = {
         'amount': amount,
         'currency': currency,

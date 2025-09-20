@@ -10,7 +10,7 @@ from typing import Dict, Any, List, Optional
 
 from utils.nl_expense_parser import parse_nl_expense, ExpenseParseResult
 from utils.expense_editor import edit_last_expense, expense_editor
-from utils.db import save_expense
+import backend_assistant as ba
 from utils.identity import psid_hash
 from utils.categories import normalize_category
 from models import Expense
@@ -36,16 +36,15 @@ def handle_nl_expense_entry(text: str, user_id_hash: str) -> Dict[str, Any]:
         result = parse_nl_expense(text, user_id_hash)
         
         if result.success and not result.needs_clarification:
-            # High confidence - save directly
-            expense_result = save_expense(
-                user_identifier=user_id_hash,
-                description=result.description or text,
-                amount=result.amount,
+            # High confidence - save directly using CANONICAL SINGLE WRITER
+            expense_result = ba.add_expense(
+                user_id=user_id_hash,
+                amount_minor=int(result.amount * 100),  # Convert to minor units
+                currency='BDT',
                 category=normalize_category(result.category or 'other'),
-                platform='pwa',
-                original_message=text,
-                unique_id=f"nl_{user_id_hash}_{hashlib.sha256(text.encode()).hexdigest()[:16]}",
-                db_session=db
+                description=result.description or text,
+                source='chat',  # Natural language processing is chat-like
+                message_id=f"nl_{user_id_hash}_{hashlib.sha256(text.encode()).hexdigest()[:16]}"
             )
             
             if expense_result.get('success', False):
@@ -141,16 +140,15 @@ def handle_clarification_response(
                 "error": "Category is required for expense confirmation"
             }
         
-        # Save the clarified expense
-        expense_result = save_expense(
-            user_identifier=user_id_hash,
-            description=confirmed_description or original_text,
-            amount=confirmed_amount,
+        # Save the clarified expense using CANONICAL SINGLE WRITER
+        expense_result = ba.add_expense(
+            user_id=user_id_hash,
+            amount_minor=int(confirmed_amount * 100),  # Convert to minor units
+            currency='BDT',
             category=normalize_category(confirmed_category),
-            platform='pwa',
-            original_message=original_text,
-            unique_id=f"nl_clarified_{user_id_hash}_{hashlib.sha256(original_text.encode()).hexdigest()[:16]}",
-            db_session=db
+            description=confirmed_description or original_text,
+            source='chat',  # Clarified expenses are chat-like interactions
+            message_id=f"nl_clarified_{user_id_hash}_{hashlib.sha256(original_text.encode()).hexdigest()[:16]}"
         )
         
         if expense_result.get('success', False):

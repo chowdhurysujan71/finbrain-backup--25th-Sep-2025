@@ -141,8 +141,8 @@ def sha256(s: str) -> str:
 def add_expense(user_id: str, amount_minor: int | None = None, currency: str | None = None, category: str | None = None, 
                 description: str | None = None, source: str | None = None, message_id: str | None = None) -> Dict[str, Union[str, int, None]]:
     """
-    Add expense with server-side field generation according to frozen contract.
-    Supports both structured input and description-only parsing.
+    CANONICAL SINGLE WRITER - All expense writes must flow through this function only.
+    Absorbs logic from create_expense, save_expense, upsert_expense_idempotent.
     
     Server sets:
     - idempotency_key = "api:" + sha256(user_id|message_id|amount|timestamp)
@@ -151,7 +151,7 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
     - source in {'chat','form','messenger'}
     
     Args:
-        user_id: Authenticated user ID (from session)
+        user_id: Authenticated user ID (from session) - must be hashed
         amount_minor: Amount in minor units (cents) - optional if description provided
         currency: Currency code - optional if description provided
         category: Expense category - optional if description provided
@@ -166,7 +166,9 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
     import hashlib
     from datetime import datetime
     from decimal import Decimal
-    from utils.db import create_expense
+    from models import Expense, User, MonthlySummary
+    from utils.tracer import trace_event
+    from utils.telemetry import TelemetryTracker
     
     try:
         # Validate essential fields
@@ -199,19 +201,30 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
         if not all([user_id, amount_minor, currency, category, description, source]):
             raise ValueError("All fields are required (after parsing)")
         
-        # Validate source
+        # Validate source (enforce spec compliance)
         if source not in {'chat', 'form', 'messenger'}:
             raise ValueError(f"Invalid source '{source}'. Must be one of: chat, form, messenger")
             
         # Validate amount_minor
         if not isinstance(amount_minor, int) or amount_minor <= 0:
             raise ValueError("amount_minor must be a positive integer")
+        
+        # Amount validation (absorbed from save_expense)
+        MAX_AMOUNT = 99999999.99
+        MIN_AMOUNT = 0.01
+        amount_decimal = Decimal(amount_minor) / 100
+        amount_float = float(amount_decimal)
+        if amount_float > MAX_AMOUNT:
+            raise ValueError(f"Amount {amount_float} exceeds maximum allowed value of ৳{MAX_AMOUNT:,.2f}")
+        if amount_float < MIN_AMOUNT:
+            raise ValueError(f"Amount {amount_float} below minimum allowed value of ৳{MIN_AMOUNT}")
             
         # Server-side field generation
         correlation_id = str(uuid.uuid4())
+        occurred_at = datetime.utcnow()
         
-        # Generate deterministic idempotency key (FIXED: no randomness/time)
-        tx_day = datetime.utcnow().strftime("%Y-%m-%d")
+        # Generate deterministic idempotency key
+        tx_day = occurred_at.strftime("%Y-%m-%d")
         desc_canon = canonical(description)
         
         if message_id:  # e.g., Messenger 'mid' or UI-provided message_id
@@ -220,42 +233,136 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
             # Derive stable message_id from deterministic inputs only
             stable_message_id = sha256(f"{user_id}|{source}|{desc_canon}|{amount_minor}|{tx_day}")
         
-        # Generate deterministic idempotency_key
+        # Generate deterministic idempotency_key (spec-compliant format)
         idempotency_key = "api:" + sha256(f"{user_id}|{source}|{stable_message_id}")
         
-        # Convert amount_minor to decimal amount
-        amount_decimal = Decimal(amount_minor) / 100
+        # CONSOLIDATED WRITE LOGIC - No more external function calls
         
-        # Use the existing create_expense function
-        result = create_expense(
-            user_id=user_id,
-            amount=float(amount_decimal),
-            currency=currency,
-            category=category,
-            occurred_at=datetime.utcnow(),
-            source_message_id=stable_message_id,
-            correlation_id=correlation_id,
-            notes=description,
-            idempotency_key=idempotency_key
-        )
+        # Trace the write operation
+        trace_event("record_expense", user_id=user_id, amount=amount_float, category=category, path="canonical_write")
         
-        # Return standardized response
-        if result:
+        # Check for existing expense by idempotency_key (absorbed from create_expense)
+        existing_expense = Expense.query.filter_by(idempotency_key=idempotency_key).first()
+        if existing_expense:
+            logger.info(f"Idempotency: returning existing expense for key {idempotency_key[:20]}***")
             return {
-                "expense_id": result.get('expense_id'),
-                "correlation_id": correlation_id,
-                "amount_minor": amount_minor,
-                "category": category,
-                "description": description,
-                "source": source,
-                "idempotency_key": idempotency_key,
-                "status": result.get('status', 'created')
+                'expense_id': existing_expense.id,
+                'correlation_id': existing_expense.correlation_id,
+                'occurred_at': existing_expense.created_at.isoformat(),
+                'category': existing_expense.category,
+                'amount_minor': amount_minor,
+                'currency': existing_expense.currency,
+                'description': existing_expense.description,
+                'source': source,
+                'idempotency_key': idempotency_key,
+                'status': 'idempotent_replay'
             }
-        else:
-            raise Exception("Failed to create expense")
+        
+        # Prepare date/time fields
+        current_month = occurred_at.strftime('%Y-%m')
+        
+        # Create expense record (absorbed logic)
+        expense = Expense()
+        expense.user_id = user_id
+        expense.user_id_hash = user_id  # Ensure both fields are set
+        expense.description = description
+        expense.amount = amount_decimal
+        expense.amount_minor = amount_minor
+        
+        # Apply category normalization if enabled (absorbed from create_expense)
+        try:
+            from utils.pca_flags import pca_flags
+            if pca_flags.should_normalize_categories():
+                from utils.category_guard import normalize_category_for_save
+                expense.category = normalize_category_for_save(category)
+            else:
+                expense.category = category.lower()
+        except:
+            expense.category = category.lower()  # Fallback
+            
+        expense.currency = currency or 'BDT'
+        expense.date = occurred_at.date()
+        expense.time = occurred_at.time()
+        expense.month = current_month
+        expense.platform = source  # Use source directly instead of hardcoded "pwa"
+        expense.original_message = description
+        expense.correlation_id = correlation_id
+        expense.unique_id = str(uuid.uuid4())
+        expense.mid = stable_message_id
+        expense.idempotency_key = idempotency_key
+        
+        # BEGIN ATOMIC TRANSACTION
+        db.session.add(expense)
+        
+        # Update user totals (absorbed from create_expense with no_autoflush)
+        from sqlalchemy import text as sql_text
+        now_ts = datetime.utcnow()
+        with db.session.no_autoflush:
+            db.session.execute(sql_text("""
+                INSERT INTO users (user_id_hash, platform, total_expenses, expense_count, last_interaction, last_user_message_at)
+                VALUES (:user_hash, :platform, :amount, 1, :now_ts, :now_ts)
+                ON CONFLICT (user_id_hash) DO UPDATE SET
+                    total_expenses = COALESCE(users.total_expenses, 0) + :amount,
+                    expense_count = COALESCE(users.expense_count, 0) + 1,
+                    last_interaction = :now_ts,
+                    last_user_message_at = :now_ts
+            """), {
+                'user_hash': user_id,
+                'platform': source,
+                'amount': amount_float,
+                'now_ts': now_ts
+            })
+        
+        # Update monthly summary (absorbed from create_expense with no_autoflush)
+        with db.session.no_autoflush:
+            monthly_summary = MonthlySummary.query.filter_by(
+                user_id_hash=user_id,
+                month=current_month
+            ).first()
+            
+            if not monthly_summary:
+                monthly_summary = MonthlySummary()
+                monthly_summary.user_id_hash = user_id
+                monthly_summary.month = current_month
+                monthly_summary.total_amount = amount_float
+                monthly_summary.expense_count = 1
+                monthly_summary.categories = {expense.category: amount_float}
+                db.session.add(monthly_summary)
+            else:
+                monthly_summary.total_amount = float(monthly_summary.total_amount) + amount_float
+                monthly_summary.expense_count += 1
+                categories = monthly_summary.categories or {}
+                categories[expense.category] = categories.get(expense.category, 0) + amount_float
+                monthly_summary.categories = categories
+                monthly_summary.updated_at = datetime.utcnow()
+        
+        # Single atomic commit
+        db.session.commit()
+        
+        # Telemetry tracking (fail-safe, absorbed from save_expense)
+        try:
+            TelemetryTracker.track_expense_logged(user_id, amount_float, expense.category, source)
+        except Exception as e:
+            logger.warning(f"Telemetry logging failed: {e}")
+        
+        # Return standardized response with truth-over-telemetry compliance
+        return {
+            "expense_id": expense.id,  # Real persisted ID - truth over telemetry
+            "correlation_id": correlation_id,
+            "amount_minor": amount_minor,
+            "category": expense.category,
+            "description": description,
+            "source": source,
+            "idempotency_key": idempotency_key,
+            "currency": currency,
+            "occurred_at": occurred_at.isoformat(),
+            "status": "created"
+        }
             
     except Exception as e:
-        logger.error(f"add_expense failed: {e}")
+        # Proper rollback handling (absorbed from all functions)
+        db.session.rollback()
+        logger.error(f"add_expense canonical writer failed: {e}")
         raise e
 
 def delete_expense(user_id: str, expense_id: int) -> Dict[str, Union[str, int, bool]]:
