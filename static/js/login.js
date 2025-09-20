@@ -27,6 +27,14 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     err && (err.style.display = 'none');
     spin && (spin.style.display = 'inline-block');
+    
+    // Handle button loading state
+    const loginBtn = document.getElementById('login-btn');
+    const btnText = loginBtn?.querySelector('.btn-text');
+    const btnLoading = loginBtn?.querySelector('.btn-loading');
+    if (btnText) btnText.style.display = 'none';
+    if (btnLoading) btnLoading.style.display = 'inline';
+    if (loginBtn) loginBtn.disabled = true;
 
     let res, data;
     try {
@@ -43,10 +51,19 @@ document.addEventListener('DOMContentLoaded', () => {
       data = await res.json().catch(() => ({}));
     } catch (e) {
       spin && (spin.style.display = 'none');
+      // Restore button state on error
+      if (btnText) btnText.style.display = 'inline';
+      if (btnLoading) btnLoading.style.display = 'none';
+      if (loginBtn) loginBtn.disabled = false;
       if (err) { err.textContent = 'Network error'; err.style.display = 'block'; }
       return;
     }
     spin && (spin.style.display = 'none');
+    
+    // Restore button state
+    if (btnText) btnText.style.display = 'inline';
+    if (btnLoading) btnLoading.style.display = 'none';
+    if (loginBtn) loginBtn.disabled = false;
 
     if (!res.ok) {
       const msg = data.error || data.message || 'Invalid email or password';
