@@ -98,22 +98,23 @@ def create_expense(user_id, amount, currency, category, occurred_at, source_mess
         # Atomic transaction
         db.session.add(expense)
         
-        # Update user totals (concurrent-safe UPSERT)
+        # Update user totals (concurrent-safe UPSERT) - prevent autoflush
         from sqlalchemy import text as sql_text
         now_ts = datetime.utcnow()
-        db.session.execute(sql_text("""
-            INSERT INTO users (user_id_hash, platform, total_expenses, expense_count, last_interaction, last_user_message_at)
-            VALUES (:user_hash, 'pwa', :amount, 1, :now_ts, :now_ts)
-            ON CONFLICT (user_id_hash) DO UPDATE SET
-                total_expenses = COALESCE(users.total_expenses, 0) + :amount,
-                expense_count = COALESCE(users.expense_count, 0) + 1,
-                last_interaction = :now_ts,
-                last_user_message_at = :now_ts
-        """), {
-            'user_hash': user_id,
-            'amount': amount_float,
-            'now_ts': now_ts
-        })
+        with db.session.no_autoflush:
+            db.session.execute(sql_text("""
+                INSERT INTO users (user_id_hash, platform, total_expenses, expense_count, last_interaction, last_user_message_at)
+                VALUES (:user_hash, 'pwa', :amount, 1, :now_ts, :now_ts)
+                ON CONFLICT (user_id_hash) DO UPDATE SET
+                    total_expenses = COALESCE(users.total_expenses, 0) + :amount,
+                    expense_count = COALESCE(users.expense_count, 0) + 1,
+                    last_interaction = :now_ts,
+                    last_user_message_at = :now_ts
+            """), {
+                'user_hash': user_id,
+                'amount': amount_float,
+                'now_ts': now_ts
+            })
         
         # Update monthly summary
         monthly_summary = MonthlySummary.query.filter_by(
