@@ -150,7 +150,7 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
     - idempotency_key = "api:" + sha256(user_id|message_id|amount|timestamp)
     - amount_minor (validated input or parsed)
     - correlation_id = uuid4()
-    - source in {'chat','form','messenger'}
+    - source in {'chat'} (web-only architecture)
     
     Args:
         user_id: Authenticated user ID (from session) - must be hashed
@@ -158,7 +158,7 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
         currency: Currency code - optional if description provided
         category: Expense category - optional if description provided
         description: Expense description - required
-        source: Source type ('chat', 'form', 'messenger')
+        source: Source type ('chat' only - web-only architecture)
         message_id: Message ID (for messenger-like inserts)
     
     Returns:
@@ -207,9 +207,9 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
         if not all([user_id, amount_minor, currency, category, description, source]):
             raise ValueError("All fields are required (after parsing)")
         
-        # Validate source (enforce spec compliance)
-        if source not in {'chat', 'form', 'messenger'}:
-            raise ValueError(f"Invalid source '{source}'. Must be one of: chat, form, messenger")
+        # Validate source (enforce web-only architecture)
+        from constants import validate_expense_source
+        validate_expense_source(source)
             
         # Validate amount_minor
         if not isinstance(amount_minor, int) or amount_minor <= 0:

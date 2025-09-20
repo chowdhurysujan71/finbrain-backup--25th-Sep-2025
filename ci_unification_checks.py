@@ -76,6 +76,48 @@ def run_security_checks():
         print(f"❌ Security checks failed to run: {e}")
         return False
 
+def check_hardcoded_sources():
+    """Check for hardcoded deprecated source values"""
+    print("\n🎯 F) Source Validation - No hardcoded deprecated sources")
+    
+    violations = []
+    
+    # Find Python files
+    import glob
+    py_files = [f for f in glob.glob('**/*.py', recursive=True) if not f.startswith('.')]
+    
+    forbidden_patterns = [
+        r"source.*in.*{.*['\"]form['\"]",      # {'form'} or similar
+        r"source.*in.*{.*['\"]messenger['\"]", # {'messenger'} or similar  
+        r"['\"]form['\"].*,.*['\"]chat['\"]",  # hardcoded lists with deprecated sources
+        r"['\"]messenger['\"].*,.*['\"]chat['\"]"
+    ]
+    
+    for file_path in py_files:
+        # Skip generated files and archives
+        if any(skip in file_path for skip in ['_quarantine', '_attic', '__pycache__', 'alembic/versions']):
+            continue
+            
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+                
+            for pattern in forbidden_patterns:
+                if re.search(pattern, content, re.IGNORECASE):
+                    violations.append(f"Hardcoded deprecated source in {file_path}")
+                    
+        except Exception as e:
+            print(f"Warning: Could not scan {file_path}: {e}")
+    
+    if violations:
+        print("❌ FAIL: Hardcoded deprecated sources found")
+        for violation in violations:
+            print(f"  {violation}")
+        return False
+    else:
+        print("✅ PASS: No hardcoded deprecated sources")
+        return True
+
 def main():
     """Run all unification regression checks"""
     print("🚀 Starting Database Unification CI Checks")
@@ -252,7 +294,12 @@ def main():
     else:
         print("✅ PASS: UI guardrails enforced")
     
-    # F) Verify unified read path is active
+    # F) Source Validation Check
+    source_passed = check_hardcoded_sources()
+    if not source_passed:
+        all_passed = False
+    
+    # G) Verify unified read path is active
     try:
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor()

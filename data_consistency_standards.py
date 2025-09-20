@@ -15,13 +15,16 @@ class DataConsistencyStandards:
     # SOURCE VALUE STANDARDS
     # ========================================
     
-    # Valid source types (enforced in backend_assistant.py)
-    VALID_SOURCES = frozenset({'chat', 'form', 'messenger'})
+    # Valid source types (web-only architecture)
+    def __init__(self):
+        from constants import ALLOWED_SOURCES
+        self.VALID_SOURCES = frozenset(ALLOWED_SOURCES)
     
     @staticmethod
     def validate_source(source: str) -> bool:
         """Validate source value against standards"""
-        return source in DataConsistencyStandards.VALID_SOURCES
+        from constants import ALLOWED_SOURCES
+        return source in ALLOWED_SOURCES
     
     @staticmethod
     def normalize_source(source: str) -> str:
