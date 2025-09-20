@@ -1,0 +1,91 @@
+# FinBrain Code Ownership and Review Requirements
+# Protects critical single writer system components
+
+# =================================================================
+# CRITICAL SINGLE WRITER COMPONENTS - REQUIRE ARCHITECT REVIEW
+# =================================================================
+
+# Backend Assistant (Canonical Writer) - The heart of our single writer system
+backend_assistant.py @finbrain-architects
+
+# Single Writer Protection Infrastructure
+utils/single_writer_guard.py @finbrain-architects
+utils/single_writer_metrics.py @finbrain-architects
+utils/single_writer_monitor.py @finbrain-architects
+
+# Database Models and Schema
+models.py @finbrain-architects
+app.py @finbrain-architects
+
+# =================================================================
+# SECURITY AND INFRASTRUCTURE - REQUIRE SECURITY REVIEW
+# =================================================================
+
+# Security Infrastructure
+security_checks.py @finbrain-security
+# security_scanner.py @finbrain-security  # TODO: Create if needed
+.github/workflows/ @finbrain-security
+
+# CI/CD and Testing Infrastructure
+ci_unification_checks.py @finbrain-architects @finbrain-security
+tests/test_single_writer_enforcement.py @finbrain-architects
+tests/test_deployment_confidence.py @finbrain-architects
+
+# =================================================================
+# DATA CONSISTENCY AND VALIDATION - REQUIRE DATA REVIEW
+# =================================================================
+
+# Data Standards and Validation
+data_consistency_validator.py @finbrain-data
+data_consistency_standards.py @finbrain-data
+
+# =================================================================
+# DEPLOYMENT AND CONFIGURATION - REQUIRE DEVOPS REVIEW
+# =================================================================
+
+# Application Entry Points
+main.py @finbrain-devops
+gunicorn.conf.py @finbrain-devops
+
+# Environment and Configuration
+.env.example @finbrain-devops @finbrain-security
+.gitignore @finbrain-security
+requirements.txt @finbrain-devops
+
+# =================================================================
+# EXPENSE HANDLING - REQUIRE FINANCIAL LOGIC REVIEW
+# =================================================================
+
+# Expense Handlers (DEPRECATED - should route through backend_assistant.py)
+handlers/expense.py @finbrain-architects @finbrain-deprecated
+
+# Core Financial Logic
+core/ @finbrain-financial
+
+# =================================================================
+# DOCUMENTATION - REQUIRE TECHNICAL WRITING REVIEW
+# =================================================================
+
+# Project Documentation
+README.md @finbrain-docs
+CHANGELOG.md @finbrain-docs
+*.md @finbrain-docs
+
+# =================================================================
+# FALLBACK - ALL OTHER FILES REQUIRE STANDARD REVIEW
+# =================================================================
+
+# All other files require at least one architect review
+* @finbrain-architects
+
+# =================================================================
+# TEAM DEFINITIONS (GitHub Teams)
+# =================================================================
+
+# @finbrain-architects: Senior engineers who understand the single writer architecture
+# @finbrain-security: Security engineers responsible for security hygiene  
+# @finbrain-data: Data engineers responsible for consistency and validation
+# @finbrain-devops: DevOps engineers responsible for deployment infrastructure
+# @finbrain-financial: Financial domain experts who understand expense logic
+# @finbrain-docs: Technical writers responsible for documentation
+# @finbrain-deprecated: Special review team for deprecated code paths
