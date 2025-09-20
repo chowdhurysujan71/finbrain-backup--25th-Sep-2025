@@ -2423,5 +2423,14 @@ try:
 except ImportError as e:
     logger.warning(f"Growth telemetry routes not available: {e}")
 
+# Register Single Writer Observability Blueprint
+try:
+    from routes_single_writer_observability import single_writer_obs
+    if 'single_writer_obs' not in app.blueprints:
+        app.register_blueprint(single_writer_obs)
+        logger.info("✓ Single Writer Observability routes registered (/ops/single-writer/*, /admin/single-writer/*)")
+except ImportError as e:
+    logger.warning(f"Single Writer Observability routes not available: {e}")
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -22,6 +22,7 @@ from typing import Dict, List, Optional, Union
 import logging
 from utils.identity import ensure_hashed
 from utils.single_writer_guard import canonical_writer_context
+from utils.single_writer_metrics import record_canonical_write
 
 logger = logging.getLogger(__name__)
 
@@ -165,11 +166,15 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
     """
     import uuid
     import hashlib
+    import time
     from datetime import datetime
     from decimal import Decimal
     from models import Expense, User, MonthlySummary
     from utils.tracer import trace_event
     from utils.telemetry import TelemetryTracker
+    
+    start_time = time.time()
+    success = False
     
     try:
         # Validate essential fields
@@ -348,8 +353,11 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
         except Exception as e:
             logger.warning(f"Telemetry logging failed: {e}")
         
+        # Mark as successful
+        success = True
+        
         # Return standardized response with truth-over-telemetry compliance
-        return {
+        result = {
             "expense_id": expense.id,  # Real persisted ID - truth over telemetry
             "correlation_id": correlation_id,
             "amount_minor": amount_minor,
@@ -361,12 +369,24 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
             "occurred_at": occurred_at.isoformat(),
             "status": "created"
         }
+        
+        return result
             
     except Exception as e:
         # Proper rollback handling (absorbed from all functions)
         db.session.rollback()
         logger.error(f"add_expense canonical writer failed: {e}")
         raise e
+    finally:
+        # Record performance metrics regardless of success/failure
+        duration_ms = (time.time() - start_time) * 1000
+        record_canonical_write(
+            user_id=user_id,
+            success=success,
+            duration_ms=duration_ms,
+            source=source,
+            amount_minor=amount_minor if 'amount_minor' in locals() else 0
+        )
 
 def delete_expense(user_id: str, expense_id: int) -> Dict[str, Union[str, int, bool]]:
     """
