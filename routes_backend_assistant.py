@@ -214,159 +214,24 @@ def api_confirm_expense(authenticated_user_id):
 
 
 @backend_api.route('/add_expense', methods=['POST'])
-@require_backend_user_auth
+@require_backend_user_auth  
 def api_add_expense(authenticated_user_id):
-    """
-    POST /api/backend/add_expense
-    Input: {"amount_minor": 12300, "currency": "BDT", "category": "food", "description": "uat canary coffee", "source": "chat", "message_id": "optional"}
-    Output: {"expense_id": 123, "correlation_id": "uuid", "amount_minor": 12300, "category": "food", "description": "...", "source": "chat", "idempotency_key": "api:hash"}
-    Authentication: Required (session only - SECURITY HARDENED)
-    Server sets: idempotency_key, amount_minor validation, correlation_id, source validation
-    """
-    import uuid, json
-    start = time.time()
-    trace_id = str(uuid.uuid4())
+    """DEPRECATED: Direct API discontinued - use /ai-chat interface"""
+    from datetime import datetime
     
-    try:
-        data = request.get_json() or {}
-        
-        # Essential fields - description and source are always required
-        essential_fields = ['description', 'source']
-        field_errors = {}
-        
-        for field in essential_fields:
-            if not data.get(field):
-                field_errors[field] = f"{field} is required"
-        
-        # Optional structured fields - if not provided, will be parsed from description
-        amount_minor = data.get('amount_minor')
-        currency = data.get('currency')
-        category = data.get('category')
-        
-        # Step 4: Server-side category validation guard - coerce any client/AI category
-        if category is not None:
-            from utils.categories import normalize_category
-            category = normalize_category(category)
-        
-        # Validate amount_minor if provided
-        if amount_minor is not None:
-            if not isinstance(amount_minor, int) or amount_minor <= 0:
-                field_errors['amount_minor'] = "amount_minor must be a positive integer (cents)"
-        
-        # Validate source
-        source = data.get('source')
-        if source and source not in {'chat', 'form', 'messenger'}:
-            field_errors['source'] = "source must be one of: chat, form, messenger"
-            
-        if field_errors:
-            response, status_code = standardized_error_response(
-                code=ErrorCodes.VALIDATION_ERROR,
-                message="Invalid expense data provided",
-                field_errors=field_errors,
-                status_code=400,
-                log_error=False
-            )
-            return jsonify(response), status_code
-        
-        # Extract fields (only description and source are required)
-        description = data['description']
-        source = data['source']
-        message_id = data.get('message_id')  # Optional
-        
-        # Call add_expense function with server-side field generation
-        result = add_expense(
-            user_id=authenticated_user_id,
-            amount_minor=amount_minor,
-            currency=currency,
-            category=category,
-            description=description,
-            source=source,
-            message_id=message_id
-        )
-        
-        # Log successful expense creation with structured metrics
-        latency = int((time.time() - start) * 1000)
-        
-        # Extract actual values from result (post-parsing)
-        actual_amount_minor = result.get("amount_minor", 0)
-        actual_category = result.get("category", "unknown")
-        actual_currency = currency or result.get("currency", "BDT")
-        
-        # Step 4: Structured JSON metrics logging to stdout (12-factor)
-        print(json.dumps({
-            "evt":"add_expense",
-            "trace_id": trace_id,
-            "user_id_hash": authenticated_user_id,
-            "amount_minor": actual_amount_minor,
-            "source": source,
-            "latency_ms": latency,
-            "status":"ok"
-        }))
-        
-        # Enhanced structured metrics logging
-        metrics_data = {
-            "user_prefix": authenticated_user_id[:8] + "***",
-            "amount_minor": actual_amount_minor,
-            "category": actual_category,
-            "source": source,
-            "has_message_id": bool(message_id),
-            "response_time_ms": latency,
-            # Additional structured metrics
-            "amount_major": int(actual_amount_minor) / 100 if actual_amount_minor else 0,
-            "currency": actual_currency,
-            "expense_id": result.get("expense_id"),
-            "correlation_id": str(result.get("correlation_id", ""))[:8] + "...",
-            "idempotency_key_prefix": str(result.get("idempotency_key", ""))[:12] + "...",
-            "timestamp": datetime.utcnow().isoformat(),
-            "endpoint": "/api/backend/add_expense",
-            "operation": "create_expense"
-        }
-        
-        api_logger.log_api_request(True, latency, metrics_data)
-        
-        # Additional structured metrics log for business analytics
-        logger.info("EXPENSE_CREATED", extra={
-            "structured_metrics": {
-                "event_type": "expense_creation",
-                "user_id_hash": authenticated_user_id,
-                "amount_bdt": int(actual_amount_minor) / 100 if actual_amount_minor else 0,
-                "category": actual_category,
-                "source_channel": source,
-                "expense_id": result.get("expense_id"),
-                "processing_time_ms": latency,
-                "success": True
-            }
-        })
-        
-        # Merge trace_id into result data for consistent response format
-        enhanced_result = dict(result)
-        enhanced_result["trace_id"] = trace_id
-        return jsonify(success_response(enhanced_result, "Expense added successfully"))
-        
-    except Exception as e:
-        latency = int((time.time() - start) * 1000)
-        
-        # Step 4: Structured JSON metrics logging to stdout (error case)
-        payload = request.get_json() or {}
-        print(json.dumps({
-            "evt":"add_expense",
-            "trace_id": trace_id,
-            "user_id_hash": authenticated_user_id if 'authenticated_user_id' in locals() else None,
-            "amount_minor": payload.get("amount_minor"),
-            "source": payload.get("source"),
-            "latency_ms": latency,
-            "status":"error",
-            "error": str(e)[:200]
-        }))
-        
-        api_logger.error("Add expense error", {
-            "error_type": type(e).__name__,
-            "user_prefix": authenticated_user_id[:8] + "***",
-            "response_time_ms": latency
-        }, e)
-        
-        response, status_code = internal_error(safe_error_message(e, "Failed to add expense"))
-        return jsonify(response), status_code
+    # Log deprecation attempt for monitoring
+    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
+    user_agent = request.headers.get('User-Agent', 'unknown')[:100]
+    logger.warning(f"Deprecated /api/backend/add_expense accessed from {client_ip} - User-Agent: {user_agent}")
+    
+    return jsonify({
+        "error": "Direct API discontinued. Use the AI chat interface for expense logging.",
+        "status": "service_permanently_discontinued",
+        "alternative": "Use /ai-chat endpoint with natural language: 'I spent 100 on lunch'",
+        "golden_path": "/ai-chat",
+        "timestamp": datetime.utcnow().isoformat(),
+        "deprecation_notice": "Direct API endpoint permanently retired. Web-only architecture active."
+    }), 410
 
 @backend_api.route('/delete_expense', methods=['POST'])
 @require_backend_user_auth

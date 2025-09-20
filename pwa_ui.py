@@ -947,159 +947,22 @@ def ai_chat():
 
 @pwa_ui.route('/expense', methods=['POST'])
 def add_expense():
-    """
-    Real expense submission using existing FinBrain expense logging system
-    Now supports natural language input via unified brain
-    Enhanced with standardized error handling and comprehensive validation
-    """
-    from utils.db import save_expense
-    from utils.identity import psid_hash
-    from utils.error_responses import (
-        validation_error_response, internal_error, success_response, 
-        standardized_error_response, ErrorCodes, safe_error_message
-    )
-    from utils.validators import validate_expense
-    from utils.structured_logger import api_logger, log_validation_failure
-    import uuid
+    """DEPRECATED: Form submission discontinued - use /ai-chat interface"""
+    from datetime import datetime
     
-    start_time = time.time()
+    # Log deprecation attempt for monitoring
+    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
+    user_agent = request.headers.get('User-Agent', 'unknown')[:100]
+    logger.warning(f"Deprecated /expense form accessed from {client_ip} - User-Agent: {user_agent}")
     
-    try:
-        # SECURITY: Get user ID from session only - require authentication for expenses
-        uid = getattr(g, 'user_id', None)
-        if not uid:
-            return jsonify({"error": "Authentication required"}), 401
-        
-        # Check if user submitted natural language instead of form fields
-        nl_message = request.form.get('nl_message')
-        
-        if nl_message and nl_message.strip():
-            # Process natural language expense using unified brain
-            api_logger.info(f"Processing natural language expense", {
-                "user_prefix": uid[:8] + "***" if len(uid) > 8 else uid,
-                "message_length": len(nl_message),
-                "processing_type": "natural_language"
-            })
-            
-            try:
-                from core.brain import process_expense_message
-                
-                brain_result = process_expense_message(uid, nl_message.strip())
-                
-                if brain_result.get("structured", {}).get("ready_to_save"):
-                    # Extract expense data and save automatically
-                    structured = brain_result["structured"]
-                    amount_float = structured["amount"]
-                    category = structured["category"]
-                    description = brain_result["reply"]
-                    
-                    api_logger.info(f"Auto-saving NL expense", {
-                        "amount": amount_float,
-                        "category": category,
-                        "auto_save": True
-                    })
-                    # Continue with existing save logic using structured data
-                else:
-                    # Return response for user confirmation or interaction
-                    response_time = (time.time() - start_time) * 1000
-                    api_logger.log_api_request(True, response_time, {
-                        "needs_confirmation": True,
-                        "suggested_amount": brain_result.get("structured", {}).get("amount")
-                    })
-                    return jsonify(success_response({
-                        'needs_confirmation': brain_result.get("structured", {}).get("amount") is not None,
-                        'suggested_data': brain_result.get("structured", {}),
-                        'metadata': brain_result.get("metadata", {})
-                    }, brain_result["reply"]))
-                    
-            except Exception as e:
-                api_logger.error("Natural language expense processing failed", {
-                    "error_type": type(e).__name__,
-                    "processing_type": "natural_language"
-                }, e)
-                response, status_code = standardized_error_response(
-                    code=ErrorCodes.OPERATION_FAILED,
-                    message="Could not process your expense message. Please try using the form instead.",
-                    status_code=400,
-                    context={"nl_error": True}
-                )
-                return jsonify(response), status_code
-        else:
-            # Traditional form-based expense entry - validate using new system
-            expense_data = {
-                'amount': request.form.get('amount'),
-                'category': request.form.get('category'),
-                'description': request.form.get('description', '')
-            }
-            
-            # Validate expense data using comprehensive validator
-            validation_result = validate_expense(expense_data)
-            if validation_result.has_errors():
-                log_validation_failure(validation_result.errors, "expense_submission")
-                response, status_code = validation_error_response(validation_result.errors)
-                return jsonify(response), status_code
-            
-            # Extract validated data
-            amount_float = float(expense_data['amount'])
-            category = expense_data['category'].lower()
-            description = expense_data['description']
-        
-        # SECURITY: Get user ID from session only - no client-provided fallbacks
-        user_id = getattr(g, 'user_id', None)
-        if not user_id:
-            # Require authentication for expense creation
-            return jsonify({"error": "Authentication required"}), 401
-        user_hash = psid_hash(user_id) if user_id.startswith('pwa_') else user_id
-        
-        # Generate unique identifiers
-        unique_id = str(uuid.uuid4())
-        mid = f"pwa_{int(time.time() * 1000000)}"
-        
-        # Create original message for logging
-        original_message = f"PWA: {amount_float} BDT for {category}"
-        if description:
-            original_message += f" - {description}"
-        
-        # Use unified expense creation function
-        from utils.db import create_expense
-        from datetime import datetime
-        
-        result = create_expense(
-            user_id=user_hash,
-            amount=amount_float,
-            currency='৳',
-            category=category,
-            occurred_at=datetime.now(),
-            source_message_id=mid,
-            correlation_id=unique_id,  # Use unique_id as correlation_id
-            notes=description or f"{category} expense"
-        )
-        
-        # Log successful expense creation
-        response_time = (time.time() - start_time) * 1000
-        api_logger.log_api_request(True, response_time, {
-            "amount": amount_float,
-            "category": category,
-            "expense_id": result.get('expense_id') if result else unique_id,
-            "processing_type": "form_based"
-        })
-        
-        # Return standardized success response
-        return jsonify(success_response({
-            'expense_id': result.get('expense_id') if result else unique_id,
-            'amount': amount_float,
-            'category': category
-        }, f'Expense of ৳{amount_float:.2f} logged successfully!'))
-        
-    except Exception as e:
-        response_time = (time.time() - start_time) * 1000
-        api_logger.error("PWA expense logging error", {
-            "error_type": type(e).__name__,
-            "response_time_ms": response_time
-        }, e)
-        
-        response, status_code = internal_error(safe_error_message(e, "Failed to log expense. Please try again."))
-        return jsonify(response), status_code
+    return jsonify({
+        "error": "Form submission discontinued. Use the AI chat interface for expense logging.",
+        "status": "service_permanently_discontinued",
+        "alternative": "Use /ai-chat endpoint with natural language: 'I spent 100 on lunch'",
+        "golden_path": "/ai-chat",
+        "timestamp": datetime.utcnow().isoformat(),
+        "deprecation_notice": "Form endpoint permanently retired. Web-only architecture active."
+    }), 410
 
 # Service Worker route (must be at root for scope)
 @pwa_ui.route('/sw.js')
