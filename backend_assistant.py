@@ -99,13 +99,16 @@ def propose_expense(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
         if category is not None:
             confidence_signals += 1
             
-        # Signal 3: Currency resolved (symbol/word/default)
-        currency_resolved = False
+        # Signal 3: Currency resolved (explicit symbol/word or default when amount detected)
+        explicit_currency = False
         currency_patterns = [r'৳', r'\$', r'£', r'€', r'₹', r'taka', r'tk', r'bdt', r'dollar', r'usd', r'pound', r'euro', r'rupee']
         for pattern in currency_patterns:
             if re.search(pattern, text, re.IGNORECASE):
-                currency_resolved = True
+                explicit_currency = True
                 break
+        
+        # Currency is resolved if explicit OR amount is detected (default BDT)
+        currency_resolved = explicit_currency or (amount is not None)
         if currency_resolved:
             confidence_signals += 1
             
@@ -191,11 +194,9 @@ def craft_clarify_question(parsed: Dict[str, Union[str, int, float, None]]) -> D
     Returns:
         Dict with question, chips, missing field, and draft data
     """
-    import os
-    
-    # Feature flag check - fail closed
-    enable_clarifiers = os.environ.get('ENABLE_CLARIFIERS', 'false').lower() == 'true'
-    if not enable_clarifiers:
+    # Feature flag check using centralized gap-fix flags - fail closed
+    from utils.gap_fix_flags import gap_fix_flags
+    if not gap_fix_flags.is_clarifier_enabled():
         return {"question": "I couldn't fully understand that expense. Try: 'spent 200 on groceries'", "chips": [], "missing": None, "draft": None}
     
     amount_minor = parsed.get('amount_minor')
