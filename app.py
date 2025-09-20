@@ -1176,72 +1176,33 @@ def deployment_readiness_check():
 
 @app.route("/webhook/messenger", methods=["GET", "POST"])  # type: ignore[misc]
 def webhook_messenger():
-    """Facebook Messenger webhook with structured request logging"""
-    from utils.logger import request_logger
+    """DEPRECATED: Facebook Messenger webhook - service discontinued"""
+    
+    # Log deprecation attempts for monitoring
+    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
+    user_agent = request.headers.get('User-Agent', 'unknown')[:100]
+    logger.warning(f"Deprecated Messenger webhook accessed from {client_ip} - User-Agent: {user_agent}")
     
     if request.method == "GET":
-        # Facebook webhook verification
+        # Still handle verification for Facebook's webhook management
         verify_token = request.args.get("hub.verify_token")
         challenge = request.args.get("hub.challenge")
         mode = request.args.get("hub.mode")
         
-        # Enhanced logging to debug verification issues
-        logger.info(f"Webhook verification request - mode={mode}, token_provided={bool(verify_token)}, challenge={bool(challenge)}")
-        logger.info(f"Full request args: {dict(request.args)}")
-        
         expected_token = os.environ.get("FACEBOOK_VERIFY_TOKEN")
-        logger.info(f"Expected token present: {bool(expected_token)}, Received token matches: {verify_token == expected_token}")
-        
         if mode == "subscribe" and verify_token == expected_token:
-            logger.info("✅ Webhook verification successful")
+            logger.info("Webhook verification (deprecated service)")
             return challenge or ""
         else:
-            logger.warning(f"❌ Webhook verification failed: mode={mode}, expected_mode=subscribe, token_match={verify_token == expected_token}")
-            logger.warning(f"Received token: '{verify_token}', Expected: '{expected_token[:10] if expected_token else None}...' (masked)")
             return "Verification token mismatch", 403
-        
-    elif request.method == "POST":
-        # PRODUCTION SECURITY: Enforce HTTPS (temporarily disabled for local testing)
-        # TODO: Re-enable for production deployment
-        # if not request.is_secure and not request.headers.get('X-Forwarded-Proto') == 'https':
-        #     logger.error("Webhook called over HTTP - Facebook requires HTTPS")
-        #     return "HTTPS required", 400
-        
-        # PRODUCTION SECURITY: Mandatory signature verification
-        from utils.webhook_processor import process_webhook_fast
-        
-        # Streamlined production routing
-        try:
-            from utils.production_router import production_router
-        except ImportError:
-            production_router = None
-        
-        # Get raw payload and signature
-        payload_bytes = request.get_data()
-        signature = request.headers.get('X-Hub-Signature-256', '')
-        
-        # Get app secret - REQUIRED for production
-        app_secret = os.environ.get('FACEBOOK_APP_SECRET', '')
-        
-        if not app_secret:
-            logger.error("FACEBOOK_APP_SECRET is required for webhook signature verification")
-            return "Configuration error", 500
-        
-        # Local testing bypass - check for bypass header
-        local_bypass = request.headers.get('X-Local-Testing', '').lower() == 'true'
-        
-        if not signature and not local_bypass:
-            logger.error("Missing X-Hub-Signature-256 header")
-            return "Missing signature", 400
-        
-        if local_bypass:
-            # For local testing, bypass signature verification
-            logger.info("Local testing bypass enabled - skipping signature verification")
-            from utils.webhook_processor import process_webhook_fast_local
-            response_text, status_code = process_webhook_fast_local(payload_bytes)
-        else:
-            response_text, status_code = process_webhook_fast(payload_bytes, signature, app_secret)
-        return response_text, status_code
+    
+    # All POST requests get deprecation response
+    return jsonify({
+        "error": "Messenger logging discontinued. Please use the web app at finbrain.app for expense tracking.",
+        "status": "service_deprecated",
+        "alternative": "Visit finbrain.app to continue tracking expenses",
+        "timestamp": datetime.utcnow().isoformat()
+    }), 410
 
 @app.route('/diagnose/router', methods=['GET'])
 @require_basic_auth
