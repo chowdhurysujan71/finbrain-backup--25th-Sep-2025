@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     err && (err.style.display = 'none');
-    spin && (spin.style.display = 'inline-block');
     
     // Handle button loading state
     const registerBtn = document.getElementById('register-btn');
@@ -62,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       data = await res.json().catch(() => ({}));
     } catch (e) {
-      spin && (spin.style.display = 'none');
       // Restore button state on error
       if (btnText) btnText.style.display = 'inline';
       if (btnLoading) btnLoading.style.display = 'none';
@@ -70,7 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (err) { err.textContent = 'Network error'; err.style.display = 'block'; }
       return;
     }
-    spin && (spin.style.display = 'none');
     
     // Restore button state
     if (btnText) btnText.style.display = 'inline';
