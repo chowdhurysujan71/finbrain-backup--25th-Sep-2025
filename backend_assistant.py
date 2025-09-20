@@ -632,7 +632,7 @@ def get_sql_schemas() -> Dict[str, str]:
         CREATE TABLE sessions (
           id SERIAL PRIMARY KEY,
           user_id INT REFERENCES users(id),
-          source TEXT, -- 'web', 'messenger', etc.
+          source TEXT, -- 'chat' (web-only architecture)
           started_at TIMESTAMP DEFAULT now()
         );
         """,
@@ -645,7 +645,7 @@ def get_sql_schemas() -> Dict[str, str]:
           currency CHAR(3) DEFAULT 'BDT',
           category TEXT CHECK (category IN ('food','transport','bills','shopping','uncategorized')),
           description TEXT,
-          source TEXT, -- 'chat', 'form', 'messenger'
+          source TEXT, -- 'chat' (web-only architecture)
           created_at TIMESTAMP DEFAULT now(),
           message_id TEXT, -- original platform message id
           idempotency_key TEXT UNIQUE,

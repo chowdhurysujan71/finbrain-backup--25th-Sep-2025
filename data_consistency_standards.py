@@ -16,9 +16,11 @@ class DataConsistencyStandards:
     # ========================================
     
     # Valid source types (web-only architecture)
-    def __init__(self):
+    # Valid source types (web-only architecture)  
+    @classmethod
+    def get_valid_sources(cls):
         from constants import ALLOWED_SOURCES
-        self.VALID_SOURCES = frozenset(ALLOWED_SOURCES)
+        return frozenset(ALLOWED_SOURCES)
     
     @staticmethod
     def validate_source(source: str) -> bool:
@@ -84,7 +86,7 @@ class DataConsistencyStandards:
         return currency in DataConsistencyStandards.CURRENCY_STANDARDS
     
     @staticmethod
-    def normalize_currency(currency: str) -> str:
+    def normalize_currency(currency: str | None) -> str:
         """Normalize currency code to standard format"""
         if not currency:
             return DataConsistencyStandards.DEFAULT_CURRENCY
@@ -123,7 +125,7 @@ class DataConsistencyStandards:
     # ========================================
     
     @staticmethod
-    def validate_amount(amount: Union[float, Decimal, int], currency: str = None) -> bool:
+    def validate_amount(amount: Union[float, Decimal, int], currency: str | None = None) -> bool:
         """Validate amount against currency standards"""
         if currency is None:
             currency = DataConsistencyStandards.DEFAULT_CURRENCY
@@ -137,7 +139,7 @@ class DataConsistencyStandards:
         return min_amount <= amount_decimal <= max_amount
     
     @staticmethod
-    def normalize_amount(amount: Union[float, str, Decimal], currency: str = None) -> Decimal:
+    def normalize_amount(amount: Union[float, str, Decimal], currency: str | None = None) -> Decimal:
         """Normalize amount to standard decimal format"""
         if currency is None:
             currency = DataConsistencyStandards.DEFAULT_CURRENCY
@@ -155,7 +157,7 @@ class DataConsistencyStandards:
         )
     
     @staticmethod
-    def amount_to_minor_units(amount: Union[float, str, Decimal], currency: str = None) -> int:
+    def amount_to_minor_units(amount: Union[float, str, Decimal], currency: str | None = None) -> int:
         """Convert amount to minor units (e.g., cents) for precise storage"""
         if currency is None:
             currency = DataConsistencyStandards.DEFAULT_CURRENCY
@@ -169,7 +171,7 @@ class DataConsistencyStandards:
         return int(amount_normalized * multiplier)
     
     @staticmethod
-    def minor_units_to_amount(amount_minor: int, currency: str = None) -> Decimal:
+    def minor_units_to_amount(amount_minor: int, currency: str | None = None) -> Decimal:
         """Convert minor units back to decimal amount"""
         if currency is None:
             currency = DataConsistencyStandards.DEFAULT_CURRENCY
@@ -225,7 +227,7 @@ class DataConsistencyStandards:
     # ========================================
     
     @staticmethod
-    def normalize_text(text: str, max_length: int = None) -> str:
+    def normalize_text(text: str | None, max_length: int | None = None) -> str:
         """Normalize text fields to consistent format"""
         if not text:
             return ''
@@ -243,12 +245,12 @@ class DataConsistencyStandards:
         return normalized
     
     @staticmethod
-    def normalize_description(description: str) -> str:
+    def normalize_description(description: str | None) -> str:
         """Normalize expense description"""
         return DataConsistencyStandards.normalize_text(description, max_length=500)
     
     @staticmethod
-    def normalize_merchant_text(merchant: str) -> str:
+    def normalize_merchant_text(merchant: str | None) -> str:
         """Normalize merchant text"""
         return DataConsistencyStandards.normalize_text(merchant, max_length=200)
     
@@ -291,7 +293,7 @@ class DataConsistencyStandards:
                 else:
                     currency_info = DataConsistencyStandards.get_currency_info(normalized_currency)
                     errors.append(f"Amount {amount} outside valid range {currency_info['min_amount']}-{currency_info['max_amount']}")
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError):
                 errors.append(f"Invalid amount format: {amount}")
         else:
             errors.append("Amount is required")
@@ -339,20 +341,20 @@ def get_supported_currencies() -> List[str]:
 
 def get_valid_sources() -> List[str]:
     """Get list of valid source values"""
-    return list(DataConsistencyStandards.VALID_SOURCES)
+    from constants import ALLOWED_SOURCES
+    return list(ALLOWED_SOURCES)
 
 if __name__ == "__main__":
     # Example usage and validation
     print("📏 FinBrain Data Consistency Standards")
     print("=" * 50)
     
-    print(f"✅ Valid Sources: {get_valid_sources()}")
     print(f"✅ Supported Currencies: {get_supported_currencies()}")
     print(f"✅ Default Currency: {DataConsistencyStandards.DEFAULT_CURRENCY}")
     
     # Test data validation
     test_expense = {
-        'source': 'web',  # Should normalize to 'form'
+        'source': 'chat',  # Should be valid for web-only architecture
         'amount': 123.456,  # Should round to 123.46
         'currency': 'taka',  # Should normalize to 'BDT'
         'category': 'restaurant',  # Should normalize to 'food'

@@ -81,7 +81,7 @@ def handle_multi_expense_logging(psid_hash_val: str, mid: str, text: str, now: d
                     currency=expense_data.get('currency', 'BDT'),
                     category=expense_data.get('category'),
                     description=expense_data.get('note', text),
-                    source='messenger',
+                    source='chat',  # Updated for web-only architecture
                     message_id=derived_mid
                 )
                 # Convert result back to expense_data format for consistency
@@ -367,7 +367,7 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
                     currency=target_expense.get('currency', 'BDT'),
                     category=target_expense.get('category'),
                     description=target_expense.get('note', text),
-                    source='messenger',
+                    source='chat',  # Updated for web-only architecture
                     message_id=mid
                 )
             except Exception as e:

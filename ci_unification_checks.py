@@ -8,6 +8,8 @@ import os
 import sys
 import subprocess
 import psycopg2
+import re
+import glob
 from urllib.parse import urlparse
 
 def run_command(cmd, description):
@@ -34,7 +36,8 @@ def run_sql_check(query, description, max_allowed=0):
         conn = psycopg2.connect(database_url)
         cur = conn.cursor()
         cur.execute(query)
-        result = cur.fetchone()[0]
+        fetch_result = cur.fetchone()
+        result = fetch_result[0] if fetch_result else 0
         cur.close()
         conn.close()
         
@@ -83,7 +86,6 @@ def check_hardcoded_sources():
     violations = []
     
     # Find Python files
-    import glob
     py_files = [f for f in glob.glob('**/*.py', recursive=True) if not f.startswith('.')]
     
     forbidden_patterns = [
@@ -304,7 +306,8 @@ def main():
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         cur = conn.cursor()
         cur.execute("SELECT COUNT(*) FROM expenses")
-        expense_count = cur.fetchone()[0]
+        fetch_result = cur.fetchone()
+        expense_count = fetch_result[0] if fetch_result else 0
         cur.close()
         conn.close()
         
