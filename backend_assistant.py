@@ -87,13 +87,36 @@ def propose_expense(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
             if category:
                 break
         
-        # Calculate confidence based on concrete signals - NEVER invent confidence
+        # Enhanced confidence scoring with 4 signals (0, .25, .5, .75, 1.0)
         confidence_signals = 0
-        total_signals = 2
+        total_signals = 4
         
+        # Signal 1: Amount detected
         if amount is not None:
             confidence_signals += 1
+            
+        # Signal 2: Category detected  
         if category is not None:
+            confidence_signals += 1
+            
+        # Signal 3: Currency resolved (symbol/word/default)
+        currency_resolved = False
+        currency_patterns = [r'৳', r'\$', r'£', r'€', r'₹', r'taka', r'tk', r'bdt', r'dollar', r'usd', r'pound', r'euro', r'rupee']
+        for pattern in currency_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                currency_resolved = True
+                break
+        if currency_resolved:
+            confidence_signals += 1
+            
+        # Signal 4: Date heuristic applied (today/yesterday/last week)
+        date_resolved = False
+        date_patterns = [r'today', r'yesterday', r'last week', r'this week', r'আজ', r'গতকাল', r'গত সপ্তাহ']
+        for pattern in date_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                date_resolved = True
+                break
+        if date_resolved:
             confidence_signals += 1
             
         confidence = confidence_signals / total_signals
