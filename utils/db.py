@@ -116,27 +116,28 @@ def create_expense(user_id, amount, currency, category, occurred_at, source_mess
                 'now_ts': now_ts
             })
         
-        # Update monthly summary
-        monthly_summary = MonthlySummary.query.filter_by(
-            user_id_hash=user_id,
-            month=current_month
-        ).first()
-        
-        if not monthly_summary:
-            monthly_summary = MonthlySummary()
-            monthly_summary.user_id_hash = user_id
-            monthly_summary.month = current_month
-            monthly_summary.total_amount = amount_float
-            monthly_summary.expense_count = 1
-            monthly_summary.categories = {expense.category: amount_float}
-            db.session.add(monthly_summary)
-        else:
-            monthly_summary.total_amount = float(monthly_summary.total_amount) + amount_float
-            monthly_summary.expense_count += 1
-            categories = monthly_summary.categories or {}
-            categories[expense.category] = categories.get(expense.category, 0) + amount_float
-            monthly_summary.categories = categories
-            monthly_summary.updated_at = datetime.utcnow()
+        # Update monthly summary - prevent autoflush during query
+        with db.session.no_autoflush:
+            monthly_summary = MonthlySummary.query.filter_by(
+                user_id_hash=user_id,
+                month=current_month
+            ).first()
+            
+            if not monthly_summary:
+                monthly_summary = MonthlySummary()
+                monthly_summary.user_id_hash = user_id
+                monthly_summary.month = current_month
+                monthly_summary.total_amount = amount_float
+                monthly_summary.expense_count = 1
+                monthly_summary.categories = {expense.category: amount_float}
+                db.session.add(monthly_summary)
+            else:
+                monthly_summary.total_amount = float(monthly_summary.total_amount) + amount_float
+                monthly_summary.expense_count += 1
+                categories = monthly_summary.categories or {}
+                categories[expense.category] = categories.get(expense.category, 0) + amount_float
+                monthly_summary.categories = categories
+                monthly_summary.updated_at = datetime.utcnow()
         
         # Single atomic commit
         db.session.commit()

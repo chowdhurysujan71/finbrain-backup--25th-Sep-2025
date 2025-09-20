@@ -1476,7 +1476,7 @@ class ProductionRouter:
             from datetime import datetime
             import json
             
-            # Create CC snapshot record
+            # Create CC snapshot record - handle duplicates gracefully
             db.session.execute(sql_text("""
                 INSERT INTO inference_snapshots 
                 (cc_id, user_id, intent, slots_json, confidence, decision, clarifier_json,
@@ -1486,6 +1486,7 @@ class ProductionRouter:
                 (:cc_id, :user_id, :intent, :slots_json, :confidence, :decision, :clarifier_json,
                  :model_version, :processing_time_ms, :source_text, :ui_note, :created_at,
                  :pca_mode, :applied, :error_message)
+                ON CONFLICT (cc_id) DO NOTHING
             """), {
                 'cc_id': cc_id,
                 'user_id': user_hash,
@@ -1590,7 +1591,8 @@ class ProductionRouter:
                                 merchant_text: str, original_text: str, rid: str) -> bool:
         """Save expense to RAW ledger only (DRYRUN mode)"""
         try:
-            from utils.db import save_expense
+            from utils.db import create_expense
+            from datetime import datetime
             
             # Create description from available data
             description_parts = []
@@ -1603,15 +1605,16 @@ class ProductionRouter:
             
             description = " - ".join(description_parts)
             
-            # Save to RAW ledger only (no overlay tables in DRYRUN)
-            save_expense(
-                user_identifier=user_hash,
-                description=description,
+            # Save using canonical write path to avoid database trigger
+            create_expense(
+                user_id=user_hash,
                 amount=amount,
+                currency="৳",
                 category=category or "other",
-                platform="facebook",
-                original_message=original_text,
-                unique_id=rid
+                occurred_at=datetime.utcnow(),
+                source_message_id=rid,
+                correlation_id=None,
+                notes=description
             )
             
             return True
@@ -1624,7 +1627,8 @@ class ProductionRouter:
                                      merchant_text: str, original_text: str, rid: str) -> bool:
         """Save expense to RAW + overlay tables (ON mode)"""
         try:
-            from utils.db import save_expense
+            from utils.db import create_expense
+            from datetime import datetime
             
             # Create description from available data
             description_parts = []
@@ -1637,15 +1641,16 @@ class ProductionRouter:
             
             description = " - ".join(description_parts)
             
-            # Save to RAW + overlay tables
-            save_expense(
-                user_identifier=user_hash,
-                description=description,
+            # Save using canonical write path to avoid database trigger
+            create_expense(
+                user_id=user_hash,
                 amount=amount,
+                currency="৳",
                 category=category or "other",
-                platform="facebook",
-                original_message=original_text,
-                unique_id=rid
+                occurred_at=datetime.utcnow(),
+                source_message_id=rid,
+                correlation_id=None,
+                notes=description
             )
             
             # TODO: Add overlay table writes here when overlay system is implemented
