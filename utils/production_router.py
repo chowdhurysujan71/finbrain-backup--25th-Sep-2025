@@ -221,7 +221,7 @@ def route_message(user_id_hash: str, text: str, channel: str = "web", locale: st
     logger.info(f"[FACADE] channel={channel} user_hash={user_id_hash[:8]}... rid={rid} text='{text[:50]}...'")
     
     # Call the exact same production path FB uses
-    return production_router.route_message(text, user_id_hash, rid)
+    return production_router.route_message(text, user_id_hash, rid, channel)
 
 logger = logging.getLogger("finbrain.router")
 

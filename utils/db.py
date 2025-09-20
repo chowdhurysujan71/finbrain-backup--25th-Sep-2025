@@ -173,7 +173,9 @@ def get_or_create_user(user_identifier, platform, db_session=None):
     try:
         user_hash = user_identifier  # Already hashed
         
-        user = User.query.filter_by(user_id_hash=user_hash).first()
+        # Use no_autoflush to prevent triggering flush of pending expense
+        with db_session.session.no_autoflush:
+            user = db_session.session.query(User).filter_by(user_id_hash=user_hash).first()
         
         if not user:
             user = User()
@@ -182,15 +184,14 @@ def get_or_create_user(user_identifier, platform, db_session=None):
             user.total_expenses = 0
             user.expense_count = 0
             db_session.session.add(user)
-            db_session.session.commit()
             logger.info(f"Created new user for platform {platform}")
         
         return user
         
     except SQLAlchemyError as e:
         logger.error(f"Database error in get_or_create_user: {str(e)}")
-        db_session.session.rollback()
-        return None
+        # Re-raise to let caller handle transaction rollback
+        raise
 
 def save_expense(user_identifier, description, amount, category, platform, original_message, unique_id, mid=None, db_session=None):
     """Save expense to database and update monthly summaries"""
