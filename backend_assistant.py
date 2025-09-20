@@ -126,13 +126,17 @@ def propose_expense(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
         
         # Apply confidence threshold rule from specification with clarifier support
         if confidence < 0.7:
+            # Schema unification: Add raw_text and parsed_at_iso for enhanced observability
+            from datetime import datetime
             result = {
                 "amount_minor": amount_minor,
                 "currency": "BDT", 
                 "category": category or "uncategorized",
                 "description": raw_text.strip(),
                 "confidence": confidence,
-                "status": "needs_review"
+                "status": "needs_review",
+                "raw_text": raw_text.strip(),
+                "parsed_at_iso": datetime.utcnow().isoformat() + "Z"
             }
             
             # For confidence==0.5, add clarifier information
@@ -142,23 +146,38 @@ def propose_expense(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
                 
             return result
         
-        return {
+        # Schema unification: Add raw_text and parsed_at_iso for enhanced observability
+        from datetime import datetime
+        result = {
             "amount_minor": amount_minor,
             "currency": "BDT",
             "category": category or "uncategorized",
             "description": raw_text.strip(),
-            "confidence": confidence
+            "confidence": confidence,
+            "raw_text": raw_text.strip(),
+            "parsed_at_iso": datetime.utcnow().isoformat() + "Z"
         }
+        
+        # Enhanced observability: Log confidence bin for gap-fix analytics
+        confidence_bin = "high" if confidence >= 0.75 else "medium" if confidence >= 0.5 else "low" if confidence > 0 else "none"
+        logger.info(f"[ENHANCED_PARSING] confidence={confidence:.2f} bin={confidence_bin} signals={confidence_signals}/{total_signals}")
+        
+        return result
         
     except Exception as e:
         logger.error(f"propose_expense deterministic parsing failed: {e}")
         # On error, return null fields - NEVER invent
+        # Schema unification: Add raw_text and parsed_at_iso even for errors
+        from datetime import datetime
+        logger.info(f"[ENHANCED_PARSING] confidence=0.0 bin=none signals=0/4 error=true")
         return {
             "amount_minor": None,
             "currency": "BDT",
             "category": None,
             "description": raw_text.strip(),
-            "confidence": 0.0
+            "confidence": 0.0,
+            "raw_text": raw_text.strip(),
+            "parsed_at_iso": datetime.utcnow().isoformat() + "Z"
         }
 
 def craft_clarify_question(parsed: Dict[str, Union[str, int, float, None]]) -> Dict[str, Any]:

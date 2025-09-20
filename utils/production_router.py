@@ -375,8 +375,14 @@ class ProductionRouter:
         return bool(has_separator and has_expense_keyword)
 
     def _handle_multi_expense_logging(self, text: str, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
-        """Handle logging multiple expenses from a single message"""
+        """Handle logging multiple expenses from a single message with feature flag guard"""
         try:
+            # Feature flag guard for multi-expense functionality
+            from utils.gap_fix_flags import gap_fix_flags
+            if not gap_fix_flags.is_multi_expense_enabled():
+                logger.info(f"[MULTI_EXPENSE] Feature disabled, falling back to single expense handling")
+                return self._handle_single_expense_logging(text, psid, psid_hash, rid)
+            
             from parsers.expense import extract_all_expenses
             from backend_assistant import add_expense
             from datetime import datetime
@@ -455,9 +461,9 @@ class ProductionRouter:
             
             # Handle confidence==0.5 cases with clarifier (if enabled)
             if confidence == 0.5 and clarify_data and clarify_data.get('question'):
-                # Feature flag check for ENABLE_CLARIFIERS
-                import os
-                enable_clarifiers = os.environ.get('ENABLE_CLARIFIERS', 'false').lower() == 'true'
+                # Feature flag check using centralized gap-fix flags
+                from utils.gap_fix_flags import gap_fix_flags
+                enable_clarifiers = gap_fix_flags.is_clarifier_enabled()
                 
                 if enable_clarifiers:
                     # Return clarification response with structured data for web UI
