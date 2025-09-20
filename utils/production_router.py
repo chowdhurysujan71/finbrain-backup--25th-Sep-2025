@@ -1591,8 +1591,7 @@ class ProductionRouter:
                                 merchant_text: str, original_text: str, rid: str) -> bool:
         """Save expense to RAW ledger only (DRYRUN mode)"""
         try:
-            from utils.db import create_expense
-            from datetime import datetime
+            from backend_assistant import add_expense
             
             # Create description from available data
             description_parts = []
@@ -1605,16 +1604,15 @@ class ProductionRouter:
             
             description = " - ".join(description_parts)
             
-            # Save using canonical write path to avoid database trigger
-            create_expense(
+            # Use canonical backend assistant method to bypass database trigger
+            add_expense(
                 user_id=user_hash,
-                amount=amount,
-                currency="৳",
+                amount_minor=int(amount * 100),  # Convert to minor units
+                currency="BDT",
                 category=category or "other",
-                occurred_at=datetime.utcnow(),
-                source_message_id=rid,
-                correlation_id=None,
-                notes=description
+                description=description,
+                source="chat",  # Valid source for AI chat interface
+                message_id=rid
             )
             
             return True
@@ -1627,8 +1625,7 @@ class ProductionRouter:
                                      merchant_text: str, original_text: str, rid: str) -> bool:
         """Save expense to RAW + overlay tables (ON mode)"""
         try:
-            from utils.db import create_expense
-            from datetime import datetime
+            from backend_assistant import add_expense
             
             # Create description from available data
             description_parts = []
@@ -1641,16 +1638,15 @@ class ProductionRouter:
             
             description = " - ".join(description_parts)
             
-            # Save using canonical write path to avoid database trigger
-            create_expense(
+            # Use canonical backend assistant method to bypass database trigger
+            add_expense(
                 user_id=user_hash,
-                amount=amount,
-                currency="৳",
+                amount_minor=int(amount * 100),  # Convert to minor units
+                currency="BDT",
                 category=category or "other",
-                occurred_at=datetime.utcnow(),
-                source_message_id=rid,
-                correlation_id=None,
-                notes=description
+                description=description,
+                source="chat",  # Valid source for AI chat interface
+                message_id=rid
             )
             
             # TODO: Add overlay table writes here when overlay system is implemented
