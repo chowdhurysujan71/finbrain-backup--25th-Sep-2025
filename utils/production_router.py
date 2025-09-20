@@ -1011,15 +1011,14 @@ class ProductionRouter:
                         final_category = clarification_result['category']
                         
                         # Save the expense with the clarified category
-                        from utils.db import save_expense
-                        save_expense(
-                            user_identifier=user_hash,
-                            description=f"{final_category} expense",
+                        from backend_assistant import add_expense
+                        add_expense(
+                            user_id_hash=user_hash,
+                            original_text=original_expense["original_text"],
                             amount=original_expense["amount"],
                             category=final_category,
-                            platform="facebook",
-                            original_message=original_expense["original_text"],
-                            unique_id=rid
+                            source="chat",
+                            idempotency_key=f"clarification:{rid}"
                         )
                         
                         response = normalize(clarification_result['message'])
@@ -1343,15 +1342,14 @@ class ProductionRouter:
                 return response, "clarification_needed", None, None
             
             # Save expense to database
-            from utils.db import save_expense
-            save_expense(
-                user_identifier=psid_hash,
-                description=f"{expense['category']} expense",
+            from backend_assistant import add_expense
+            add_expense(
+                user_id_hash=psid_hash,
+                original_text=text,
                 amount=expense["amount"],
                 category=expense["category"],
-                platform="facebook",
-                original_message=text,
-                unique_id=rid
+                source="chat",
+                idempotency_key=f"api:{rid}"
             )
             
             reply = f"✅ Logged: ৳{expense['amount']:.0f} for {expense['category'].lower()}"
@@ -1365,15 +1363,14 @@ class ProductionRouter:
             expense = regex_parse(text)  # very strict "spent {amt} on {cat}"
             if expense:
                 try:
-                    from utils.db import save_expense
-                    save_expense(
-                        user_identifier=psid_hash,
-                        description=f"{expense['category']} expense",
-                        amount=expense["amount"], 
+                    from backend_assistant import add_expense
+                    add_expense(
+                        user_id_hash=psid_hash,
+                        original_text=text,
+                        amount=expense["amount"],
                         category=expense["category"],
-                        platform="facebook",
-                        original_message=text,
-                        unique_id=rid
+                        source="chat",
+                        idempotency_key=f"api:{rid}"
                     )
                     reply = f"✅ Logged: ৳{expense['amount']:.0f} for {expense['category'].lower()}"
                     mode = "STD"
@@ -1992,7 +1989,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
     def _handle_ai_expense_logging(self, parse_result: Dict[str, Any], psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
         """Handle AI-parsed expense logging with multiple items"""
         try:
-            from utils.db import save_expense
+            from backend_assistant import add_expense
             # Using canonical psid_hash from top-level import
             
             expenses = parse_result["expenses"]
@@ -2008,14 +2005,13 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
                 category = expense_data["category"]
                 
                 # Log the expense  
-                result = save_expense(
-                    user_identifier=psid_hash,  # Use the already computed hash
-                    description=description,
+                result = add_expense(
+                    user_id_hash=psid_hash,  # Use the already computed hash
+                    original_text=parse_result["original_text"],
                     amount=amount,
                     category=category,
-                    platform='messenger',
-                    original_message=parse_result["original_text"],
-                    unique_id=f"{psid}-{amount}-{description[:10]}"
+                    source="chat",
+                    idempotency_key=f"multi:{psid}:{amount}:{description[:10]}"
                 )
                 success = result.get('success', False)
                 
@@ -2476,16 +2472,14 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             note = parsed_data['note']
             
             # Store expense with idempotency protection using Facebook message ID (rid)
-            from utils.db import save_expense_idempotent
-            result = save_expense_idempotent(
-                user_identifier=psid_hash,
-                description=f"{category} expense",
+            from backend_assistant import add_expense
+            result = add_expense(
+                user_id_hash=psid_hash,
+                original_text=text,
                 amount=float(amount),
                 category=category,
-                currency=currency,
-                platform="facebook",
-                original_message=text,
-                unique_id=rid  # Use Facebook message ID for idempotency
+                source="chat",
+                idempotency_key=f"api:{rid}"  # Use Facebook message ID for idempotency
             )
             
             if result.get('duplicate'):
