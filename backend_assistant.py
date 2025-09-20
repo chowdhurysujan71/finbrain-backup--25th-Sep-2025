@@ -172,12 +172,22 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
     from models import Expense, User, MonthlySummary
     from utils.tracer import trace_event
     from utils.telemetry import TelemetryTracker
+    from utils.unbreakable_invariants import enforce_single_writer_invariant
     
     start_time = time.time()
     success = False
     
     try:
-        # Validate essential fields
+        # 🎯 UNBREAKABLE INVARIANT ENFORCEMENT
+        # This validates source, idempotency, and all single writer requirements
+        expense_data_for_validation = {
+            'source': source,
+            'user_id': user_id,
+            'idempotency_key': message_id or f"api:{hashlib.sha256(f'{user_id}:{description}:{time.time()}'.encode()).hexdigest()}"
+        }
+        enforce_single_writer_invariant(expense_data_for_validation)
+        
+        # Validate essential fields  
         if not user_id or not description or not source:
             raise ValueError("user_id, description, and source are required")
         
