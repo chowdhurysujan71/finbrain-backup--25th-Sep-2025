@@ -1,9 +1,9 @@
 // finbrain PWA Service Worker
 // Handles caching, offline functionality, and background sync
 
-const CACHE_NAME = 'finbrain-v1.3.0-canary';
-const STATIC_CACHE_NAME = 'finbrain-static-v1.3.0-canary';
-const API_CACHE_NAME = 'finbrain-api-v1.3.0-canary';
+const CACHE_NAME = 'finbrain-v1.4.0-webonly';
+const STATIC_CACHE_NAME = 'finbrain-static-v1.4.0-webonly';
+const API_CACHE_NAME = 'finbrain-api-v1.4.0-webonly';
 
 // Resources to precache on install
 const PRECACHE_URLS = [

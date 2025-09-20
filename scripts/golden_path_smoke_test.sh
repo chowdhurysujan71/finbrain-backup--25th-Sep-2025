@@ -111,7 +111,7 @@ else
     exit 1
 fi
 
-# 6) Verify expense appears in recent list
+# 6) Verify expense appears in recent list  
 echo "6. Verifying expense logged..."
 found=0
 for i in $(seq 1 $TIMEOUT); do
@@ -130,8 +130,20 @@ if [ "$found" = "0" ]; then
     exit 1
 fi
 
-# 7) Test Deprecated Endpoints Return 410
-echo "7. Testing deprecated endpoints..."
+# 7) Verify QuickAdd form removal
+echo "7. Verifying QuickAdd form removed..."
+chat_html=$(curl -s -b cookies.txt "$BASE_URL/chat")
+if echo "$chat_html" | grep -q 'data-testid="expense-form"'; then
+    echo "   ❌ Old expense form still present"
+    exit 1
+elif echo "$chat_html" | grep -q 'data-testid="quick-add-cta"'; then
+    echo "   ✅ QuickAdd CTA tile present, form removed"
+else
+    echo "   ⚠️  Could not verify form replacement"
+fi
+
+# 8) Test Deprecated Endpoints Return 410
+echo "8. Testing deprecated endpoints..."
 
 # Test /expense form endpoint
 expense_410=$(curl -s -b cookies.txt -H "Content-Type: application/x-www-form-urlencoded" -X POST "$BASE_URL/expense" -d "amount=100&category=test" -w "%{http_code}")
@@ -160,7 +172,7 @@ else
     echo "   ❌ /webhook/messenger should return 410, got $messenger_status"
 fi
 
-# 8) Calculate Success Rate
+# 9) Calculate Success Rate
 echo ""
 echo "=============================================="
 echo "🎯 SMOKE TEST RESULTS"
