@@ -21,6 +21,7 @@ from sqlalchemy import text, and_, func
 from typing import Dict, List, Optional, Union
 import logging
 from utils.identity import ensure_hashed
+from utils.single_writer_guard import canonical_writer_context
 
 logger = logging.getLogger(__name__)
 
@@ -291,53 +292,54 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
         expense.mid = stable_message_id
         expense.idempotency_key = idempotency_key
         
-        # BEGIN ATOMIC TRANSACTION
-        db.session.add(expense)
-        
-        # Update user totals (absorbed from create_expense with no_autoflush)
-        from sqlalchemy import text as sql_text
-        now_ts = datetime.utcnow()
-        with db.session.no_autoflush:
-            db.session.execute(sql_text("""
-                INSERT INTO users (user_id_hash, platform, total_expenses, expense_count, last_interaction, last_user_message_at)
-                VALUES (:user_hash, :platform, :amount, 1, :now_ts, :now_ts)
-                ON CONFLICT (user_id_hash) DO UPDATE SET
-                    total_expenses = COALESCE(users.total_expenses, 0) + :amount,
-                    expense_count = COALESCE(users.expense_count, 0) + 1,
-                    last_interaction = :now_ts,
-                    last_user_message_at = :now_ts
-            """), {
-                'user_hash': user_id,
-                'platform': source,
-                'amount': amount_float,
-                'now_ts': now_ts
-            })
-        
-        # Update monthly summary (absorbed from create_expense with no_autoflush)
-        with db.session.no_autoflush:
-            monthly_summary = MonthlySummary.query.filter_by(
-                user_id_hash=user_id,
-                month=current_month
-            ).first()
+        # BEGIN ATOMIC TRANSACTION WITH CANONICAL WRITER PROTECTION
+        with canonical_writer_context():
+            db.session.add(expense)
             
-            if not monthly_summary:
-                monthly_summary = MonthlySummary()
-                monthly_summary.user_id_hash = user_id
-                monthly_summary.month = current_month
-                monthly_summary.total_amount = amount_float
-                monthly_summary.expense_count = 1
-                monthly_summary.categories = {expense.category: amount_float}
-                db.session.add(monthly_summary)
-            else:
-                monthly_summary.total_amount = float(monthly_summary.total_amount) + amount_float
-                monthly_summary.expense_count += 1
-                categories = monthly_summary.categories or {}
-                categories[expense.category] = categories.get(expense.category, 0) + amount_float
-                monthly_summary.categories = categories
-                monthly_summary.updated_at = datetime.utcnow()
-        
-        # Single atomic commit
-        db.session.commit()
+            # Update user totals (absorbed from create_expense with no_autoflush)
+            from sqlalchemy import text as sql_text
+            now_ts = datetime.utcnow()
+            with db.session.no_autoflush:
+                db.session.execute(sql_text("""
+                    INSERT INTO users (user_id_hash, platform, total_expenses, expense_count, last_interaction, last_user_message_at)
+                    VALUES (:user_hash, :platform, :amount, 1, :now_ts, :now_ts)
+                    ON CONFLICT (user_id_hash) DO UPDATE SET
+                        total_expenses = COALESCE(users.total_expenses, 0) + :amount,
+                        expense_count = COALESCE(users.expense_count, 0) + 1,
+                        last_interaction = :now_ts,
+                        last_user_message_at = :now_ts
+                """), {
+                    'user_hash': user_id,
+                    'platform': source,
+                    'amount': amount_float,
+                    'now_ts': now_ts
+                })
+            
+            # Update monthly summary (absorbed from create_expense with no_autoflush)
+            with db.session.no_autoflush:
+                monthly_summary = MonthlySummary.query.filter_by(
+                    user_id_hash=user_id,
+                    month=current_month
+                ).first()
+                
+                if not monthly_summary:
+                    monthly_summary = MonthlySummary()
+                    monthly_summary.user_id_hash = user_id
+                    monthly_summary.month = current_month
+                    monthly_summary.total_amount = amount_float
+                    monthly_summary.expense_count = 1
+                    monthly_summary.categories = {expense.category: amount_float}
+                    db.session.add(monthly_summary)
+                else:
+                    monthly_summary.total_amount = float(monthly_summary.total_amount) + amount_float
+                    monthly_summary.expense_count += 1
+                    categories = monthly_summary.categories or {}
+                    categories[expense.category] = categories.get(expense.category, 0) + amount_float
+                    monthly_summary.categories = categories
+                    monthly_summary.updated_at = datetime.utcnow()
+            
+            # Single atomic commit
+            db.session.commit()
         
         # Telemetry tracking (fail-safe, absorbed from save_expense)
         # CRITICAL: Only report expense_saved=true with valid expense_id

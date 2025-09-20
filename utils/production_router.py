@@ -378,7 +378,7 @@ class ProductionRouter:
         """Handle logging multiple expenses from a single message"""
         try:
             from parsers.expense import extract_all_expenses
-            from utils.db import save_expense
+            from backend_assistant import add_expense
             from datetime import datetime
             
             # Extract all expenses from the message
@@ -440,7 +440,7 @@ class ProductionRouter:
         """Handle logging a single expense (existing logic)"""
         try:
             from parsers.expense import parse_expense
-            from utils.db import save_expense
+            from backend_assistant import add_expense
             from datetime import datetime
             
             # Parse single expense

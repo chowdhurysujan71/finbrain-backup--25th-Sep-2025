@@ -26,6 +26,11 @@ try:
             db.session.execute(db.text('SELECT 1'))
             logger.info("✓ Database connection verified")
             
+            # Initialize single writer guard for runtime protection
+            from utils.single_writer_guard import enable_single_writer_protection
+            enable_single_writer_protection(db)
+            logger.info("✓ Single Writer Guard initialized - runtime protection active")
+            
             # ARCHITECT RECOMMENDED: Verify users table has auth columns
             result = db.session.execute(db.text("""
                 SELECT column_name FROM information_schema.columns 

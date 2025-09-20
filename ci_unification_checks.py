@@ -116,6 +116,56 @@ def main():
     else:
         print("✅ PASS: Prepared statements only used in backend layer")
     
+    # GHOST CODE PROTECTION: Check for deprecated expense writers
+    print("\n👻 GHOST CODE PROTECTION: Single Writer Principle Enforcement")
+    
+    # Check for forbidden deprecated function imports
+    forbidden_imports = [
+        'save_expense',
+        'create_expense', 
+        'upsert_expense_idempotent',
+        'save_expense_idempotent'
+    ]
+    
+    for func_name in forbidden_imports:
+        code, stdout, stderr = run_command(
+            f"grep -r 'from utils\.db import.*{func_name}\|import.*{func_name}' --include='*.py' --exclude-dir='_attic' --exclude-dir='_quarantine' --exclude-dir='artifacts' --exclude-dir='results' --exclude-dir='tests' app/ routes/ handlers/ utils/ services/ ai/ parsers/ finbrain/ || true",
+            f"Scanning for forbidden import: {func_name}"
+        )
+        
+        if stdout.strip():
+            print(f"❌ FAIL: Found forbidden import of {func_name}:")
+            print(stdout)
+            all_passed = False
+        else:
+            print(f"✅ PASS: No forbidden {func_name} imports")
+    
+    # Check for direct expense table inserts (bypass canonical writer)
+    code, stdout, stderr = run_command(
+        "grep -ri '\\binsert\\s\\+into\\s\\+expenses\\b' --include='*.py' --exclude-dir='_attic' --exclude-dir='_quarantine' --exclude-dir='artifacts' --exclude-dir='alembic' app/ routes/ handlers/ utils/ services/ ai/ parsers/ finbrain/ || true",
+        "Scanning for direct expense table inserts (must use backend_assistant.add_expense)"
+    )
+    
+    if stdout.strip():
+        print(f"❌ FAIL: Found direct expense table inserts (violates single writer principle):")
+        print(stdout)
+        all_passed = False
+    else:
+        print(f"✅ PASS: No direct expense table inserts detected")
+    
+    # Check for non-canonical expense writers
+    code, stdout, stderr = run_command(
+        "grep -r 'add_expense\\s*(' --include='*.py' --exclude-dir='_attic' --exclude-dir='_quarantine' --exclude-dir='artifacts' --exclude-dir='tests' app/ routes/ handlers/ utils/ services/ ai/ parsers/ finbrain/ | grep -v 'backend_assistant\\|import backend_assistant\\|from backend_assistant' || true",
+        "Scanning for non-canonical expense writers (must import from backend_assistant)"
+    )
+    
+    if stdout.strip():
+        print(f"❌ FAIL: Found add_expense calls not imported from backend_assistant:")
+        print(stdout)
+        all_passed = False
+    else:
+        print(f"✅ PASS: All add_expense calls use canonical backend_assistant import")
+    
     # B) Check for orphan snapshots (adapted to actual schema)
     print("\n🗃️  B) Database State Checks")
     

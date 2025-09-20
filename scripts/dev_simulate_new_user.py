@@ -110,7 +110,17 @@ def simulate_smart_nlp_flow(text: str, mode: str = "STD", debug: bool = False):
                                 'original_message': text
                             }
                             
-                            db_result = upsert_expense_idempotent(psid_hash, mid, payload)
+                            # Use canonical single writer instead of deprecated function
+                            from backend_assistant import add_expense
+                            db_result = add_expense(
+                                user_id=psid_hash,
+                                amount_minor=int(float(payload['amount']) * 100),  # Convert to minor units
+                                currency=payload.get('currency', 'BDT'),
+                                category=payload['category'],
+                                description=payload['description'],
+                                source="dev_simulation",
+                                message_id=mid
+                            )
                 
                 print(f"💾 Database Result:")
                 print(f"   Success: {db_result.get('success', False)}")
