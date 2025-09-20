@@ -340,8 +340,9 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
         db.session.commit()
         
         # Telemetry tracking (fail-safe, absorbed from save_expense)
+        # CRITICAL: Only report expense_saved=true with valid expense_id
         try:
-            TelemetryTracker.track_expense_logged(user_id, amount_float, expense.category, source)
+            TelemetryTracker.track_expense_logged(user_id, amount_float, expense.category, source, expense.id)
         except Exception as e:
             logger.warning(f"Telemetry logging failed: {e}")
         

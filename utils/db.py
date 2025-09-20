@@ -152,9 +152,9 @@ def create_expense(user_id, amount, currency, category, occurred_at, source_mess
         # Single atomic commit
         db.session.commit()
         
-        # Log telemetry
+        # Log telemetry with expense_id (DEPRECATED function - telemetry validation fix)
         try:
-            TelemetryTracker.track_expense_logged(user_id, amount_float, expense.category)
+            TelemetryTracker.track_expense_logged(user_id, amount_float, expense.category, "pwa", expense.id)
         except Exception as e:
             logger.warning(f"Telemetry logging failed: {e}")
         

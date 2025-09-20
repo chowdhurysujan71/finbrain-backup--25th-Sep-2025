@@ -53,9 +53,15 @@ class TelemetryTracker:
             return False
     
     @staticmethod
-    def track_expense_logged(user_id_hash: str, amount: float, category: str, source: str = "form") -> bool:
+    def track_expense_logged(user_id_hash: str, amount: float, category: str, source: str = "form", expense_id: Optional[int] = None) -> bool:
         """Track when user successfully logs an expense"""
+        if expense_id is None:
+            logger.warning("track_expense_logged called without expense_id - telemetry validation requires valid expense_id")
+            return False
+            
         event_data = {
+            "expense_id": expense_id,  # Required for telemetry validation
+            "expense_saved": True,     # Only report true when we have valid expense_id
             "amount": float(amount),
             "category": category,
             "source": source
