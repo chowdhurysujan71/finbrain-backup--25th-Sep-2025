@@ -207,6 +207,18 @@ def attach_user_and_trace():
 @app.after_request
 def after_request(response):
     """Log request completion with structured JSON format, add cache control and security headers"""
+    
+    # Never cache the SW file; always revalidate
+    if request.path == "/sw.js":
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        return response
+
+    # For HTML routes/partials: never cache; vary by cookie
+    ctype = response.headers.get("Content-Type", "")
+    if ctype.startswith("text/html") or request.path.startswith('/partials/'):
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Vary"] = (response.headers.get("Vary", "") + ", Cookie").strip(", ")
+    
     # Add no-cache headers for all API endpoints to prevent stale cached responses
     if request.path.startswith('/api/') or request.path.startswith('/ai-chat'):
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, proxy-revalidate'

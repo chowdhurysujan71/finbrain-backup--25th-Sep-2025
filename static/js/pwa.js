@@ -19,10 +19,8 @@
     }
     
     function initPWA() {
-        cleanupLegacyServiceWorkers(); // Clean up old SW registrations first (async)
-        setupServiceWorkerCoordination(); // Listen for SW messages
+        registerServiceWorker(); // Simple SW registration only
         initializeUserSession();
-        registerServiceWorker();
         setupOfflineDetection();
         setupInstallPrompt();
         setupNotifications();
@@ -227,61 +225,10 @@
         }
     }
     
-    // Service Worker Registration - Enhanced for forced updates
-    async function registerServiceWorker() {
+    // Simple Service Worker Registration
+    function registerServiceWorker() {
         if ('serviceWorker' in navigator) {
-            try {
-                console.log('[PWA] Attempting to register service worker...');
-                
-                // Force update by adding cache-busting parameter
-                const swUrl = `/sw.js?v=1.1.1&t=${Date.now()}`;
-                swRegistration = await navigator.serviceWorker.register(swUrl, {
-                    scope: '/',
-                    updateViaCache: 'none' // Always fetch fresh service worker
-                });
-                
-                console.log('[PWA] Service Worker registered successfully:', swRegistration.scope);
-                
-                // Force immediate update check
-                await swRegistration.update();
-                console.log('[PWA] Forced service worker update check');
-                
-                // Handle updates
-                swRegistration.addEventListener('updatefound', () => {
-                    const newWorker = swRegistration.installing;
-                    console.log('[PWA] New service worker found, installing...');
-                    
-                    newWorker.addEventListener('statechange', () => {
-                        console.log('[PWA] Service worker state changed to:', newWorker.state);
-                        
-                        if (newWorker.state === 'installed') {
-                            if (navigator.serviceWorker.controller) {
-                                console.log('[PWA] New service worker installed, reload required');
-                                showUpdateAvailable();
-                            } else {
-                                console.log('[PWA] Service worker installed for first time');
-                            }
-                        }
-                        
-                        if (newWorker.state === 'activated') {
-                            console.log('[PWA] New service worker activated');
-                        }
-                    });
-                });
-                
-                // Check if there's already a waiting service worker
-                if (swRegistration.waiting) {
-                    console.log('[PWA] Service worker waiting, forcing activation...');
-                    swRegistration.waiting.postMessage({type: 'SKIP_WAITING'});
-                }
-                
-            } catch (error) {
-                console.error('[PWA] Service Worker registration failed:', error.message || error);
-                console.error('[PWA] Full error details:', error);
-                
-                // Continue without service worker - PWA can still partially work
-                console.log('[PWA] Continuing without service worker...');
-            }
+            navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
         }
     }
     
