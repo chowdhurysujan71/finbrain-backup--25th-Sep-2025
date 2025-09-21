@@ -287,6 +287,9 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
     success = False
     
     try:
+        # 🎯 DEBUG: Log exactly what we're receiving
+        logger.info(f"add_expense called: user_id={user_id}, description='{description}', source='{source}', amount_minor={amount_minor}")
+        
         # 🎯 UNBREAKABLE INVARIANT ENFORCEMENT
         # This validates source, idempotency, and all single writer requirements
         expense_data_for_validation = {
@@ -328,6 +331,7 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
         
         # Validate source (enforce web-only architecture)
         from constants import validate_expense_source
+        logger.info(f"Validating source: '{source}' against allowed sources")
         validate_expense_source(source)
         
         # Normalize category to valid values (defensive coding)
