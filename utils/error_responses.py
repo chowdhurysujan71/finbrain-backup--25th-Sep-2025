@@ -1,5 +1,5 @@
 """
-Standardized Error Response System for FinBrain API
+Standardized Error Response System for finbrain API
 Provides consistent error formatting, security-safe messaging, and structured responses
 """
 
