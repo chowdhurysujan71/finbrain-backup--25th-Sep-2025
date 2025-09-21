@@ -859,7 +859,7 @@ def ai_chat():
         if not user_id_consistent:
             logger.warning(f"User ID inconsistency detected: session={session_user_id}, resolved={resolved_user_id}, db={db_user_id}")
 
-        # Use FinBrain AI router with explicit user_id
+        # Use finbrain AI router with explicit user_id
         logger.info(f"Processing AI chat message for user {resolved_user_id[:8]}***: '{text[:50]}...'")
         reply, intent, category, amount = finbrain_route(text, db_user_id)
         
@@ -1007,8 +1007,8 @@ def service_worker():
 def manifest():
     """PWA manifest file"""
     manifest_data = {
-        "name": "FinBrain",
-        "short_name": "FinBrain",
+        "name": "finbrain",
+        "short_name": "finbrain",
         "description": "AI-powered expense tracking and financial insights",
         "start_url": "/chat",
         "display": "standalone",

@@ -35,7 +35,7 @@ def validate_required_environment():
     
     if missing_envs:
         logger.critical(f"BOOT FAILURE: Missing required environment variables: {missing_envs}")
-        logger.critical("FinBrain refuses to start without all required environment variables")
+        logger.critical("finbrain refuses to start without all required environment variables")
         logger.critical("Set the following environment variables and restart:")
         for env_var in missing_envs:
             logger.critical(f"  - {env_var}")
@@ -640,9 +640,9 @@ def public_landing():
         return """
         <!DOCTYPE html>
         <html>
-        <head><title>FinBrain</title></head>
+        <head><title>finbrain</title></head>
         <body style="font-family: Arial; text-align: center; padding: 50px;">
-            <h1>🧠 FinBrain</h1>
+            <h1>🧠 finbrain</h1>
             <p>AI-Powered Expense Tracking System</p>
             <p>Status: Online</p>
         </body>
@@ -868,7 +868,7 @@ def health_check():
     
     # Ultra-lightweight response with cached values only
     return jsonify({
-        "service": "FinBrain",
+        "service": "finbrain",
         "status": "healthy",
         "git_commit": get_git_commit(),  # Cached
         "db": get_database_host(),       # No DB call, just hostname parsing
@@ -1036,7 +1036,7 @@ def diagnostics():
     
     try:
         diagnostics_data = {
-            "service": "FinBrain",
+            "service": "finbrain",
             "timestamp": datetime.utcnow().isoformat(),
             "database": {
                 "host": get_database_host(),
@@ -1061,7 +1061,7 @@ def diagnostics():
     except Exception as e:
         logger.error(f"Diagnostics endpoint error: {str(e)}")
         return jsonify({
-            "service": "FinBrain",
+            "service": "finbrain",
             "error": str(e),
             "timestamp": datetime.utcnow().isoformat(),
             "response_time_ms": round((time.time() - start_time) * 1000, 2)

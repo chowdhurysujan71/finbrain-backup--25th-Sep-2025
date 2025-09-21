@@ -184,7 +184,7 @@ async function handleNavigationRequest(request) {
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>FinBrain - Offline</title>
+                <title>finbrain - Offline</title>
                 <style>
                     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
                            text-align: center; padding: 2rem; background: #f8f9fa; }
@@ -199,7 +199,7 @@ async function handleNavigationRequest(request) {
             <body>
                 <div class="offline-icon">📱</div>
                 <h1>You're Offline</h1>
-                <p>FinBrain needs an internet connection to work properly. Please check your connection and try again.</p>
+                <p>finbrain needs an internet connection to work properly. Please check your connection and try again.</p>
                 <button onclick="location.reload()">Try Again</button>
             </body>
             </html>
@@ -403,7 +403,7 @@ self.addEventListener('push', event => {
     };
     
     event.waitUntil(
-        self.registration.showNotification('FinBrain', options)
+        self.registration.showNotification('finbrain', options)
     );
 });
 
