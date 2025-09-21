@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 os.environ['PCA_MODE'] = 'ON'
 
 try:
-    logger.info("Starting FinBrain application initialization...")
+    logger.info("Starting finbrain application initialization...")
     from app import app
     logger.info("✓ Flask application imported successfully")
     
@@ -53,7 +53,7 @@ try:
             logger.error(f"✗ Database connection failed: {str(e)}")
             sys.exit(1)
     
-    logger.info("✓ FinBrain application ready for deployment")
+    logger.info("✓ finbrain application ready for deployment")
     
 except ImportError as e:
     logger.error(f"✗ Failed to import app module: {str(e)}")

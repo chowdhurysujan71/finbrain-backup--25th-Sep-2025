@@ -1,5 +1,5 @@
 """
-Routes for FinBrain Backend Assistant API
+Routes for finbrain Backend Assistant API
 Strict no-hallucination backend following exact specification
 """
 
@@ -728,7 +728,7 @@ def api_health():
     """Backend assistant health check with standardized response format"""
     health_data = {
         "status": "healthy",
-        "service": "FinBrain Backend Assistant",
+        "service": "finbrain Backend Assistant",
         "version": "2.0-standardized-errors",
         "rules": [
             "Never invent, never hallucinate, never guess",

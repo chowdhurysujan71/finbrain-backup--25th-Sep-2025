@@ -1,5 +1,5 @@
 """
-FinBrain Expense Correction Handler
+finbrain Expense Correction Handler
 Handles expense corrections with idempotent supersede logic and coach-style confirmations
 """
 

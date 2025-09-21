@@ -1,5 +1,5 @@
 """
-Enhanced Expense Parser for FinBrain
+Enhanced Expense Parser for finbrain
 Handles natural language expense parsing with correction context support
 
 ===================================================================================

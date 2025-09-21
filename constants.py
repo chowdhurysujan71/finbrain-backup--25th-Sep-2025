@@ -1,5 +1,5 @@
 """
-FinBrain Constants - Single Source of Truth
+finbrain Constants - Single Source of Truth
 Centralized constants to prevent hardcoded values and ensure consistency
 """
 

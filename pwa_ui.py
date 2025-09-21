@@ -990,7 +990,7 @@ def service_worker():
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
-        response.headers['ETag'] = f'"{file_hash}-v1.1.1"'
+        response.headers['ETag'] = f'"{file_hash}-v1.1.2-brandfix"'
         
         # Additional security headers
         response.headers['X-Content-Type-Options'] = 'nosniff'

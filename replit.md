@@ -44,7 +44,7 @@ Zero-surprise deployment requirement: 100% user-visible success demanded with co
 - **⚡ Performance Optimized**: Minimal overhead error handling with sub-millisecond response times
 
 ## Previous Updates (September 11, 2025)
-- **🎯 BACKEND ASSISTANT DEPLOYED**: Complete FinBrain Backend Assistant implemented with 100% specification compliance
+- **🎯 BACKEND ASSISTANT DEPLOYED**: Complete finbrain Backend Assistant implemented with 100% specification compliance
 - **✅ Zero-Hallucination Rule**: Strict "never invent, never guess" policy - all data from DB queries or deterministic parsing
 - **🔧 Deterministic Parsing**: Regex-based expense parsing (amount + category detection) with confidence scoring
 - **🗃️ Data Contract Compliance**: INT user_id support via assistant_user_map compatibility layer
@@ -69,7 +69,7 @@ Zero-surprise deployment requirement: 100% user-visible success demanded with co
 ## System Architecture
 
 ### Core Design Principles
-FinBrain utilizes a modular, AI-first architecture with **comprehensive 100% user-visible success guarantee**. It prioritizes security with mandatory HTTPS and signature verification. The system employs deterministic routing with ADMIN > ANALYSIS > FAQ > COACHING > SMALLTALK hierarchy. A "never-empty" AI contract ensures zero blank responses. Complete bilingual support (English + Bengali) with advanced Unicode normalization and Bengali digit conversion is implemented.
+finbrain utilizes a modular, AI-first architecture with **comprehensive 100% user-visible success guarantee**. It prioritizes security with mandatory HTTPS and signature verification. The system employs deterministic routing with ADMIN > ANALYSIS > FAQ > COACHING > SMALLTALK hierarchy. A "never-empty" AI contract ensures zero blank responses. Complete bilingual support (English + Bengali) with advanced Unicode normalization and Bengali digit conversion is implemented.
 
 ### PCA (Precision Capture & Audit) System
 The PCA system is in Full Production Active mode, ensuring audit transparency and high-confidence auto-application of expenses (≥85% confidence). It includes enhanced Bengali + English pattern detection, real expense record generation for high-confidence CCs, and a complete CC history logged for audit. Performance is optimized with a P95 latency of 0.0ms and comprehensive caching. The Clarifier Flow achieves a 20.8% optimal ask rate with 100% decision accuracy. Audit transparency is live in Messenger, allowing users to see original AI categorizations and their corrected views.

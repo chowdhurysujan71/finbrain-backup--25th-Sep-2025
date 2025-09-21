@@ -1755,7 +1755,7 @@ class ProductionRouter:
                 # Simple AI fallback without expense parsing
                 try:
                     # Direct AI call for general conversation
-                    prompt = f"""You are FinBrain, a friendly AI financial assistant. A user said: "{text}"
+                    prompt = f"""You are finbrain, a friendly AI financial assistant. A user said: "{text}"
 
 Respond naturally and helpfully. If they're asking about expenses, guide them to say something like "coffee 50" or "spent 200 on groceries". Keep it under 280 characters and friendly.
 
