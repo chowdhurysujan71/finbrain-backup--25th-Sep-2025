@@ -329,6 +329,10 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
         # Validate source (enforce web-only architecture)
         from constants import validate_expense_source
         validate_expense_source(source)
+        
+        # Normalize category to valid values (defensive coding)
+        if category and category.lower() not in [c.lower() for c in VALID_CATEGORIES]:
+            category = "uncategorized"
             
         # Validate amount_minor
         if not isinstance(amount_minor, int) or amount_minor <= 0:

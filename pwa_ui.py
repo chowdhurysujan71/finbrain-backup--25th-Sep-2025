@@ -139,7 +139,7 @@ def handle_with_fallback_ai(user_id_hash, user_message, conversational_ai=None):
                     amount = float(amount_match.group(1))
                     
                     # Simple category detection
-                    category = 'other'
+                    category = 'uncategorized'
                     if any(word in user_message.lower() for word in ['food', 'lunch', 'dinner', 'eat', 'restaurant']):
                         category = 'food'
                     elif any(word in user_message.lower() for word in ['transport', 'bus', 'taxi', 'uber', 'rickshaw']):
