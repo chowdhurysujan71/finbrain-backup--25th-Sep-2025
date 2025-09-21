@@ -77,99 +77,91 @@
         }
     }
     
-    // Aggressive Legacy Cleanup - Enhanced for v1.1.1-auth-fix
+    // Nuclear Service Worker Cleanup - Force complete reset
     function cleanupLegacyServiceWorkers() {
         try {
             if (!('serviceWorker' in navigator)) return;
             
-            const FLAG = 'legacy-sw-cleanup-1.1.1';
+            const FLAG = 'nuclear-sw-cleanup-1.1.1';
             if (localStorage.getItem(FLAG)) return;
             
-            console.log('[PWA] Starting aggressive legacy cleanup...');
+            console.log('[PWA] Starting NUCLEAR service worker cleanup...');
             
             Promise.all([
-                // Clean up legacy service worker registrations
+                // NUCLEAR OPTION: Unregister ALL service workers
                 navigator.serviceWorker.getRegistrations().then(registrations => {
-                    const rootSWUrl = new URL('/sw.js', location.origin).href;
+                    console.log('[PWA] Found', registrations.length, 'service worker registrations');
                     const cleanupPromises = [];
                     
-                    registrations.forEach(registration => {
-                        const url = (registration.scriptURL || '');
-                        if (url !== rootSWUrl) {
-                            console.log('[PWA] PURGING legacy SW registration:', url);
-                            cleanupPromises.push(
-                                registration.unregister().catch(err => {
-                                    console.warn('[PWA] Failed to unregister legacy SW:', err);
-                                })
-                            );
-                        }
+                    registrations.forEach((registration, index) => {
+                        const url = (registration.scriptURL || 'undefined');
+                        console.log(`[PWA] NUKING registration ${index + 1}:`, url);
+                        cleanupPromises.push(
+                            registration.unregister().then(success => {
+                                console.log(`[PWA] Unregistered ${url}:`, success);
+                                return success;
+                            }).catch(err => {
+                                console.warn('[PWA] Failed to unregister:', url, err);
+                                return false;
+                            })
+                        );
                     });
                     
                     return Promise.all(cleanupPromises);
                 }),
                 
-                // Clean up legacy caches
-                cleanupLegacyCaches()
+                // NUCLEAR OPTION: Delete ALL caches
+                nukeLegacyCaches()
                 
             ]).then(() => {
-                // Mark cleanup as complete
+                console.log('[PWA] NUCLEAR cleanup completed - all SWs and caches destroyed');
                 localStorage.setItem(FLAG, 'done');
-                console.log('[PWA] Aggressive legacy cleanup completed');
+                
+                // Force reload after nuclear cleanup
+                setTimeout(() => {
+                    console.log('[PWA] Reloading page after nuclear cleanup...');
+                    location.reload(true); // Hard reload
+                }, 2000);
+                
             }).catch(err => {
-                console.warn('[PWA] Legacy cleanup failed:', err);
+                console.warn('[PWA] Nuclear cleanup failed:', err);
             });
             
         } catch (error) {
-            console.warn('[PWA] Legacy cleanup error:', error);
+            console.warn('[PWA] Nuclear cleanup error:', error);
         }
     }
     
-    // Clean up legacy caches - SECURITY CRITICAL
-    async function cleanupLegacyCaches() {
+    // Nuclear Cache Cleanup - Delete EVERYTHING
+    async function nukeLegacyCaches() {
         try {
             if (!('caches' in window)) return;
             
-            console.log('[PWA] Cleaning up legacy caches...');
+            console.log('[PWA] Starting NUCLEAR cache destruction...');
             
-            const currentCacheNames = new Set([
-                'finbrain-v1.1.1-auth-fix',
-                'finbrain-static-v1.1.1-auth-fix', 
-                'finbrain-api-v1.1.1-auth-fix'
-            ]);
-            
-            const restrictedPaths = ['/', '/chat', '/report', '/profile', '/challenge', '/login', '/register'];
-            
-            // Step 1: Delete all caches not in current version
+            // NUCLEAR OPTION: Delete ALL caches
             const cacheNames = await caches.keys();
-            const deletionPromises = [];
+            console.log('[PWA] Found', cacheNames.length, 'caches to NUKE:', cacheNames);
             
+            const deletionPromises = [];
             for (const cacheName of cacheNames) {
-                if (!currentCacheNames.has(cacheName)) {
-                    console.log('[PWA] PURGING legacy cache:', cacheName);
-                    deletionPromises.push(caches.delete(cacheName));
-                }
+                console.log('[PWA] NUKING cache:', cacheName);
+                deletionPromises.push(
+                    caches.delete(cacheName).then(success => {
+                        console.log(`[PWA] Nuked cache ${cacheName}:`, success);
+                        return success;
+                    }).catch(err => {
+                        console.warn('[PWA] Failed to nuke cache:', cacheName, err);
+                        return false;
+                    })
+                );
             }
             
             await Promise.all(deletionPromises);
+            console.log('[PWA] NUCLEAR cache destruction completed');
             
-            // Step 2: Clean HTML entries from remaining caches
-            const remainingCaches = await caches.keys();
-            for (const cacheName of remainingCaches) {
-                const cache = await caches.open(cacheName);
-                const requests = await cache.keys();
-                
-                for (const request of requests) {
-                    const url = new URL(request.url);
-                    if (restrictedPaths.includes(url.pathname)) {
-                        console.log('[PWA] PURGING HTML entry:', url.pathname, 'from', cacheName);
-                        await cache.delete(request);
-                    }
-                }
-            }
-            
-            console.log('[PWA] Legacy cache cleanup completed');
         } catch (error) {
-            console.warn('[PWA] Cache cleanup failed:', error);
+            console.warn('[PWA] Nuclear cache destruction failed:', error);
         }
     }
     
