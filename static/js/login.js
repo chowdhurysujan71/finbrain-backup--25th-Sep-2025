@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    console.log('LOGIN FORM SUBMIT TRIGGERED'); // DEBUG
     err && (err.style.display = 'none');
     
     // Handle button loading state
