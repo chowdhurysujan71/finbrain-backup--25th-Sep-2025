@@ -82,7 +82,7 @@
         try {
             if (!('serviceWorker' in navigator)) return;
             
-            const FLAG = 'nuclear-sw-cleanup-1.1.1';
+            const FLAG = 'nuclear-sw-cleanup-1.1.2-brandfix';
             if (localStorage.getItem(FLAG)) return;
             
             console.log('[PWA] Starting NUCLEAR service worker cleanup...');

@@ -68,7 +68,7 @@ async function purgeLegacyCaches() {
 
 // Install event - precache critical resources
 self.addEventListener('install', event => {
-    console.log('[SW] Installing service worker v1.1.1 with aggressive cleanup...');
+    console.log('[SW] Installing service worker v1.1.2-brandfix with aggressive cleanup...');
     
     event.waitUntil(
         Promise.all([
@@ -91,7 +91,7 @@ self.addEventListener('install', event => {
                     );
                 })
         ]).then(() => {
-            console.log('[SW] Skip waiting to activate immediately v1.1.1');
+            console.log('[SW] Skip waiting to activate immediately v1.1.2-brandfix');
             return self.skipWaiting();
         }).catch(error => {
             console.error('[SW] Install failed:', error);
