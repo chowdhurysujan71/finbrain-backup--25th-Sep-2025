@@ -1,13 +1,12 @@
 // finbrain PWA Service Worker
 // Handles caching, offline functionality, and background sync
 
-const CACHE_NAME = 'finbrain-v1.1.0-auth-fix';
-const STATIC_CACHE_NAME = 'finbrain-static-v1.1.0-auth-fix';
-const API_CACHE_NAME = 'finbrain-api-v1.1.0-auth-fix';
+const CACHE_NAME = 'finbrain-v1.1.1-auth-fix';
+const STATIC_CACHE_NAME = 'finbrain-static-v1.1.1-auth-fix';
+const API_CACHE_NAME = 'finbrain-api-v1.1.1-auth-fix';
 
-// Resources to precache on install - SECURITY: Only static assets, no authenticated pages
+// Resources to precache on install - SECURITY: Only static assets, never HTML
 const PRECACHE_URLS = [
-    '/offline',
     '/manifest.webmanifest',
     '/static/css/app.css',
     '/static/js/pwa.js',
@@ -15,67 +14,129 @@ const PRECACHE_URLS = [
     '/static/icons/icon-512.png'
 ];
 
+// SECURITY: Restricted HTML paths that must never be cached
+const RESTRICTED_HTML_PATHS = ['/', '/chat', '/report', '/profile', '/challenge', '/login', '/register'];
+
+// Current cache names for legacy purge
+const CURRENT_CACHE_NAMES = new Set([CACHE_NAME, STATIC_CACHE_NAME, API_CACHE_NAME]);
+
+// BroadcastChannel for client coordination
+const swControlChannel = new BroadcastChannel('sw-control');
+
+// Aggressive legacy cache purge - SECURITY CRITICAL
+async function purgeLegacyCaches() {
+    try {
+        console.log('[SW] Starting aggressive legacy cache purge...');
+        
+        // Step 1: Delete all caches not in current version
+        const cacheNames = await caches.keys();
+        const deletionPromises = [];
+        
+        for (const cacheName of cacheNames) {
+            if (!CURRENT_CACHE_NAMES.has(cacheName)) {
+                console.log('[SW] PURGING legacy cache:', cacheName);
+                deletionPromises.push(caches.delete(cacheName));
+            }
+        }
+        
+        await Promise.all(deletionPromises);
+        
+        // Step 2: Purge any HTML entries from remaining caches
+        const remainingCaches = await caches.keys();
+        for (const cacheName of remainingCaches) {
+            const cache = await caches.open(cacheName);
+            const requests = await cache.keys();
+            
+            for (const request of requests) {
+                const url = new URL(request.url);
+                
+                // Delete if it's a restricted HTML path or document type
+                if (RESTRICTED_HTML_PATHS.includes(url.pathname) || 
+                    request.destination === 'document') {
+                    console.log('[SW] PURGING HTML entry:', url.pathname, 'from', cacheName);
+                    await cache.delete(request);
+                }
+            }
+        }
+        
+        console.log('[SW] Legacy cache purge completed successfully');
+    } catch (error) {
+        console.error('[SW] Legacy cache purge failed:', error);
+        // Don't fail installation/activation on purge failure
+    }
+}
+
 // Install event - precache critical resources
 self.addEventListener('install', event => {
-    console.log('[SW] Installing service worker...');
+    console.log('[SW] Installing service worker v1.1.1...');
     
     event.waitUntil(
-        caches.open(STATIC_CACHE_NAME)
-            .then(cache => {
-                console.log('[SW] Precaching static resources');
-                // Cache resources one by one, skip failures
-                return Promise.allSettled(
-                    PRECACHE_URLS.map(url => 
-                        cache.add(url).catch(error => {
-                            console.warn('[SW] Failed to cache:', url, error);
-                            return null;
-                        })
-                    )
-                );
-            })
-            .then(() => {
-                console.log('[SW] Skip waiting to activate immediately');
-                return self.skipWaiting();
-            })
-            .catch(error => {
-                console.error('[SW] Precache failed:', error);
-                // Don't fail installation if precaching fails
-                return self.skipWaiting();
-            })
+        Promise.all([
+            // Aggressive legacy purge first
+            purgeLegacyCaches(),
+            
+            // Then precache static resources
+            caches.open(STATIC_CACHE_NAME)
+                .then(cache => {
+                    console.log('[SW] Precaching static resources');
+                    // Cache resources one by one, skip failures
+                    return Promise.allSettled(
+                        PRECACHE_URLS.map(url => 
+                            cache.add(url).catch(error => {
+                                console.warn('[SW] Failed to cache:', url, error);
+                                return null;
+                            })
+                        )
+                    );
+                })
+        ]).then(() => {
+            console.log('[SW] Skip waiting to activate immediately');
+            return self.skipWaiting();
+        }).catch(error => {
+            console.error('[SW] Install failed:', error);
+            // Don't fail installation if precaching fails
+            return self.skipWaiting();
+        })
     );
 });
 
 // Activate event - clean up old caches and claim clients
 self.addEventListener('activate', event => {
-    console.log('[SW] Activating service worker...');
+    console.log('[SW] Activating service worker v1.1.1...');
     
     event.waitUntil(
         Promise.all([
-            // Clean up old caches
-            caches.keys().then(cacheNames => {
-                return Promise.all(
-                    cacheNames.map(cacheName => {
-                        if (cacheName !== STATIC_CACHE_NAME && 
-                            cacheName !== API_CACHE_NAME &&
-                            cacheName !== CACHE_NAME) {
-                            console.log('[SW] Deleting old cache:', cacheName);
-                            return caches.delete(cacheName);
-                        }
-                    })
-                );
-            }),
+            // Aggressive legacy purge on activation
+            purgeLegacyCaches(),
+            
             // Take control of all clients immediately
             self.clients.claim()
         ]).then(() => {
-            console.log('[SW] Service worker activated and ready');
+            console.log('[SW] Service worker v1.1.1 activated and ready');
+            
+            // Notify clients that new SW is ready
+            swControlChannel.postMessage({
+                type: 'SW_READY',
+                version: 'v1.1.1-auth-fix',
+                timestamp: Date.now()
+            });
         })
     );
 });
+
+// Counter for first-fetch purges
+let fetchCounter = 0;
 
 // Fetch event - handle all network requests with caching strategies
 self.addEventListener('fetch', event => {
     const { request } = event;
     const url = new URL(request.url);
+    
+    // Run legacy purge on first 3 fetches for belt-and-suspenders cleanup
+    if (fetchCounter < 3) {
+        fetchCounter++;
+        purgeLegacyCaches().catch(err => console.warn('[SW] Fetch purge failed:', err));
+    }
     
     // Never cache API calls; always go network
     if (url.pathname.startsWith('/api/')) {
@@ -113,10 +174,42 @@ async function handleNavigationRequest(request) {
         // Return response directly without caching
         return networkResponse;
     } catch (error) {
-        console.log('[SW] Navigation request failed, serving offline page:', error);
+        console.log('[SW] Navigation request failed, serving synthesized offline page:', error);
         
-        // SECURITY FIX: Do NOT serve cached HTML - only serve offline fallback
-        return caches.match('/offline');
+        // SECURITY FIX: Synthesize offline response instead of caching HTML
+        return new Response(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>FinBrain - Offline</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+                           text-align: center; padding: 2rem; background: #f8f9fa; }
+                    .offline-icon { font-size: 4rem; margin: 2rem 0; }
+                    h1 { color: #495057; margin: 1rem 0; }
+                    p { color: #6c757d; max-width: 400px; margin: 0 auto 2rem; }
+                    button { background: #007bff; color: white; border: none; padding: 0.5rem 1rem; 
+                             border-radius: 4px; cursor: pointer; }
+                    button:hover { background: #0056b3; }
+                </style>
+            </head>
+            <body>
+                <div class="offline-icon">📱</div>
+                <h1>You're Offline</h1>
+                <p>FinBrain needs an internet connection to work properly. Please check your connection and try again.</p>
+                <button onclick="location.reload()">Try Again</button>
+            </body>
+            </html>
+        `, {
+            status: 200,
+            statusText: 'OK',
+            headers: {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+            }
+        });
     }
 }
 
