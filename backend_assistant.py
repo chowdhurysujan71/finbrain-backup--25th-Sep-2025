@@ -410,6 +410,7 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
         expense.time = occurred_at.time()
         expense.month = current_month
         expense.platform = source  # Use source directly instead of hardcoded "pwa"
+        expense.source = source    # FIX: Set source field for single-writer constraint
         expense.original_message = description
         expense.correlation_id = correlation_id
         expense.unique_id = str(uuid.uuid4())
