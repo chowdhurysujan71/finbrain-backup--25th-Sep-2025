@@ -966,15 +966,41 @@ def add_expense():
 # Service Worker route (must be at root for scope)
 @pwa_ui.route('/sw.js')
 def service_worker():
-    """Serve service worker from root for correct scope with security headers"""
-    from flask import send_from_directory
-    response = send_from_directory('.', 'sw.js')
-    response.headers['Content-Type'] = 'text/javascript'
-    response.headers['Service-Worker-Allowed'] = '/'
-    # SECURITY: Force revalidation of SW script
-    response.headers['Cache-Control'] = 'no-cache, must-revalidate'
-    response.headers['ETag'] = 'sw-v1.1.0-auth-fix'
-    return response
+    """Serve service worker from root with aggressive no-cache headers and file hash ETag"""
+    import os
+    import hashlib
+    from flask import send_from_directory, abort
+    
+    try:
+        # Get file path and check existence
+        sw_path = os.path.join('.', 'sw.js')
+        if not os.path.exists(sw_path):
+            abort(404)
+        
+        # Generate ETag from file content hash
+        with open(sw_path, 'rb') as f:
+            file_content = f.read()
+            file_hash = hashlib.sha256(file_content).hexdigest()[:16]
+        
+        response = send_from_directory('.', 'sw.js')
+        response.headers['Content-Type'] = 'text/javascript; charset=utf-8'
+        response.headers['Service-Worker-Allowed'] = '/'
+        
+        # SECURITY: Aggressive no-cache headers to force SW update
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        response.headers['ETag'] = f'"{file_hash}-v1.1.1"'
+        
+        # Additional security headers
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Failed to serve service worker: {e}")
+        abort(500)
 
 # Manifest route
 @pwa_ui.route('/manifest.webmanifest')
