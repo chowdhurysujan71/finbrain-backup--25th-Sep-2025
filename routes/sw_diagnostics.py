@@ -66,13 +66,17 @@ DIAGNOSTICS_TEMPLATE = '''
                 
                 // Check service worker registrations
                 const registrations = await navigator.serviceWorker.getRegistrations();
-                const swData = registrations.map(reg => ({
-                    scriptURL: reg.scriptURL,
-                    scope: reg.scope,
-                    state: reg.installing ? 'installing' : 
-                           reg.waiting ? 'waiting' : 
-                           reg.active ? 'active' : 'unknown'
-                }));
+                const swData = registrations.map(reg => {
+                    // Get scriptURL from active, waiting, or installing worker
+                    const worker = reg.active || reg.waiting || reg.installing;
+                    return {
+                        scriptURL: worker ? worker.scriptURL : reg.scriptURL || 'undefined',
+                        scope: reg.scope,
+                        state: reg.installing ? 'installing' : 
+                               reg.waiting ? 'waiting' : 
+                               reg.active ? 'active' : 'unknown'
+                    };
+                });
                 
                 // Check cache storage
                 const cacheNames = await caches.keys();
@@ -106,8 +110,8 @@ DIAGNOSTICS_TEMPLATE = '''
                     details: `Found ${swData.length} registrations, ${validSWs.length} valid (/sw.js)`
                 };
                 
-                // Check 2: Only v1.1.0-auth-fix caches
-                const validCachePattern = /finbrain-.*-v1\.1\.0-auth-fix$/;
+                // Check 2: Only v1.1.1-auth-fix caches
+                const validCachePattern = /finbrain-.*-v1\.1\.1-auth-fix$/;
                 const invalidCaches = cacheNames.filter(name => !validCachePattern.test(name));
                 checks.validCacheVersions = {
                     pass: invalidCaches.length === 0,
