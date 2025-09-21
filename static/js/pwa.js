@@ -20,6 +20,7 @@
     
     function initPWA() {
         cleanupLegacyServiceWorkers(); // Clean up old SW registrations first
+        setupServiceWorkerCoordination(); // Listen for SW messages
         initializeUserSession();
         registerServiceWorker();
         setupOfflineDetection();
@@ -30,37 +31,145 @@
         console.log('[PWA] finbrain PWA initialized successfully');
     }
     
-    // Legacy Service Worker Cleanup - One-time cleanup for v1.1.0-auth-fix
+    // Service Worker Coordination - BroadcastChannel communication
+    function setupServiceWorkerCoordination() {
+        try {
+            const swControlChannel = new BroadcastChannel('sw-control');
+            
+            swControlChannel.addEventListener('message', event => {
+                const { type, version, timestamp } = event.data;
+                
+                if (type === 'SW_READY') {
+                    console.log('[PWA] New service worker ready:', version);
+                    
+                    // Check for additional cleanup needed
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        const rootSWUrl = new URL('/sw.js', location.origin).href;
+                        let needsCleanup = false;
+                        
+                        registrations.forEach(registration => {
+                            const url = (registration.scriptURL || '');
+                            if (url !== rootSWUrl) {
+                                console.log('[PWA] Found stale registration:', url);
+                                needsCleanup = true;
+                                registration.unregister();
+                            }
+                        });
+                        
+                        if (needsCleanup) {
+                            console.log('[PWA] Reloading to complete SW transition...');
+                            // Small delay to let unregistration complete
+                            setTimeout(() => location.reload(), 1000);
+                        }
+                    });
+                }
+            });
+            
+            // Listen for controller changes
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                console.log('[PWA] Service worker controller changed');
+                // Controller change indicates new SW is now in control
+                showToast('App updated! New features available.', 'success');
+            });
+            
+        } catch (error) {
+            console.warn('[PWA] SW coordination setup failed:', error);
+        }
+    }
+    
+    // Aggressive Legacy Cleanup - Enhanced for v1.1.1-auth-fix
     function cleanupLegacyServiceWorkers() {
         try {
             if (!('serviceWorker' in navigator)) return;
             
-            const FLAG = 'legacy-sw-cleanup-1.1.0';
+            const FLAG = 'legacy-sw-cleanup-1.1.1';
             if (localStorage.getItem(FLAG)) return;
             
-            console.log('[PWA] Cleaning up legacy service workers...');
+            console.log('[PWA] Starting aggressive legacy cleanup...');
             
-            navigator.serviceWorker.getRegistrations().then(registrations => {
-                registrations.forEach(registration => {
-                    const url = (registration.scriptURL || '');
+            Promise.all([
+                // Clean up legacy service worker registrations
+                navigator.serviceWorker.getRegistrations().then(registrations => {
                     const rootSWUrl = new URL('/sw.js', location.origin).href;
+                    const cleanupPromises = [];
                     
-                    if (url !== rootSWUrl) {
-                        console.log('[PWA] Unregistering legacy SW:', url);
-                        registration.unregister().catch(err => {
-                            console.warn('[PWA] Failed to unregister legacy SW:', err);
-                        });
-                    }
-                });
+                    registrations.forEach(registration => {
+                        const url = (registration.scriptURL || '');
+                        if (url !== rootSWUrl) {
+                            console.log('[PWA] PURGING legacy SW registration:', url);
+                            cleanupPromises.push(
+                                registration.unregister().catch(err => {
+                                    console.warn('[PWA] Failed to unregister legacy SW:', err);
+                                })
+                            );
+                        }
+                    });
+                    
+                    return Promise.all(cleanupPromises);
+                }),
                 
+                // Clean up legacy caches
+                cleanupLegacyCaches()
+                
+            ]).then(() => {
                 // Mark cleanup as complete
                 localStorage.setItem(FLAG, 'done');
-                console.log('[PWA] Legacy service worker cleanup completed');
+                console.log('[PWA] Aggressive legacy cleanup completed');
             }).catch(err => {
                 console.warn('[PWA] Legacy cleanup failed:', err);
             });
+            
         } catch (error) {
             console.warn('[PWA] Legacy cleanup error:', error);
+        }
+    }
+    
+    // Clean up legacy caches - SECURITY CRITICAL
+    async function cleanupLegacyCaches() {
+        try {
+            if (!('caches' in window)) return;
+            
+            console.log('[PWA] Cleaning up legacy caches...');
+            
+            const currentCacheNames = new Set([
+                'finbrain-v1.1.1-auth-fix',
+                'finbrain-static-v1.1.1-auth-fix', 
+                'finbrain-api-v1.1.1-auth-fix'
+            ]);
+            
+            const restrictedPaths = ['/', '/chat', '/report', '/profile', '/challenge', '/login', '/register'];
+            
+            // Step 1: Delete all caches not in current version
+            const cacheNames = await caches.keys();
+            const deletionPromises = [];
+            
+            for (const cacheName of cacheNames) {
+                if (!currentCacheNames.has(cacheName)) {
+                    console.log('[PWA] PURGING legacy cache:', cacheName);
+                    deletionPromises.push(caches.delete(cacheName));
+                }
+            }
+            
+            await Promise.all(deletionPromises);
+            
+            // Step 2: Clean HTML entries from remaining caches
+            const remainingCaches = await caches.keys();
+            for (const cacheName of remainingCaches) {
+                const cache = await caches.open(cacheName);
+                const requests = await cache.keys();
+                
+                for (const request of requests) {
+                    const url = new URL(request.url);
+                    if (restrictedPaths.includes(url.pathname)) {
+                        console.log('[PWA] PURGING HTML entry:', url.pathname, 'from', cacheName);
+                        await cache.delete(request);
+                    }
+                }
+            }
+            
+            console.log('[PWA] Legacy cache cleanup completed');
+        } catch (error) {
+            console.warn('[PWA] Cache cleanup failed:', error);
         }
     }
     
