@@ -19,7 +19,7 @@
     }
     
     function initPWA() {
-        cleanupLegacyServiceWorkers(); // Clean up old SW registrations first
+        cleanupLegacyServiceWorkers(); // Clean up old SW registrations first (async)
         setupServiceWorkerCoordination(); // Listen for SW messages
         initializeUserSession();
         registerServiceWorker();
@@ -78,87 +78,114 @@
     }
     
     // Nuclear Service Worker Cleanup - Force complete reset
-    function cleanupLegacyServiceWorkers() {
+    async function cleanupLegacyServiceWorkers() {
         try {
             if (!('serviceWorker' in navigator)) return;
             
-            const FLAG = 'nuclear-sw-cleanup-1.1.2-brandfix';
-            if (localStorage.getItem(FLAG)) return;
+            const FLAG = 'ultra-nuclear-cleanup-1.1.2-final';
             
-            console.log('[PWA] Starting NUCLEAR service worker cleanup...');
+            // ALWAYS check cache status first - force cleanup if needed
+            const cacheNames = await caches.keys();
+            if (cacheNames.length > 0) {
+                console.log('[PWA] FORCING cleanup - found', cacheNames.length, 'caches:', cacheNames);
+                localStorage.removeItem(FLAG); // Clear flag to force cleanup
+                localStorage.clear(); // Clear ALL localStorage  
+            } else if (localStorage.getItem(FLAG)) {
+                console.log('[PWA] Cleanup already successful - 0 caches found');
+                return; // Success, don't run again
+            }
             
-            Promise.all([
-                // NUCLEAR OPTION: Unregister ALL service workers
-                navigator.serviceWorker.getRegistrations().then(registrations => {
-                    console.log('[PWA] Found', registrations.length, 'service worker registrations');
-                    const cleanupPromises = [];
-                    
-                    registrations.forEach((registration, index) => {
-                        const url = (registration.scriptURL || 'undefined');
-                        console.log(`[PWA] NUKING registration ${index + 1}:`, url);
-                        cleanupPromises.push(
-                            registration.unregister().then(success => {
-                                console.log(`[PWA] Unregistered ${url}:`, success);
-                                return success;
-                            }).catch(err => {
-                                console.warn('[PWA] Failed to unregister:', url, err);
-                                return false;
-                            })
-                        );
-                    });
-                    
-                    return Promise.all(cleanupPromises);
-                }),
-                
-                // NUCLEAR OPTION: Delete ALL caches
-                nukeLegacyCaches()
-                
-            ]).then(() => {
-                console.log('[PWA] NUCLEAR cleanup completed - all SWs and caches destroyed');
+            console.log('[PWA] Starting ULTRA-NUCLEAR cleanup - FORCE MODE ACTIVE...');
+            
+            // Step 1: AGGRESSIVE cache deletion (synchronous)
+            await nukeLegacyCaches();
+            
+            // Step 2: Nuke service workers
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            console.log('[PWA] Found', registrations.length, 'service worker registrations');
+            
+            for (const registration of registrations) {
+                const url = registration.scriptURL || 'undefined';
+                console.log('[PWA] NUKING registration:', url);
+                try {
+                    const success = await registration.unregister();
+                    console.log(`[PWA] Unregistered ${url}:`, success);
+                } catch (err) {
+                    console.warn('[PWA] Failed to unregister:', url, err);
+                }
+            }
+            
+            // Step 3: Verify cleanup worked
+            const finalCaches = await caches.keys();
+            const finalRegistrations = await navigator.serviceWorker.getRegistrations();
+            
+            console.log('[PWA] FINAL VERIFICATION:');
+            console.log('[PWA] Remaining caches:', finalCaches.length, finalCaches);
+            console.log('[PWA] Remaining registrations:', finalRegistrations.length);
+            
+            if (finalCaches.length === 0 && finalRegistrations.length === 0) {
+                console.log('[PWA] ✅ ULTRA-NUCLEAR cleanup SUCCESS!');
                 localStorage.setItem(FLAG, 'done');
-                
-                // Force reload after nuclear cleanup
-                setTimeout(() => {
-                    console.log('[PWA] Reloading page after nuclear cleanup...');
-                    location.reload(true); // Hard reload
-                }, 2000);
-                
-            }).catch(err => {
-                console.warn('[PWA] Nuclear cleanup failed:', err);
-            });
+            } else {
+                console.log('[PWA] ❌ ULTRA-NUCLEAR cleanup FAILED - retrying...');
+                localStorage.removeItem(FLAG);
+            }
+            
+            // Force reload after cleanup
+            setTimeout(() => {
+                console.log('[PWA] Reloading page after cleanup...');
+                location.reload(true); // Hard reload
+            }, 1500);
             
         } catch (error) {
             console.warn('[PWA] Nuclear cleanup error:', error);
         }
     }
     
-    // Nuclear Cache Cleanup - Delete EVERYTHING
+    // ULTRA-AGGRESSIVE Cache Cleanup - Delete EVERYTHING
     async function nukeLegacyCaches() {
         try {
             if (!('caches' in window)) return;
             
-            console.log('[PWA] Starting NUCLEAR cache destruction...');
+            console.log('[PWA] Starting ULTRA-AGGRESSIVE cache destruction...');
             
-            // NUCLEAR OPTION: Delete ALL caches
-            const cacheNames = await caches.keys();
-            console.log('[PWA] Found', cacheNames.length, 'caches to NUKE:', cacheNames);
-            
-            const deletionPromises = [];
-            for (const cacheName of cacheNames) {
-                console.log('[PWA] NUKING cache:', cacheName);
-                deletionPromises.push(
-                    caches.delete(cacheName).then(success => {
-                        console.log(`[PWA] Nuked cache ${cacheName}:`, success);
-                        return success;
-                    }).catch(err => {
-                        console.warn('[PWA] Failed to nuke cache:', cacheName, err);
-                        return false;
-                    })
-                );
+            // MULTIPLE ATTEMPTS: Try different approaches to delete caches
+            for (let attempt = 1; attempt <= 3; attempt++) {
+                console.log(`[PWA] Cache deletion attempt ${attempt}/3`);
+                
+                const cacheNames = await caches.keys();
+                console.log(`[PWA] Attempt ${attempt}: Found`, cacheNames.length, 'caches:', cacheNames);
+                
+                if (cacheNames.length === 0) {
+                    console.log('[PWA] ✅ All caches deleted successfully!');
+                    break;
+                }
+                
+                // Delete each cache individually with verification
+                for (const cacheName of cacheNames) {
+                    console.log(`[PWA] DESTROYING cache: ${cacheName}`);
+                    try {
+                        const deleted = await caches.delete(cacheName);
+                        console.log(`[PWA] Cache ${cacheName} deleted:`, deleted);
+                        
+                        // Verify deletion
+                        const stillExists = await caches.has(cacheName);
+                        if (stillExists) {
+                            console.warn(`[PWA] ⚠️ Cache ${cacheName} still exists after deletion!`);
+                        }
+                    } catch (err) {
+                        console.error(`[PWA] FAILED to delete cache ${cacheName}:`, err);
+                    }
+                }
+                
+                // Small delay between attempts
+                if (attempt < 3) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
             }
             
-            await Promise.all(deletionPromises);
-            console.log('[PWA] NUCLEAR cache destruction completed');
+            const finalCaches = await caches.keys();
+            console.log('[PWA] FINAL cache count:', finalCaches.length, finalCaches);
             
         } catch (error) {
             console.warn('[PWA] Nuclear cache destruction failed:', error);
