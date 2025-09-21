@@ -1,9 +1,9 @@
 // finbrain PWA Service Worker
 // Handles caching, offline functionality, and background sync
 
-const CACHE_NAME = 'finbrain-v1.1.1-auth-fix';
-const STATIC_CACHE_NAME = 'finbrain-static-v1.1.1-auth-fix';
-const API_CACHE_NAME = 'finbrain-api-v1.1.1-auth-fix';
+const CACHE_NAME = 'finbrain-v1.1.2-brandfix';
+const STATIC_CACHE_NAME = 'finbrain-static-v1.1.2-brandfix';
+const API_CACHE_NAME = 'finbrain-api-v1.1.2-brandfix';
 
 // Resources to precache on install - SECURITY: Only static assets, never HTML
 const PRECACHE_URLS = [
