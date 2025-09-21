@@ -19,7 +19,7 @@
     }
     
     function initPWA() {
-        registerServiceWorker(); // Simple SW registration only
+        // No service worker registration - installable but no offline
         initializeUserSession();
         setupOfflineDetection();
         setupInstallPrompt();
@@ -225,12 +225,7 @@
         }
     }
     
-    // Simple Service Worker Registration
-    function registerServiceWorker() {
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
-        }
-    }
+    // No service worker - installable app but no offline functionality
     
     // Offline/Online Detection
     function setupOfflineDetection() {
