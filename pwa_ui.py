@@ -963,44 +963,7 @@ def add_expense():
         "deprecation_notice": "Form endpoint permanently retired. Web-only architecture active."
     }), 410
 
-# Service Worker route (must be at root for scope)
-@pwa_ui.route('/sw.js')
-def service_worker():
-    """Serve service worker from root with aggressive no-cache headers and file hash ETag"""
-    import os
-    import hashlib
-    from flask import send_from_directory, abort
-    
-    try:
-        # Get file path and check existence
-        sw_path = os.path.join('.', 'sw.js')
-        if not os.path.exists(sw_path):
-            abort(404)
-        
-        # Generate ETag from file content hash
-        with open(sw_path, 'rb') as f:
-            file_content = f.read()
-            file_hash = hashlib.sha256(file_content).hexdigest()[:16]
-        
-        response = send_from_directory('.', 'sw.js')
-        response.headers['Content-Type'] = 'text/javascript; charset=utf-8'
-        response.headers['Service-Worker-Allowed'] = '/'
-        
-        # SECURITY: Aggressive no-cache headers to force SW update
-        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
-        response.headers['ETag'] = f'"{file_hash}-v1.1.2-brandfix"'
-        
-        # Additional security headers
-        response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['X-Frame-Options'] = 'DENY'
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Failed to serve service worker: {e}")
-        abort(500)
+# No service worker route - installable but no offline functionality
 
 # Manifest route
 @pwa_ui.route('/manifest.webmanifest')
