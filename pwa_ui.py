@@ -966,12 +966,14 @@ def add_expense():
 # Service Worker route (must be at root for scope)
 @pwa_ui.route('/sw.js')
 def service_worker():
-    """Serve service worker from root for correct scope"""
+    """Serve service worker from root for correct scope with security headers"""
     from flask import send_from_directory
     response = send_from_directory('.', 'sw.js')
     response.headers['Content-Type'] = 'text/javascript'
     response.headers['Service-Worker-Allowed'] = '/'
-    response.headers['Cache-Control'] = 'no-cache'
+    # SECURITY: Force revalidation of SW script
+    response.headers['Cache-Control'] = 'no-cache, must-revalidate'
+    response.headers['ETag'] = 'sw-v1.1.0-auth-fix'
     return response
 
 # Manifest route

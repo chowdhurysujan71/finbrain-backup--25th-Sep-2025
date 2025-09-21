@@ -1,17 +1,12 @@
 // finbrain PWA Service Worker
 // Handles caching, offline functionality, and background sync
 
-const CACHE_NAME = 'finbrain-v1.0.1-button-fix';
-const STATIC_CACHE_NAME = 'finbrain-static-v1.0.1-button-fix';
-const API_CACHE_NAME = 'finbrain-api-v1.0.1-button-fix';
+const CACHE_NAME = 'finbrain-v1.1.0-auth-fix';
+const STATIC_CACHE_NAME = 'finbrain-static-v1.1.0-auth-fix';
+const API_CACHE_NAME = 'finbrain-api-v1.1.0-auth-fix';
 
-// Resources to precache on install
+// Resources to precache on install - SECURITY: Only static assets, no authenticated pages
 const PRECACHE_URLS = [
-    '/',
-    '/chat',
-    '/report', 
-    '/profile',
-    '/challenge',
     '/offline',
     '/manifest.webmanifest',
     '/static/css/app.css',
@@ -108,29 +103,19 @@ self.addEventListener('fetch', event => {
     }
 });
 
-// Handle navigation requests (HTML pages)
+// Handle navigation requests (HTML pages) - SECURITY: Never cache HTML
 async function handleNavigationRequest(request) {
     try {
-        // Try network first
+        // Always try network first - never cache HTML responses
         const networkResponse = await fetch(request);
         
-        // Cache successful responses
-        if (networkResponse.ok) {
-            const cache = await caches.open(CACHE_NAME);
-            cache.put(request, networkResponse.clone());
-        }
-        
+        // SECURITY FIX: Do NOT cache any HTML responses
+        // Return response directly without caching
         return networkResponse;
     } catch (error) {
         console.log('[SW] Navigation request failed, serving offline page:', error);
         
-        // Try to serve from cache
-        const cachedResponse = await caches.match(request);
-        if (cachedResponse) {
-            return cachedResponse;
-        }
-        
-        // Serve offline page
+        // SECURITY FIX: Do NOT serve cached HTML - only serve offline fallback
         return caches.match('/offline');
     }
 }
@@ -205,13 +190,17 @@ async function handleAPIRequest(request) {
     }
 }
 
-// Handle other requests
+// Handle other requests - SECURITY: Never cache HTML
 async function handleDefaultRequest(request) {
     try {
         const networkResponse = await fetch(request);
         
-        // Cache successful responses
-        if (networkResponse.ok) {
+        // Check if response is HTML and skip caching if so
+        const contentType = networkResponse.headers.get('content-type') || '';
+        const isHTML = contentType.includes('text/html');
+        
+        // Cache successful responses (except HTML)
+        if (networkResponse.ok && !isHTML) {
             const cache = await caches.open(CACHE_NAME);
             cache.put(request, networkResponse.clone());
         }
@@ -220,9 +209,13 @@ async function handleDefaultRequest(request) {
     } catch (error) {
         console.log('[SW] Default request failed, checking cache:', error);
         
+        // Only serve cached non-HTML responses
         const cachedResponse = await caches.match(request);
         if (cachedResponse) {
-            return cachedResponse;
+            const contentType = cachedResponse.headers.get('content-type') || '';
+            if (!contentType.includes('text/html')) {
+                return cachedResponse;
+            }
         }
         
         throw error;

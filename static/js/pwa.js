@@ -19,6 +19,7 @@
     }
     
     function initPWA() {
+        cleanupLegacyServiceWorkers(); // Clean up old SW registrations first
         initializeUserSession();
         registerServiceWorker();
         setupOfflineDetection();
@@ -27,6 +28,40 @@
         setupPerformanceOptimizations();
         
         console.log('[PWA] finbrain PWA initialized successfully');
+    }
+    
+    // Legacy Service Worker Cleanup - One-time cleanup for v1.1.0-auth-fix
+    function cleanupLegacyServiceWorkers() {
+        try {
+            if (!('serviceWorker' in navigator)) return;
+            
+            const FLAG = 'legacy-sw-cleanup-1.1.0';
+            if (localStorage.getItem(FLAG)) return;
+            
+            console.log('[PWA] Cleaning up legacy service workers...');
+            
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                registrations.forEach(registration => {
+                    const url = (registration.scriptURL || '');
+                    const rootSWUrl = new URL('/sw.js', location.origin).href;
+                    
+                    if (url !== rootSWUrl) {
+                        console.log('[PWA] Unregistering legacy SW:', url);
+                        registration.unregister().catch(err => {
+                            console.warn('[PWA] Failed to unregister legacy SW:', err);
+                        });
+                    }
+                });
+                
+                // Mark cleanup as complete
+                localStorage.setItem(FLAG, 'done');
+                console.log('[PWA] Legacy service worker cleanup completed');
+            }).catch(err => {
+                console.warn('[PWA] Legacy cleanup failed:', err);
+            });
+        } catch (error) {
+            console.warn('[PWA] Legacy cleanup error:', error);
+        }
     }
     
     // Session-based Authentication Check

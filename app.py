@@ -2432,5 +2432,14 @@ try:
 except ImportError as e:
     logger.warning(f"Single Writer Observability routes not available: {e}")
 
+# Register Service Worker Diagnostics Blueprint
+try:
+    from routes.sw_diagnostics import sw_diagnostics
+    if 'sw_diagnostics' not in app.blueprints:
+        app.register_blueprint(sw_diagnostics)
+        logger.info("✓ Service Worker diagnostics registered (/ops/sw-diagnostics)")
+except ImportError as e:
+    logger.warning(f"Service Worker diagnostics not available: {e}")
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
