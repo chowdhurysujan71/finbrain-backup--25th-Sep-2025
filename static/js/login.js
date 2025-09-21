@@ -1,13 +1,9 @@
 // static/js/login.js
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM LOADED - LOGIN.JS STARTING'); // DEBUG
   const form = document.getElementById('login-form');
   const err  = document.getElementById('auth-error');
   const spin = document.getElementById('auth-spinner');
   const captchaQuestion = document.getElementById('captcha-question');
-  
-  console.log('FORM ELEMENT FOUND:', form); // DEBUG
-  console.log('ERROR ELEMENT FOUND:', err); // DEBUG
 
   // Load CAPTCHA on page load
   async function loadCaptcha() {
@@ -27,10 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadCaptcha();
 
-  console.log('ADDING EVENT LISTENER TO FORM:', form); // DEBUG
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    console.log('LOGIN FORM SUBMIT TRIGGERED'); // DEBUG
     err && (err.style.display = 'none');
     
     // Handle button loading state
