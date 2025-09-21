@@ -68,17 +68,18 @@ async function purgeLegacyCaches() {
 
 // Install event - precache critical resources
 self.addEventListener('install', event => {
-    console.log('[SW] Installing service worker v1.1.1...');
+    console.log('[SW] Installing service worker v1.1.1 with aggressive cleanup...');
     
     event.waitUntil(
         Promise.all([
-            // Aggressive legacy purge first
+            // Aggressive legacy purge first - CRITICAL for security
             purgeLegacyCaches(),
             
-            // Then precache static resources
+            
+            // Then precache static resources (without /offline)
             caches.open(STATIC_CACHE_NAME)
                 .then(cache => {
-                    console.log('[SW] Precaching static resources');
+                    console.log('[SW] Precaching static resources (no HTML)');
                     // Cache resources one by one, skip failures
                     return Promise.allSettled(
                         PRECACHE_URLS.map(url => 
@@ -90,11 +91,11 @@ self.addEventListener('install', event => {
                     );
                 })
         ]).then(() => {
-            console.log('[SW] Skip waiting to activate immediately');
+            console.log('[SW] Skip waiting to activate immediately v1.1.1');
             return self.skipWaiting();
         }).catch(error => {
             console.error('[SW] Install failed:', error);
-            // Don't fail installation if precaching fails
+            // Don't fail installation - force activation anyway
             return self.skipWaiting();
         })
     );
@@ -424,7 +425,17 @@ self.addEventListener('message', event => {
     console.log('[SW] Message received:', event.data);
     
     if (event.data && event.data.type === 'SKIP_WAITING') {
+        console.log('[SW] Received SKIP_WAITING message, activating immediately');
         self.skipWaiting();
+    }
+    
+    if (event.data && event.data.type === 'FORCE_UPDATE') {
+        console.log('[SW] Received FORCE_UPDATE message, running cleanup');
+        purgeLegacyCaches().then(() => {
+            event.ports[0].postMessage({success: true});
+        }).catch(err => {
+            event.ports[0].postMessage({success: false, error: err.message});
+        });
     }
     
     if (event.data && event.data.type === 'GET_VERSION') {
