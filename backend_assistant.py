@@ -29,6 +29,44 @@ logger = logging.getLogger(__name__)
 # Category validation according to specification
 VALID_CATEGORIES = ['food', 'transport', 'bills', 'shopping', 'uncategorized']
 
+def normalize_category(raw_category: str) -> str:
+    """
+    Server-side category normalization - single source of truth
+    Maps any input category to canonical values only
+    """
+    if not raw_category:
+        return 'uncategorized'
+    
+    # Category mapping: synonyms -> canonical
+    CATEGORY_MAPPING = {
+        # Direct mappings (canonical values)
+        'food': 'food', 
+        'transport': 'transport', 
+        'bills': 'bills', 
+        'shopping': 'shopping', 
+        'uncategorized': 'uncategorized',
+        
+        # Synonyms -> canonical mappings
+        'other': 'uncategorized', 
+        'misc': 'uncategorized',
+        'miscellaneous': 'uncategorized',
+        'groceries': 'food', 
+        'grocery': 'food',
+        'dinner': 'food',
+        'lunch': 'food',
+        'breakfast': 'food',
+        'uber': 'transport', 
+        'taxi': 'transport',
+        'bus': 'transport',
+        'utilities': 'bills',
+        'utility': 'bills',
+        'clothes': 'shopping',
+        'clothing': 'shopping'
+    }
+    
+    normalized = raw_category.lower().strip()
+    return CATEGORY_MAPPING.get(normalized, 'uncategorized')
+
 def propose_expense(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
     """
     Input: raw text message.
@@ -287,8 +325,8 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
     success = False
     
     try:
-        # 🎯 DEBUG: Log exactly what we're receiving
-        logger.info(f"add_expense called: user_id={user_id}, description='{description}', source='{source}', amount_minor={amount_minor}")
+        # Entry point debugging
+        logger.info("add_expense_called", user_id=user_id, amount_minor=amount_minor, raw_category=category)
         
         # 🎯 UNBREAKABLE INVARIANT ENFORCEMENT
         # This validates source, idempotency, and all single writer requirements
@@ -331,7 +369,6 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
         
         # Validate source (enforce web-only architecture)
         from constants import validate_expense_source
-        logger.info(f"Validating source: '{source}' against allowed sources")
         validate_expense_source(source)
         
         # Normalize category to valid values (defensive coding)
@@ -402,16 +439,8 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
         expense.amount = amount_decimal
         expense.amount_minor = amount_minor
         
-        # Apply category normalization if enabled (absorbed from create_expense)
-        try:
-            from utils.pca_flags import pca_flags
-            if pca_flags.should_normalize_categories():
-                from utils.category_guard import normalize_category_for_save
-                expense.category = normalize_category_for_save(category)
-            else:
-                expense.category = category.lower()
-        except:
-            expense.category = category.lower()  # Fallback
+        # 🎯 LOCK 1: Server-side category normalization (single source of truth)
+        expense.category = normalize_category(category)
             
         expense.currency = currency or 'BDT'
         expense.date = occurred_at.date()
@@ -470,6 +499,9 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
                     categories[expense.category] = categories.get(expense.category, 0) + amount_float
                     monthly_summary.categories = categories
                     monthly_summary.updated_at = datetime.utcnow()
+            
+            # 🎯 LOCK 1: Log normalization before commit
+            logger.info("normalized_category", raw=category, stored=expense.category)
             
             # Single atomic commit
             db.session.commit()

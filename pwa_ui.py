@@ -718,6 +718,35 @@ def link_guest_data():
         logger.error(f"Error in link_guest_data: {e}")
         return jsonify({"error": "Failed to process guest data linking"}), 500
 
+@pwa_ui.route('/v1/meta/categories', methods=['GET'])
+def meta_categories():
+    """
+    🎯 LOCK 3: Categories contract endpoint
+    Returns canonical categories and synonym mappings for clients
+    """
+    from flask import jsonify
+    
+    return jsonify({
+        "allowed": ["food", "transport", "bills", "shopping", "uncategorized"],
+        "synonyms": {
+            "other": "uncategorized",
+            "misc": "uncategorized", 
+            "miscellaneous": "uncategorized",
+            "groceries": "food",
+            "grocery": "food",
+            "dinner": "food",
+            "lunch": "food", 
+            "breakfast": "food",
+            "uber": "transport",
+            "taxi": "transport",
+            "bus": "transport",
+            "utilities": "bills",
+            "utility": "bills",
+            "clothes": "shopping",
+            "clothing": "shopping"
+        }
+    }), 200
+
 @pwa_ui.route('/offline')
 def offline():
     """
