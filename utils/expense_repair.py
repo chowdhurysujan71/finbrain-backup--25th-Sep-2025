@@ -36,6 +36,12 @@ CATEGORY_SYNONYMS = {
     "bus": "transport",
     "utilities": "bills",
     "utility": "bills",
+    "electricity": "bills",
+    "electric": "bills",
+    "water": "bills",
+    "gas": "bills",
+    "internet": "bills",
+    "phone": "bills",
     "clothes": "shopping",
     "clothing": "shopping"
 }

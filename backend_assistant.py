@@ -60,6 +60,12 @@ def normalize_category(raw_category: str) -> str:
         'bus': 'transport',
         'utilities': 'bills',
         'utility': 'bills',
+        'electricity': 'bills',
+        'electric': 'bills',
+        'water': 'bills',
+        'gas': 'bills',
+        'internet': 'bills',
+        'phone': 'bills',
         'clothes': 'shopping',
         'clothing': 'shopping'
     }
