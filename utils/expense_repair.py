@@ -12,7 +12,10 @@ logger = logging.getLogger(__name__)
 # Expense detection patterns
 EXPENSE_HINTS = re.compile(r"\b(spent|paid|buy|bought|purchase|purchased|cost|bill)\b", re.I)
 AMOUNT_RE = re.compile(
-    r"(?:৳|tk|taka)\s*([0-9][0-9,\.]*)|\b([0-9][0-9,\.]*)\s*(?:taka|tk|৳)\b",
+    r"(?:৳|tk|taka)\s*([0-9]+(?:[,\.][0-9]+)*)|"         # Currency first: ৳300, tk 25.50
+    r"\b([0-9]+(?:[,\.][0-9]+)*)\s*(?:taka|tk|৳)\b|"     # Currency last: 300 taka, 25.50 tk
+    r"\b([0-9]+(?:\.[0-9]{1,2})?)\s+(?:for|on)\b|"       # Amount + for/on: 300 for, 25.50 on  
+    r"(?:spent|paid|cost)\s+([0-9]+(?:\.[0-9]{1,2})?)",  # Verb + amount: spent 300, paid 25.50
     re.I
 )
 
