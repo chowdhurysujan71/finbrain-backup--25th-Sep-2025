@@ -974,9 +974,25 @@ def ai_chat():
         })
         
         # [ADDITIVE API] Add new fields while preserving existing contract
+        
+        # Calculate amount_minor (integer minor units) for new API contract
+        amount_minor = None
+        if amount is not None:
+            try:
+                # Convert amount to integer minor units (e.g., 150.00 -> 15000)
+                amount_minor = int(float(amount) * 100)
+            except (ValueError, TypeError):
+                # Fallback: keep amount_minor as None if conversion fails
+                amount_minor = None
+        
         response_data = {
             "reply": reply,
-            "data": {"intent": intent or "chat", "category": category or "general", "amount": amount},
+            "data": {
+                "intent": intent or "chat", 
+                "category": category or "general", 
+                "amount": amount,  # Preserve existing field for backward compatibility
+                "amount_minor": amount_minor  # New field: integer minor units (e.g., 15000)
+            },
             "user_id": resolved_user_id[:8] + "***",  # Truncated for privacy
             "metadata": {
                 "source": "ai-chat",

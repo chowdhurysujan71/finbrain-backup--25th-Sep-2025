@@ -190,9 +190,12 @@ class TestExpenseRepairIntegration:
         assert data["data"]["intent"] in ["add_expense", "expense_logged", "ai_expense_logged"], \
             f"Expected expense intent, got {data['data']['intent']}"
         
-        # Should have amount detected
+        # Should have amount detected (backward compatibility)
         assert data["data"]["amount"] is not None, "Should detect amount"
-        assert data["data"]["amount"] == 15000, f"Expected 15000 minor units, got {data['data']['amount']}"
+        
+        # NEW: Should have amount_minor field with integer minor units
+        assert data["data"]["amount_minor"] is not None, "Should have amount_minor field"
+        assert data["data"]["amount_minor"] == 15000, f"Expected 15000 minor units, got {data['data']['amount_minor']}"
         
         # Should have food category (grocery -> food)
         assert data["data"]["category"] == "food", f"Expected 'food' category, got {data['data']['category']}"
