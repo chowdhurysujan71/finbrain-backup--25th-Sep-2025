@@ -27,6 +27,7 @@ class Expense(db.Model):
     unique_id = db.Column(db.Text, nullable=False)  # Unique identifier per expense
     created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Database insertion timestamp
     platform = db.Column(db.String(20), default='messenger')  # Facebook Messenger
+    source = db.Column(db.String(20), nullable=True)  # Source type for single-writer constraint
     original_message = db.Column(db.Text, default='')  # Full original message
     ai_insights = db.Column(db.Text, default='')  # Future AI insights storage
     mid = db.Column(db.String(255), nullable=True)  # Facebook message ID for idempotency
