@@ -89,7 +89,7 @@ def extract_amount_minor(text: str) -> Optional[int]:
         amount_float = float(cleaned)
         return int(round(amount_float * 100))  # Convert to minor units
     except (ValueError, TypeError):
-        logger.warning("amount_extraction_failed", raw=raw_amount, text=text[:50])
+        logger.warning("amount_extraction_failed: raw=%s text=%s", raw_amount, text[:50] if text else "")
         return None
 
 def guess_category(text: str) -> str:
@@ -133,6 +133,20 @@ def normalize_category(raw_category: str) -> str:
     from backend_assistant import normalize_category as canonical_normalize_category
     return canonical_normalize_category(raw_category)
 
+def safe_normalize_category(raw_category: Optional[str]) -> str:
+    """
+    Type-safe wrapper for normalize_category that handles None inputs
+    
+    Args:
+        raw_category: Category string that may be None
+        
+    Returns:
+        Normalized category string, defaults to 'uncategorized' for None/empty inputs
+    """
+    if not raw_category:
+        return "uncategorized"
+    return normalize_category(raw_category)
+
 def repair_expense_with_fallback(
     text: str, 
     original_intent: str, 
@@ -157,7 +171,7 @@ def repair_expense_with_fallback(
     try:
         # Check if repair is needed and possible
         if original_intent != "add_expense" and looks_like_expense(text):
-            logger.info("repair_attempt_started", text_hash=hash(text), original_intent=original_intent)
+            logger.info("repair_attempt_started: text_hash=%s original_intent=%s", hash(text), original_intent)
             
             # Try to extract amount if missing
             repaired_amount = original_amount or extract_amount_minor(text)
@@ -169,21 +183,19 @@ def repair_expense_with_fallback(
                 else:
                     repaired_category = normalize_category(guess_category(text))
                 
-                logger.info("repair_success", 
-                           original_intent=original_intent,
-                           repaired_amount=repaired_amount, 
-                           repaired_category=repaired_category)
+                logger.info("repair_success: original_intent=%s repaired_amount=%s repaired_category=%s", 
+                           original_intent, repaired_amount, repaired_category)
                 
                 return "add_expense", repaired_amount, repaired_category
             else:
                 # No amount detected - bypass repair
-                logger.info("repair_bypass", reason="no_amount_detected")
-                return original_intent, original_amount, normalize_category(original_category)
+                logger.info("repair_bypass: reason=%s", "no_amount_detected")
+                return original_intent, original_amount, safe_normalize_category(original_category)
         
         # No repair needed - just normalize category
-        return original_intent, original_amount, normalize_category(original_category)
+        return original_intent, original_amount, safe_normalize_category(original_category)
         
     except Exception as e:
         # Circuit breaker - never fail, log and return original
-        logger.warning("repair_failed", error=str(e), text=(text or "")[:80])
-        return original_intent, original_amount, normalize_category(original_category)
+        logger.warning("repair_failed: error=%s text=%s", str(e), (text or "")[:80])
+        return original_intent, original_amount, safe_normalize_category(original_category)
