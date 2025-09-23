@@ -81,5 +81,22 @@ def get_canary_status():
         'rollback_note': 'All features permanently enabled for production stability'
     }
 
+def expense_repair_enabled() -> bool:
+    """
+    Feature flag for expense repair logic in /ai-chat endpoint
+    Provides instant kill-switch capabilities for production safety
+    """
+    return os.getenv("EXPENSE_REPAIR_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
+
+def get_expense_repair_config() -> dict:
+    """
+    Get comprehensive configuration for expense repair system
+    """
+    return {
+        "repair_enabled": expense_repair_enabled(),
+        "circuit_breaker_enabled": os.getenv("EXPENSE_CIRCUIT_BREAKER", "true").lower() in {"1", "true", "yes", "on"},
+        "repair_logging_enabled": os.getenv("EXPENSE_REPAIR_LOGGING", "true").lower() in {"1", "true", "yes", "on"}
+    }
+
 # Boot time initialization logging
 logger.info(f"Feature flags initialized: version={FEATURE_FLAGS_VERSION} ALL_FEATURES=ON (no flags, no allowlists)")
