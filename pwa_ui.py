@@ -892,6 +892,46 @@ def ai_chat():
         logger.info(f"Processing AI chat message for user {resolved_user_id[:8]}***: '{text[:50]}...'")
         reply, intent, category, amount = finbrain_route(text, db_user_id)
         
+        # [EXPENSE REPAIR] Apply surgical repair for misclassifications
+        from utils.feature_flags import expense_repair_enabled
+        from utils.expense_repair import repair_expense_with_fallback, normalize_category
+        
+        repaired_intent = intent
+        repaired_amount = amount
+        repaired_category = category
+        
+        if expense_repair_enabled():
+            try:
+                repaired_intent, repaired_amount, repaired_category = repair_expense_with_fallback(
+                    text=text,
+                    original_intent=intent,
+                    original_amount=amount,
+                    original_category=category
+                )
+                
+                # Log repair activity if anything changed
+                if (repaired_intent != intent or 
+                    repaired_amount != amount or 
+                    repaired_category != category):
+                    logger.info("expense_repaired", 
+                               original_intent=intent, 
+                               repaired_intent=repaired_intent,
+                               original_amount=amount,
+                               repaired_amount=repaired_amount,
+                               original_category=category,
+                               repaired_category=repaired_category)
+                
+            except Exception as e:
+                logger.warning("repair_system_error", error=str(e))
+                # Use normalized category even if repair fails
+                repaired_category = normalize_category(category)
+        else:
+            # Feature disabled - just normalize category
+            repaired_category = normalize_category(category)
+        
+        # Update variables for downstream processing
+        intent, amount, category = repaired_intent, repaired_amount, repaired_category
+        
         # Check if an expense was successfully saved
         expense_intents = ["expense_logged", "ai_expense_logged", "log_single", "log_expense"]
         expense_id = None
@@ -938,15 +978,22 @@ def ai_chat():
             "success": True
         })
         
-        return jsonify({
+        # [ADDITIVE API] Add new fields while preserving existing contract
+        response_data = {
             "reply": reply,
             "data": {"intent": intent or "chat", "category": category or "general", "amount": amount},
             "user_id": resolved_user_id[:8] + "***",  # Truncated for privacy
             "metadata": {
                 "source": "ai-chat",
                 "latency_ms": latency_ms
-            }
-        }), 200
+            },
+            # New additive fields for enhanced functionality
+            "ok": True,
+            "mode": "expense" if intent == "add_expense" else "chat",
+            "expense_id": expense_id  # Will be None for non-expense intents
+        }
+        
+        return jsonify(response_data), 200
     except Exception as e:
         # FIX: Handle case where resolved_user_id might be None to prevent NameError
         safe_user_id = resolved_user_id[:8] + "***" if resolved_user_id else "unknown"
