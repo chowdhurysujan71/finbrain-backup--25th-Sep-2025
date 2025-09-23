@@ -118,26 +118,11 @@ def guess_category(text: str) -> str:
 
 def normalize_category(raw_category: str) -> str:
     """
-    Normalize category to canonical values
-    Server-side normalization - single source of truth
-    
-    Args:
-        raw_category: Raw category from AI or user input
-        
-    Returns:
-        Canonical category (always one of ALLOWED_CATEGORIES)
+    Import canonical normalize_category from backend_assistant
+    Ensures single source of truth for category normalization
     """
-    if not raw_category:
-        return "uncategorized"
-    
-    category_lower = str(raw_category).strip().lower()
-    
-    # Return canonical if already valid
-    if category_lower in ALLOWED_CATEGORIES:
-        return category_lower
-    
-    # Apply synonym mapping
-    return CATEGORY_SYNONYMS.get(category_lower, "uncategorized")
+    from backend_assistant import normalize_category as canonical_normalize_category
+    return canonical_normalize_category(raw_category)
 
 def repair_expense_with_fallback(
     text: str, 
