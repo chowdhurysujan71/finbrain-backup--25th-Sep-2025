@@ -56,7 +56,9 @@ class TestAPISmokeTests:
         try:
             data = response.json()
             assert "question" in data, "Expected question field in captcha response"
-            assert "answer" in data, "Expected answer field in captcha response"
+            assert "success" in data, "Expected success field in captcha response"
+            assert isinstance(data["question"], str), "Question should be a string"
+            assert isinstance(data["success"], bool), "Success should be a boolean"
         except json.JSONDecodeError:
             pytest.fail("Expected JSON response from captcha endpoint")
         
