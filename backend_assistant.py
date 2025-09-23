@@ -332,7 +332,7 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
     
     try:
         # Entry point debugging
-        logger.info("add_expense_called", user_id=user_id, amount_minor=amount_minor, raw_category=category)
+        logger.info("add_expense_called: user_id=%s amount_minor=%s raw_category=%s", user_id, amount_minor, category)
         
         # 🎯 UNBREAKABLE INVARIANT ENFORCEMENT
         # This validates source, idempotency, and all single writer requirements
@@ -507,7 +507,7 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
                     monthly_summary.updated_at = datetime.utcnow()
             
             # 🎯 LOCK 1: Log normalization before commit
-            logger.info("normalized_category", raw=category, stored=expense.category)
+            logger.info("normalized_category: raw=%s stored=%s", category, expense.category)
             
             # Single atomic commit
             db.session.commit()
