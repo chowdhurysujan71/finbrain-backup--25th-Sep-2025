@@ -29,21 +29,67 @@ class TestUser:
                 
             captcha_data = captcha_response.json()
             
+            # Parse and solve the math question (e.g., "What is 6 * 7?")
+            question = captcha_data["question"]
+            import re
+            match = re.search(r'What is (\d+) ([+\-*/]) (\d+)\?', question)
+            if match:
+                num1, operator, num2 = match.groups()
+                num1, num2 = int(num1), int(num2)
+                if operator == '+':
+                    answer = num1 + num2
+                elif operator == '-':
+                    answer = num1 - num2
+                elif operator == '*':
+                    answer = num1 * num2
+                elif operator == '/':
+                    answer = num1 // num2  # Integer division
+                else:
+                    answer = 0
+            else:
+                answer = 0  # Fallback
+            
             # Register user
             register_data = {
                 "email": self.email,
                 "password": self.password,
-                "captcha_answer": captcha_data["answer"]
+                "captcha_answer": str(answer)
             }
             
             register_response = self.session.post(f"{BASE_URL}/api/auth/register", json=register_data)
             if register_response.status_code not in [200, 409]:  # 409 = already exists
                 return False
             
-            # Login user
+            # Login user - get new CAPTCHA first
+            login_captcha_response = self.session.get(f"{BASE_URL}/api/auth/captcha")
+            if login_captcha_response.status_code != 200:
+                return False
+                
+            login_captcha_data = login_captcha_response.json()
+            
+            # Parse and solve the login math question
+            login_question = login_captcha_data["question"]
+            match = re.search(r'What is (\d+) ([+\-*/]) (\d+)\?', login_question)
+            if match:
+                num1, operator, num2 = match.groups()
+                num1, num2 = int(num1), int(num2)
+                if operator == '+':
+                    login_answer = num1 + num2
+                elif operator == '-':
+                    login_answer = num1 - num2
+                elif operator == '*':
+                    login_answer = num1 * num2
+                elif operator == '/':
+                    login_answer = num1 // num2  # Integer division
+                else:
+                    login_answer = 0
+            else:
+                login_answer = 0  # Fallback
+            
             login_data = {
                 "email": self.email,
-                "password": self.password
+                "password": self.password,
+                "captcha_answer": str(login_answer)
             }
             
             login_response = self.session.post(f"{BASE_URL}/api/auth/login", json=login_data)

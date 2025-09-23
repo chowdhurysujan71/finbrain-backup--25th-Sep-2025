@@ -69,4 +69,5 @@ attached_assets/
 
 # Temporary files
 tmp/
-temp/
+temp/cookies.txt
+*.jar

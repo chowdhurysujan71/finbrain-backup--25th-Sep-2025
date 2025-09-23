@@ -89,18 +89,19 @@ if not session_secret:
     
 app.secret_key = session_secret
 
-# Session cookie hardening for cross-subdomain authentication
-app.config["SESSION_COOKIE_SECURE"] = True         # send cookie only over HTTPS
+# Session cookie configuration
 app.config["SESSION_COOKIE_HTTPONLY"] = True       # JS cannot read cookie
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"      # Required for subdomain redirects
 
-# SECURITY FIX: Conditional session cookie domain - only for production
+# SECURITY FIX: Conditional session cookie settings - environment-based
 if env == 'production' or env == 'prod':
+    app.config["SESSION_COOKIE_SECURE"] = True         # HTTPS only in production
     app.config["SESSION_COOKIE_DOMAIN"] = ".finbrain.app"  # Share cookies across finbrain.app subdomains in production
-    logger.info("✓ Session cookies configured for finbrain.app subdomains (production)")
+    logger.info("✓ Session cookies configured for finbrain.app subdomains (production, secure)")
 else:
-    # In development, don't set domain to allow localhost sessions
-    logger.info("✓ Session cookies configured for localhost (development)")
+    # Development: Allow HTTP and localhost sessions for testing
+    app.config["SESSION_COOKIE_SECURE"] = False        # Allow HTTP in development/testing
+    logger.info("✓ Session cookies configured for localhost (development, non-secure)")
 
 app.config["SESSION_COOKIE_NAME"] = "fbn.sid"      # Custom session cookie name
 app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 30  # 30 days

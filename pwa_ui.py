@@ -312,7 +312,7 @@ def register():
     """
     return render_template('register.html')
 
-@pwa_ui.route('/auth/login', methods=['POST'])
+@pwa_ui.route('/api/auth/login', methods=['POST'])
 @limiter.limit("5 per minute")
 def auth_login():
     """
@@ -434,7 +434,7 @@ def auth_me():
         logger.error(f"Auth check error: {e}")
         return jsonify({"error": "Auth check failed"}), 500
 
-@pwa_ui.route('/auth/register', methods=['POST'])
+@pwa_ui.route('/api/auth/register', methods=['POST'])
 @limiter.limit("3 per minute")
 def auth_register():
     """
@@ -894,7 +894,7 @@ def ai_chat():
         
         # [EXPENSE REPAIR] Apply surgical repair for misclassifications
         from utils.feature_flags import expense_repair_enabled
-        from utils.expense_repair import repair_expense_with_fallback, normalize_category
+        from utils.expense_repair import repair_expense_with_fallback, normalize_category, safe_normalize_category
         
         repaired_intent = intent
         repaired_amount = amount
@@ -913,21 +913,16 @@ def ai_chat():
                 if (repaired_intent != intent or 
                     repaired_amount != amount or 
                     repaired_category != category):
-                    logger.info("expense_repaired", 
-                               original_intent=intent, 
-                               repaired_intent=repaired_intent,
-                               original_amount=amount,
-                               repaired_amount=repaired_amount,
-                               original_category=category,
-                               repaired_category=repaired_category)
+                    logger.info("expense_repaired: original_intent=%s repaired_intent=%s original_amount=%s repaired_amount=%s original_category=%s repaired_category=%s", 
+                               intent, repaired_intent, amount, repaired_amount, category, repaired_category)
                 
             except Exception as e:
-                logger.warning("repair_system_error", error=str(e))
+                logger.warning("repair_system_error: error=%s", str(e))
                 # Use normalized category even if repair fails
-                repaired_category = normalize_category(category)
+                repaired_category = safe_normalize_category(category)
         else:
             # Feature disabled - just normalize category
-            repaired_category = normalize_category(category)
+            repaired_category = safe_normalize_category(category)
         
         # Update variables for downstream processing
         intent, amount, category = repaired_intent, repaired_amount, repaired_category
