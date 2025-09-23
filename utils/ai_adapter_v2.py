@@ -31,6 +31,12 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 AI_TIMEOUT = 8  # 8 second timeout (increased for reliability)
 AI_MAX_RETRIES = 1  # 1 retry only
 
+# Global AI timeout metrics
+import threading
+AI_TIMEOUT_COUNTER = 0
+AI_REQUEST_COUNTER = 0 
+AI_TIMEOUT_LOCK = threading.Lock()
+
 class ProductionAIAdapter:
     """
     Production-ready AI adapter with strict constraints
@@ -186,6 +192,11 @@ Make insights:
                     "topP": 0.8
                 }
             }
+            
+            # Track AI request for monitoring
+            global AI_REQUEST_COUNTER
+            with AI_TIMEOUT_LOCK:
+                AI_REQUEST_COUNTER += 1
             
             # Make request with isolated session - CRITICAL FOR USER ISOLATION
             response = isolated_session.post(url, json=payload, timeout=AI_TIMEOUT)
@@ -490,6 +501,10 @@ Multi-Currency: Recognize BDT (৳), $, €, £, ₹"""
                             continue
                         
                 except requests.Timeout:
+                    # Increment global timeout counter for monitoring
+                    global AI_TIMEOUT_COUNTER
+                    with AI_TIMEOUT_LOCK:
+                        AI_TIMEOUT_COUNTER += 1
                     logger.warning(f"OpenAI timeout on attempt {attempt + 1}")
                     if attempt < AI_MAX_RETRIES:
                         continue
@@ -629,6 +644,10 @@ Guardrails:
                             continue
                         
                 except requests.Timeout:
+                    # Increment global timeout counter for monitoring
+                    global AI_TIMEOUT_COUNTER
+                    with AI_TIMEOUT_LOCK:
+                        AI_TIMEOUT_COUNTER += 1
                     logger.warning(f"Gemini timeout on attempt {attempt + 1} (waited {AI_TIMEOUT}s)")
                     if attempt < AI_MAX_RETRIES:
                         continue
@@ -853,6 +872,17 @@ ALWAYS: ui_note ≤140 chars, source_text verbatim, confidence 0.0-1.0"""
             "timeout_s": AI_TIMEOUT,
             "max_retries": AI_MAX_RETRIES,
             "has_api_key": bool(OPENAI_API_KEY) if self.provider == "openai" else bool(GEMINI_API_KEY) if self.provider == "gemini" else None
+        }
+
+def get_ai_timeout_metrics():
+    """Get AI timeout metrics for monitoring"""
+    global AI_TIMEOUT_COUNTER, AI_REQUEST_COUNTER
+    with AI_TIMEOUT_LOCK:
+        return {
+            "ai_requests_total": AI_REQUEST_COUNTER,
+            "ai_timeouts_total": AI_TIMEOUT_COUNTER,
+            "ai_timeout_rate": (AI_TIMEOUT_COUNTER / max(AI_REQUEST_COUNTER, 1)) * 100,
+            "ai_success_rate": ((AI_REQUEST_COUNTER - AI_TIMEOUT_COUNTER) / max(AI_REQUEST_COUNTER, 1)) * 100
         }
     
     def cleanup(self):

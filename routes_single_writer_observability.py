@@ -22,8 +22,14 @@ def require_basic_auth(f):
         
         if not admin_user or not admin_pass:
             return jsonify({"error": "Admin authentication not configured"}), 503
+        
+        # Check HTTP Basic Authentication
+        auth = request.authorization
+        if not auth or auth.username != admin_user or auth.password != admin_pass:
+            return jsonify({"error": "Authentication required"}), 401, {
+                'WWW-Authenticate': 'Basic realm="Admin Dashboard"'
+            }
             
-        # Allow unauthenticated access for now - can be secured later
         return f(*args, **kwargs)
     return decorated_function
 import logging
@@ -56,6 +62,10 @@ def metrics_endpoint():
         metrics_24h = health["metrics_24h"]
         sla_compliance = health["sla_compliance"]
         
+        # Import and get AI timeout metrics
+        from utils.ai_adapter_v2 import get_ai_timeout_metrics
+        ai_metrics = get_ai_timeout_metrics()
+        
         # Generate Prometheus-style metrics
         metrics = [
             f"# HELP single_writer_canonical_writes_total Total canonical writer operations",
@@ -84,6 +94,26 @@ def metrics_endpoint():
         
         for sla_name, compliant in sla_compliance.items():
             metrics.append(f"single_writer_sla_compliance{{sla=\"{sla_name}\"}} {1 if compliant else 0}")
+        
+        # Add AI timeout metrics
+        metrics.extend([
+            "",
+            f"# HELP ai_requests_total Total AI requests made",
+            f"# TYPE ai_requests_total counter",
+            f"ai_requests_total {ai_metrics['ai_requests_total']}",
+            "",
+            f"# HELP ai_timeouts_total Total AI request timeouts",
+            f"# TYPE ai_timeouts_total counter", 
+            f"ai_timeouts_total {ai_metrics['ai_timeouts_total']}",
+            "",
+            f"# HELP ai_timeout_rate AI timeout rate as percentage",
+            f"# TYPE ai_timeout_rate gauge",
+            f"ai_timeout_rate {ai_metrics['ai_timeout_rate']}",
+            "",
+            f"# HELP ai_success_rate AI request success rate as percentage",
+            f"# TYPE ai_success_rate gauge",
+            f"ai_success_rate {ai_metrics['ai_success_rate']}"
+        ])
         
         return "\n".join(metrics), 200, {'Content-Type': 'text/plain; charset=utf-8'}
         
