@@ -3,8 +3,6 @@ Production monitoring and management endpoints for coaching system
 Provides real-time metrics, health checks, and operational controls
 """
 
-import os
-import json
 from datetime import datetime
 from flask import Blueprint, jsonify, request
 
@@ -16,7 +14,6 @@ try:
     from utils.coaching_analytics import coaching_analytics
     from utils.coaching_optimization import performance_monitor, coaching_cache, memory_optimizer
     from utils.coaching_safeguards import coaching_circuit_breaker, health_checker, feature_flag_manager
-    from utils.coaching_resilience import coaching_resilience
     COACHING_MONITORING_AVAILABLE = True
 except ImportError as e:
     COACHING_MONITORING_AVAILABLE = False

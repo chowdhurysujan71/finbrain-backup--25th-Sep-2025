@@ -146,8 +146,8 @@ from utils.logger import structured_logger
 def attach_user_and_trace():
     """Capture request start time, generate request_id, set user context, and enforce subdomain auth"""
     import os
-    from flask import request, jsonify, after_this_request, redirect, url_for
-    from auth_helpers import get_user_id_from_session, get_subdomain, is_protected_subdomain, validate_return_to_url
+    from flask import request, jsonify, after_this_request, redirect
+    from auth_helpers import get_user_id_from_session, get_subdomain, is_protected_subdomain
     from urllib.parse import quote
     
     g.start_time = time.time()

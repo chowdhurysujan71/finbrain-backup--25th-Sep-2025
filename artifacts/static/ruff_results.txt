@@ -3108,29 +3108,6 @@ E402 Module level import not at top of file
 145 | @app.before_request
     |
 
-F401 [*] `flask.url_for` imported but unused
-   --> app.py:149:71
-    |
-147 |     """Capture request start time, generate request_id, set user context, and enforce subdomain auth"""
-148 |     import os
-149 |     from flask import request, jsonify, after_this_request, redirect, url_for
-    |                                                                       ^^^^^^^
-150 |     from auth_helpers import get_user_id_from_session, get_subdomain, is_protected_subdomain, validate_return_to_url
-151 |     from urllib.parse import quote
-    |
-help: Remove unused import: `flask.url_for`
-
-F401 [*] `auth_helpers.validate_return_to_url` imported but unused
-   --> app.py:150:95
-    |
-148 |     import os
-149 |     from flask import request, jsonify, after_this_request, redirect, url_for
-150 |     from auth_helpers import get_user_id_from_session, get_subdomain, is_protected_subdomain, validate_return_to_url
-    |                                                                                               ^^^^^^^^^^^^^^^^^^^^^^
-151 |     from urllib.parse import quote
-    |
-help: Remove unused import: `auth_helpers.validate_return_to_url`
-
 E402 Module level import not at top of file
    --> app.py:953:1
     |
@@ -3194,223 +3171,138 @@ E402 Module level import not at top of file
 2133 | app.register_blueprint(admin_ops)
      |
 
-F401 [*] `os` imported but unused
- --> app_coaching_endpoints.py:6:8
-  |
-4 | """
-5 |
-6 | import os
-  |        ^^
-7 | import json
-8 | from datetime import datetime
-  |
-help: Remove unused import: `os`
-
-F401 [*] `json` imported but unused
- --> app_coaching_endpoints.py:7:8
-  |
-6 | import os
-7 | import json
-  |        ^^^^
-8 | from datetime import datetime
-9 | from flask import Blueprint, jsonify, request
-  |
-help: Remove unused import: `json`
-
-F401 `utils.coaching_resilience.coaching_resilience` imported but unused; consider using `importlib.util.find_spec` to test for availability
-  --> app_coaching_endpoints.py:19:43
-   |
-17 |     from utils.coaching_optimization import performance_monitor, coaching_cache, memory_optimizer
-18 |     from utils.coaching_safeguards import coaching_circuit_breaker, health_checker, feature_flag_manager
-19 |     from utils.coaching_resilience import coaching_resilience
-   |                                           ^^^^^^^^^^^^^^^^^^^
-20 |     COACHING_MONITORING_AVAILABLE = True
-21 | except ImportError as e:
-   |
-help: Remove unused import: `utils.coaching_resilience.coaching_resilience`
-
-F401 [*] `json` imported but unused
-  --> backend_assistant.py:14:8
-   |
-12 | """
-13 |
-14 | import json
-   |        ^^^^
-15 | from datetime import datetime, timedelta
-16 | from db_base import db
-   |
-help: Remove unused import: `json`
-
 E402 Module level import not at top of file
-  --> backend_assistant.py:19:1
+  --> backend_assistant.py:18:1
    |
-17 | from utils.db_guard import assert_single_db_instance
-18 | assert_single_db_instance(db)
-19 | from models import Expense, User
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-20 | from sqlalchemy import text, and_, func
-21 | from typing import Dict, List, Optional, Union, Any
+16 | from utils.db_guard import assert_single_db_instance
+17 | assert_single_db_instance(db)
+18 | from models import Expense
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+19 | from sqlalchemy import text
+20 | from typing import Dict, List, Union, Any
    |
 
 F401 [*] `models.Expense` imported but unused
-  --> backend_assistant.py:19:20
+  --> backend_assistant.py:18:20
    |
-17 | from utils.db_guard import assert_single_db_instance
-18 | assert_single_db_instance(db)
-19 | from models import Expense, User
+16 | from utils.db_guard import assert_single_db_instance
+17 | assert_single_db_instance(db)
+18 | from models import Expense
    |                    ^^^^^^^
-20 | from sqlalchemy import text, and_, func
-21 | from typing import Dict, List, Optional, Union, Any
+19 | from sqlalchemy import text
+20 | from typing import Dict, List, Union, Any
    |
 help: Remove unused import: `models.Expense`
 
 E402 Module level import not at top of file
+  --> backend_assistant.py:19:1
+   |
+17 | assert_single_db_instance(db)
+18 | from models import Expense
+19 | from sqlalchemy import text
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+20 | from typing import Dict, List, Union, Any
+21 | import logging
+   |
+
+E402 Module level import not at top of file
   --> backend_assistant.py:20:1
    |
-18 | assert_single_db_instance(db)
-19 | from models import Expense, User
-20 | from sqlalchemy import text, and_, func
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-21 | from typing import Dict, List, Optional, Union, Any
-22 | import logging
+18 | from models import Expense
+19 | from sqlalchemy import text
+20 | from typing import Dict, List, Union, Any
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+21 | import logging
+22 | from utils.identity import ensure_hashed
    |
-
-F401 [*] `sqlalchemy.and_` imported but unused
-  --> backend_assistant.py:20:30
-   |
-18 | assert_single_db_instance(db)
-19 | from models import Expense, User
-20 | from sqlalchemy import text, and_, func
-   |                              ^^^^
-21 | from typing import Dict, List, Optional, Union, Any
-22 | import logging
-   |
-help: Remove unused import
-
-F401 [*] `sqlalchemy.func` imported but unused
-  --> backend_assistant.py:20:36
-   |
-18 | assert_single_db_instance(db)
-19 | from models import Expense, User
-20 | from sqlalchemy import text, and_, func
-   |                                    ^^^^
-21 | from typing import Dict, List, Optional, Union, Any
-22 | import logging
-   |
-help: Remove unused import
 
 E402 Module level import not at top of file
   --> backend_assistant.py:21:1
    |
-19 | from models import Expense, User
-20 | from sqlalchemy import text, and_, func
-21 | from typing import Dict, List, Optional, Union, Any
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-22 | import logging
-23 | from utils.identity import ensure_hashed
+19 | from sqlalchemy import text
+20 | from typing import Dict, List, Union, Any
+21 | import logging
+   | ^^^^^^^^^^^^^^
+22 | from utils.identity import ensure_hashed
+23 | from utils.single_writer_guard import canonical_writer_context
    |
-
-F401 [*] `typing.Optional` imported but unused
-  --> backend_assistant.py:21:32
-   |
-19 | from models import Expense, User
-20 | from sqlalchemy import text, and_, func
-21 | from typing import Dict, List, Optional, Union, Any
-   |                                ^^^^^^^^
-22 | import logging
-23 | from utils.identity import ensure_hashed
-   |
-help: Remove unused import: `typing.Optional`
 
 E402 Module level import not at top of file
   --> backend_assistant.py:22:1
    |
-20 | from sqlalchemy import text, and_, func
-21 | from typing import Dict, List, Optional, Union, Any
-22 | import logging
-   | ^^^^^^^^^^^^^^
-23 | from utils.identity import ensure_hashed
-24 | from utils.single_writer_guard import canonical_writer_context
+20 | from typing import Dict, List, Union, Any
+21 | import logging
+22 | from utils.identity import ensure_hashed
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+23 | from utils.single_writer_guard import canonical_writer_context
+24 | from utils.single_writer_metrics import record_canonical_write
    |
 
 E402 Module level import not at top of file
   --> backend_assistant.py:23:1
    |
-21 | from typing import Dict, List, Optional, Union, Any
-22 | import logging
-23 | from utils.identity import ensure_hashed
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-24 | from utils.single_writer_guard import canonical_writer_context
-25 | from utils.single_writer_metrics import record_canonical_write
+21 | import logging
+22 | from utils.identity import ensure_hashed
+23 | from utils.single_writer_guard import canonical_writer_context
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+24 | from utils.single_writer_metrics import record_canonical_write
    |
 
 E402 Module level import not at top of file
   --> backend_assistant.py:24:1
    |
-22 | import logging
-23 | from utils.identity import ensure_hashed
-24 | from utils.single_writer_guard import canonical_writer_context
+22 | from utils.identity import ensure_hashed
+23 | from utils.single_writer_guard import canonical_writer_context
+24 | from utils.single_writer_metrics import record_canonical_write
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-25 | from utils.single_writer_metrics import record_canonical_write
-   |
-
-E402 Module level import not at top of file
-  --> backend_assistant.py:25:1
-   |
-23 | from utils.identity import ensure_hashed
-24 | from utils.single_writer_guard import canonical_writer_context
-25 | from utils.single_writer_metrics import record_canonical_write
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-26 |
-27 | logger = logging.getLogger(__name__)
+25 |
+26 | logger = logging.getLogger(__name__)
    |
 
 F541 [*] f-string without any placeholders
-   --> backend_assistant.py:219:21
+   --> backend_assistant.py:218:21
     |
-217 |         # Schema unification: Add raw_text and parsed_at_iso even for errors
-218 |         from datetime import datetime
-219 |         logger.info(f"[ENHANCED_PARSING] confidence=0.0 bin=none signals=0/4 error=true")
+216 |         # Schema unification: Add raw_text and parsed_at_iso even for errors
+217 |         from datetime import datetime
+218 |         logger.info(f"[ENHANCED_PARSING] confidence=0.0 bin=none signals=0/4 error=true")
     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-220 |         return {
-221 |             "amount_minor": None,
+219 |         return {
+220 |             "amount_minor": None,
     |
 help: Remove extraneous `f` prefix
 
-F811 [*] Redefinition of unused `Expense` from line 19
-   --> backend_assistant.py:325:24
+F811 [*] Redefinition of unused `Expense` from line 18
+   --> backend_assistant.py:324:24
     |
-323 |     from datetime import datetime
-324 |     from decimal import Decimal
-325 |     from models import Expense, User, MonthlySummary
+322 |     from datetime import datetime
+323 |     from decimal import Decimal
+324 |     from models import Expense, MonthlySummary
     |                        ^^^^^^^
-326 |     from utils.tracer import trace_event
-327 |     from utils.telemetry import TelemetryTracker
+325 |     from utils.tracer import trace_event
+326 |     from utils.telemetry import TelemetryTracker
     |
 help: Remove definition: `Expense`
 
-F401 [*] `models.User` imported but unused
-   --> backend_assistant.py:325:33
+F811 [*] Redefinition of unused `Expense` from line 18
+   --> backend_assistant.py:567:24
     |
-323 |     from datetime import datetime
-324 |     from decimal import Decimal
-325 |     from models import Expense, User, MonthlySummary
-    |                                 ^^^^
-326 |     from utils.tracer import trace_event
-327 |     from utils.telemetry import TelemetryTracker
-    |
-help: Remove unused import: `models.User`
-
-F811 [*] Redefinition of unused `Expense` from line 19
-   --> backend_assistant.py:568:24
-    |
-566 |         dict: {success: bool, expense_id: int, deleted_at: timestamp}
-567 |     """
-568 |     from models import Expense
+565 |         dict: {success: bool, expense_id: int, deleted_at: timestamp}
+566 |     """
+567 |     from models import Expense
     |                        ^^^^^^^
-569 |     from datetime import datetime
+568 |     from datetime import datetime
     |
 help: Remove definition: `Expense`
+
+F821 Undefined name `User`
+   --> backend_assistant.py:739:46
+    |
+738 |         # Test 5: Totals accuracy (sample with existing data)
+739 |         sample_user_query = db.session.query(User).first()
+    |                                              ^^^^
+740 |         if sample_user_query:
+741 |             totals = get_totals(sample_user_query.id, 'week')
+    |
 
 F401 [*] `urllib.parse.urlparse` imported but unused
   --> ci_unification_checks.py:13:26
@@ -19893,5 +19785,5 @@ F841 Local variable `user_hash` is assigned to but never used
    |
 help: Remove assignment to unused variable `user_hash`
 
-Found 1725 errors.
-[*] 1255 fixable with the `--fix` option (302 hidden fixes can be enabled with the `--unsafe-fixes` option).
+Found 1716 errors.
+[*] 1246 fixable with the `--fix` option (302 hidden fixes can be enabled with the `--unsafe-fixes` option).

@@ -11,14 +11,13 @@ All numbers MUST come from database queries, never from reasoning or "approximat
 If you don't have the data, say: "Not available in DB."
 """
 
-import json
 from datetime import datetime, timedelta
 from db_base import db
 from utils.db_guard import assert_single_db_instance
 assert_single_db_instance(db)
 from models import Expense, User
-from sqlalchemy import text, and_, func
-from typing import Dict, List, Optional, Union, Any
+from sqlalchemy import text
+from typing import Dict, List, Union, Any
 import logging
 from utils.identity import ensure_hashed
 from utils.single_writer_guard import canonical_writer_context
@@ -322,7 +321,7 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
     import time
     from datetime import datetime
     from decimal import Decimal
-    from models import Expense, User, MonthlySummary
+    from models import Expense, MonthlySummary
     from utils.tracer import trace_event
     from utils.telemetry import TelemetryTracker
     from utils.unbreakable_invariants import enforce_single_writer_invariant
