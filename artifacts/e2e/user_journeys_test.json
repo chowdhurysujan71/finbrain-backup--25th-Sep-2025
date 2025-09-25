@@ -7,38 +7,38 @@
       "journey": "Single Expense",
       "status": "PARTIAL",
       "details": "System accessible, but no expense processing endpoint found for web testing",
-      "timestamp": 1758791821.9811387
+      "timestamp": 1758795474.2412663
     },
     {
       "journey": "Dual Expense",
       "status": "PARTIAL",
       "details": "System accessible, but dual expense processing cannot be verified via web interface",
-      "timestamp": 1758791824.1102931
+      "timestamp": 1758795476.9292884
     },
     {
       "journey": "Correction Flow",
       "status": "PARTIAL",
       "details": "System accessible, but correction logic requires backend testing",
-      "timestamp": 1758791824.196023
+      "timestamp": 1758795476.9968941
     },
     {
       "journey": "Clarifier No Tea",
       "status": "PARTIAL",
       "details": "No tea hardcoding in health response, but clarifier logic needs direct testing",
-      "timestamp": 1758791824.2663596
+      "timestamp": 1758795477.0647388
     },
     {
       "journey": "AI Adapter v2",
       "status": "PARTIAL",
       "details": "System running without immediate AI adapter crashes",
-      "timestamp": 1758791824.3436592
+      "timestamp": 1758795477.1357343
     },
     {
       "journey": "AI Adapter v2",
       "status": "PARTIAL",
       "details": "AI endpoints accessible, suggesting adapter is loading",
-      "timestamp": 1758791824.4266272
+      "timestamp": 1758795477.2046583
     }
   ],
-  "timestamp": 1758791824.426799
+  "timestamp": 1758795477.20491
 }
