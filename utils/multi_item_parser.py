@@ -141,12 +141,12 @@ class MultiItemParser:
                 ui_note=f"Item {i+1}/{len(items)}: {item.get('merchant_text', 'expense')}"
             )
             
-            # Create slots for this item
+            # Create slots for this item with None guards
             cc.slots = CCSlots(
                 amount=item.get('amount'),
-                currency=base_cc.slots.currency,
-                time_expr=base_cc.slots.time_expr,
-                time_abs=base_cc.slots.time_abs,
+                currency=base_cc.slots.currency if base_cc.slots else 'BDT',
+                time_expr=base_cc.slots.time_expr if base_cc.slots else None,
+                time_abs=base_cc.slots.time_abs if base_cc.slots else None,
                 merchant_text=item.get('merchant_text'),
                 category=item.get('category'),
                 note=item.get('note')

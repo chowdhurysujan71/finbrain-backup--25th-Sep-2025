@@ -420,12 +420,29 @@ class ProductionRouter:
                 logger.info(f"[MULTI_EXPENSE] Feature disabled, falling back to single expense handling")
                 return self._handle_single_expense_logging(text, psid, psid_hash, rid)
             
-            from parsers.expense import extract_all_expenses
+            # PHASE 4: Use dedicated multi-item parser instead of generic extractor
+            from utils.multi_item_parser import multi_item_parser
             from backend_assistant import add_expense
             from datetime import datetime
             
-            # Extract all expenses from the message
-            expenses = extract_all_expenses(text, datetime.now())
+            # Check if message contains multiple items using dedicated parser
+            if not multi_item_parser.detect_multi_item(text):
+                # Not actually multi-item, fall back to single expense handling
+                logger.info(f"[MULTI_EXPENSE] Message doesn't contain multiple items: '{text[:50]}...'")
+                return self._handle_single_expense_logging(text, psid, psid_hash, rid)
+            
+            # Parse multiple items using dedicated parser
+            items = multi_item_parser.parse_items(text)
+            
+            # Convert items to expense format for consistency with existing code
+            expenses = []
+            for item in items:
+                expense_dict = {
+                    'amount': item.get('amount', 0),
+                    'category': item.get('category', 'other'),
+                    'note': item.get('note', item.get('merchant_text', text))
+                }
+                expenses.append(expense_dict)
             
             if not expenses or len(expenses) <= 1:
                 # Not actually multi-expense, fall back to single expense handling
