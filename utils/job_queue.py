@@ -7,13 +7,17 @@ import time
 import uuid
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List, Tuple, Union
+from typing import Dict, Any, Optional, List, Tuple, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from redis import Redis
 from dataclasses import dataclass, asdict
 
 try:
     import redis
-    Redis = redis.Redis
+    from redis import Redis
 except ImportError:
+    redis = None
     Redis = None
 
 logger = logging.getLogger(__name__)
@@ -38,7 +42,7 @@ class JobQueue:
     """Redis-backed job queue with retries and DLQ"""
     
     def __init__(self):
-        self.redis_client: Optional[Redis] = None
+        self.redis_client: Optional['Redis'] = None
         self.redis_available = False
         
         # Configuration
@@ -60,6 +64,19 @@ class JobQueue:
         redis_url = os.getenv('REDIS_URL')
         if not redis_url:
             raise ValueError("REDIS_URL environment variable required")
+        
+        # Debug: Log original URL format
+        logger.debug(f"Raw REDIS_URL: {redis_url[:50]}...")
+        
+        # Fix environment variable format issues (Replit sometimes includes var name)
+        if redis_url.startswith('REDIS_URL='):
+            redis_url = redis_url.split('=', 1)[1]
+            logger.warning("Fixed REDIS_URL format: removed variable name prefix")
+        
+        # Remove quotes if present
+        if redis_url.startswith('"') and redis_url.endswith('"'):
+            redis_url = redis_url[1:-1]
+            logger.warning("Fixed REDIS_URL format: removed quotes")
         
         # Fix malformed Redis URLs
         if redis_url == "rediss:6379":
