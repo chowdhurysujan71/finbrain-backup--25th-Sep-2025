@@ -279,7 +279,17 @@ class TestIdempotencyProtection:
                 with patch('models.MonthlySummary') as mock_summary:
                     mock_summary.query.filter_by.return_value.first.return_value = None
                     
-                    result = upsert_expense_idempotent(fresh_psid_hash, mid, test_payload)
+                    from backend_assistant import add_expense
+                    # Convert to proper backend_assistant.add_expense parameters
+                    result = add_expense(
+                        user_id=fresh_psid_hash,
+                        amount_minor=int(test_payload['amount'] * 100),  # Convert to minor units
+                        currency='BDT',
+                        category=test_payload['category'],
+                        description=test_payload['description'],
+                        source='chat',
+                        message_id=mid
+                    )
                     
                     assert result['duplicate'] == False
                     assert result['success'] == True
@@ -300,7 +310,16 @@ class TestIdempotencyProtection:
             
             mock_db.session.query.return_value.filter_by.return_value.first.return_value = mock_existing
             
-            result = upsert_expense_idempotent(fresh_psid_hash, mid, test_payload)
+            from backend_assistant import add_expense
+            result = add_expense(
+                user_id=fresh_psid_hash,
+                amount_minor=int(test_payload['amount'] * 100),
+                currency='BDT', 
+                category=test_payload['category'],
+                description=test_payload['description'],
+                source='chat',
+                message_id=mid
+            )
             
             assert result['duplicate'] == True
             assert result['idempotent'] == True
@@ -359,10 +378,15 @@ class TestIntegratedFlow:
                         'original_message': text
                     }
                     
-                    result = upsert_expense_idempotent(
-                        fresh_user_setup['psid_hash'], 
-                        fresh_user_setup['mid'], 
-                        payload
+                    from backend_assistant import add_expense
+                    result = add_expense(
+                        user_id=fresh_user_setup['psid_hash'],
+                        amount_minor=int(payload['amount'] * 100),
+                        currency=payload['currency'], 
+                        category=payload['category'],
+                        description=payload['description'],
+                        source='chat',
+                        message_id=fresh_user_setup['mid']
                     )
                     
                     assert result['success'] == True

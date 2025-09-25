@@ -533,7 +533,7 @@ class E2EUATFramework:
             
             start_time = time.time()
             batch_results = []
-            for text in batch_inputs:
+            for i, text in enumerate(batch_inputs):
                 result = parse_nl_expense(text, f"batch_test_{i}")
                 batch_results.append(result.success)
             end_time = time.time()
