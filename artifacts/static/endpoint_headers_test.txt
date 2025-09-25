@@ -7,11 +7,14 @@ Status Code: 200
 
 Headers:
   Server: gunicorn
-  Date: Thu, 25 Sep 2025 09:15:27 GMT
+  Date: Thu, 25 Sep 2025 09:28:00 GMT
   Connection: close
   Content-Type: application/json
   Content-Length: 179
-  X-Request-ID: 18eff8a383fe
+  Cache-Control: no-store, no-cache, must-revalidate, private
+  Pragma: no-cache
+  Expires: 0
+  X-Request-ID: 2cece8369d7a
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
@@ -20,14 +23,14 @@ Headers:
   Vary: Cookie
 
 Cache Headers Analysis:
-  no-store: ❌
-  no-cache: ❌
-  must-revalidate: ❌
-  private: ❌
+  no-store: ✅
+  no-cache: ✅
+  must-revalidate: ✅
+  private: ✅
 
-Missing directives: no-store, no-cache, must-revalidate, private
+Missing directives: None
 
 Test Results:
-  Headers: FAIL
+  Headers: PASS
   Data: PASS
-  Overall: FAIL
+  Overall: PASS

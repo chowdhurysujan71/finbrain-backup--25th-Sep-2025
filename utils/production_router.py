@@ -1853,14 +1853,24 @@ class ProductionRouter:
                 
                 # Simple AI fallback without expense parsing
                 try:
-                    # Direct AI call for general conversation
+                    # Direct AI call for general conversation using modern ai_parse method
                     prompt = f"""You are finbrain, a friendly AI financial assistant. A user said: "{text}"
 
 Respond naturally and helpfully. If they're asking about expenses, guide them to say something like "coffee 50" or "spent 200 on groceries". Keep it under 280 characters and friendly.
 
 Do NOT try to parse this as an expense. Just have a natural conversation."""
                     
-                    response = ai.get_completion(prompt)
+                    # Use modern ai_parse instead of deprecated get_completion
+                    context = {"type": "conversation", "user_id": psid_hash}
+                    ai_result = ai.ai_parse(prompt, context)
+                    
+                    # Extract response from ai_parse result
+                    if ai_result.get("failover"):
+                        response = "I'm here to help! You can log expenses like 'coffee 50' or ask for your spending summary."
+                    elif "ui_note" in ai_result:
+                        response = ai_result["ui_note"]
+                    else:
+                        response = "I'm here to help with your expenses! Try logging something like 'coffee 50' or ask for a summary."
                     mode = "AI_SIMPLE"
                     
                 except Exception as ai_error:

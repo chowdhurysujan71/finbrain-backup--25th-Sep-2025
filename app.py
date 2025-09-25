@@ -883,14 +883,21 @@ def health_check():
     alembic_data = get_alembic_data_cached()
     
     # Ultra-lightweight response with cached values only
-    return jsonify({
+    response_data = {
         "service": "finbrain",
         "status": "healthy",
         "git_commit": get_git_commit(),  # Cached
         "db": get_database_host(),       # No DB call, just hostname parsing
         "alembic_head": alembic_data["alembic_head"],      # Required field - cached
         "migrations_applied": alembic_data["migrations_applied"]  # Required field - cached
-    }), 200
+    }
+    
+    # Create response with proper cache headers to prevent stale operational status
+    response = make_response(jsonify(response_data), 200)
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/readyz', methods=['GET'])
 def readiness_check():
