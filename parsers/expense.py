@@ -1028,18 +1028,18 @@ def extract_all_expenses(text: str, now: datetime | None = None, **kwargs) -> li
     normalized = normalize_text_for_parsing(text)
     expenses = []
     
-    # Find all amounts in the text (symbols, words, bare numbers) - ENHANCED FOR COMMA PARSING
+    # Find all amounts in the text (symbols, words, bare numbers) - ENHANCED FOR COMMA PARSING WITH STRICT BOUNDARIES
     amount_patterns = [
-        # Currency symbols with amounts (enhanced for comma handling)
-        (r'([৳$£€₹])\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)', 'symbol'),
-        # Amount with currency words (enhanced for comma handling)
-        (r'(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\s*(tk|taka|bdt|usd|eur|inr|rs|dollar|pound|euro|rupee)\b', 'word'),
-        # Action verbs with amounts (enhanced for comma handling)
-        (r'\b(spent|paid|bought|blew|burned|used)\s+[^\d]*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)', 'verb'),
-        # Category + amount patterns (enhanced for comma handling)
-        (r'\b(coffee|lunch|dinner|breakfast|uber|taxi|cng|bus|grocery|groceries|medicine|pharmacy)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)', 'category'),
-        # Bare numbers (enhanced for comma handling)
-        (r'\b(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d{2,7}(?:\.\d{1,2})?)\b', 'bare')
+        # Currency symbols with amounts (enhanced for comma handling, strict boundaries)
+        (r'([৳$£€₹])\s*(?<![0-9.,])(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?![0-9.,])', 'symbol'),
+        # Amount with currency words (enhanced for comma handling, strict boundaries)
+        (r'(?<![0-9.,])(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?![0-9.,])\s*(tk|taka|bdt|usd|eur|inr|rs|dollar|pound|euro|rupee)\b', 'word'),
+        # Action verbs with amounts (enhanced for comma handling, strict boundaries)
+        (r'\b(spent|paid|bought|blew|burned|used)\s+[^\d]*(?<![0-9.,])(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?![0-9.,])', 'verb'),
+        # Category + amount patterns (enhanced for comma handling, strict boundaries)
+        (r'\b(coffee|lunch|dinner|breakfast|uber|taxi|cng|bus|grocery|groceries|medicine|pharmacy)\s+(?<![0-9.,])(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?![0-9.,])', 'category'),
+        # Bare numbers (enhanced for comma handling, strict boundaries to prevent inner matches)
+        (r'(?<![0-9.,])(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d{2,7}(?:\.\d{1,2})?)(?![0-9.,])', 'bare')
     ]
     
     found_amounts = []
@@ -1083,13 +1083,17 @@ def extract_all_expenses(text: str, now: datetime | None = None, **kwargs) -> li
             except (InvalidOperation, ValueError):
                 continue
     
-    # Remove duplicate amounts at same position
+    # Remove duplicate amounts at same position - improved logic for dual expenses
     unique_amounts = []
     for amount_info in found_amounts:
         is_duplicate = False
         for existing in unique_amounts:
-            if (abs(amount_info['start'] - existing['start']) < 10 and 
-                amount_info['amount'] == existing['amount']):
+            # Check if positions overlap significantly (not just close)
+            position_overlap = (amount_info['start'] <= existing['end'] and 
+                              amount_info['end'] >= existing['start'])
+            amount_match = amount_info['amount'] == existing['amount']
+            
+            if position_overlap and amount_match:
                 is_duplicate = True
                 break
         if not is_duplicate:
@@ -1189,7 +1193,7 @@ def _extract_targeted_context(text: str, amount_info: dict) -> str:
         text_positions.append((word, word_start, word_end))
         current_pos = word_end
     
-    # Find words near the amount (±3 words)
+    # Find words near the amount (±2 words for dual expenses, ±3 for single)
     target_words = []
     amount_word_index = -1
     
@@ -1200,10 +1204,26 @@ def _extract_targeted_context(text: str, amount_info: dict) -> str:
             break
     
     if amount_word_index >= 0:
-        # Take ±3 words around the amount word
-        start_idx = max(0, amount_word_index - 3)
-        end_idx = min(len(text_positions), amount_word_index + 4)
-        target_words = [pos[0] for pos in text_positions[start_idx:end_idx]]
+        # Check if this looks like a dual expense pattern (contains "and")
+        is_dual_expense = ' and ' in text.lower() or ' & ' in text.lower()
+        
+        if is_dual_expense:
+            # For dual expenses, use tighter context (±1 word) to avoid category bleeding
+            start_idx = max(0, amount_word_index - 1)
+            end_idx = min(len(text_positions), amount_word_index + 2)
+            target_words = [pos[0] for pos in text_positions[start_idx:end_idx]]
+            
+            # Also include any category word immediately before the amount
+            if amount_word_index > 0:
+                prev_word = text_positions[amount_word_index - 1][0].lower()
+                category_keywords = ['coffee', 'lunch', 'dinner', 'breakfast', 'uber', 'taxi', 'cng', 'bus', 'grocery', 'groceries', 'medicine', 'pharmacy', 'tea', 'snack', 'drink']
+                if prev_word in category_keywords and prev_word not in target_words:
+                    target_words.insert(0, prev_word)
+        else:
+            # For single expenses, use broader context (±3 words)
+            start_idx = max(0, amount_word_index - 3)
+            end_idx = min(len(text_positions), amount_word_index + 4)
+            target_words = [pos[0] for pos in text_positions[start_idx:end_idx]]
     else:
         # Fallback to character-based context if word mapping fails
         context_start = max(0, amount_start - 30)
