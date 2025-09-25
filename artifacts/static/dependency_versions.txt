@@ -1,0 +1,20 @@
+Name: mypy
+Version: 1.17.1
+Summary: Optional static typing for Python
+Home-page: https://www.mypy-lang.org/
+Author: 
+Author-email: Jukka Lehtosalo <jukka.lehtosalo@iki.fi>
+License: MIT
+Location: /home/runner/workspace/.pythonlibs/lib/python3.11/site-packages
+Requires: mypy_extensions, pathspec, typing_extensions
+Required-by: 
+---
+Name: ruff
+Version: 0.12.9
+Summary: An extremely fast Python linter and code formatter, written in Rust.
+Home-page: https://docs.astral.sh/ruff
+Author: 
+Author-email: "Astral Software Inc." <hey@astral.sh>
+License: 
+Location: /home/runner/workspace/.pythonlibs/lib/python3.11/site-packages
+Requires: 

@@ -1,0 +1,24 @@
+Status: 200
+Headers:
+Server: gunicorn
+Date: Thu, 25 Sep 2025 09:15:27 GMT
+Connection: close
+Content-Type: application/json
+Content-Length: 179
+X-Request-ID: 18eff8a383fe
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-XSS-Protection: 1; mode=block
+Referrer-Policy: strict-origin-when-cross-origin
+Vary: Cookie
+
+Body:
+{
+  "alembic_head": "42e1ad027c33",
+  "db": "ep-cold-dawn-adsal0to.c-2.us-east-1.aws.neon.tech",
+  "git_commit": "bd119f43",
+  "migrations_applied": true,
+  "service": "finbrain",
+  "status": "healthy"
+}

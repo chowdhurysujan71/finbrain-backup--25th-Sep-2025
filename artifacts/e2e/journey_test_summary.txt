@@ -1,0 +1,15 @@
+Core User Journey Test Results
+===================================
+
+Total Journeys: 5
+Passed: 2
+Failed: 3
+Overall Status: FAIL
+
+Individual Results:
+- Single Expense: PARTIAL - System accessible, but no expense processing endpoint found for web testing
+- Dual Expense: PARTIAL - System accessible, but dual expense processing cannot be verified via web interface
+- Correction Flow: PARTIAL - System accessible, but correction logic requires backend testing
+- Clarifier No Tea: PARTIAL - No tea hardcoding in health response, but clarifier logic needs direct testing
+- AI Adapter v2: PARTIAL - System running without immediate AI adapter crashes
+- AI Adapter v2: PARTIAL - AI endpoints accessible, suggesting adapter is loading

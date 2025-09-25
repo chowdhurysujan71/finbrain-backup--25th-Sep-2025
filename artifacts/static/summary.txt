@@ -1,0 +1,6 @@
+
+📊 CI Static Checks Summary
+=============================
+MyPy Status: FAIL
+Ruff Status: FAIL
+Overall: FAIL ❌
