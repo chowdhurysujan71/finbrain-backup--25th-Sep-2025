@@ -360,6 +360,41 @@ Make insights:
             "intent": "summary"
         }
     
+    def get_completion(self, prompt: str) -> str:
+        """
+        COMPATIBILITY SHIM: Simple text completion for backward compatibility
+        Maps to structured AI response for natural conversation
+        """
+        if not self.enabled:
+            return "I'm here to help with your expenses! Try logging something like 'coffee 50'."
+        
+        try:
+            # Use the existing structured response infrastructure
+            context = {
+                "user_id": "conversation",
+                "text": prompt,
+                "intent": "conversation"
+            }
+            
+            # Parse the prompt as a conversational AI request
+            result = self.generate_structured_response(prompt, context)
+            
+            if result.get("ok", False):
+                # Extract the most relevant response
+                data = result.get("data", {})
+                summary = data.get("summary", "")
+                if summary:
+                    return summary
+                else:
+                    return data.get("key_insight", "I'm here to help with your expenses!")
+            else:
+                # AI failed, return helpful fallback
+                return "I'm here to help! Try logging an expense like 'coffee 50' or ask for your 'summary'."
+                
+        except Exception as e:
+            logger.warning(f"get_completion() shim failed: {e}")
+            return "I'm here to help with your expense tracking!"
+
     def ai_parse(self, text: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Parse text with AI and return structured response

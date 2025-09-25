@@ -232,14 +232,64 @@ def handle_clarification_response(user_id: str, response_text: str, original_con
         
         # Check for "Yes, log it" responses
         if any(phrase in response_lower for phrase in ['yes', 'হ্যাঁ', 'log', 'লগ করুন']):
-            # Convert to EXPENSE_LOG format and handle
+            # CRITICAL FIX: Use detected category from clarification instead of re-parsing generic text
             money_amount = original_context.get('money_amount', '50')
-            synthetic_expense_text = f"expense {money_amount} taka"
+            detected_category = original_context.get('detected_category', 'other')
+            detected_item = original_context.get('detected_item', 'expense')
+            original_text = original_context.get('original_text', money_amount)
             
-            # Create signals for expense logging
-            signals = {"has_money": True, "has_first_person_spent_verb": True}
+            # Extract numeric amount for proper logging
+            try:
+                # Clean money amount (remove currency symbols)
+                clean_amount = money_amount.replace('৳', '').replace('$', '').strip()
+                amount_float = float(clean_amount)
+                amount_minor = int(amount_float * 100)  # Convert to minor units
+            except (ValueError, TypeError):
+                amount_minor = 5000  # Default to 50 BDT if parsing fails
             
-            return handle_expense_log_intent(user_id, synthetic_expense_text, signals)
+            # Log expense directly with confirmed category - bypass re-parsing
+            try:
+                from backend_assistant import add_expense
+                result = add_expense(
+                    user_id=user_id,
+                    amount_minor=amount_minor,
+                    currency="BDT",
+                    category=detected_category,
+                    description=f"{detected_item} - {original_text}",
+                    source="clarification",
+                    message_id=f"clarify:{user_id}:{amount_float}"
+                )
+                
+                if result.get('success', True):  # Default to success if key missing
+                    # Determine language for response
+                    is_bengali = original_context.get('language') == 'bengali'
+                    if is_bengali:
+                        response = f"✅ {detected_category} হিসেবে ৳{amount_float:.0f} লগ করা হয়েছে!"
+                    else:
+                        response = f"✅ Logged ৳{amount_float:.0f} for {detected_category}!"
+                    
+                    return {
+                        "intent": "CLARIFY_RESPONSE",
+                        "success": True,
+                        "response": response,
+                        "action": "expense_logged",
+                        "category": detected_category,
+                        "amount": amount_float
+                    }
+                else:
+                    return {
+                        "intent": "CLARIFY_RESPONSE",
+                        "success": False,
+                        "response": "Sorry, I couldn't save that expense. Please try again.",
+                        "error": "save_failed"
+                    }
+                    
+            except Exception as save_error:
+                logger.error(f"Direct expense save failed during clarification: {save_error}")
+                # Fallback to original method if direct save fails
+                synthetic_expense_text = f"expense {money_amount} taka"
+                signals = {"has_money": True, "has_first_person_spent_verb": True}
+                return handle_expense_log_intent(user_id, synthetic_expense_text, signals)
         
         # Check for "Show summary" responses  
         elif any(phrase in response_lower for phrase in ['summary', 'সারাংশ', 'analysis']):
