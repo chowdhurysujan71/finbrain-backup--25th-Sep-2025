@@ -26,12 +26,20 @@ def get_rate_limit_storage():
         import redis
         from flask_limiter.util import get_remote_address
         
-        # Create Redis connection with timeout
-        redis_client = redis.from_url(redis_url, decode_responses=True, socket_connect_timeout=5)
+        # Create Redis connection with timeout and SSL support
+        redis_client = redis.from_url(
+            redis_url, 
+            decode_responses=True, 
+            socket_connect_timeout=10,
+            socket_timeout=10,
+            retry_on_timeout=True,
+            health_check_interval=30
+        )
         redis_client.ping()  # Test connection
         
         logger.info("Rate limiting configured with Redis storage")
-        return f"redis://{redis_url.split('@')[-1]}"  # Return cleaned URL for Flask-Limiter
+        # Return the full Redis URL with all credentials and SSL intact
+        return redis_url
         
     except Exception as e:
         logger.warning(f"Redis not available for rate limiting, falling back to in-memory: {e}")
