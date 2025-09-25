@@ -1,27 +1,3 @@
-F541 [*] f-string without any placeholders
-  --> FINAL_PRODUCTION_TEST.py:52:27
-   |
-50 |                     print("   ✅ SUCCESS: Real data found")
-51 |                 else:
-52 |                     print(f"   ❌ FAILED: No real data or fallback response")
-   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-53 |
-54 |             except Exception as e:
-   |
-help: Remove extraneous `f` prefix
-
-F541 [*] f-string without any placeholders
-  --> FINAL_PRODUCTION_TEST.py:57:15
-   |
-55 |                 print(f"   ❌ ERROR: {e}")
-56 |
-57 |         print(f"\n🎯 PRODUCTION STATUS: READY FOR USER TESTING")
-   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-58 |
-59 | if __name__ == "__main__":
-   |
-help: Remove extraneous `f` prefix
-
 F401 [*] `datetime.datetime` imported but unused
   --> FINAL_VALIDATION_TEST.py:9:22
    |
@@ -3304,18 +3280,6 @@ F401 [*] `sqlalchemy` imported but unused
    |
 help: Remove unused import: `sqlalchemy`
 
-F401 [*] `flask.url_for` imported but unused
- --> app.py:4:70
-  |
-2 | import logging
-3 | import sys
-4 | from flask import Flask, request, jsonify, render_template, session, url_for, make_response, g
-  |                                                                      ^^^^^^^
-5 | import uuid
-6 | import time
-  |
-help: Remove unused import: `flask.url_for`
-
 F401 [*] `flask_limiter.Limiter` imported but unused
   --> app.py:9:27
    |
@@ -3403,18 +3367,6 @@ F401 [*] `flask.url_for` imported but unused
 154 |     from urllib.parse import quote
     |
 help: Remove unused import: `flask.url_for`
-
-F811 [*] Redefinition of unused `url_for` from line 4
-   --> app.py:152:71
-    |
-150 |     """Capture request start time, generate request_id, set user context, and enforce subdomain auth"""
-151 |     import os
-152 |     from flask import request, jsonify, after_this_request, redirect, url_for
-    |                                                                       ^^^^^^^
-153 |     from auth_helpers import get_user_id_from_session, get_subdomain, is_protected_subdomain, validate_return_to_url
-154 |     from urllib.parse import quote
-    |
-help: Remove definition: `url_for`
 
 F401 [*] `auth_helpers.validate_return_to_url` imported but unused
    --> app.py:153:95
@@ -8515,137 +8467,61 @@ F401 [*] `time` imported but unused
    |
 help: Remove unused import: `time`
 
-invalid-syntax: Expected ',', found name
-   --> scripts/demo_coach_flow.py:170:37
-    |
-168 |     # Q2 Commit payload  
-169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
-    |                                     ^
-171 |         'quick_replies': [
-172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
-    |
+F401 [*] `datetime.datetime` imported but unused
+  --> scripts/demo_coach_flow.py:10:22
+   |
+ 8 | import time
+ 9 | import logging
+10 | from datetime import datetime
+   |                      ^^^^^^^^
+11 |
+12 | # Add project root to path
+   |
+help: Remove unused import: `datetime.datetime`
 
-invalid-syntax: Expected ':', found 'try'
-   --> scripts/demo_coach_flow.py:170:39
-    |
-168 |     # Q2 Commit payload  
-169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
-    |                                       ^^^
-171 |         'quick_replies': [
-172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
-    |
+F401 [*] `utils.structured.log_structured_event` imported but unused
+  --> scripts/demo_coach_flow.py:29:34
+   |
+27 |     from handlers.coaching import maybe_continue, handle_coaching_response
+28 |     from utils.session import get_coaching_session, delete_coaching_session
+29 |     from utils.structured import log_structured_event
+   |                                  ^^^^^^^^^^^^^^^^^^^^
+30 |     
+31 |     test_psid = "demo_user_12345678"
+   |
+help: Remove unused import: `utils.structured.log_structured_event`
 
-invalid-syntax: Expected ',', found name
-   --> scripts/demo_coach_flow.py:170:43
-    |
-168 |     # Q2 Commit payload  
-169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
-    |                                           ^^^
-171 |         'quick_replies': [
-172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
-    |
+F541 [*] f-string without any placeholders
+  --> scripts/demo_coach_flow.py:46:15
+   |
+45 |     if coaching_reply:
+46 |         print(f"✅ Coaching Started!")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^
+47 |         print(f"Reply: {coaching_reply['text']}")
+48 |         print(f"Quick Replies: {[qr['title'] for qr in coaching_reply.get('quick_replies', [])]}")
+   |
+help: Remove extraneous `f` prefix
 
-invalid-syntax: Expected ':', found name
-   --> scripts/demo_coach_flow.py:170:47
-    |
-168 |     # Q2 Commit payload  
-169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
-    |                                               ^^^^^
-171 |         'quick_replies': [
-172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
-    |
+F541 [*] f-string without any placeholders
+  --> scripts/demo_coach_flow.py:63:15
+   |
+62 |     if reply2:
+63 |         print(f"✅ Focus Selected!")
+   |               ^^^^^^^^^^^^^^^^^^^^^
+64 |         print(f"Reply: {reply2['text']}")
+65 |         print(f"Quick Replies: {[qr['title'] for qr in reply2.get('quick_replies', [])]}")
+   |
+help: Remove extraneous `f` prefix
 
-invalid-syntax: Expected ',', found name
-   --> scripts/demo_coach_flow.py:170:53
-    |
-168 |     # Q2 Commit payload  
-169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
-    |                                                     ^^^^
-171 |         'quick_replies': [
-172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
-    |
-
-invalid-syntax: Expected ',', found name
-   --> scripts/demo_coach_flow.py:170:65
-    |
-168 |     # Q2 Commit payload  
-169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
-    |                                                                 ^^^^^
-171 |         'quick_replies': [
-172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
-    |
-
-invalid-syntax: Expected ':', found name
-   --> scripts/demo_coach_flow.py:170:90
-    |
-168 |     # Q2 Commit payload  
-169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
-    |                                                                                          ^^^^^^
-171 |         'quick_replies': [
-172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
-    |
-
-invalid-syntax: Expected ',', found name
-   --> scripts/demo_coach_flow.py:170:97
-    |
-168 |     # Q2 Commit payload  
-169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
-    |                                                                                                 ^^^^^^
-171 |         'quick_replies': [
-172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
-    |
-
-invalid-syntax: Expected ':', found name
-   --> scripts/demo_coach_flow.py:170:104
-    |
-168 |     # Q2 Commit payload  
-169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
-    |                                                                                                        ^^^^
-171 |         'quick_replies': [
-172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
-    |
-
-invalid-syntax: Expected ',', found name
-   --> scripts/demo_coach_flow.py:170:109
-    |
-168 |     # Q2 Commit payload  
-169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
-    |                                                                                                             ^^^^
-171 |         'quick_replies': [
-172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
-    |
-
-invalid-syntax: Got unexpected token ?
-   --> scripts/demo_coach_flow.py:170:113
-    |
-168 |     # Q2 Commit payload  
-169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
-    |                                                                                                                 ^
-171 |         'quick_replies': [
-172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
-    |
-
-invalid-syntax: missing closing quote in string literal
-   --> scripts/demo_coach_flow.py:170:114
-    |
-168 |     # Q2 Commit payload  
-169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
-    |                                                                                                                  ^^
-171 |         'quick_replies': [
-172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
-    |
+F541 [*] f-string without any placeholders
+  --> scripts/demo_coach_flow.py:77:15
+   |
+76 |     if reply3:
+77 |         print(f"✅ Action Committed!")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^
+78 |         print(f"Reply: {reply3['text']}")
+   |
+help: Remove extraneous `f` prefix
 
 F401 [*] `hashlib` imported but unused
   --> scripts/deployment_confidence.py:12:8
@@ -18890,218 +18766,138 @@ E722 Do not use bare `except`
 79 |             pass
    |
 
-invalid-syntax: Expected ')', found newline
-   --> utils/pca_processor.py:265:51
-    |
-263 |                 cc_id=cc_id,
-264 |                 user_id=user_id,
-265 |                 intent=CCIntent.LOG_EXPENSE.value,
-    |                                                   ^
-266 |                 from utils.categories import normalize_category
-267 |                 slots=CCSlots(
-    |
+F401 [*] `json` imported but unused
+ --> utils/pca_processor.py:6:8
+  |
+4 | """
+5 |
+6 | import json
+  |        ^^^^
+7 | import logging
+8 | from datetime import datetime
+  |
+help: Remove unused import: `json`
 
-invalid-syntax: Unexpected indentation
-   --> utils/pca_processor.py:266:1
-    |
-264 |                 user_id=user_id,
-265 |                 intent=CCIntent.LOG_EXPENSE.value,
-266 |                 from utils.categories import normalize_category
-    | ^^^^^^^^^^^^^^^^
-267 |                 slots=CCSlots(
-268 |                     amount=amount_value,
-    |
+F401 [*] `typing.Tuple` imported but unused
+  --> utils/pca_processor.py:9:41
+   |
+ 7 | import logging
+ 8 | from datetime import datetime
+ 9 | from typing import Dict, Any, Optional, Tuple
+   |                                         ^^^^^
+10 | from sqlalchemy.exc import IntegrityError
+   |
+help: Remove unused import: `typing.Tuple`
 
-invalid-syntax: Expected a statement
-   --> utils/pca_processor.py:279:13
-    |
-277 |                 model_version='dryrun-enhanced-v1',
-278 |                 ui_note=f"Detected ৳{amount_value} expense via pattern matching" if amount_value else "Expense detected"
-279 |             )
-    |             ^
-280 |             intent_result = "LOG_EXPENSE"
-281 |             confidence_result = cc.confidence
-    |
+F841 [*] Local variable `e` is assigned to but never used
+  --> utils/pca_processor.py:70:30
+   |
+68 |         return True
+69 |         
+70 |     except IntegrityError as e:
+   |                              ^
+71 |         logger.warning(f"CC snapshot already exists: {cc_dict.get('cc_id', 'unknown')}")
+72 |         try:
+   |
+help: Remove assignment to unused variable `e`
 
-invalid-syntax: Expected a statement
-   --> utils/pca_processor.py:279:14
-    |
-277 |                 model_version='dryrun-enhanced-v1',
-278 |                 ui_note=f"Detected ৳{amount_value} expense via pattern matching" if amount_value else "Expense detected"
-279 |             )
-    |              ^
-280 |             intent_result = "LOG_EXPENSE"
-281 |             confidence_result = cc.confidence
-    |
+E722 Do not use bare `except`
+  --> utils/pca_processor.py:74:9
+   |
+72 |         try:
+73 |             db.session.rollback()
+74 |         except:
+   |         ^^^^^^
+75 |             pass
+76 |         return False
+   |
 
-invalid-syntax: Expected `except` or `finally` after `try` block
-   --> utils/pca_processor.py:315:9
-    |
-314 |         # Calculate processing metrics
-315 |         processing_time_ms = int((time_module.time() - processing_start) * 1000)
-    |         ^^^^^^^^^^^^^^^^^^
-316 |         
-317 |         # Log CC snapshot to audit trail
-    |
+E722 Do not use bare `except`
+  --> utils/pca_processor.py:82:9
+   |
+80 |         try:
+81 |             db.session.rollback()
+82 |         except:
+   |         ^^^^^^
+83 |             pass
+84 |         return False
+   |
 
-invalid-syntax: Expected a statement
-   --> utils/pca_processor.py:352:5
+F401 [*] `utils.canonical_command.create_fallback_cc` imported but unused
+   --> utils/pca_processor.py:101:79
     |
-350 |         return result
-351 |         
-352 |     except Exception as e:
-    |     ^^^^^^
-353 |         processing_time_ms = int((time_module.time() - processing_start) * 1000)
-354 |         logger.error(f"DRYRUN mode processing failed: {e}")
+ 99 |     try:
+100 |         from utils.pca_flags import pca_flags, generate_cc_id, PCAMode
+101 |         from utils.canonical_command import CanonicalCommand, create_help_cc, create_fallback_cc
+    |                                                                               ^^^^^^^^^^^^^^^^^^
+102 |         from utils.production_router import production_router
     |
+help: Remove unused import: `utils.canonical_command.create_fallback_cc`
 
-invalid-syntax: Expected a statement
-   --> utils/pca_processor.py:352:22
+F401 [*] `utils.production_router.production_router` imported but unused
+   --> utils/pca_processor.py:102:45
     |
-350 |         return result
-351 |         
-352 |     except Exception as e:
-    |                      ^^
-353 |         processing_time_ms = int((time_module.time() - processing_start) * 1000)
-354 |         logger.error(f"DRYRUN mode processing failed: {e}")
+100 |         from utils.pca_flags import pca_flags, generate_cc_id, PCAMode
+101 |         from utils.canonical_command import CanonicalCommand, create_help_cc, create_fallback_cc
+102 |         from utils.production_router import production_router
+    |                                             ^^^^^^^^^^^^^^^^^
+103 |         
+104 |         # PHASE 3: DRYRUN Mode - Process all users (no canary logic)
     |
+help: Remove unused import: `utils.production_router.production_router`
 
-invalid-syntax: Expected an expression
-   --> utils/pca_processor.py:352:27
+F401 [*] `utils.canonical_command.create_fallback_cc` imported but unused
+   --> utils/pca_processor.py:230:79
     |
-350 |         return result
-351 |         
-352 |     except Exception as e:
-    |                           ^
-353 |         processing_time_ms = int((time_module.time() - processing_start) * 1000)
-354 |         logger.error(f"DRYRUN mode processing failed: {e}")
+229 |     try:
+230 |         from utils.canonical_command import CanonicalCommand, create_help_cc, create_fallback_cc, CCSlots, CCIntent, CCDecision
+    |                                                                               ^^^^^^^^^^^^^^^^^^
+231 |         
+232 |         # Enhanced expense detection patterns
     |
+help: Remove unused import: `utils.canonical_command.create_fallback_cc`
 
-invalid-syntax: Unexpected indentation
-   --> utils/pca_processor.py:353:1
+F841 Local variable `amount_match` is assigned to but never used
+   --> utils/pca_processor.py:250:17
     |
-352 |     except Exception as e:
-353 |         processing_time_ms = int((time_module.time() - processing_start) * 1000)
-    | ^^^^^^^^
-354 |         logger.error(f"DRYRUN mode processing failed: {e}")
+248 |             if match:
+249 |                 expense_detected = True
+250 |                 amount_match = match
+    |                 ^^^^^^^^^^^^
+251 |                 try:
+252 |                     # Extract numeric amount
     |
+help: Remove assignment to unused variable `amount_match`
 
-invalid-syntax: Expected a statement
-   --> utils/pca_processor.py:373:1
+E722 Do not use bare `except`
+   --> utils/pca_processor.py:361:9
     |
-371 |         }
-372 |
-373 | def process_production_mode(user_id: str, message_text: str, message_id: str, cc_id: str, 
-    | ^
-374 |                           timestamp: datetime, pca_flags) -> Dict[str, Any]:
-375 |     """
-    |
-
-invalid-syntax: Expected ')', found newline
-   --> utils/pca_processor.py:502:40
-    |
-500 |             expense = Expense(
-501 |                 user_id=user.id,
-502 |                 amount=cc.slots.amount,
-    |                                        ^
-503 |                 from utils.categories import normalize_category
-504 |                 category=normalize_category(cc.slots.category),
-    |
-
-invalid-syntax: Unexpected indentation
-   --> utils/pca_processor.py:503:1
-    |
-501 |                 user_id=user.id,
-502 |                 amount=cc.slots.amount,
-503 |                 from utils.categories import normalize_category
-    | ^^^^^^^^^^^^^^^^
-504 |                 category=normalize_category(cc.slots.category),
-505 |                 description=cc.slots.note or cc.source_text[:100],
-    |
-
-invalid-syntax: Expected a statement
-   --> utils/pca_processor.py:509:13
-    |
-507 |                 created_at=datetime.utcnow(),
-508 |                 source='pca_phase4'
-509 |             )
-    |             ^
-510 |             
-511 |             db.session.add(expense)
-    |
-
-invalid-syntax: Expected a statement
-   --> utils/pca_processor.py:509:14
-    |
-507 |                 created_at=datetime.utcnow(),
-508 |                 source='pca_phase4'
-509 |             )
-    |              ^
-510 |             
-511 |             db.session.add(expense)
-    |
-
-invalid-syntax: Expected `except` or `finally` after `try` block
-   --> utils/pca_processor.py:514:9
-    |
-512 |             db.session.commit()
-513 |         
-514 |         logger.info(f"Phase 4 transaction: ৳{cc.slots.amount} conf={cc.confidence:.2f}")
+359 |             error_cc = create_help_cc(user_id, cc_id, message_text, f"DRYRUN processing error: {str(e)}")
+360 |             log_cc_snapshot(error_cc.to_dict(), processing_time_ms=processing_time_ms, error_message=str(e))
+361 |         except:
     |         ^^^^^^
-515 |         return True
+362 |             pass
     |
 
-invalid-syntax: Expected a statement
-   --> utils/pca_processor.py:517:5
+F541 [*] f-string without any placeholders
+   --> utils/pca_processor.py:473:65
     |
-515 |         return True
-516 |         
-517 |     except Exception as e:
-    |     ^^^^^^
-518 |         logger.error(f"Transaction creation failed: {e}")
-519 |         return False
+472 |         from utils.canonical_command import create_help_cc
+473 |         error_cc = create_help_cc(user_id, cc_id, message_text, f"Phase 4 error")
+    |                                                                 ^^^^^^^^^^^^^^^^
+474 |         log_cc_snapshot(error_cc.to_dict(), processing_time_ms, applied=False, error_message=str(e))
     |
+help: Remove extraneous `f` prefix
 
-invalid-syntax: Expected a statement
-   --> utils/pca_processor.py:517:22
+F821 Undefined name `CanonicalCommand`
+   --> utils/pca_processor.py:484:31
     |
-515 |         return True
-516 |         
-517 |     except Exception as e:
-    |                      ^^
-518 |         logger.error(f"Transaction creation failed: {e}")
-519 |         return False
-    |
-
-invalid-syntax: Expected an expression
-   --> utils/pca_processor.py:517:27
-    |
-515 |         return True
-516 |         
-517 |     except Exception as e:
-    |                           ^
-518 |         logger.error(f"Transaction creation failed: {e}")
-519 |         return False
-    |
-
-invalid-syntax: Unexpected indentation
-   --> utils/pca_processor.py:518:1
-    |
-517 |     except Exception as e:
-518 |         logger.error(f"Transaction creation failed: {e}")
-    | ^^^^^^^^
-519 |         return False
-    |
-
-invalid-syntax: Expected a statement
-   --> utils/pca_processor.py:521:1
-    |
-519 |         return False
-520 |
-521 | def get_pca_health_status() -> Dict[str, Any]:
-    | ^
-522 |     """Get health status of PCA overlay tables and processing"""
-523 |     try:
+482 |         }
+483 |
+484 | def apply_cc_transaction(cc: 'CanonicalCommand', user_id: str) -> bool:
+    |                               ^^^^^^^^^^^^^^^^
+485 |     """Apply high-confidence CC by creating actual expense transaction"""
+486 |     try:
     |
 
 F401 [*] `datetime.datetime` imported but unused
@@ -19786,218 +19582,36 @@ F401 [*] `threading` imported but unused
    |
 help: Remove unused import: `threading`
 
-F401 [*] `typing.Any` imported but unused
- --> utils/quick_reply_system.py:7:32
-  |
-6 | import logging
-7 | from typing import List, Dict, Any, Optional
-  |                                ^^^
-8 | import sys
-9 | import os
-  |
-help: Remove unused import
-
-F401 [*] `typing.Optional` imported but unused
- --> utils/quick_reply_system.py:7:37
-  |
-6 | import logging
-7 | from typing import List, Dict, Any, Optional
-  |                                     ^^^^^^^^
-8 | import sys
-9 | import os
-  |
-help: Remove unused import
-
-F541 [*] f-string without any placeholders
-  --> utils/quick_reply_system.py:33:19
-   |
-31 |         """
-32 |         try:
-33 |             url = f"https://graph.facebook.com/v17.0/me/messages"
-   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-34 |             
-35 |             quick_replies = [
-   |
-help: Remove extraneous `f` prefix
-
-F541 [*] f-string without any placeholders
-  --> utils/quick_reply_system.py:78:19
-   |
-76 |         """Send persistent menu (appears as hamburger menu in chat)"""
-77 |         try:
-78 |             url = f"https://graph.facebook.com/v17.0/me/messenger_profile"
-   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-79 |             
-80 |             menu_data = {
-   |
-help: Remove extraneous `f` prefix
-
-F401 [*] `datetime.timedelta` imported but unused
- --> utils/rate_limiter.py:4:38
-  |
-2 | import os
-3 | import logging
-4 | from datetime import datetime, date, timedelta
-  |                                      ^^^^^^^^^
-5 | from utils.security import hash_user_id
-  |
-help: Remove unused import: `datetime.timedelta`
-
-F401 [*] `utils.security.hash_user_id` imported but unused
- --> utils/rate_limiter.py:5:28
-  |
-3 | import logging
-4 | from datetime import datetime, date, timedelta
-5 | from utils.security import hash_user_id
-  |                            ^^^^^^^^^^^^
-6 |
-7 | logger = logging.getLogger(__name__)
-  |
-help: Remove unused import: `utils.security.hash_user_id`
-
 F821 Undefined name `ensure_hashed`
-  --> utils/rate_limiter.py:19:21
+  --> utils/report_generator.py:14:21
    |
-18 |     try:
-19 |         user_hash = ensure_hashed(user_identifier)
+12 |     try:
+13 |         
+14 |         user_hash = ensure_hashed(user_identifier)
    |                     ^^^^^^^^^^^^^
-20 |         current_date = date.today()
-21 |         current_hour = datetime.now().replace(minute=0, second=0, microsecond=0)
+15 |         today = date.today()
    |
 
 F821 Undefined name `ensure_hashed`
-  --> utils/rate_limiter.py:78:21
+  --> utils/report_generator.py:63:21
    |
-77 |     try:
-78 |         user_hash = ensure_hashed(user_identifier)
+61 |     try:
+62 |         
+63 |         user_hash = ensure_hashed(user_identifier)
    |                     ^^^^^^^^^^^^^
-79 |         
-80 |         rate_limit = RateLimit.query.filter_by(
-   |
-
-F401 [*] `flask_limiter.util.get_remote_address` imported but unused
-  --> utils/rate_limiting.py:27:40
-   |
-25 |     try:
-26 |         import redis
-27 |         from flask_limiter.util import get_remote_address
-   |                                        ^^^^^^^^^^^^^^^^^^
-28 |         
-29 |         # Create Redis connection with timeout and SSL support
-   |
-help: Remove unused import: `flask_limiter.util.get_remote_address`
-
-F401 [*] `datetime.datetime` imported but unused
- --> utils/report_generator.py:3:22
-  |
-1 | """Automated report generation for daily and weekly summaries"""
-2 | import logging
-3 | from datetime import datetime, date, timedelta
-  |                      ^^^^^^^^
-4 | from utils.db import get_monthly_summary, get_user_expenses
-  |
-help: Remove unused import: `datetime.datetime`
-
-F401 [*] `utils.db.get_user_expenses` imported but unused
- --> utils/report_generator.py:4:43
-  |
-2 | import logging
-3 | from datetime import datetime, date, timedelta
-4 | from utils.db import get_monthly_summary, get_user_expenses
-  |                                           ^^^^^^^^^^^^^^^^^
-5 |
-6 | from utils.facebook_handler import send_facebook_report
-  |
-help: Remove unused import: `utils.db.get_user_expenses`
-
-F401 [*] `utils.facebook_handler.send_facebook_report` imported but unused
- --> utils/report_generator.py:6:36
-  |
-4 | from utils.db import get_monthly_summary, get_user_expenses
-5 |
-6 | from utils.facebook_handler import send_facebook_report
-  |                                    ^^^^^^^^^^^^^^^^^^^^
-7 | from models import User, Expense
-8 | from db_base import db
-  |
-help: Remove unused import: `utils.facebook_handler.send_facebook_report`
-
-F401 [*] `models.User` imported but unused
- --> utils/report_generator.py:7:20
-  |
-6 | from utils.facebook_handler import send_facebook_report
-7 | from models import User, Expense
-  |                    ^^^^
-8 | from db_base import db
-  |
-help: Remove unused import: `models.User`
-
-F401 [*] `db_base.db` imported but unused
-  --> utils/report_generator.py:8:21
-   |
- 6 | from utils.facebook_handler import send_facebook_report
- 7 | from models import User, Expense
- 8 | from db_base import db
-   |                     ^^
- 9 |
-10 | logger = logging.getLogger(__name__)
-   |
-help: Remove unused import: `db_base.db`
-
-F401 [*] `utils.security.hash_user_id` imported but unused
-  --> utils/report_generator.py:15:36
-   |
-13 |     """Generate daily expense report for user"""
-14 |     try:
-15 |         from utils.security import hash_user_id
-   |                                    ^^^^^^^^^^^^
-16 |         
-17 |         user_hash = ensure_hashed(user_identifier)
-   |
-help: Remove unused import: `utils.security.hash_user_id`
-
-F821 Undefined name `ensure_hashed`
-  --> utils/report_generator.py:17:21
-   |
-15 |         from utils.security import hash_user_id
-16 |         
-17 |         user_hash = ensure_hashed(user_identifier)
-   |                     ^^^^^^^^^^^^^
-18 |         today = date.today()
-   |
-
-F401 [*] `utils.security.hash_user_id` imported but unused
-  --> utils/report_generator.py:65:36
-   |
-63 |     """Generate weekly expense report for user"""
-64 |     try:
-65 |         from utils.security import hash_user_id
-   |                                    ^^^^^^^^^^^^
-66 |         
-67 |         user_hash = ensure_hashed(user_identifier)
-   |
-help: Remove unused import: `utils.security.hash_user_id`
-
-F821 Undefined name `ensure_hashed`
-  --> utils/report_generator.py:67:21
-   |
-65 |         from utils.security import hash_user_id
-66 |         
-67 |         user_hash = ensure_hashed(user_identifier)
-   |                     ^^^^^^^^^^^^^
-68 |         today = date.today()
-69 |         week_start = today - timedelta(days=6)  # Last 7 days
+64 |         today = date.today()
+65 |         week_start = today - timedelta(days=6)  # Last 7 days
    |
 
 F541 [*] f-string without any placeholders
-   --> utils/report_generator.py:123:31
+   --> utils/report_generator.py:119:31
     |
-121 |                     report += f"\n📉 Trend: ৳{trend:.2f} vs yesterday"
-122 |                 else:
-123 |                     report += f"\n➡️ Trend: Same as yesterday"
+117 |                     report += f"\n📉 Trend: ৳{trend:.2f} vs yesterday"
+118 |                 else:
+119 |                     report += f"\n➡️ Trend: Same as yesterday"
     |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-124 |         
-125 |         return report
+120 |         
+121 |         return report
     |
 help: Remove extraneous `f` prefix
 
@@ -20754,28 +20368,5 @@ F841 Local variable `user_hash` is assigned to but never used
    |
 help: Remove assignment to unused variable `user_hash`
 
-F401 [*] `json` imported but unused
-  --> validate_ui_guardrails.py:8:8
-   |
- 6 | import os
- 7 | import requests
- 8 | import json
-   |        ^^^^
- 9 | from flask import Flask
-10 | from app import app
-   |
-help: Remove unused import: `json`
-
-F401 [*] `flask.Flask` imported but unused
-  --> validate_ui_guardrails.py:9:19
-   |
- 7 | import requests
- 8 | import json
- 9 | from flask import Flask
-   |                   ^^^^^
-10 | from app import app
-   |
-help: Remove unused import: `flask.Flask`
-
-Found 1804 errors.
-[*] 1293 fixable with the `--fix` option (304 hidden fixes can be enabled with the `--unsafe-fixes` option).
+Found 1767 errors.
+[*] 1285 fixable with the `--fix` option (305 hidden fixes can be enabled with the `--unsafe-fixes` option).

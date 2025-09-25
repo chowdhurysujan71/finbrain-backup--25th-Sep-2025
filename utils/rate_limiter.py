@@ -1,8 +1,8 @@
 """Rate limiting functionality for message processing"""
 import os
 import logging
-from datetime import datetime, date, timedelta
-from utils.security import hash_user_id
+from datetime import datetime, date
+from utils.security import hash_user_id as ensure_hashed
 
 logger = logging.getLogger(__name__)
 

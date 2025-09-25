@@ -24,7 +24,6 @@ def get_rate_limit_storage():
     
     try:
         import redis
-        from flask_limiter.util import get_remote_address
         
         # Create Redis connection with timeout and SSL support
         redis_client = redis.from_url(

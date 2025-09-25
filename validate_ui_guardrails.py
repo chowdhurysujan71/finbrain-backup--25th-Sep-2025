@@ -5,8 +5,6 @@ UI Guardrails Validation - Ensure UX can only see SSOT through API endpoints
 
 import os
 import requests
-import json
-from flask import Flask
 from app import app
 
 def test_ui_guardrails():

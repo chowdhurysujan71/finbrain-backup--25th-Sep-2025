@@ -259,11 +259,11 @@ def process_dryrun_mode(user_id: str, message_text: str, message_id: str, cc_id:
         # Generate appropriate CC based on message content
         if expense_detected:
             # Create expense CC with enhanced data
+            from utils.categories import normalize_category
             cc = CanonicalCommand(
                 cc_id=cc_id,
                 user_id=user_id,
                 intent=CCIntent.LOG_EXPENSE.value,
-                from utils.categories import normalize_category
                 slots=CCSlots(
                     amount=amount_value,
                     currency='BDT',
@@ -497,10 +497,10 @@ def apply_cc_transaction(cc: 'CanonicalCommand', user_id: str) -> bool:
                 return False
             
             # Create expense from CC
+            from utils.categories import normalize_category
             expense = Expense(
                 user_id=user.id,
                 amount=cc.slots.amount,
-                from utils.categories import normalize_category
                 category=normalize_category(cc.slots.category),
                 description=cc.slots.note or cc.source_text[:100],
                 date=datetime.utcnow().date(),

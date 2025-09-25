@@ -1,18 +1,15 @@
 """Automated report generation for daily and weekly summaries"""
 import logging
-from datetime import datetime, date, timedelta
-from utils.db import get_monthly_summary, get_user_expenses
+from datetime import date, timedelta
+from utils.db import get_monthly_summary
 
-from utils.facebook_handler import send_facebook_report
-from models import User, Expense
-from db_base import db
+from models import Expense
 
 logger = logging.getLogger(__name__)
 
 def generate_daily_report(user_identifier, platform):
     """Generate daily expense report for user"""
     try:
-        from utils.security import hash_user_id
         
         user_hash = ensure_hashed(user_identifier)
         today = date.today()
@@ -62,7 +59,6 @@ def generate_daily_report(user_identifier, platform):
 def generate_weekly_report(user_identifier, platform):
     """Generate weekly expense report for user"""
     try:
-        from utils.security import hash_user_id
         
         user_hash = ensure_hashed(user_identifier)
         today = date.today()

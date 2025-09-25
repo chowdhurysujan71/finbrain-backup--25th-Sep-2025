@@ -49,12 +49,12 @@ def final_production_test():
                 if real_data_found and "start logging" not in response.lower():
                     print("   ✅ SUCCESS: Real data found")
                 else:
-                    print(f"   ❌ FAILED: No real data or fallback response")
+                    print("   ❌ FAILED: No real data or fallback response")
 
             except Exception as e:
                 print(f"   ❌ ERROR: {e}")
 
-        print(f"\n🎯 PRODUCTION STATUS: READY FOR USER TESTING")
+        print("\n🎯 PRODUCTION STATUS: READY FOR USER TESTING")
 
 if __name__ == "__main__":
     final_production_test()

@@ -167,7 +167,7 @@ def show_sample_payloads():
     
     # Q2 Commit payload  
     q2_payload = {
-        'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
+        'text': 'Nice choice! Let\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
         'quick_replies': [
             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
             {'title': 'Off-Peak', 'payload': 'COACH_OFF_PEAK'},

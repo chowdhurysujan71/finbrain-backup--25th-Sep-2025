@@ -1,2 +1,8 @@
-scripts/demo_coach_flow.py:170: error: Unterminated string literal (detected at line 170)  [syntax]
-Found 1 error in 1 file (errors prevented further checking)
+app/storage_supabase.py:6: error: Library stubs not installed for "requests"  [import-untyped]
+app/storage_supabase.py:6: note: Hint: "python3 -m pip install types-requests"
+app/storage_supabase.py:6: note: (or run "mypy --install-types" to install all missing stub packages)
+app/storage_supabase.py:6: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-imports
+templates/replies_ai.py: error: Source file found twice under different module names: "replies_ai" and "templates.replies_ai"
+templates/replies_ai.py: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#mapping-file-paths-to-modules for more info
+templates/replies_ai.py: note: Common resolutions include: a) adding `__init__.py` somewhere, b) using `--explicit-package-bases` or adjusting MYPYPATH
+Found 2 errors in 2 files (errors prevented further checking)

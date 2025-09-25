@@ -4,7 +4,7 @@ Implements structured messaging with button-like interactions for better UX
 """
 
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -30,7 +30,7 @@ class QuickReplySystem:
             replies: List of {"title": str, "payload": str} quick reply options
         """
         try:
-            url = f"https://graph.facebook.com/v17.0/me/messages"
+            url = "https://graph.facebook.com/v17.0/me/messages"
             
             quick_replies = [
                 {
@@ -75,7 +75,7 @@ class QuickReplySystem:
     def send_persistent_menu(self, psid: str) -> bool:
         """Send persistent menu (appears as hamburger menu in chat)"""
         try:
-            url = f"https://graph.facebook.com/v17.0/me/messenger_profile"
+            url = "https://graph.facebook.com/v17.0/me/messenger_profile"
             
             menu_data = {
                 "persistent_menu": [
