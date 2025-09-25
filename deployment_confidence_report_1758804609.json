@@ -1,0 +1,86 @@
+{
+  "timestamp": "2025-09-25T12:50:09.330870",
+  "base_url": "http://localhost:5000",
+  "verdict": "\u274c DEPLOYMENT NOT READY",
+  "summary": {
+    "total_tests": 12,
+    "passed": 9,
+    "failed": 1,
+    "warnings": 2,
+    "success_rate": 75.0
+  },
+  "detailed_results": [
+    {
+      "test": "Health Endpoint",
+      "status": "PASS",
+      "details": "Service healthy, response time: 0.98s",
+      "timestamp": "2025-09-25T12:50:05.343599"
+    },
+    {
+      "test": "Readiness Endpoint",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-09-25T12:50:07.835790"
+    },
+    {
+      "test": "Main Application Page",
+      "status": "PASS",
+      "details": "finbrain web interface accessible",
+      "timestamp": "2025-09-25T12:50:08.764708"
+    },
+    {
+      "test": "Backend API",
+      "status": "PASS",
+      "details": "API secured with auth requirement",
+      "timestamp": "2025-09-25T12:50:08.771137"
+    },
+    {
+      "test": "Webhook Deprecation",
+      "status": "WARN",
+      "details": "Expected 410, got 404",
+      "timestamp": "2025-09-25T12:50:08.776377"
+    },
+    {
+      "test": "Chat Dashboard",
+      "status": "PASS",
+      "details": "Web chat interface accessible",
+      "timestamp": "2025-09-25T12:50:08.932886"
+    },
+    {
+      "test": "Report Dashboard",
+      "status": "PASS",
+      "details": "Expense reports accessible",
+      "timestamp": "2025-09-25T12:50:09.080626"
+    },
+    {
+      "test": "Login",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-09-25T12:50:09.080732"
+    },
+    {
+      "test": "AI Chat Expense",
+      "status": "FAIL",
+      "details": "Status: 401",
+      "timestamp": "2025-09-25T12:50:09.153427"
+    },
+    {
+      "test": "Messenger Webhook Deprecation",
+      "status": "PASS",
+      "details": "Returns 410 Gone",
+      "timestamp": "2025-09-25T12:50:09.230810"
+    },
+    {
+      "test": "CORS Configuration",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-09-25T12:50:09.247529"
+    },
+    {
+      "test": "Content-Type Validation",
+      "status": "WARN",
+      "details": "Expected 400/415, got 401",
+      "timestamp": "2025-09-25T12:50:09.330395"
+    }
+  ]
+}

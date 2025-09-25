@@ -2273,8 +2273,24 @@ def supabase_smoke():
     except Exception as e:
         return {"connected": False, "error": f"Unexpected error: {str(e)}"}, 503
 
-# REMOVED: Legacy /webhook endpoint - redundant with /webhook/messenger
-# Only canonical /webhook/messenger endpoint remains for production use
+# Legacy webhook endpoint for consistent deprecation (returns 410 like /webhook/messenger)
+@app.route("/webhook", methods=["POST"])  # type: ignore[misc]
+def webhook_legacy():
+    """DEPRECATED: Legacy webhook endpoint - redirects to deprecation notice"""
+    
+    # Log deprecation attempts for monitoring
+    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
+    user_agent = request.headers.get('User-Agent', 'unknown')[:100]
+    logger.warning(f"Deprecated legacy webhook accessed from {client_ip} - User-Agent: {user_agent}")
+    
+    # Return 410 Gone for consistency with /webhook/messenger
+    return jsonify({
+        "error": "Legacy webhook endpoint discontinued. Please use the web app for expense tracking.",
+        "status": "service_permanently_discontinued", 
+        "alternative": "Visit the web application to continue tracking expenses",
+        "timestamp": datetime.utcnow().isoformat(),
+        "deprecation_notice": "This endpoint has been permanently retired. Web-only architecture active."
+    }), 410
 
 # REMOVED: /webhook/test endpoint - test endpoints removed for production security
 

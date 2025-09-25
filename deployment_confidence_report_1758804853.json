@@ -1,0 +1,92 @@
+{
+  "timestamp": "2025-09-25T12:54:13.754747",
+  "base_url": "http://localhost:5000",
+  "verdict": "\u2705 DEPLOYMENT READY",
+  "summary": {
+    "total_tests": 13,
+    "passed": 12,
+    "failed": 0,
+    "warnings": 1,
+    "success_rate": 92.3076923076923
+  },
+  "detailed_results": [
+    {
+      "test": "Health Endpoint",
+      "status": "PASS",
+      "details": "Service healthy, response time: 1.08s",
+      "timestamp": "2025-09-25T12:54:09.814659"
+    },
+    {
+      "test": "Readiness Endpoint",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-09-25T12:54:12.107385"
+    },
+    {
+      "test": "Main Application Page",
+      "status": "PASS",
+      "details": "finbrain web interface accessible",
+      "timestamp": "2025-09-25T12:54:13.102069"
+    },
+    {
+      "test": "Backend API",
+      "status": "PASS",
+      "details": "API secured with auth requirement",
+      "timestamp": "2025-09-25T12:54:13.107365"
+    },
+    {
+      "test": "Webhook Deprecation",
+      "status": "PASS",
+      "details": "Messenger webhook properly deprecated",
+      "timestamp": "2025-09-25T12:54:13.175835"
+    },
+    {
+      "test": "Chat Dashboard",
+      "status": "PASS",
+      "details": "Web chat interface accessible",
+      "timestamp": "2025-09-25T12:54:13.320587"
+    },
+    {
+      "test": "Report Dashboard",
+      "status": "PASS",
+      "details": "Expense reports accessible",
+      "timestamp": "2025-09-25T12:54:13.469882"
+    },
+    {
+      "test": "Login",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-09-25T12:54:13.469993"
+    },
+    {
+      "test": "AI Chat Security",
+      "status": "PASS",
+      "details": "Properly protected with authentication",
+      "timestamp": "2025-09-25T12:54:13.542484"
+    },
+    {
+      "test": "Backend API Security",
+      "status": "PASS",
+      "details": "Properly protected with authentication",
+      "timestamp": "2025-09-25T12:54:13.612597"
+    },
+    {
+      "test": "Messenger Webhook Deprecation",
+      "status": "PASS",
+      "details": "Returns 410 Gone",
+      "timestamp": "2025-09-25T12:54:13.682342"
+    },
+    {
+      "test": "CORS Configuration",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-09-25T12:54:13.686155"
+    },
+    {
+      "test": "Content-Type Validation",
+      "status": "WARN",
+      "details": "Expected 400/415, got 401",
+      "timestamp": "2025-09-25T12:54:13.754370"
+    }
+  ]
+}

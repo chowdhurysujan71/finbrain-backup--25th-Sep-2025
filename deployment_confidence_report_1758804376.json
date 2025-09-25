@@ -1,0 +1,50 @@
+{
+  "timestamp": "2025-09-25T12:46:16.763711",
+  "base_url": "http://localhost:5000",
+  "verdict": "\u274c DEPLOYMENT NOT READY",
+  "summary": {
+    "total_tests": 6,
+    "passed": 2,
+    "failed": 3,
+    "warnings": 1,
+    "success_rate": 33.33333333333333
+  },
+  "detailed_results": [
+    {
+      "test": "Health Endpoint",
+      "status": "FAIL",
+      "details": "Status: 200",
+      "timestamp": "2025-09-25T12:46:16.593410"
+    },
+    {
+      "test": "CAPTCHA Generation",
+      "status": "FAIL",
+      "details": "Status: 404",
+      "timestamp": "2025-09-25T12:46:16.599992"
+    },
+    {
+      "test": "Login",
+      "status": "FAIL",
+      "details": "Status: 404",
+      "timestamp": "2025-09-25T12:46:16.604344"
+    },
+    {
+      "test": "Messenger Webhook Deprecation",
+      "status": "PASS",
+      "details": "Returns 410 Gone",
+      "timestamp": "2025-09-25T12:46:16.680234"
+    },
+    {
+      "test": "CORS Configuration",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-09-25T12:46:16.686087"
+    },
+    {
+      "test": "Content-Type Validation",
+      "status": "WARN",
+      "details": "Expected 400/415, got 401",
+      "timestamp": "2025-09-25T12:46:16.763286"
+    }
+  ]
+}
