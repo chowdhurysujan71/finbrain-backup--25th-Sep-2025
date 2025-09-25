@@ -2522,8 +2522,11 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
         if category != 'other':
             response += f" ({category})"
         
-        # Check if audit transparency should be shown
-        audit_info = self._get_audit_transparency_info(tx_id, psid, amount, category, note)
+        # Check if audit transparency should be shown (with None guards for optional parameters)
+        audit_info = None
+        if tx_id and psid:
+            audit_info = self._get_audit_transparency_info(tx_id, psid, amount, category, note)
+        
         if audit_info:
             response += f"\n{audit_info}"
         else:
