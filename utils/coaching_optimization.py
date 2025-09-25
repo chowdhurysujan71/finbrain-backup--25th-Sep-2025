@@ -422,7 +422,7 @@ class MemoryOptimizer:
                 try:
                     self._emergency_session_cleanup()
                     cleanup_stats['items_cleaned'] += 50  # Estimate
-                    cleanup_stats['memory_freed_estimate'] += 10  # MB estimate
+                    cleanup_stats['memory_freed_estimate'] += 10  # MB estimate (int)
                 except Exception as e:
                     logger.error(f"Emergency session cleanup error: {e}")
             
@@ -441,7 +441,7 @@ class MemoryOptimizer:
                     logger.debug(f"Metric cleanup failed: {metric_error}")
                     pass
             
-            cleanup_stats['duration_ms'] = (time.time() - cleanup_stats['start_time']) * 1000
+            cleanup_stats['duration_ms'] = int((time.time() - cleanup_stats['start_time']) * 1000)
             self.last_cleanup = time.time()
             
             logger.info(f"Memory cleanup completed: {cleanup_stats['items_cleaned']} items cleaned")

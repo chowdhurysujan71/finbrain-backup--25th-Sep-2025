@@ -128,7 +128,7 @@ class BasicAlertsSystem:
         
         # For now, just structured logging that can be monitored
         try:
-            from utils.structured import structured_log
+            from utils.structured_logging import structured_log
             structured_log("SYSTEM_ALERT", {
                 "alert_type": alert_type,
                 "message": message,

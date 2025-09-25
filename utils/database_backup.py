@@ -31,7 +31,10 @@ class DatabaseBackup:
             return {'status': 'disabled', 'message': 'Backups disabled via ENABLE_BACKUPS=false'}
         
         try:
-            from db_base import app
+            try:
+                from db_base import app
+            except ImportError:
+                from app import app
             from models import Expense, MonthlySummary, User
             
             # Ensure we have Flask application context
