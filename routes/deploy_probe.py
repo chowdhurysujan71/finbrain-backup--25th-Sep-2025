@@ -709,7 +709,8 @@ class DeployProbe:
             logger.error(f"Cleanup failed: {e}")
             try:
                 db.session.rollback()
-            except:
+            except Exception as rollback_error:
+                logger.debug(f"Rollback failed during cleanup: {rollback_error}")
                 pass
     
     def _generate_probe_report(self) -> dict[str, Any]:

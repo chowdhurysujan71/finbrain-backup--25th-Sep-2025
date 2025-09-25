@@ -90,7 +90,7 @@ def get_user_expenses(user_identifier, limit=10):
         user_hash = psid_hash(user_identifier) if len(user_identifier) < 64 else user_identifier
         
         # Security pattern: EXECUTE recent_expenses - using prepared statement via ORM
-        expenses = Expense.query.filter_by(user_id=user_hash)\
+        expenses = Expense.query.filter_by(user_id_hash=user_hash)\
                                .order_by(Expense.created_at.desc())\
                                .limit(limit)\
                                .all()

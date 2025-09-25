@@ -107,7 +107,8 @@ def _get_time_window(user_id: str) -> int:
         # For now, default to 7 days
         # In future: query challenge status from database
         return 7
-    except:
+    except Exception as e:
+        logger.debug(f"Challenge status query failed: {e}")
         return 7  # Safe fallback
 
 

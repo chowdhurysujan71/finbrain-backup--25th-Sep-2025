@@ -11,7 +11,7 @@ def env_bool(k, d=False):
 def env_int(k, d): 
     try: 
         return int(os.getenv(k, str(d)))
-    except: 
+    except ValueError: 
         return d
 
 # Core AI Configuration
