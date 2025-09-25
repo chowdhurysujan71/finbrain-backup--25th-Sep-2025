@@ -586,7 +586,6 @@ def parse_amount_currency_category(text: str) -> Dict[str, Any]:
         'category': result.get('category', 'general'),
         'note': result.get('note', text.strip())
     }
-        return {}
     
     # Step 2: Extract category
     # Look for word after "on" or "for"

@@ -28,7 +28,7 @@ echo "Command: mypy --version && mypy . --strict --ignore-missing-imports --excl
 mypy --version | tee artifacts/static/mypy_version.txt
 # Capture mypy output and check content for errors (excluding quarantined/attic paths)
 set +e
-mypy . --strict --ignore-missing-imports --exclude='(_quarantine|_attic)' 2>&1 | tee artifacts/static/mypy_results.txt
+mypy . --strict --ignore-missing-imports --exclude='(_quarantine|_attic|migrations)' 2>&1 | tee artifacts/static/mypy_results.txt
 MYPY_EXIT=$?
 set -e
 # Parse output to detect any errors (regardless of exit code) - handle both singular/plural

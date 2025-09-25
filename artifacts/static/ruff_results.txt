@@ -1,22 +1,11 @@
 F541 [*] f-string without any placeholders
-  --> FINAL_PRODUCTION_TEST.py:50:27
-   |
-49 |                 if real_data_found and "start logging" not in response.lower():
-50 |                     print(f"   ✅ SUCCESS: Real data found")
-   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-51 |                 else:
-52 |                     print(f"   ❌ FAILED: No real data or fallback response")
-   |
-help: Remove extraneous `f` prefix
-
-F541 [*] f-string without any placeholders
   --> FINAL_PRODUCTION_TEST.py:52:27
    |
-50 |                     print(f"   ✅ SUCCESS: Real data found")
+50 |                     print("   ✅ SUCCESS: Real data found")
 51 |                 else:
 52 |                     print(f"   ❌ FAILED: No real data or fallback response")
    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-53 |                     
+53 |
 54 |             except Exception as e:
    |
 help: Remove extraneous `f` prefix
@@ -25,7 +14,7 @@ F541 [*] f-string without any placeholders
   --> FINAL_PRODUCTION_TEST.py:57:15
    |
 55 |                 print(f"   ❌ ERROR: {e}")
-56 |         
+56 |
 57 |         print(f"\n🎯 PRODUCTION STATUS: READY FOR USER TESTING")
    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 58 |
@@ -3315,29 +3304,17 @@ F401 [*] `sqlalchemy` imported but unused
    |
 help: Remove unused import: `sqlalchemy`
 
-F401 [*] `flask.redirect` imported but unused
+F401 [*] `flask.url_for` imported but unused
  --> app.py:4:70
   |
 2 | import logging
 3 | import sys
-4 | from flask import Flask, request, jsonify, render_template, session, redirect, url_for, make_response, g
-  |                                                                      ^^^^^^^^
+4 | from flask import Flask, request, jsonify, render_template, session, url_for, make_response, g
+  |                                                                      ^^^^^^^
 5 | import uuid
 6 | import time
   |
-help: Remove unused import
-
-F401 [*] `flask.url_for` imported but unused
- --> app.py:4:80
-  |
-2 | import logging
-3 | import sys
-4 | from flask import Flask, request, jsonify, render_template, session, redirect, url_for, make_response, g
-  |                                                                                ^^^^^^^
-5 | import uuid
-6 | import time
-  |
-help: Remove unused import
+help: Remove unused import: `flask.url_for`
 
 F401 [*] `flask_limiter.Limiter` imported but unused
   --> app.py:9:27
@@ -3415,18 +3392,6 @@ E402 Module level import not at top of file
 148 | @app.before_request
     |
 
-F811 [*] Redefinition of unused `redirect` from line 4
-   --> app.py:152:61
-    |
-150 |     """Capture request start time, generate request_id, set user context, and enforce subdomain auth"""
-151 |     import os
-152 |     from flask import request, jsonify, after_this_request, redirect, url_for
-    |                                                             ^^^^^^^^
-153 |     from auth_helpers import get_user_id_from_session, get_subdomain, is_protected_subdomain, validate_return_to_url
-154 |     from urllib.parse import quote
-    |
-help: Remove definition: `redirect`
-
 F401 [*] `flask.url_for` imported but unused
    --> app.py:152:71
     |
@@ -3485,78 +3450,78 @@ E722 Do not use bare `except`
     |
 
 E402 Module level import not at top of file
-   --> app.py:949:1
+   --> app.py:956:1
     |
-948 | # Import admin authentication from admin_ops
-949 | from admin_ops import require_admin
+955 | # Import admin authentication from admin_ops
+956 | from admin_ops import require_admin
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-950 |
-951 | # Diagnostic helper functions
+957 |
+958 | # Diagnostic helper functions
     |
 
 F401 [*] `datetime.timedelta` imported but unused
-    --> app.py:1426:40
+    --> app.py:1433:40
      |
-1424 |     try:
-1425 |         from models import User, Expense
-1426 |         from datetime import datetime, timedelta
+1431 |     try:
+1432 |         from models import User, Expense
+1433 |         from datetime import datetime, timedelta
      |                                        ^^^^^^^^^
-1427 |         
-1428 |         # Find user by PSID hash
+1434 |         
+1435 |         # Find user by PSID hash
      |
 help: Remove unused import: `datetime.timedelta`
 
 F541 [*] f-string without any placeholders
-    --> app.py:1662:16
+    --> app.py:1669:16
      |
-1660 |       except Exception as e:
-1661 |           logger.error(f"User insights error: {str(e)}")
-1662 |           return f"""
+1667 |       except Exception as e:
+1668 |           logger.error(f"User insights error: {str(e)}")
+1669 |           return f"""
      |  ________________^
-1663 | |         <!DOCTYPE html>
-1664 | |         <html lang="en" data-bs-theme="dark">
-1665 | |         <head>
-1666 | |             <meta charset="UTF-8">
-1667 | |             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-1668 | |             <title>Insights Error - finbrain Admin</title>
-1669 | |             <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
-1670 | |         </head>
-1671 | |         <body>
-1672 | |             <div class="container mt-4">
-1673 | |                 <div class="alert alert-danger">
-1674 | |                     <h4>Error Loading Insights</h4>
-1675 | |                     <p>An error occurred while generating user insights. Please try again later.</p>
-1676 | |                     <a href="/admin" class="btn btn-primary">Back to Admin Dashboard</a>
-1677 | |                 </div>
-1678 | |             </div>
-1679 | |         </body>
-1680 | |         </html>
-1681 | |         """, 500
+1670 | |         <!DOCTYPE html>
+1671 | |         <html lang="en" data-bs-theme="dark">
+1672 | |         <head>
+1673 | |             <meta charset="UTF-8">
+1674 | |             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+1675 | |             <title>Insights Error - finbrain Admin</title>
+1676 | |             <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+1677 | |         </head>
+1678 | |         <body>
+1679 | |             <div class="container mt-4">
+1680 | |                 <div class="alert alert-danger">
+1681 | |                     <h4>Error Loading Insights</h4>
+1682 | |                     <p>An error occurred while generating user insights. Please try again later.</p>
+1683 | |                     <a href="/admin" class="btn btn-primary">Back to Admin Dashboard</a>
+1684 | |                 </div>
+1685 | |             </div>
+1686 | |         </body>
+1687 | |         </html>
+1688 | |         """, 500
      | |___________^
-1682 |
-1683 |   @app.route("/ops/pca/status")
+1689 |
+1690 |   @app.route("/ops/pca/status")
      |
 help: Remove extraneous `f` prefix
 
 F841 [*] Local variable `e` is assigned to but never used
-    --> app.py:1959:25
+    --> app.py:1966:25
      |
-1957 |         return response
-1958 |         
-1959 |     except Exception as e:
+1964 |         return response
+1965 |         
+1966 |     except Exception as e:
      |                         ^
-1960 |         # Even errors should be cacheable for marketing endpoint
-1961 |         error_response = make_response(jsonify({"error": "preview_unavailable"}), 500)
+1967 |         # Even errors should be cacheable for marketing endpoint
+1968 |         error_response = make_response(jsonify({"error": "preview_unavailable"}), 500)
      |
 help: Remove assignment to unused variable `e`
 
 E402 Module level import not at top of file
-    --> app.py:2128:1
+    --> app.py:2135:1
      |
-2127 | # Register streamlined admin operations
-2128 | from admin_ops import admin_ops
+2134 | # Register streamlined admin operations
+2135 | from admin_ops import admin_ops
      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2129 | app.register_blueprint(admin_ops)
+2136 | app.register_blueprint(admin_ops)
      |
 
 F401 [*] `os` imported but unused
@@ -6636,26 +6601,74 @@ F601 Dictionary key literal `'bills'` repeated
      |
 help: Remove repeated key literal `'bills'`
 
-invalid-syntax: Unexpected indentation
-   --> parsers/expense_broken.py:589:1
+F811 Redefinition of unused `is_correction_message` from line 148
+   --> parsers/expense_broken.py:456:5
     |
-587 |         'note': result.get('note', text.strip())
-588 |     }
-589 |         return {}
-    | ^^^^^^^^
-590 |     
-591 |     # Step 2: Extract category
+454 | )
+455 |
+456 | def is_correction_message(text: str) -> bool:
+    |     ^^^^^^^^^^^^^^^^^^^^^
+457 |     """
+458 |     Check if message contains correction phrases.
+    |
+help: Remove definition: `is_correction_message`
+
+F811 Redefinition of unused `parse_correction_reason` from line 163
+   --> parsers/expense_broken.py:476:5
+    |
+474 |     return has_correction_phrase and has_money
+475 |
+476 | def parse_correction_reason(text: str) -> str:
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+477 |     """
+478 |     Extract short correction reason from correction message.
+    |
+help: Remove definition: `parse_correction_reason`
+
+F811 Redefinition of unused `similar_category` from line 183
+   --> parsers/expense_broken.py:506:5
+    |
+504 |         return "amount correction"
+505 |
+506 | def similar_category(cat_a: str, cat_b: str) -> bool:
+    |     ^^^^^^^^^^^^^^^^
+507 |     """
+508 |     Check if two categories are similar (loose matching).
+    |
+help: Remove definition: `similar_category`
+
+F811 Redefinition of unused `similar_merchant` from line 199
+   --> parsers/expense_broken.py:536:5
+    |
+534 |     return False
+535 |
+536 | def similar_merchant(merchant_a: str, merchant_b: str) -> bool:
+    |     ^^^^^^^^^^^^^^^^
+537 |     """
+538 |     Check if two merchants are similar (fuzzy matching).
+    |
+help: Remove definition: `similar_merchant`
+
+F821 Undefined name `text_clean`
+   --> parsers/expense_broken.py:593:46
+    |
+591 |     # Look for word after "on" or "for"
+592 |     category_pattern = re.compile(r'(?i)\b(?:on|for)\s+(\w+)')
+593 |     category_match = category_pattern.search(text_clean)
+    |                                              ^^^^^^^^^^
+594 |     
+595 |     if category_match:
     |
 
-invalid-syntax: Expected a statement
-   --> parsers/expense_broken.py:613:1
+F821 Undefined name `text_clean`
+   --> parsers/expense_broken.py:604:22
     |
-611 |     return result
-612 |
-613 | def test_parse_amount_currency_category():
-    | ^
-614 |     """Test cases for unified parser"""
-615 |     test_cases = [
+602 |     else:
+603 |         # Try to find category keywords anywhere in text
+604 |         text_lower = text_clean.lower()
+    |                      ^^^^^^^^^^
+605 |         for keyword, category in CATEGORY_ALIASES.items():
+606 |             if keyword in text_lower:
     |
 
 E402 Module level import not at top of file
@@ -8507,7 +8520,7 @@ invalid-syntax: Expected ',', found name
     |
 168 |     # Q2 Commit payload  
 169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week? 💪',
+170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
     |                                     ^
 171 |         'quick_replies': [
 172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
@@ -8518,7 +8531,7 @@ invalid-syntax: Expected ':', found 'try'
     |
 168 |     # Q2 Commit payload  
 169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week? 💪',
+170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
     |                                       ^^^
 171 |         'quick_replies': [
 172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
@@ -8529,7 +8542,7 @@ invalid-syntax: Expected ',', found name
     |
 168 |     # Q2 Commit payload  
 169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week? 💪',
+170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
     |                                           ^^^
 171 |         'quick_replies': [
 172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
@@ -8540,7 +8553,7 @@ invalid-syntax: Expected ':', found name
     |
 168 |     # Q2 Commit payload  
 169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week? 💪',
+170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
     |                                               ^^^^^
 171 |         'quick_replies': [
 172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
@@ -8551,7 +8564,7 @@ invalid-syntax: Expected ',', found name
     |
 168 |     # Q2 Commit payload  
 169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week? 💪',
+170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
     |                                                     ^^^^
 171 |         'quick_replies': [
 172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
@@ -8562,7 +8575,7 @@ invalid-syntax: Expected ',', found name
     |
 168 |     # Q2 Commit payload  
 169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week? 💪',
+170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
     |                                                                 ^^^^^
 171 |         'quick_replies': [
 172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
@@ -8573,7 +8586,7 @@ invalid-syntax: Expected ':', found name
     |
 168 |     # Q2 Commit payload  
 169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week? 💪',
+170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
     |                                                                                          ^^^^^^
 171 |         'quick_replies': [
 172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
@@ -8584,7 +8597,7 @@ invalid-syntax: Expected ',', found name
     |
 168 |     # Q2 Commit payload  
 169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week? 💪',
+170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
     |                                                                                                 ^^^^^^
 171 |         'quick_replies': [
 172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
@@ -8595,7 +8608,7 @@ invalid-syntax: Expected ':', found name
     |
 168 |     # Q2 Commit payload  
 169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week? 💪',
+170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
     |                                                                                                        ^^^^
 171 |         'quick_replies': [
 172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
@@ -8606,7 +8619,7 @@ invalid-syntax: Expected ',', found name
     |
 168 |     # Q2 Commit payload  
 169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week? 💪',
+170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
     |                                                                                                             ^^^^
 171 |         'quick_replies': [
 172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
@@ -8617,30 +8630,19 @@ invalid-syntax: Got unexpected token ?
     |
 168 |     # Q2 Commit payload  
 169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week? 💪',
+170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
     |                                                                                                                 ^
 171 |         'quick_replies': [
 172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
     |
 
-invalid-syntax: Got unexpected token 💪
-   --> scripts/demo_coach_flow.py:170:115
-    |
-168 |     # Q2 Commit payload  
-169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week? 💪',
-    |                                                                                                                   ^^
-171 |         'quick_replies': [
-172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
-    |
-
 invalid-syntax: missing closing quote in string literal
-   --> scripts/demo_coach_flow.py:170:116
+   --> scripts/demo_coach_flow.py:170:114
     |
 168 |     # Q2 Commit payload  
 169 |     q2_payload = {
-170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week? 💪',
-    |                                                                                                                     ^^
+170 |         'text': 'Nice choice! Let\\'s try one small step: batch trips or off-peak. Which sounds doable this week?',
+    |                                                                                                                  ^^
 171 |         'quick_replies': [
 172 |             {'title': 'Batch Trips', 'payload': 'COACH_BATCH_TRIPS'},
     |
@@ -9594,6 +9596,121 @@ F541 [*] f-string without any placeholders
     |           ^^^^^
 229 |     print("📋 TEST SUMMARY")
 230 |     print("=" * 60)
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+  --> scripts/test_endpoint_headers.py:46:15
+   |
+44 |         expires = headers.get('Expires', '')
+45 |         
+46 |         print(f"\n📋 Cache Headers Analysis:")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+47 |         print(f"  Cache-Control: {cache_control}")
+48 |         print(f"  Pragma: {pragma}")
+   |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/test_endpoint_headers.py:124:15
+    |
+122 |         overall_pass = headers_pass and data_valid and response.status_code == 200
+123 |         
+124 |         print(f"\n📊 Headers Test Summary:")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+125 |         print(f"  Cache Headers: {'PASS' if headers_pass else 'FAIL'} ({cache_score}/4 directives)")
+126 |         print(f"  Data Format: {'PASS' if data_valid else 'FAIL'}")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/test_endpoint_headers.py:140:21
+    |
+138 |             for key, value in headers.items():
+139 |                 f.write(f"  {key}: {value}\n")
+140 |             f.write(f"\nCache Headers Analysis:\n")
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+141 |             f.write(f"  no-store: {'✅' if has_no_store else '❌'}\n")
+142 |             f.write(f"  no-cache: {'✅' if has_no_cache else '❌'}\n")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/test_endpoint_headers.py:146:21
+    |
+144 |             f.write(f"  private: {'✅' if has_private else '❌'}\n")
+145 |             f.write(f"\nMissing directives: {', '.join(required_directives) if required_directives else 'None'}\n")
+146 |             f.write(f"\nTest Results:\n")
+    |                     ^^^^^^^^^^^^^^^^^^^^
+147 |             f.write(f"  Headers: {'PASS' if headers_pass else 'FAIL'}\n")
+148 |             f.write(f"  Data: {'PASS' if data_valid else 'FAIL'}\n")
+    |
+help: Remove extraneous `f` prefix
+
+E722 Do not use bare `except`
+   --> scripts/test_endpoint_headers.py:164:13
+    |
+162 |                 else:
+163 |                     f.write(response.text)
+164 |             except:
+    |             ^^^^^^
+165 |                 f.write(response.text)
+    |
+
+F841 Local variable `test_message` is assigned to but never used
+  --> scripts/test_user_journeys.py:39:13
+   |
+37 |         try:
+38 |             # Test expense message
+39 |             test_message = "burger 50"
+   |             ^^^^^^^^^^^^
+40 |             
+41 |             # Check if there's a chat endpoint we can test
+   |
+help: Remove assignment to unused variable `test_message`
+
+F841 Local variable `test_message` is assigned to but never used
+  --> scripts/test_user_journeys.py:61:13
+   |
+60 |         try:
+61 |             test_message = "rickshaw 100 and jhalmuri 10"
+   |             ^^^^^^^^^^^^
+62 |             
+63 |             # Similar limitation as single expense - need actual expense processing endpoint
+   |
+help: Remove assignment to unused variable `test_message`
+
+F841 Local variable `correction_message` is assigned to but never used
+  --> scripts/test_user_journeys.py:82:13
+   |
+81 |         try:
+82 |             correction_message = "sorry, it's 500 not 50"
+   |             ^^^^^^^^^^^^^^^^^^
+83 |             
+84 |             response = self.session.get(f"{self.base_url}/health", timeout=10)
+   |
+help: Remove assignment to unused variable `correction_message`
+
+E722 Do not use bare `except`
+   --> scripts/test_user_journeys.py:157:21
+    |
+155 |                             self.log_result("AI Adapter v2", "PARTIAL", "AI endpoints not found, but system stable")
+156 |                             return True
+157 |                     except:
+    |                     ^^^^^^
+158 |                         self.log_result("AI Adapter v2", "PARTIAL", "System stable, AI adapter status unknown")
+159 |                         return True
+    |
+
+F541 [*] f-string without any placeholders
+   --> scripts/test_user_journeys.py:198:15
+    |
+196 |         overall_status = "PASS" if passed == total else "FAIL"
+197 |         
+198 |         print(f"\n📊 User Journeys Test Summary:")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+199 |         print(f"  Passed: {passed}/{total} journeys")
+200 |         print(f"  Overall: {overall_status} {'✅' if overall_status == 'PASS' else '❌'}")
     |
 help: Remove extraneous `f` prefix
 
@@ -19611,25 +19728,25 @@ F401 [*] `datetime.datetime` imported but unused
 help: Remove unused import: `datetime.datetime`
 
 F401 [*] `utils.quick_reply_system.send_custom_quick_replies` imported but unused
-    --> utils/production_router.py:2370:50
+    --> utils/production_router.py:2380:50
      |
-2369 |             # Add quick replies for follow-up support
-2370 |             from utils.quick_reply_system import send_custom_quick_replies
+2379 |             # Add quick replies for follow-up support
+2380 |             from utils.quick_reply_system import send_custom_quick_replies
      |                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^
-2371 |             support_replies = [
-2372 |                 {"title": "Get help", "payload": "HELP"},
+2381 |             support_replies = [
+2382 |                 {"title": "Get help", "payload": "HELP"},
      |
 help: Remove unused import: `utils.quick_reply_system.send_custom_quick_replies`
 
 F841 Local variable `support_replies` is assigned to but never used
-    --> utils/production_router.py:2371:13
+    --> utils/production_router.py:2381:13
      |
-2369 |             # Add quick replies for follow-up support
-2370 |             from utils.quick_reply_system import send_custom_quick_replies
-2371 |             support_replies = [
+2379 |             # Add quick replies for follow-up support
+2380 |             from utils.quick_reply_system import send_custom_quick_replies
+2381 |             support_replies = [
      |             ^^^^^^^^^^^^^^^
-2372 |                 {"title": "Get help", "payload": "HELP"},
-2373 |                 {"title": "Try again", "payload": "TRY_AGAIN"},
+2382 |                 {"title": "Get help", "payload": "HELP"},
+2383 |                 {"title": "Try again", "payload": "TRY_AGAIN"},
      |
 help: Remove assignment to unused variable `support_replies`
 
@@ -20660,5 +20777,5 @@ F401 [*] `flask.Flask` imported but unused
    |
 help: Remove unused import: `flask.Flask`
 
-Found 1794 errors.
-[*] 1291 fixable with the `--fix` option (301 hidden fixes can be enabled with the `--unsafe-fixes` option).
+Found 1804 errors.
+[*] 1293 fixable with the `--fix` option (304 hidden fixes can be enabled with the `--unsafe-fixes` option).

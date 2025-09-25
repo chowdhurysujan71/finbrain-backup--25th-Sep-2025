@@ -1,14 +1,14 @@
 Status: 200
 Headers:
 Server: gunicorn
-Date: Thu, 25 Sep 2025 09:28:00 GMT
+Date: Thu, 25 Sep 2025 09:33:20 GMT
 Connection: close
 Content-Type: application/json
 Content-Length: 179
 Cache-Control: no-store, no-cache, must-revalidate, private
 Pragma: no-cache
 Expires: 0
-X-Request-ID: 2cece8369d7a
+X-Request-ID: 42f3892d3ac2
 Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
 X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
@@ -20,7 +20,7 @@ Body:
 {
   "alembic_head": "42e1ad027c33",
   "db": "ep-cold-dawn-adsal0to.c-2.us-east-1.aws.neon.tech",
-  "git_commit": "6960d9ee",
+  "git_commit": "a4b54d7c",
   "migrations_applied": true,
   "service": "finbrain",
   "status": "healthy"

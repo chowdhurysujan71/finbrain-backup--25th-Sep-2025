@@ -1,7 +1,7 @@
 import os
 import logging
 import sys
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for, make_response, g
+from flask import Flask, request, jsonify, render_template, session, url_for, make_response, g
 import uuid
 import time
 from werkzeug.middleware.proxy_fix import ProxyFix
