@@ -224,8 +224,8 @@ Make insights:
             ai_text = parts[0].get('text', '').strip()
             
             # Try to parse JSON response
+            import json
             try:
-                import json
                 
                 # Clean the response - sometimes it comes wrapped in markdown
                 clean_text = ai_text.strip()
@@ -275,7 +275,7 @@ Make insights:
             logger.error(f"Gemini insights generation failed: {e}")
             return {"failover": True, "reason": f"exception: {str(e)[:50]}"}
     
-    def _generate_insights_openai(self, expenses_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _generate_insights_openai(self, expenses_data: Dict[str, Any], user_id: str = "unknown") -> Dict[str, Any]:
         """Generate insights using OpenAI API (fallback)"""
         # Similar implementation for OpenAI if needed
         return {"failover": True, "reason": "openai_insights_not_implemented"}

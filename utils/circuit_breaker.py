@@ -3,7 +3,7 @@ Circuit breaker for AI provider failures
 """
 import time
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
 
@@ -24,7 +24,7 @@ class CircuitBreakerConfig:
 class CircuitBreaker:
     """Circuit breaker for AI provider failures"""
     
-    def __init__(self, config: CircuitBreakerConfig = None):
+    def __init__(self, config: Optional[CircuitBreakerConfig] = None):
         self.config = config or CircuitBreakerConfig()
         self.state = CircuitState.CLOSED
         self.failure_count = 0
@@ -77,7 +77,7 @@ class CircuitBreaker:
         if self.state == CircuitState.CLOSED:
             self._clean_old_failures()
     
-    def record_failure(self, error: str = None) -> None:
+    def record_failure(self, error: Optional[str] = None) -> None:
         """Record failed call"""
         current_time = time.time()
         self.failure_times.append(current_time)
