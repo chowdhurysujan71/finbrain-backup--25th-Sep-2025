@@ -1456,7 +1456,33 @@ class ProductionRouter:
                 clarification_info = expense.get('clarification_info', {})
                 clarification_message = clarification_info.get('message', 'I need clarification about this expense.')
                 
-                # Store the pending expense for later completion
+                # PHASE 5 FIX: Store pending expense ID in session for correction flow
+                try:
+                    from flask import session
+                    # Generate clarification ID using the same format as the expense clarification system
+                    import time
+                    clarification_id = f"{psid_hash}_{rid}_{int(time.time())}"
+                    
+                    # Store clarification ID in session for user to reference later
+                    session['PENDING_EXPENSE_ID'] = clarification_id
+                    
+                    # Also store in clarification system for proper handoff
+                    from utils.expense_clarification import expense_clarification_handler
+                    expense_clarification_handler.store_clarification_data(clarification_id, {
+                        'user_hash': psid_hash,
+                        'original_text': text,
+                        'amount': expense.get('amount', 0),
+                        'item': expense.get('item', text),
+                        'mid': rid,
+                        'options': expense.get('clarification_info', {}).get('options', []),
+                        'suggested_category': expense.get('category')
+                    })
+                    
+                    logger.info(f"[CORRECTION] Stored pending expense {clarification_id} in session for user {psid_hash[:8]}...")
+                    
+                except Exception as session_error:
+                    logger.warning(f"Failed to store pending expense in session: {session_error}")
+                
                 self._log_routing_decision(rid, psid_hash, "ai_clarification", "pending_user_response")
                 
                 response = normalize(clarification_message)

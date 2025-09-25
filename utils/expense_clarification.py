@@ -179,21 +179,20 @@ class ExpenseClarificationHandler:
         if existing:
             db.session.delete(existing)
         
-        # Create new pending expense record
-        pending_expense = PendingExpense(
-            pending_id=clarification_id,
-            user_id_hash=user_hash,
-            amount_minor=int(amount * 100),  # Convert to minor units
-            currency='BDT',
-            description=f"{item} for ৳{amount}",
-            suggested_category=ambiguity_result.get('auto_category'),
-            original_text=original_text,
-            item=item,
-            mid=mid,
-            options_json=json.dumps(ambiguity_result['options']),
-            created_at=datetime.now(timezone.utc),
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=10)
-        )
+        # Create new pending expense record with proper constructor
+        pending_expense = PendingExpense()
+        pending_expense.pending_id = clarification_id
+        pending_expense.user_id_hash = user_hash
+        pending_expense.amount_minor = int(amount * 100)  # Convert to minor units
+        pending_expense.currency = 'BDT'
+        pending_expense.description = f"{item} for ৳{amount}"
+        pending_expense.suggested_category = ambiguity_result.get('auto_category')
+        pending_expense.original_text = original_text
+        pending_expense.item = item
+        pending_expense.mid = mid
+        pending_expense.options_json = json.dumps(ambiguity_result['options'])
+        pending_expense.created_at = datetime.now(timezone.utc)
+        pending_expense.expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
         
         try:
             db.session.add(pending_expense)
@@ -419,6 +418,19 @@ Just reply with the number or tell me what it was!"""
         else:
             # Use database storage
             self._remove_pending_clarification_db(clarification_id)
+    
+    def store_clarification_data(self, clarification_id: str, data: Dict[str, Any]):
+        """
+        PHASE 5: Store clarification data for session-based corrections
+        This bridges the router session storage with the clarification system
+        """
+        try:
+            # Store in memory storage (compatible with existing web UI flow)
+            _store_pending_clarification(clarification_id, data)
+            logger.info(f"[CORRECTION] Stored clarification data for session integration: {clarification_id}")
+        except Exception as e:
+            logger.error(f"Failed to store clarification data: {e}")
+            # Don't re-raise to avoid breaking the correction flow
     
     def _remove_pending_clarification_db(self, clarification_id: str):
         """Remove pending clarification from database"""
