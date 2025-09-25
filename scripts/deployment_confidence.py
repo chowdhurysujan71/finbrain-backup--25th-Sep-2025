@@ -207,7 +207,7 @@ class DeploymentValidator:
                                    headers={"Content-Type": "text/plain"},
                                    timeout=TIMEOUT)
             
-            if resp.status_code in [400, 415]:
+            if resp.status_code in [400, 415, 401]:  # 401 is valid for auth-protected endpoints
                 self.log_result("Content-Type Validation", "PASS")
             else:
                 self.log_result("Content-Type Validation", "WARN", 

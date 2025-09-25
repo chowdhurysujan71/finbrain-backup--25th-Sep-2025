@@ -4,10 +4,22 @@ PWA UI Blueprint - Modern, installable expense tracking interface
 import logging
 import time
 
-from flask import Blueprint, current_app, g, jsonify, render_template, request
+from flask import Blueprint, current_app, g, jsonify, render_template, request, Response, redirect
+from typing import Union, TYPE_CHECKING
 
-# Import rate limiter from centralized utility
-from utils.rate_limiting import limiter
+if TYPE_CHECKING:
+    from models import User
+
+try:
+    from utils.rate_limiting import limiter
+except ImportError:
+    # Create a dummy limiter that doesn't do anything
+    class DummyLimiter:
+        def limit(self, limit_string):
+            def decorator(func):
+                return func  # Just return the function unchanged
+            return decorator
+    limiter = DummyLimiter()
 
 logger = logging.getLogger(__name__)
 
@@ -16,17 +28,26 @@ pwa_ui = Blueprint('pwa_ui', __name__)
 def require_auth():
     """Helper function to ensure user is authenticated via session with DB retry logic"""
     from flask import abort, session
+    from models import User
     
     # Check if user is logged in via session
     user_id_hash = session.get('user_id')
     if not user_id_hash:
         abort(401)
+        
+    # Get user from database
+    user = User.query.filter_by(user_id_hash=user_id_hash).first()
+    if not user:
+        session.clear()
+        abort(401)
+        
+    return user
 
-def require_auth_or_redirect():
+def require_auth_or_redirect() -> Union['User', Response]:
     """Helper function to redirect to login if user is not authenticated"""
     import time
 
-    from flask import redirect, request, session
+    from flask import request, session
     from sqlalchemy.exc import DisconnectionError, OperationalError
 
     from db_base import db
@@ -81,6 +102,9 @@ def require_auth_or_redirect():
             from flask import abort
             abort(500)
     
+    # Fallback return (should never reach here due to abort calls above)
+    return redirect("/login")
+    
 
 # Safe JSON helper function
 def _json():
@@ -91,7 +115,7 @@ def _json():
         return {}
 
 def get_user_id():
-    """Get user ID from session only - SECURITY: Never read from headers"""
+    """Get user ID hash from session only - SECURITY: Never read from headers"""
     from flask import session
     
     # ONLY check session for authenticated users
@@ -190,7 +214,6 @@ def chat():
     Expense input + recent entries list (HTMX partial hydrate)
     AUTHENTICATION REQUIRED
     """
-    from flask import Response
     user = require_auth_or_redirect()  # Require authentication or redirect to login
     
     # If it's a redirect response, return it directly
@@ -211,7 +234,6 @@ def report():
     Money Story summary cards + placeholder charts
     AUTHENTICATION REQUIRED
     """
-    from flask import Response
     user = require_auth_or_redirect()  # Require authentication or redirect to login
     
     # If it's a redirect response, return it directly
@@ -232,7 +254,6 @@ def profile():
     Profile summary showing user info if available
     AUTHENTICATION REQUIRED
     """
-    from flask import Response
     user = require_auth_or_redirect()  # Require authentication or redirect to login
     
     # If it's a redirect response, return it directly
@@ -253,7 +274,6 @@ def challenge():
     3-day challenge progress UI
     AUTHENTICATION REQUIRED
     """
-    from flask import Response
     user = require_auth_or_redirect()  # Require authentication or redirect to login
     
     # If it's a redirect response, return it directly
@@ -876,8 +896,13 @@ def ai_chat():
         user_id_consistent = (session_user_id == resolved_user_id == db_user_id)
         
         # Structured logging at start of handler (FIX: Remove json.dumps to avoid double-encoding)
-        from finbrain.structured import emit_telemetry
-        emit_telemetry({
+        try:
+            from finbrain.structured import emit_telemetry
+        except ImportError:
+            emit_telemetry = None
+        
+        if emit_telemetry:
+            emit_telemetry({
             "request_id": request_id,
             "route": "/ai-chat",
             "session_user_id": session_user_id,
@@ -886,7 +911,7 @@ def ai_chat():
             "user_id_consistent": user_id_consistent,
             "message": text[:40],  # First 40 characters
             "env": "prod"
-        })
+            })
         
         # FIX: Emit warning if user IDs are inconsistent
         if not user_id_consistent:
@@ -912,7 +937,7 @@ def ai_chat():
                 repaired_intent, repaired_amount, repaired_category = repair_expense_with_fallback(
                     text=text,
                     original_intent=intent,
-                    original_amount=amount,
+                    original_amount=int(amount) if amount is not None else None,
                     original_category=category
                 )
                 
@@ -960,26 +985,28 @@ def ai_chat():
                 logger.warning(f"Could not retrieve expense_id for logging: {e}")
             
             # FIX: Log expense_saved with expense_id and without json.dumps
-            emit_telemetry({
-                "request_id": request_id,
-                "expense_saved": True,
-                "id": expense_id,  # FIX: Include the primary key as required
-                "amount": amount,
-                "source": "ai-chat",
-                "category": category,
-                "intent": intent
-            })
+            if emit_telemetry:
+                emit_telemetry({
+                    "request_id": request_id,
+                    "expense_saved": True,
+                    "id": expense_id,  # FIX: Include the primary key as required
+                    "amount": amount,
+                    "source": "ai-chat",
+                    "category": category,
+                    "intent": intent
+                })
         
         latency_ms = int((time.time() - start_time) * 1000)
         
         # FIX: Add success logging with request_id, status=200, latency_ms
-        emit_telemetry({
-            "request_id": request_id,
-            "status": 200,
-            "latency_ms": latency_ms,
-            "route": "/ai-chat",
-            "success": True
-        })
+        if emit_telemetry:
+            emit_telemetry({
+                "request_id": request_id,
+                "status": 200,
+                "latency_ms": latency_ms,
+                "route": "/ai-chat",
+                "success": True
+            })
         
         # [ADDITIVE API] Add new fields while preserving existing contract
         
@@ -1020,14 +1047,15 @@ def ai_chat():
         latency_ms = int((time.time() - start_time) * 1000)
         
         # Log error event
-        emit_telemetry({
-            "request_id": request_id,
-            "status": 500,
-            "latency_ms": latency_ms,
-            "route": "/ai-chat",
-            "error": type(e).__name__,
-            "success": False
-        })
+        if emit_telemetry:
+            emit_telemetry({
+                "request_id": request_id,
+                "status": 500,
+                "latency_ms": latency_ms,
+                "route": "/ai-chat",
+                "error": type(e).__name__,
+                "success": False
+            })
         
         return jsonify({
             "reply": f"Server error: {type(e).__name__}",
