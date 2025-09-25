@@ -1,6 +1,6 @@
 """
-PCA (Precision Capture & Audit) Feature Flags
-Zero-risk implementation with kill switches and gradual rollout
+PCA (Precision Capture & Audit) Feature Flags - PHASE 7 CONSOLIDATION SHIM
+This module now delegates to the unified flags system for single source of truth
 """
 
 import os
@@ -11,29 +11,26 @@ import hashlib
 import uuid
 from datetime import datetime
 
-logger = logging.getLogger("finbrain.pca_flags")
+# PHASE 7: Import unified flags system
+from utils.flags import unified_flags, PCAMode
 
-class PCAMode(Enum):
-    """PCA Operating Modes"""
-    FALLBACK = "FALLBACK"  # Default - PCA disabled, legacy path only
-    SHADOW = "SHADOW"      # Log CC snapshots only, no overlay writes
-    DRYRUN = "DRYRUN"      # Write RAW only, show "would apply" to testers
-    ON = "ON"              # Full PCA with overlay writes
+logger = logging.getLogger("finbrain.pca_flags")
 
 class PCAFlags:
     """PCA Feature Flag Manager with Kill Switches"""
     
     def __init__(self):
-        """Initialize PCA flags with safe defaults"""
-        self.mode = self._get_pca_mode()
-        self.tau_high = float(os.environ.get('PCA_TAU_HIGH', '0.85'))
-        self.tau_low = float(os.environ.get('PCA_TAU_LOW', '0.55'))
-        self.slo_budget_ms = int(os.environ.get('PCA_SLO_BUDGET_MS', '600'))
-        self.canary_users = self._get_canary_users()
-        self.global_kill_switch = os.environ.get('PCA_KILL_SWITCH', 'false').lower() == 'true'
-        self.enable_clarifiers = os.environ.get('ENABLE_CLARIFIERS', 'false').lower() == 'true'
-        self.web_clarifier_ui = os.environ.get('FEATURE_WEB_CLARIFIER_UI', 'true').lower() == 'true'
-        self.category_normalization = os.environ.get('FEATURE_CATEGORY_NORMALIZATION', 'true').lower() == 'true'
+        """PHASE 7: Initialize PCA flags - now delegates to unified system"""
+        # Delegate to unified flags system
+        self.mode = unified_flags.pca_mode
+        self.tau_high = unified_flags.pca_tau_high
+        self.tau_low = unified_flags.pca_tau_low
+        self.slo_budget_ms = 600  # Keep legacy default
+        self.canary_users = []  # Keep legacy default
+        self.global_kill_switch = unified_flags.pca_global_kill
+        self.enable_clarifiers = unified_flags.enable_clarifiers
+        self.web_clarifier_ui = unified_flags.web_clarifier_ui
+        self.category_normalization = unified_flags.category_normalization
         
         # Validate thresholds
         if self.tau_high <= self.tau_low:

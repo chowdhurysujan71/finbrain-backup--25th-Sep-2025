@@ -1,6 +1,6 @@
 """
-Feature Flags for FinBrain - Always On Configuration
-All features are now enabled by default for production stability
+Feature Flags for FinBrain - PHASE 7 CONSOLIDATION SHIM
+This module now delegates to the unified flags system for single source of truth
 """
 
 import os
@@ -9,47 +9,29 @@ from typing import Set, List, Optional
 
 logger = logging.getLogger("finbrain.feature_flags")
 
-# Import centralized config
+# PHASE 7: Import unified flags system
+from utils.flags import unified_flags
+
+# Import centralized config for backward compatibility
 from utils.config import FEATURE_FLAGS_VERSION
 
 def is_smart_nlp_enabled(psid_hash: Optional[str] = None) -> bool:
     """
-    SMART_NLP_ROUTING is now always enabled.
-    Kept for backward compatibility during transition.
-    
-    Args:
-        psid_hash: User's PSID hash (ignored, always returns True)
-        
-    Returns:
-        Always True - feature is permanently enabled
+    PHASE 7: Delegates to unified flags system
     """
-    return True
+    return unified_flags.is_smart_nlp_enabled(psid_hash)
 
 def is_smart_tone_enabled(psid_hash: Optional[str] = None) -> bool:
     """
-    SMART_NLP_TONE is now always enabled.
-    Kept for backward compatibility during transition.
-    
-    Args:
-        psid_hash: User's PSID hash (ignored, always returns True)
-        
-    Returns:
-        Always True - feature is permanently enabled
+    PHASE 7: Delegates to unified flags system
     """
-    return True
+    return unified_flags.is_smart_tone_enabled(psid_hash)
 
 def is_smart_corrections_enabled(psid_hash: Optional[str] = None) -> bool:
     """
-    SMART_CORRECTIONS is now always enabled.
-    Kept for backward compatibility during transition.
-    
-    Args:
-        psid_hash: User's PSID hash (ignored, always returns True)
-        
-    Returns:
-        Always True - feature is permanently enabled
+    PHASE 7: Delegates to unified flags system
     """
-    return True
+    return unified_flags.is_smart_corrections_enabled(psid_hash)
 
 def feature_enabled(*_args, **_kwargs) -> bool:
     """

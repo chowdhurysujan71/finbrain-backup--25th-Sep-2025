@@ -233,7 +233,7 @@ logging.warning("PRODUCTION_ROUTER_INIT file=%s sha=%s",
                 _P, hashlib.sha256(_P.read_bytes()).hexdigest()[:12])
 
 # Facade: One Brain, Two Doors  
-def route_message(user_id_hash: str, text: str, channel: str = "web", locale: str = None, meta: dict = None):
+def route_message(user_id_hash: str, text: str, channel: str = "web", locale: Optional[str] = None, meta: Optional[dict] = None):
     """
     Stable entrypoint for ALL channels. Web should call this.
     FB Messenger calls this through background_processor, Web calls this directly.
@@ -1459,7 +1459,7 @@ class ProductionRouter:
                     
                     # Use the clarification handler to properly initiate clarification
                     # This ensures consistent ID generation and proper storage
-                    clarification_result = expense_clarification_handler.handle_expense_clarification(
+                    clarification_result = expense_clarification_handler.handle_expense_with_clarification(
                         user_hash=psid_hash,
                         original_text=text,
                         amount=expense.get('amount', 0),
@@ -1598,12 +1598,16 @@ class ProductionRouter:
             
             # DRYRUN mode: CC persisted + raw ledger write + "would log" message
             if current_mode == PCAMode.DRYRUN:
-                return self._handle_dryrun_mode(decision, amount, category, note, merchant_text, 
+                # Add None guard for decision parameter
+                safe_decision = decision if decision is not None else "unknown"
+                return self._handle_dryrun_mode(safe_decision, amount, category, note, merchant_text, 
                                               text, psid_hash, rid, ui_note)
             
             # ON mode: Full CC processing with raw + overlay writes
             if current_mode == PCAMode.ON:
-                return self._handle_on_mode(decision, amount, category, note, merchant_text, 
+                # Add None guard for decision parameter
+                safe_decision = decision if decision is not None else "unknown"
+                return self._handle_on_mode(safe_decision, amount, category, note, merchant_text, 
                                           text, psid_hash, rid, ui_note, ai_result)
             
             # Should not reach here, but fail safe
@@ -2504,7 +2508,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             logger.error(f"Summary data error: {e}")
             return {'total': 0.0, 'food': 0.0, 'ride': 0.0, 'bill': 0.0, 'grocery': 0.0, 'other': 0.0}
     
-    def _generate_ai_logged_response(self, amount: float, note: str, category: str, tips: List[str], tx_id: str = None, psid: str = None) -> str:
+    def _generate_ai_logged_response(self, amount: float, note: str, category: str, tips: List[str], tx_id: Optional[str] = None, psid: Optional[str] = None) -> str:
         """Generate AI-powered response for logged expenses with audit transparency"""
         
         # Base confirmation with amount and note

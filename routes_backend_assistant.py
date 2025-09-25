@@ -386,7 +386,15 @@ def api_get_recent_expenses(authenticated_user_id):
             "expenses_returned": len(result) if isinstance(result, list) else 0
         })
         
-        return jsonify(success_response(result, f"Retrieved {len(result) if isinstance(result, list) else 0} recent expenses"))
+        # PHASE 6: Add cache headers for performance optimization
+        response = jsonify(success_response(result, f"Retrieved {len(result) if isinstance(result, list) else 0} recent expenses"))
+        
+        # Cache headers to prevent stale recent expenses display
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'  
+        response.headers['Expires'] = '0'
+        
+        return response
         
     except Exception as e:
         response_time = (time.time() - start_time) * 1000
