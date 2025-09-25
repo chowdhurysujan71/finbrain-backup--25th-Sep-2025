@@ -233,7 +233,7 @@ class ComprehensivePhaseTest:
                 health_response = requests.get(f"{self.base_url}/api/monitoring/health", timeout=5)
                 health_working = health_response.status_code == 200
                 health_data = health_response.json() if health_working else {}
-            except:
+            except requests.RequestException as e:
                 health_working = False
                 health_data = {}
             
@@ -249,7 +249,7 @@ class ComprehensivePhaseTest:
                 metrics_response = requests.get(f"{self.base_url}/api/monitoring/metrics", timeout=5)
                 metrics_working = metrics_response.status_code == 200
                 metrics_data = metrics_response.json() if metrics_working else {}
-            except:
+            except requests.RequestException as e:
                 metrics_working = False
                 metrics_data = {}
             
@@ -264,7 +264,7 @@ class ComprehensivePhaseTest:
             try:
                 dashboard_response = requests.get(f"{self.base_url}/api/monitoring/dashboard", timeout=5)
                 dashboard_working = dashboard_response.status_code == 200
-            except:
+            except requests.RequestException as e:
                 dashboard_working = False
             
             monitoring_tests.append({
@@ -302,7 +302,7 @@ class ComprehensivePhaseTest:
                 status_response = requests.get(f"{self.base_url}/api/production/status", timeout=10)
                 status_working = status_response.status_code == 200
                 status_data = status_response.json() if status_working else {}
-            except:
+            except requests.RequestException as e:
                 status_working = False
                 status_data = {}
             

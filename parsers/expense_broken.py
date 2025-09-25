@@ -586,28 +586,6 @@ def parse_amount_currency_category(text: str) -> dict[str, Any]:
         'category': result.get('category', 'general'),
         'note': result.get('note', text.strip())
     }
-    
-    # Step 2: Extract category
-    # Look for word after "on" or "for"
-    category_pattern = re.compile(r'(?i)\b(?:on|for)\s+(\w+)')
-    category_match = category_pattern.search(text_clean)
-    
-    if category_match:
-        category_word = category_match.group(1).lower()
-        # Map to normalized category
-        if category_word in CATEGORY_ALIASES:
-            result['category'] = CATEGORY_ALIASES[category_word]
-        else:
-            result['category'] = category_word
-    else:
-        # Try to find category keywords anywhere in text
-        text_lower = text_clean.lower()
-        for keyword, category in CATEGORY_ALIASES.items():
-            if keyword in text_lower:
-                result['category'] = category
-                break
-    
-    return result
 
 def test_parse_amount_currency_category():
     """Test cases for unified parser"""

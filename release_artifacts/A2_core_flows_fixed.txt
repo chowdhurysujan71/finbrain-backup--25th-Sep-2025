@@ -1,0 +1,19 @@
+=== A2.1: Testing Backend Assistant Add Expense (Valid Auth) ===
+{"error":"Authentication required","error_code":"AUTH_REQUIRED","success":false,"trace_id":"ffafbab51463"}
+
+=== A2.2: Testing Health Flow ===
+{
+  "alembic_head": "42e1ad027c33",
+  "db": "ep-cold-dawn-adsal0to.c-2.us-east-1.aws.neon.tech",
+  "git_commit": "f61655a4",
+  "migrations_applied": true,
+  "service": "finbrain",
+  "status": "healthy"
+}
+
+=== A2.3: Testing Main Route ===
+            <title>finbrain - AI-Powered Expense Tracking</title>
+                <div class="logo">🧠 finbrain</div>
+                <div class="tagline">AI-Powered Expense Tracking via Messenger</div>
+                    <p>AI Integration: Active</p>
+                    <p>Just message "spent 500 on groceries" and finbrain handles the rest</p>

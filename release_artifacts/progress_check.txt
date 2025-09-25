@@ -1,0 +1,6 @@
+F821 remaining: 1
+E722 remaining: 137
+
+Next E722 offenders to fix:
+E722 Do not use bare `except`
+  --> comprehensive_uat_audit_transparency.py:85:5
