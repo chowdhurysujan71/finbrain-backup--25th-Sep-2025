@@ -890,20 +890,45 @@ def get_ai_timeout_metrics():
         if self.session:
             self.session.close()
     
-    def get_completion(self, prompt: str, **kwargs) -> Dict[str, Any]:
-        """EMERGENCY FIX: Basic completion method that production router expects"""
+    def get_completion(self, prompt: str, **kwargs) -> str:
+        """
+        COMPATIBILITY SHIM: Legacy interface for production router
+        
+        This method provides backward compatibility for router code that expects
+        get_completion() while using the new ai_parse() infrastructure.
+        
+        Args:
+            prompt: Raw prompt string (typically conversational)
+            
+        Returns:
+            String response for natural conversation
+        """
+        if not self.enabled:
+            return "I'm here to help with your expenses! Try saying something like 'coffee 50' or ask for a 'summary'."
+        
         try:
-            # Use existing process_message infrastructure  
-            context = kwargs.get('context', {})
-            result = self.process_message(prompt, context)
+            # Use ai_parse with minimal context for conversation
+            context = kwargs.get('context', {"type": "conversation", "user_id": "conversation"})
+            result = self.ai_parse(prompt, context)
             
-            if result.get('failover'):
-                return {'error': result.get('reason', 'ai_failed')}
+            # Extract conversational response or provide fallback
+            if result.get("failover"):
+                return "I'm here to help! You can log expenses like 'coffee 50' or ask for your spending summary."
             
-            return {'response': result.get('response', 'Unable to process request')}
+            # Return ui_note if available (designed for user display)
+            if "ui_note" in result:
+                return result["ui_note"]
+            
+            # If it's a structured AI result, extract meaningful response
+            if result.get("intent") == "HELP":
+                return result.get("ui_note", "I'm here to help with your expenses! Try saying 'coffee 50' or ask for a summary.")
+            
+            # Fallback to generic helpful response
+            return "I'm here to help with your expenses! Try logging something like 'coffee 50' or ask for a summary."
             
         except Exception as e:
-            return {'error': f'completion_failed: {e}'}
+            logger.warning(f"get_completion shim failed: {e}")
+            return "I'm here to help with your expenses! You can say things like 'coffee 50' or ask for your 'summary'."
 
 # Global instance
 production_ai_adapter = ProductionAIAdapter()
