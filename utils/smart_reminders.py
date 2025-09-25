@@ -5,14 +5,14 @@ Handles reminder scheduling, checking, and sending within Facebook's 24-hour pol
 
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any
+from typing import Dict
+
 from db_base import db
 from models import User
-from utils.facebook_handler import send_facebook_message
 
 logger = logging.getLogger(__name__)
 
-def check_and_send_reminders() -> Dict[str, int]:
+def check_and_send_reminders() -> dict[str, int]:
     """
     Check for users with scheduled reminders and send them if within the safe window.
     

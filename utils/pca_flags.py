@@ -3,16 +3,14 @@ PCA (Precision Capture & Audit) Feature Flags - PHASE 7 CONSOLIDATION SHIM
 This module now delegates to the unified flags system for single source of truth
 """
 
-import os
-import logging
-from enum import Enum
-from typing import Optional, Dict, Any
 import hashlib
-import uuid
+import logging
+import os
 from datetime import datetime
+from typing import Any, Dict
 
 # PHASE 7: Import unified flags system
-from utils.flags import unified_flags, PCAMode
+from utils.flags import PCAMode, unified_flags
 
 logger = logging.getLogger("finbrain.pca_flags")
 
@@ -130,7 +128,7 @@ class PCAFlags:
         """Get clarifier decision thresholds for confidence scoring"""
         return self.tau_high, self.tau_low
     
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get current PCA status for monitoring"""
         return {
             'mode': self.mode.value,

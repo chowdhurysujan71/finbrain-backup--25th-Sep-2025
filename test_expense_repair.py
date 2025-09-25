@@ -3,18 +3,21 @@ Unit tests for expense repair system
 Tests repair logic, category normalization, and circuit breaker patterns
 """
 
-import pytest
-import sys
 import os
+import sys
+
+import pytest
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+from backend_assistant import normalize_category
 from utils.expense_repair import (
-    looks_like_expense,
     extract_amount_minor,
     guess_category,
-    repair_expense_with_fallback
+    looks_like_expense,
+    repair_expense_with_fallback,
 )
-from backend_assistant import normalize_category
+
 
 class TestExpenseDetection:
     """Test expense detection patterns"""

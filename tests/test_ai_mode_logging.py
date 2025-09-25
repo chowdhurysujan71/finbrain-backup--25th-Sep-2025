@@ -1,5 +1,6 @@
-import pytest
 import logging
+
+import pytest
 from flask import Flask
 
 # Mark as expected failure due to module restructuring

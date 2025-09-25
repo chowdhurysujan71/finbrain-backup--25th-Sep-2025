@@ -6,7 +6,7 @@ Evolves the system to parse complex expense entries like:
 
 import logging
 import re
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class AIExpenseParser:
     def __init__(self):
         self.logger = logger
         
-    def parse_message(self, text: str) -> Dict[str, Any]:
+    def parse_message(self, text: str) -> dict[str, Any]:
         """
         Parse user message for expenses using enhanced regex and AI
         
@@ -59,7 +59,7 @@ class AIExpenseParser:
         
         return text
     
-    def _try_regex_multi_parse(self, text: str) -> Dict[str, Any]:
+    def _try_regex_multi_parse(self, text: str) -> dict[str, Any]:
         """Try regex-based parsing for multi-item messages"""
         try:
             # Replace "and" with comma for uniform splitting
@@ -150,7 +150,7 @@ class AIExpenseParser:
         
         return 'other'
     
-    def _fallback_parse(self, text: str) -> Dict[str, Any]:
+    def _fallback_parse(self, text: str) -> dict[str, Any]:
         """Basic fallback parsing when regex fails"""
         try:
             # Simple regex patterns for single expenses

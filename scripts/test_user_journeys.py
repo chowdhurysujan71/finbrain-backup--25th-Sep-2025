@@ -3,12 +3,14 @@
 Core User Journey Tests - Evidence-Driven Release Assurance
 Tests the 5 critical user journeys demanded in the original evidence protocol
 """
-import requests
 import json
 import sys
 import time
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
+
+import requests
+
 
 class UserJourneyTester:
     def __init__(self):
@@ -168,7 +170,7 @@ class UserJourneyTester:
             self.log_result("AI Adapter v2", "FAIL", f"Connection error: {str(e)}")
             return False
     
-    def run_all_journeys(self) -> Dict[str, Any]:
+    def run_all_journeys(self) -> dict[str, Any]:
         """Run all 5 core user journeys"""
         print("🧪 Core User Journey Tests - Evidence Generation")
         print("=" * 55)
@@ -195,7 +197,7 @@ class UserJourneyTester:
         # Generate summary
         overall_status = "PASS" if passed == total else "FAIL"
         
-        print(f"\n📊 User Journeys Test Summary:")
+        print("\n📊 User Journeys Test Summary:")
         print(f"  Passed: {passed}/{total} journeys")
         print(f"  Overall: {overall_status} {'✅' if overall_status == 'PASS' else '❌'}")
         

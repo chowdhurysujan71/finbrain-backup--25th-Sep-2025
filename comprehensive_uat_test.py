@@ -4,12 +4,13 @@ Comprehensive End-to-End UAT for FinBrain
 Tests all major user flows and system components
 """
 
-import sys
 import json
+import sys
 import time
+from datetime import datetime
+
 import requests
-from datetime import datetime, timedelta
-import traceback
+
 
 class FinBrainUAT:
     def __init__(self):
@@ -72,7 +73,7 @@ class FinBrainUAT:
             # Import within function to avoid initialization issues
             sys.path.append('/home/runner/workspace')
             from app import app, db
-            from models import User, Expense
+            from models import Expense, User
             
             with app.app_context():
                 # Test database connection
@@ -383,4 +384,4 @@ if __name__ == "__main__":
     with open('uat_results.json', 'w') as f:
         json.dump(results, f, indent=2)
     
-    print(f"\n📄 Detailed results saved to uat_results.json")
+    print("\n📄 Detailed results saved to uat_results.json")

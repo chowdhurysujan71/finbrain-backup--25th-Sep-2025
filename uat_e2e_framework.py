@@ -4,23 +4,21 @@ Phase E End-to-End User Acceptance Testing Framework
 Comprehensive validation of data handling, routing, processing, storing, and integrity
 """
 
-import hashlib
 import json
-import random
+import logging
 import time
 import uuid
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Tuple
-import logging
+from datetime import datetime
+from typing import Any, Dict, List
+
+from db_base import db
+from models import Expense, ExpenseEdit
+from pwa_nl_integration import handle_clarification_response, handle_nl_expense_entry
+from utils.db import save_expense
+from utils.expense_editor import edit_last_expense
 
 # Import our implementation
 from utils.nl_expense_parser import parse_nl_expense
-from utils.expense_editor import edit_last_expense, expense_editor
-from pwa_nl_integration import handle_nl_expense_entry, handle_clarification_response
-from models import Expense, ExpenseEdit, User
-from db_base import db
-from utils.db import save_expense
-from utils.identity import psid_hash
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +32,7 @@ class E2EUATFramework:
         self.performance_metrics = {}
         self.integrity_checks = []
         
-    def execute_comprehensive_uat(self) -> Dict[str, Any]:
+    def execute_comprehensive_uat(self) -> dict[str, Any]:
         """Execute complete UAT suite covering all user scenarios"""
         print("🔬 PHASE E END-TO-END UAT FRAMEWORK")
         print("=" * 60)
@@ -114,7 +112,7 @@ class E2EUATFramework:
                     db_session=db
                 )
     
-    def _test_new_user_scenarios(self) -> Dict[str, Any]:
+    def _test_new_user_scenarios(self) -> dict[str, Any]:
         """Test new user onboarding with NL expense processing"""
         results = {
             'success': True,
@@ -189,7 +187,7 @@ class E2EUATFramework:
         
         return results
     
-    def _test_existing_user_scenarios(self) -> Dict[str, Any]:
+    def _test_existing_user_scenarios(self) -> dict[str, Any]:
         """Test existing user flows including corrections and edits"""
         results = {
             'success': True,
@@ -248,7 +246,7 @@ class E2EUATFramework:
         
         return results
     
-    def _test_data_integrity(self) -> Dict[str, Any]:
+    def _test_data_integrity(self) -> dict[str, Any]:
         """Test complete data integrity across all operations"""
         results = {
             'success': True,
@@ -331,7 +329,7 @@ class E2EUATFramework:
         
         return results
     
-    def _test_routing_processing(self) -> Dict[str, Any]:
+    def _test_routing_processing(self) -> dict[str, Any]:
         """Test routing and processing pipeline"""
         results = {
             'success': True,
@@ -387,7 +385,7 @@ class E2EUATFramework:
         
         return results
     
-    def _test_audit_trail(self) -> Dict[str, Any]:
+    def _test_audit_trail(self) -> dict[str, Any]:
         """Test complete audit trail functionality"""
         results = {
             'success': True,
@@ -462,7 +460,7 @@ class E2EUATFramework:
         
         return results
     
-    def _test_edge_cases(self) -> Dict[str, Any]:
+    def _test_edge_cases(self) -> dict[str, Any]:
         """Test edge cases and error handling"""
         results = {
             'success': True,
@@ -503,7 +501,7 @@ class E2EUATFramework:
         
         return results
     
-    def _test_performance(self) -> Dict[str, Any]:
+    def _test_performance(self) -> dict[str, Any]:
         """Test performance and scalability"""
         results = {
             'success': True,
@@ -560,7 +558,7 @@ class E2EUATFramework:
         
         return results
     
-    def _test_security_isolation(self) -> Dict[str, Any]:
+    def _test_security_isolation(self) -> dict[str, Any]:
         """Test security and user isolation"""
         results = {
             'success': True,
@@ -603,7 +601,7 @@ class E2EUATFramework:
         
         return results
     
-    def _validate_expense_integrity(self, expense: Dict) -> bool:
+    def _validate_expense_integrity(self, expense: dict) -> bool:
         """Validate expense record integrity"""
         if not expense:
             return False
@@ -611,11 +609,11 @@ class E2EUATFramework:
         required_fields = ['id', 'amount', 'category', 'description']
         return all(field in expense for field in required_fields)
     
-    def _validate_audit_trail_creation(self, edit_result: Dict) -> bool:
+    def _validate_audit_trail_creation(self, edit_result: dict) -> bool:
         """Validate audit trail was properly created"""
         return 'audit_id' in edit_result and edit_result.get('audit_id') is not None
     
-    def _test_user_isolation(self) -> List[str]:
+    def _test_user_isolation(self) -> list[str]:
         """Test user data isolation"""
         issues = []
         
@@ -628,7 +626,7 @@ class E2EUATFramework:
         
         return issues
     
-    def _generate_audit_report(self) -> Dict[str, Any]:
+    def _generate_audit_report(self) -> dict[str, Any]:
         """Generate comprehensive audit report"""
         total_tests = len(self.test_results)
         passed_tests = sum(1 for test in self.test_results if test['status'] == 'PASS')
@@ -681,7 +679,7 @@ class E2EUATFramework:
         
         return audit_report
     
-    def _generate_next_steps(self, deployment_ready: bool, critical_failures: List) -> List[str]:
+    def _generate_next_steps(self, deployment_ready: bool, critical_failures: list) -> list[str]:
         """Generate next steps based on test results"""
         if deployment_ready:
             return [
@@ -715,8 +713,8 @@ def main():
         
         # Print executive summary
         summary = audit_report['executive_summary']
-        print(f"\n🎯 UAT EXECUTIVE SUMMARY")
-        print(f"=" * 50)
+        print("\n🎯 UAT EXECUTIVE SUMMARY")
+        print("=" * 50)
         print(f"📊 Overall Success Rate: {summary['overall_success_rate']:.1f}%")
         print(f"✅ Scenarios Passed: {summary['scenarios_passed']}/{summary['total_scenarios_tested']}")
         print(f"🚨 Critical Failures: {summary['critical_failures']}")
@@ -724,7 +722,7 @@ def main():
         
         # Print deployment recommendation
         recommendation = audit_report['deployment_recommendation']
-        print(f"\n🔍 DEPLOYMENT RECOMMENDATION")
+        print("\n🔍 DEPLOYMENT RECOMMENDATION")
         print(f"Status: {recommendation['status']}")
         print(f"Confidence: {recommendation['confidence_level']}")
         
@@ -733,7 +731,7 @@ def main():
             for blocker in recommendation['blockers']:
                 print(f"  • {blocker}")
         
-        print(f"\nNext Steps:")
+        print("\nNext Steps:")
         for step in recommendation['next_steps']:
             print(f"  {step}")
         
@@ -741,7 +739,7 @@ def main():
         with open('phase_e_uat_audit_report.json', 'w', encoding='utf-8') as f:
             json.dump(audit_report, f, indent=2, ensure_ascii=False)
         
-        print(f"\n📄 Detailed audit report saved: phase_e_uat_audit_report.json")
+        print("\n📄 Detailed audit report saved: phase_e_uat_audit_report.json")
         
         return audit_report
         

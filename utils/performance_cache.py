@@ -3,11 +3,10 @@ High-Performance Caching System for Report Generation
 Implements intelligent caching with TTL and memory optimization
 """
 
-import logging
-import time
 import hashlib
-from typing import Optional, Dict, Any
+import logging
 from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +28,7 @@ class PerformanceCache:
         key_data = f"{cache_type}:{user_id}:{days_window}:{current_hour}"
         return hashlib.md5(key_data.encode()).hexdigest()[:16]  # Short hash for speed
     
-    def get_report(self, user_id: str, days_window: int) -> Optional[str]:
+    def get_report(self, user_id: str, days_window: int) -> str | None:
         """Get cached report if available and fresh"""
         try:
             cache_key = self._generate_cache_key(user_id, days_window, "report")
@@ -117,7 +116,7 @@ class PerformanceCache:
         
         logger.debug(f"Removed {removal_count} oldest cache entries")
     
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache performance statistics"""
         total_requests = _CACHE_STATS["hits"] + _CACHE_STATS["misses"]
         hit_rate = (_CACHE_STATS["hits"] / total_requests * 100) if total_requests > 0 else 0

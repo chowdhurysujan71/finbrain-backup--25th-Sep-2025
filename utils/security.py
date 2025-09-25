@@ -17,7 +17,7 @@ def hash_user_id(user_identifier):
         hash_object = hashlib.sha256(user_str.encode('utf-8'))
         hashed_id = hash_object.hexdigest()
         
-        logger.debug(f"User ID hashed successfully")
+        logger.debug("User ID hashed successfully")
         return hashed_id
         
     except Exception as e:

@@ -3,12 +3,17 @@
 Real-time production health monitoring with auto-rollback recommendations
 """
 
-from flask import Blueprint, jsonify, request
-from utils.production_smoke_tests import run_production_smoke_test, get_smoke_test_history
 import logging
 import threading
 import time
 from datetime import datetime, timedelta
+
+from flask import Blueprint, jsonify, request
+
+from utils.production_smoke_tests import (
+    get_smoke_test_history,
+    run_production_smoke_test,
+)
 
 logger = logging.getLogger(__name__)
 

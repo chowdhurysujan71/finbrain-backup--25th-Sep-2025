@@ -6,7 +6,6 @@ drift between migration scripts and ensure consistency across the system.
 """
 
 import os
-from typing import Optional
 
 # Advisory lock ID for migration coordination
 # This MUST be the same across all migration scripts to prevent race conditions

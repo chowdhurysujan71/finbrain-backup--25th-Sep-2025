@@ -126,7 +126,7 @@ def _fallback_parse(text: str) -> dict:
     
     return {"amount": amount, "category": category, "note": None}
 
-def _extract_main_item(text: str) -> Optional[str]:
+def _extract_main_item(text: str) -> str | None:
     """Extract the main expense item from text for ambiguity checking"""
     import re
     

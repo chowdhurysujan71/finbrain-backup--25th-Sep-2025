@@ -4,9 +4,8 @@ Executes comprehensive UAT and generates detailed audit reports
 """
 
 import logging
-import json
-from typing import Dict, Any
 from datetime import datetime
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -223,7 +222,7 @@ class UATReportGenerator:
         return "\\n".join(report_lines)
     
     @staticmethod
-    def _analyze_integrity_results(audit_report) -> Dict[str, Any]:
+    def _analyze_integrity_results(audit_report) -> dict[str, Any]:
         """Analyze data integrity results across all tests"""
         total_checks = 0
         passed_checks = 0

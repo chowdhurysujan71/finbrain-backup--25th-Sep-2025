@@ -4,13 +4,13 @@
 Provides observability and SLA monitoring for the single writer architecture
 """
 
+import logging
 import os
 import sys
 import time
-import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict
+
 import psycopg2
-from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ class SingleWriterMonitor:
             raise ValueError("DATABASE_URL environment variable not found")
         return psycopg2.connect(database_url)
     
-    def check_system_health(self) -> Dict[str, Any]:
+    def check_system_health(self) -> dict[str, Any]:
         """Perform comprehensive single writer system health check"""
         health_report = {
             'timestamp': time.time(),
@@ -78,7 +78,7 @@ class SingleWriterMonitor:
         
         return health_report
     
-    def _check_database_health(self) -> Dict[str, Any]:
+    def _check_database_health(self) -> dict[str, Any]:
         """Check database connectivity and basic queries"""
         try:
             conn = self.get_db_connection()
@@ -114,11 +114,14 @@ class SingleWriterMonitor:
                 'connectivity': 'failed'
             }
     
-    def _check_guard_status(self) -> Dict[str, Any]:
+    def _check_guard_status(self) -> dict[str, Any]:
         """Check single writer guard status"""
         try:
             # Import and check guard
-            from utils.single_writer_guard import single_writer_guard, canonical_writer_context
+            from utils.single_writer_guard import (
+                canonical_writer_context,
+                single_writer_guard,
+            )
             
             # Verify API is available
             guard_active = single_writer_guard._initialized if hasattr(single_writer_guard, '_initialized') else False
@@ -143,7 +146,7 @@ class SingleWriterMonitor:
                 'protection_level': 'error'
             }
     
-    def _check_backend_assistant(self) -> Dict[str, Any]:
+    def _check_backend_assistant(self) -> dict[str, Any]:
         """Check backend assistant availability"""
         try:
             # Import backend assistant
@@ -173,7 +176,7 @@ class SingleWriterMonitor:
                 'canonical_writer': 'error'
             }
     
-    def _check_sla_compliance(self) -> Dict[str, Any]:
+    def _check_sla_compliance(self) -> dict[str, Any]:
         """Check SLA compliance metrics"""
         try:
             # Calculate current metrics
@@ -208,7 +211,7 @@ class SingleWriterMonitor:
                 'compliance': 'unknown'
             }
     
-    def _check_data_consistency(self) -> Dict[str, Any]:
+    def _check_data_consistency(self) -> dict[str, Any]:
         """Check data consistency across single writer system"""
         try:
             conn = self.get_db_connection()

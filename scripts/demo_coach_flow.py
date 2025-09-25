@@ -3,11 +3,10 @@ End-to-end coaching flow simulation and demonstration
 Shows session state transitions and telemetry events
 """
 
+import logging
 import os
 import sys
 import time
-import logging
-from datetime import datetime
 
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -24,9 +23,8 @@ def run_coaching_demo():
     print("🎯 FinBrain Coaching Flow Demo")
     print("=" * 50)
     
-    from handlers.coaching import maybe_continue, handle_coaching_response
-    from utils.session import get_coaching_session, delete_coaching_session
-    from utils.structured import log_structured_event
+    from handlers.coaching import handle_coaching_response, maybe_continue
+    from utils.session import delete_coaching_session, get_coaching_session
     
     test_psid = "demo_user_12345678"
     
@@ -43,7 +41,7 @@ def run_coaching_demo():
     })
     
     if coaching_reply:
-        print(f"✅ Coaching Started!")
+        print("✅ Coaching Started!")
         print(f"Reply: {coaching_reply['text']}")
         print(f"Quick Replies: {[qr['title'] for qr in coaching_reply.get('quick_replies', [])]}")
         
@@ -60,7 +58,7 @@ def run_coaching_demo():
     reply2 = handle_coaching_response(test_psid, 'transport')
     
     if reply2:
-        print(f"✅ Focus Selected!")
+        print("✅ Focus Selected!")
         print(f"Reply: {reply2['text']}")
         print(f"Quick Replies: {[qr['title'] for qr in reply2.get('quick_replies', [])]}")
         
@@ -74,7 +72,7 @@ def run_coaching_demo():
     reply3 = handle_coaching_response(test_psid, 'off-peak')
     
     if reply3:
-        print(f"✅ Action Committed!")
+        print("✅ Action Committed!")
         print(f"Reply: {reply3['text']}")
         
         session = get_coaching_session(test_psid)

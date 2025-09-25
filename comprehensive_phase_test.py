@@ -4,19 +4,21 @@ Comprehensive CC System End-to-End Testing
 Tests all phases: 1-5 with immediate fixes verification
 """
 
-import sys
-import os
 import json
-import requests
+import sys
 import time
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Any, Dict
+
+import requests
 
 # Add project root to path
 sys.path.append('/home/runner/workspace')
 
-from app import app, db
 from sqlalchemy import text
+
+from app import app, db
+
 
 class ComprehensivePhaseTest:
     """Comprehensive testing for all CC phases"""
@@ -26,7 +28,7 @@ class ComprehensivePhaseTest:
         self.test_results = {}
         self.start_time = datetime.now()
         
-    def run_all_tests(self) -> Dict[str, Any]:
+    def run_all_tests(self) -> dict[str, Any]:
         """Run comprehensive tests for all phases"""
         print("🧪 Starting Comprehensive CC Phase Testing")
         print("=" * 50)
@@ -49,7 +51,7 @@ class ComprehensivePhaseTest:
         # Generate comprehensive report
         return self.generate_final_report()
     
-    def test_phase1_fixes(self) -> Dict[str, Any]:
+    def test_phase1_fixes(self) -> dict[str, Any]:
         """Test Phase 1 with immediate fixes validation"""
         print("\n📋 Testing Phase 1: CC Persistence + Immediate Fixes")
         
@@ -107,7 +109,7 @@ class ComprehensivePhaseTest:
                 'summary': 'Phase 1 testing failed'
             }
     
-    def test_phase2_integration(self) -> Dict[str, Any]:
+    def test_phase2_integration(self) -> dict[str, Any]:
         """Test Phase 2: Router Integration"""
         print("\n🔀 Testing Phase 2: Router Integration")
         
@@ -161,7 +163,7 @@ class ComprehensivePhaseTest:
                 'summary': 'Phase 2 testing failed'
             }
     
-    def test_phase3_replay(self) -> Dict[str, Any]:
+    def test_phase3_replay(self) -> dict[str, Any]:
         """Test Phase 3: Replay & Debug"""
         print("\n🔄 Testing Phase 3: Replay & Debug")
         
@@ -218,7 +220,7 @@ class ComprehensivePhaseTest:
                 'summary': 'Phase 3 testing failed'
             }
     
-    def test_phase4_monitoring(self) -> Dict[str, Any]:
+    def test_phase4_monitoring(self) -> dict[str, Any]:
         """Test Phase 4: Enhanced Monitoring"""
         print("\n📊 Testing Phase 4: Enhanced Monitoring")
         
@@ -288,7 +290,7 @@ class ComprehensivePhaseTest:
                 'summary': 'Phase 4 testing failed'
             }
     
-    def test_phase5_production(self) -> Dict[str, Any]:
+    def test_phase5_production(self) -> dict[str, Any]:
         """Test Phase 5: Production Blast"""
         print("\n🚀 Testing Phase 5: Production Blast")
         
@@ -347,7 +349,7 @@ class ComprehensivePhaseTest:
                 'summary': 'Phase 5 testing failed'
             }
     
-    def generate_final_report(self) -> Dict[str, Any]:
+    def generate_final_report(self) -> dict[str, Any]:
         """Generate comprehensive final report"""
         print("\n📊 Generating Final Report")
         print("=" * 50)

@@ -6,6 +6,7 @@ Tests the core coaching workflow without complex session management
 
 import os
 import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def test_coaching_basic_flow():
@@ -14,7 +15,7 @@ def test_coaching_basic_flow():
     print("🧪 Basic Coaching Flow Test")
     print("=" * 40)
     
-    from handlers.coaching import maybe_continue, _start_coaching_flow, _get_topic_suggestions
+    from handlers.coaching import _get_topic_suggestions, maybe_continue
     from utils.session import delete_coaching_session
     
     test_psid = "simple_test_12345678"
@@ -31,7 +32,7 @@ def test_coaching_basic_flow():
     result = maybe_continue(test_psid, 'insight', {'categories': ['transport', 'food']})
     
     if result:
-        print(f"   ✅ Coaching started successfully!")
+        print("   ✅ Coaching started successfully!")
         print(f"   Intent: {result['intent']}")
         print(f"   Text: {result['text'][:50]}...")
         print(f"   Quick replies: {len(result.get('quick_replies', []))} buttons")
@@ -39,7 +40,7 @@ def test_coaching_basic_flow():
         print("   ❌ No coaching started")
         
     print("\\n3. Testing coaching templates...")
-    from templates.replies_ai import coach_focus, coach_commit, coach_done
+    from templates.replies_ai import coach_commit, coach_done, coach_focus
     
     focus_reply = coach_focus(['transport', 'food'])
     print(f"   ✅ Focus template: {focus_reply['text'][:30]}...")
@@ -89,8 +90,8 @@ def test_rate_limiting():
     print("\\n⏱️ Rate Limiting Test")
     print("=" * 25)
     
-    from utils.session import get_daily_coaching_count, increment_daily_coaching_count
     from utils.config import COACH_PER_DAY_MAX
+    from utils.session import get_daily_coaching_count, increment_daily_coaching_count
     
     test_psid = "rate_test_12345678"
     

@@ -4,14 +4,13 @@
 Comprehensive security hygiene checks for secret scanning and vulnerability detection
 """
 
-import os
-import re
-import sys
 import json
-import subprocess
-from pathlib import Path
-from typing import List, Dict, Tuple, Set
 import logging
+import re
+import subprocess
+import sys
+from pathlib import Path
+from typing import Dict, List
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -101,12 +100,12 @@ class SecurityScanner:
                 return True
         return False
     
-    def scan_file_for_secrets(self, file_path: Path) -> List[Dict]:
+    def scan_file_for_secrets(self, file_path: Path) -> list[dict]:
         """Scan a single file for potential secrets"""
         violations = []
         
         try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(file_path, encoding='utf-8', errors='ignore') as f:
                 content = f.read()
                 
             lines = content.split('\n')
@@ -141,7 +140,7 @@ class SecurityScanner:
             
         return violations
     
-    def scan_dependencies(self) -> List[Dict]:
+    def scan_dependencies(self) -> list[dict]:
         """Scan dependencies for known vulnerabilities"""
         vulnerabilities = []
         
@@ -202,7 +201,7 @@ class SecurityScanner:
         
         return vulnerabilities
     
-    def check_environment_security(self) -> List[Dict]:
+    def check_environment_security(self) -> list[dict]:
         """Check environment variable security practices"""
         violations = []
         
@@ -224,7 +223,7 @@ class SecurityScanner:
                 continue
                 
             try:
-                with open(py_file, 'r', encoding='utf-8', errors='ignore') as f:
+                with open(py_file, encoding='utf-8', errors='ignore') as f:
                     content = f.read()
                     
                 # Look for os.environ assignments with hardcoded values
@@ -251,7 +250,7 @@ class SecurityScanner:
         
         return violations
     
-    def scan_all(self) -> Dict:
+    def scan_all(self) -> dict:
         """Run comprehensive security scan"""
         logger.info("🔒 Starting comprehensive security scan...")
         
@@ -294,7 +293,7 @@ class SecurityScanner:
             'summary': self.generate_summary()
         }
     
-    def generate_summary(self) -> Dict:
+    def generate_summary(self) -> dict:
         """Generate scan summary"""
         violations_by_type = {}
         violations_by_severity = {}
@@ -320,7 +319,7 @@ class SecurityScanner:
             "🔒 FINBRAIN SECURITY SCAN REPORT",
             "=" * 50,
             "",
-            f"📊 SCAN STATISTICS:",
+            "📊 SCAN STATISTICS:",
             f"  Files Scanned: {self.scan_stats['files_scanned']}",
             f"  Files Excluded: {self.scan_stats['excluded_files']}",
             f"  Secrets Found: {self.scan_stats['secrets_found']}",

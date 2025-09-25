@@ -14,11 +14,10 @@ G: Session continuation guards prevent invalid state transitions
 H: Error handling never breaks normal message flow
 """
 
-import sys
 import os
+import sys
 import unittest
-from unittest.mock import Mock, patch, MagicMock
-import time
+from unittest.mock import patch
 
 # Add project root to path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -128,7 +127,7 @@ class TestCoachingSafetyHardening(unittest.TestCase):
         """Test D: Guard functions make correct safety decisions"""
         print("\n=== TEST D: Guard Function Safety Decisions ===")
         
-        from handlers.coaching import can_start_coach, can_continue
+        from handlers.coaching import can_continue, can_start_coach
         
         # Test can_start_coach edge cases
         test_cases = [

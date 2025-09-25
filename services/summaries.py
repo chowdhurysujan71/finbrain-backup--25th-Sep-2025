@@ -2,9 +2,9 @@
 """
 Deterministic summary services that provide expense roll-ups and formatting
 """
+import logging
 from collections import defaultdict
 from datetime import datetime
-import logging
 
 logger = logging.getLogger(__name__)
 

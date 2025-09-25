@@ -4,14 +4,15 @@ Handles streak-3 and 10-logs milestone nudges
 User-visible encouragement with daily cap enforcement
 """
 
-import os
-import logging
-from datetime import datetime, date
-from typing import Optional, Dict, Any, Tuple
-from models import User
-from db_base import db
-from utils.timezone_helpers import local_date_from_datetime, days_between_local, today_local
 import json
+import logging
+import os
+from datetime import date, datetime
+from typing import Any, Dict, Optional
+
+from db_base import db
+from models import User
+from utils.timezone_helpers import today_local
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +88,7 @@ class MilestoneEngine:
             logger.error(f"Streak update failed for user {user.user_id_hash[:8]}: {e}")
             return user.consecutive_days or 0
     
-    def check_streak_milestone(self, user: User) -> Optional[str]:
+    def check_streak_milestone(self, user: User) -> str | None:
         """
         Check if streak-3 milestone should fire
         
@@ -126,7 +127,7 @@ class MilestoneEngine:
             logger.error(f"Streak milestone check failed for user {user.user_id_hash[:8]}: {e}")
             return None
     
-    def check_10logs_milestone(self, user: User) -> Optional[str]:
+    def check_10logs_milestone(self, user: User) -> str | None:
         """
         Check if 10-logs milestone should fire
         
@@ -165,7 +166,7 @@ class MilestoneEngine:
             logger.error(f"10-logs milestone check failed for user {user.user_id_hash[:8]}: {e}")
             return None
     
-    def check_all_milestones(self, user: User) -> Optional[str]:
+    def check_all_milestones(self, user: User) -> str | None:
         """
         Check all milestones and return first that fires (daily cap enforcement)
         
@@ -227,18 +228,18 @@ class MilestoneEngine:
     def _generate_streak_3_message(self, user: User) -> str:
         """Generate streak-3 milestone message"""
         return (
-            f"🔥 Amazing! You've logged expenses for 3 days in a row! "
-            f"You're building a great tracking habit. Keep it up!"
+            "🔥 Amazing! You've logged expenses for 3 days in a row! "
+            "You're building a great tracking habit. Keep it up!"
         )
     
     def _generate_10logs_message(self, user: User) -> str:
         """Generate 10-logs milestone message"""
         return (
-            f"🎉 Congratulations! You've logged your 10th expense! "
-            f"You're really getting the hang of tracking your spending. Fantastic progress!"
+            "🎉 Congratulations! You've logged your 10th expense! "
+            "You're really getting the hang of tracking your spending. Fantastic progress!"
         )
     
-    def _emit_milestone_event(self, milestone_type: str, user_id_hash: str, data: Dict[str, Any]) -> None:
+    def _emit_milestone_event(self, milestone_type: str, user_id_hash: str, data: dict[str, Any]) -> None:
         """
         Emit milestone telemetry event
         
@@ -268,7 +269,7 @@ class MilestoneEngine:
         except Exception as e:
             logger.error(f"Milestone telemetry emission failed for {milestone_type}: {e}")
     
-    def get_milestone_status(self, user: User) -> Dict[str, Any]:
+    def get_milestone_status(self, user: User) -> dict[str, Any]:
         """
         Get current milestone status for user (for debugging/monitoring)
         
@@ -308,10 +309,10 @@ def update_user_streak(user: User, expense_date: date) -> int:
     """Update user streak on expense logging"""
     return milestone_engine.update_streak_on_expense(user, expense_date)
 
-def check_milestone_nudges(user: User) -> Optional[str]:
+def check_milestone_nudges(user: User) -> str | None:
     """Check all milestones and return message if any fire"""
     return milestone_engine.check_all_milestones(user)
 
-def get_milestone_status(user: User) -> Dict[str, Any]:
+def get_milestone_status(user: User) -> dict[str, Any]:
     """Get milestone status for user"""
     return milestone_engine.get_milestone_status(user)

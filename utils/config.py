@@ -3,8 +3,8 @@ FinBrain Centralized Configuration
 Single source of truth for all configuration to prevent drift
 """
 
-import os
 import logging
+import os
 
 logger = logging.getLogger("utils.config")
 

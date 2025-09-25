@@ -3,24 +3,29 @@ PCA API Routes for Overlay System
 Handles rule management, corrections, and precedence operations
 """
 
-from flask import Blueprint, request, jsonify, render_template
-from datetime import datetime
-import json
 import logging
 import time
-from typing import Dict, List, Any
+from datetime import datetime
+from typing import Dict, List
+
+from flask import Blueprint, jsonify, request
 
 from db_base import db
-from models_pca import UserRule, UserCorrection, TransactionEffective
-from utils.precedence_engine import precedence_engine
-from utils.pca_feature_flags import pca_feature_flags
+from models_pca import UserCorrection, UserRule
 from utils.deterministic import ensure_hashed
 from utils.error_responses import (
-    standardized_error_response, internal_error, resource_not_found_error,
-    validation_error_response, success_response, ErrorCodes, safe_error_message
+    ErrorCodes,
+    internal_error,
+    resource_not_found_error,
+    safe_error_message,
+    standardized_error_response,
+    success_response,
+    validation_error_response,
 )
-from utils.validators import APIValidator
+from utils.pca_feature_flags import pca_feature_flags
+from utils.precedence_engine import precedence_engine
 from utils.structured_logger import api_logger, log_validation_failure
+from utils.validators import APIValidator
 
 logger = logging.getLogger("finbrain.pca_api")
 
@@ -396,7 +401,7 @@ def get_effective_transaction(tx_id):
         logger.error(f"Error getting effective transaction {tx_id}: {e}")
         return jsonify({'error': 'Failed to get effective transaction'}), 500
 
-def _preview_rule_impact(user_id: str, pattern: Dict, rule_set: Dict) -> int:
+def _preview_rule_impact(user_id: str, pattern: dict, rule_set: dict) -> int:
     """Preview how many transactions a rule would affect"""
     try:
         # This would query your expense table to count matches
@@ -405,7 +410,7 @@ def _preview_rule_impact(user_id: str, pattern: Dict, rule_set: Dict) -> int:
     except Exception:
         return 0
 
-def _get_affected_transactions(user_id: str, pattern: Dict, rule_set: Dict, limit: int = 10) -> List[Dict]:
+def _get_affected_transactions(user_id: str, pattern: dict, rule_set: dict, limit: int = 10) -> list[dict]:
     """Get sample transactions that would be affected by a rule"""
     try:
         # This would query your expense table for matching transactions
@@ -422,7 +427,7 @@ def _get_affected_transactions(user_id: str, pattern: Dict, rule_set: Dict, limi
     except Exception:
         return []
 
-def _get_raw_transaction(tx_id: str) -> Dict:
+def _get_raw_transaction(tx_id: str) -> dict:
     """Get raw transaction data"""
     try:
         # This would query your expense table

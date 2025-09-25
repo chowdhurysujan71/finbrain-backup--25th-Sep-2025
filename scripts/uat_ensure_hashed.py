@@ -3,14 +3,15 @@
 UAT script for ensure_hashed user ID normalization
 Tests that raw PSID and hash parameters produce identical results
 """
-import sys
 import os
+import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import app
-from utils.crypto import ensure_hashed
+from utils.db import get_user_spending_summary, record_expense
 from utils.security import hash_psid
-from utils.db import record_expense, get_user_spending_summary
+
 
 def main():
     """Test ensure_hashed normalization end-to-end"""
@@ -65,7 +66,7 @@ def main():
             print(f"\n✅ UAT Result: {'PASS' if success else 'FAIL'}")
             
             if success:
-                print(f"✓ Both raw PSID and hash parameter produce identical results")
+                print("✓ Both raw PSID and hash parameter produce identical results")
                 print(f"✓ Total expenses: ${summary_raw.get('total', 0)}")
                 print(f"✓ Transaction count: {summary_raw.get('total_transactions', 0)}")
             else:

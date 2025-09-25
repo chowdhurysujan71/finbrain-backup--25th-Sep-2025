@@ -1,10 +1,11 @@
 """Facebook Page Access Token management with refresh monitoring"""
-import os
 import logging
+import os
 import time
-import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Optional, Tuple
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ class TokenManager:
         self._token_info_cache = None
         self._cache_expires = 0
         
-    def get_token_info(self) -> Optional[Dict]:
+    def get_token_info(self) -> dict | None:
         """Get current token information from Facebook Graph API"""
         if not self.page_access_token:
             logger.error("No page access token configured")
@@ -30,7 +31,7 @@ class TokenManager:
             return self._token_info_cache
             
         try:
-            url = f"https://graph.facebook.com/v17.0/me"
+            url = "https://graph.facebook.com/v17.0/me"
             params = {
                 'fields': 'id,name',
                 'access_token': self.page_access_token
@@ -42,7 +43,7 @@ class TokenManager:
                 token_data = response.json()
                 
                 # Get token expiration info using debug_token
-                debug_url = f"https://graph.facebook.com/v17.0/debug_token"
+                debug_url = "https://graph.facebook.com/v17.0/debug_token"
                 debug_params = {
                     'input_token': self.page_access_token,
                     'access_token': f"{self.app_id}|{self.app_secret}"
@@ -83,7 +84,7 @@ class TokenManager:
             logger.error(f"Error getting token info: {str(e)}")
             return None
     
-    def check_token_expiry(self) -> Tuple[bool, Optional[datetime], Optional[str]]:
+    def check_token_expiry(self) -> tuple[bool, datetime | None, str | None]:
         """
         Check if token is expiring soon
         Returns: (needs_refresh, expires_at, warning_message)
@@ -121,7 +122,7 @@ class TokenManager:
             logger.error(f"Error parsing token expiry: {str(e)}")
             return True, None, "Unable to parse token expiry date"
     
-    def get_token_status_summary(self) -> Dict:
+    def get_token_status_summary(self) -> dict:
         """Get comprehensive token status for monitoring"""
         token_info = self.get_token_info()
         needs_refresh, expires_at, message = self.check_token_expiry()
@@ -153,11 +154,11 @@ class TokenManager:
 # Global token manager instance
 token_manager = TokenManager()
 
-def get_token_status() -> Dict:
+def get_token_status() -> dict:
     """Get current token status - convenience function"""
     return token_manager.get_token_status_summary()
 
-def check_token_health() -> Tuple[bool, str]:
+def check_token_health() -> tuple[bool, str]:
     """
     Quick health check for token
     Returns: (is_healthy, status_message)

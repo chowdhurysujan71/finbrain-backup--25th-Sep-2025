@@ -3,7 +3,9 @@ Test currency formatting and reply style consistency
 """
 
 import pytest
+
 from utils.parser import extract_expenses
+
 
 def test_default_bdt_currency():
     """Test that default currency is BDT (৳) when no symbol specified"""

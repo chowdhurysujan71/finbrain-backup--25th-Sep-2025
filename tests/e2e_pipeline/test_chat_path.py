@@ -8,12 +8,10 @@ Tests the complete chat-based expense creation flow including:
 - Monthly summary updates
 - Idempotency handling
 """
-import pytest
-import json
-import time
 import uuid
-from decimal import Decimal
 from datetime import datetime
+
+import pytest
 
 from tests.e2e_pipeline.test_base import E2ETestBase
 
@@ -125,8 +123,9 @@ class TestChatPathE2E(E2ETestBase):
             correlation_id = str(uuid.uuid4())
             
             # Create expense via utils.db.create_expense for direct testing
-            from utils.db import create_expense
             from datetime import datetime
+
+            from utils.db import create_expense
             
             # First creation
             result1 = create_expense(
@@ -210,8 +209,9 @@ class TestChatPathE2E(E2ETestBase):
             user = test_users['alice']
             user_hash = user['psid_hash']
             
-            from utils.db import create_expense
             from datetime import datetime
+
+            from utils.db import create_expense
             
             # Test amount over limit
             with pytest.raises(ValueError, match="Amount must be between"):
@@ -232,9 +232,10 @@ class TestChatPathE2E(E2ETestBase):
             user = test_users['alice']
             user_hash = user['psid_hash']
             
-            from utils.db import create_expense
-            from datetime import datetime
             import threading
+            from datetime import datetime
+
+            from utils.db import create_expense
             
             results = []
             errors = []

@@ -3,12 +3,12 @@ Lightweight session management for coaching flows
 Supports Redis (preferred) with in-memory fallback and TTL cleanup
 """
 
-import os
-import time
 import json
 import logging
-from typing import Dict, Any, Optional
-from datetime import datetime, timedelta
+import os
+import time
+from datetime import datetime
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class SessionManager:
         if expired_keys:
             logger.debug(f"Cleaned up {len(expired_keys)} expired sessions")
     
-    def get_session(self, key: str) -> Optional[Dict[str, Any]]:
+    def get_session(self, key: str) -> dict[str, Any] | None:
         """Get session data by key"""
         try:
             if self.redis_client:
@@ -76,7 +76,7 @@ class SessionManager:
         
         return None
     
-    def set_session(self, key: str, data: Dict[str, Any], ttl_seconds: int = 300):
+    def set_session(self, key: str, data: dict[str, Any], ttl_seconds: int = 300):
         """Set session data with TTL"""
         try:
             data['expires_at'] = time.time() + ttl_seconds
@@ -141,12 +141,12 @@ class SessionManager:
 # Global session manager instance
 session_manager = SessionManager()
 
-def get_coaching_session(psid_hash: str) -> Optional[Dict[str, Any]]:
+def get_coaching_session(psid_hash: str) -> dict[str, Any] | None:
     """Get coaching session for user"""
     key = f"coach:{psid_hash}"
     return session_manager.get_session(key)
 
-def set_coaching_session(psid_hash: str, session_data: Dict[str, Any], ttl_seconds: int = 300):
+def set_coaching_session(psid_hash: str, session_data: dict[str, Any], ttl_seconds: int = 300):
     """Set coaching session for user"""
     key = f"coach:{psid_hash}"
     session_manager.set_session(key, session_data, ttl_seconds)

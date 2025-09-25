@@ -4,7 +4,7 @@ Prevents database bloat by removing expired clarification entries
 """
 import logging
 import time
-from datetime import datetime, timezone
+
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 

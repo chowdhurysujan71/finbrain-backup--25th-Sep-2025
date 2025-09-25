@@ -5,15 +5,19 @@ Tests existing users, new users, and future user scenarios
 """
 
 import logging
-import json
 import time
 import uuid
-from datetime import datetime, date, timedelta
-from typing import Dict, List, Any, Tuple
+from datetime import date, datetime, timedelta
+from typing import Any, Dict
+
 from app import app, db
-from models import User, Expense
+from handlers.challenge import (
+    check_challenge_progress,
+    get_challenge_status,
+    handle_challenge_start,
+)
+from models import Expense, User
 from utils.dispatcher import handle_message_dispatch
-from handlers.challenge import handle_challenge_start, check_challenge_progress, get_challenge_status
 from utils.intent_router import detect_intent
 
 # Configure detailed logging
@@ -29,7 +33,7 @@ class Block6ComprehensiveUAT:
         self.user_scenarios = {}
         self.start_time = datetime.now()
         
-    def log_audit(self, test_name: str, category: str, status: str, details: Dict[str, Any]):
+    def log_audit(self, test_name: str, category: str, status: str, details: dict[str, Any]):
         """Log detailed audit trail entry"""
         entry = {
             'timestamp': datetime.now().isoformat(),
@@ -41,7 +45,7 @@ class Block6ComprehensiveUAT:
         }
         self.audit_trail.append(entry)
         
-    def log_test_result(self, test_name: str, passed: bool, details: str, metrics: Dict[str, Any] = None):
+    def log_test_result(self, test_name: str, passed: bool, details: str, metrics: dict[str, Any] = None):
         """Log test result with detailed information"""
         result = {
             'test_name': test_name,
@@ -136,7 +140,7 @@ class Block6ComprehensiveUAT:
         
         return user_hash
     
-    def capture_user_state(self, user_hash: str) -> Dict[str, Any]:
+    def capture_user_state(self, user_hash: str) -> dict[str, Any]:
         """Capture complete user state for comparison"""
         user = db.session.query(User).filter_by(user_id_hash=user_hash).first()
         expenses = db.session.query(Expense).filter_by(user_id_hash=user_hash).all()
@@ -156,7 +160,7 @@ class Block6ComprehensiveUAT:
             'last_expense_date': max([e.date for e in expenses]).isoformat() if expenses else None
         }
     
-    def test_routing_integrity(self) -> Dict[str, Any]:
+    def test_routing_integrity(self) -> dict[str, Any]:
         """Test intent detection and routing for challenge commands"""
         test_cases = [
             ("START 3D", "CHALLENGE_START"),
@@ -211,7 +215,7 @@ class Block6ComprehensiveUAT:
         
         return results
     
-    def test_data_handling_integrity(self, user_hash: str) -> Dict[str, Any]:
+    def test_data_handling_integrity(self, user_hash: str) -> dict[str, Any]:
         """Test database operations and data integrity"""
         start_time = time.time()
         
@@ -276,7 +280,7 @@ class Block6ComprehensiveUAT:
             'execution_time_ms': execution_time
         }
     
-    def test_challenge_lifecycle(self, user_hash: str) -> Dict[str, Any]:
+    def test_challenge_lifecycle(self, user_hash: str) -> dict[str, Any]:
         """Test complete challenge lifecycle including auto-completion"""
         start_time = time.time()
         lifecycle_results = {}
@@ -373,7 +377,7 @@ class Block6ComprehensiveUAT:
             'total_execution_time_ms': total_execution_time
         }
     
-    def test_concurrent_operations(self) -> Dict[str, Any]:
+    def test_concurrent_operations(self) -> dict[str, Any]:
         """Test concurrent challenge operations for race conditions"""
         start_time = time.time()
         
@@ -442,7 +446,7 @@ class Block6ComprehensiveUAT:
             'total_execution_time_ms': total_execution_time
         }
     
-    def run_comprehensive_uat(self) -> Dict[str, Any]:
+    def run_comprehensive_uat(self) -> dict[str, Any]:
         """Execute complete UAT suite with detailed audit trail"""
         logger.info("🚀 Starting Block 6 - 3-Day Challenge Comprehensive UAT")
         
@@ -515,7 +519,7 @@ class Block6ComprehensiveUAT:
             }
         )
     
-    def generate_final_audit_report(self) -> Dict[str, Any]:
+    def generate_final_audit_report(self) -> dict[str, Any]:
         """Generate comprehensive audit report"""
         end_time = datetime.now()
         total_execution_time = (end_time - self.start_time).total_seconds() * 1000
@@ -578,7 +582,7 @@ def execute_comprehensive_uat():
         print("="*80)
         
         summary = audit_report['uat_summary']
-        print(f"📊 EXECUTION SUMMARY:")
+        print("📊 EXECUTION SUMMARY:")
         print(f"   Total Tests: {summary['total_tests']}")
         print(f"   Passed: {summary['passed_tests']}")
         print(f"   Failed: {summary['failed_tests']}")
@@ -586,13 +590,13 @@ def execute_comprehensive_uat():
         print(f"   Execution Time: {summary['total_execution_time_ms']:.2f}ms")
         
         deployment = audit_report['deployment_readiness']
-        print(f"\n🚀 DEPLOYMENT READINESS:")
+        print("\n🚀 DEPLOYMENT READINESS:")
         print(f"   Ready: {'✅ YES' if deployment['ready_for_deployment'] else '❌ NO'}")
         print(f"   Performance: {'✅ ACCEPTABLE' if deployment['performance_acceptable'] else '❌ SLOW'}")
         print(f"   Data Integrity: {'✅ CONFIRMED' if deployment['data_integrity_confirmed'] else '❌ ISSUES'}")
         
         if deployment['critical_issues']:
-            print(f"\n⚠️  CRITICAL ISSUES:")
+            print("\n⚠️  CRITICAL ISSUES:")
             for issue in deployment['critical_issues']:
                 print(f"   - {issue['test_name']}: {issue['details']}")
         

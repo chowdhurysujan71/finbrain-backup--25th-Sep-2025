@@ -3,13 +3,15 @@ Deterministic bilingual signal extraction for EN/BN text
 Handles time windows, money detection, and intent classification
 """
 from __future__ import annotations
-import re
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
-from utils.text_normalizer import normalize_for_processing
 
 # Create the nlp directory if it doesn't exist
 import os
+import re
+from datetime import UTC, datetime, timedelta
+from typing import Dict, Optional
+
+from utils.text_normalizer import normalize_for_processing
+
 os.makedirs(os.path.dirname(__file__), exist_ok=True)
 
 # Time window patterns (EN + BN)
@@ -45,9 +47,10 @@ RE_FAQ = re.compile(
 RE_ADMIN = re.compile(r"^/(id|debug|help|status)\b")
 
 # Import enhanced money patterns
-from nlp.money_patterns import RE_MONEY, extract_money_mentions, has_money_mention
+from nlp.money_patterns import extract_money_mentions, has_money_mention
 
-def extract_signals(raw_text: str, user_id: str = None, timezone: str = "Asia/Dhaka") -> Dict:
+
+def extract_signals(raw_text: str, user_id: str = None, timezone: str = "Asia/Dhaka") -> dict:
     """
     Extract deterministic signals from text for routing decisions
     
@@ -76,7 +79,7 @@ def extract_signals(raw_text: str, user_id: str = None, timezone: str = "Asia/Dh
         "normalized_text": normalized
     }
 
-def parse_time_window(timezone: str, text: str) -> Optional[Dict]:
+def parse_time_window(timezone: str, text: str) -> dict | None:
     """
     Parse time window references into date ranges
     
@@ -93,7 +96,7 @@ def parse_time_window(timezone: str, text: str) -> Optional[Dict]:
     except ImportError:
         # Fallback for systems without zoneinfo
         from datetime import timezone as tz
-        zone = tz.utc
+        zone = UTC
     
     now = datetime.now(zone)
     today = now.date()

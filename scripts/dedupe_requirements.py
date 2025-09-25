@@ -3,13 +3,14 @@
 Deduplicate requirements.txt - Critical reliability fix
 Removes duplicate packages that cause pip conflicts
 """
-from collections import OrderedDict
 import sys
+from collections import OrderedDict
+
 
 def dedupe_requirements():
     """Remove duplicate packages from requirements.txt"""
     try:
-        with open("requirements.txt", "r") as f:
+        with open("requirements.txt") as f:
             lines = f.readlines()
         
         # Track seen packages (case-insensitive)

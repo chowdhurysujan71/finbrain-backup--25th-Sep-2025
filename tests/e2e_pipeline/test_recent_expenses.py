@@ -8,7 +8,6 @@ Tests the complete recent expenses retrieval system including:
 - Time range filtering
 - Data consistency across creation paths
 """
-import pytest
 import json
 from datetime import datetime, timedelta
 

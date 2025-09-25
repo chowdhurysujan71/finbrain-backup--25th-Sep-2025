@@ -1,8 +1,9 @@
 """Redis connectivity smoke test endpoint"""
-import os
-import time
 import json
 import logging
+import os
+import time
+
 from flask import Blueprint, jsonify
 
 # Create blueprint

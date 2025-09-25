@@ -4,27 +4,26 @@ Handles natural conversation flow for ambiguous expense categorization
 """
 
 import logging
-import json
 import time
-from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
 
+from utils.brand_normalizer import normalize
 from utils.expense_ambiguity import ambiguity_detector
 from utils.expense_learning import user_learning_system
-from utils.brand_normalizer import normalize
 
 logger = logging.getLogger(__name__)
 
 # In-memory storage for web clarifications (10-min TTL)
-_pending_clarifications: Dict[str, Dict] = {}
+_pending_clarifications: dict[str, dict] = {}
 
-def _store_pending_clarification(clarification_id: str, data: Dict):
+def _store_pending_clarification(clarification_id: str, data: dict):
     """Store clarification in memory with TTL"""
     data['expires_at'] = time.time() + 600  # 10 minutes
     _pending_clarifications[clarification_id] = data
     logger.info(f"Stored pending clarification: {clarification_id}")
 
-def _get_pending_clarification(clarification_id: str) -> Optional[Dict]:
+def _get_pending_clarification(clarification_id: str) -> dict | None:
     """Get clarification from memory, cleanup expired"""
     _cleanup_expired_clarifications()
     return _pending_clarifications.get(clarification_id)
@@ -58,7 +57,7 @@ class ExpenseClarificationHandler:
         self.logger = logging.getLogger(f"{__name__}.ExpenseClarificationHandler")
     
     def handle_expense_with_clarification(self, user_hash: str, original_text: str, 
-                                        amount: float, item: str, mid: str) -> Dict[str, Any]:
+                                        amount: float, item: str, mid: str) -> dict[str, Any]:
         """
         Main handler for expense that might need clarification
         
@@ -114,7 +113,7 @@ class ExpenseClarificationHandler:
     
     def _initiate_clarification(self, user_hash: str, original_text: str, 
                               amount: float, item: str, mid: str, 
-                              ambiguity_result: Dict) -> Dict[str, Any]:
+                              ambiguity_result: dict) -> dict[str, Any]:
         """Initiate clarification conversation with user"""
         
         from utils.pca_flags import pca_flags
@@ -135,7 +134,7 @@ class ExpenseClarificationHandler:
     
     def _initiate_clarification_web(self, user_hash: str, original_text: str, 
                                   amount: float, item: str, mid: str, 
-                                  ambiguity_result: Dict, clarification_id: str) -> Dict[str, Any]:
+                                  ambiguity_result: dict, clarification_id: str) -> dict[str, Any]:
         """Initiate clarification using in-memory storage for web UI"""
         
         # Store in memory with 10-minute TTL
@@ -166,13 +165,14 @@ class ExpenseClarificationHandler:
     
     def _initiate_clarification_db(self, user_hash: str, original_text: str, 
                                  amount: float, item: str, mid: str, 
-                                 ambiguity_result: Dict, clarification_id: str) -> Dict[str, Any]:
+                                 ambiguity_result: dict, clarification_id: str) -> dict[str, Any]:
         """Initiate clarification using database storage (existing implementation)"""
         
         # Import database models
-        from models import PendingExpense
-        from db_base import db
         import json
+
+        from db_base import db
+        from models import PendingExpense
         
         # Check if user already has a pending clarification - replace if exists
         existing = PendingExpense.find_by_user(user_hash)
@@ -191,8 +191,8 @@ class ExpenseClarificationHandler:
         pending_expense.item = item
         pending_expense.mid = mid
         pending_expense.options_json = json.dumps(ambiguity_result['options'])
-        pending_expense.created_at = datetime.now(timezone.utc)
-        pending_expense.expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+        pending_expense.created_at = datetime.now(UTC)
+        pending_expense.expires_at = datetime.now(UTC) + timedelta(minutes=10)
         
         try:
             db.session.add(pending_expense)
@@ -222,7 +222,7 @@ class ExpenseClarificationHandler:
         }
     
     def _generate_clarification_message(self, item: str, amount: float, 
-                                      options: List[Dict]) -> str:
+                                      options: list[dict]) -> str:
         """Generate natural conversational clarification message"""
         
         # Create options text
@@ -249,7 +249,7 @@ Just reply with the number or tell me what it was!"""
         
         return normalize(message)
     
-    def handle_clarification_response(self, user_hash: str, response_text: str) -> Optional[Dict[str, Any]]:
+    def handle_clarification_response(self, user_hash: str, response_text: str) -> dict[str, Any] | None:
         """
         Handle user's response to a clarification question
         
@@ -305,7 +305,6 @@ Just reply with the number or tell me what it was!"""
             # CRITICAL FIX: Actually save the expense to database after clarification
             try:
                 from backend_assistant import add_expense
-                from datetime import datetime
                 
                 # Extract expense data from clarification
                 amount = clarification_data['amount']
@@ -350,7 +349,7 @@ Just reply with the number or tell me what it was!"""
                 'retry': True
             }
     
-    def _find_pending_clarification(self, user_hash: str) -> Optional[Dict[str, Any]]:
+    def _find_pending_clarification(self, user_hash: str) -> dict[str, Any] | None:
         """Find pending clarification for user using database or in-memory storage"""
         from utils.pca_flags import pca_flags
         
@@ -362,7 +361,7 @@ Just reply with the number or tell me what it was!"""
             # Use database storage (existing implementation)
             return self._find_pending_clarification_db(user_hash)
     
-    def _find_pending_clarification_memory(self, user_hash: str) -> Optional[Dict[str, Any]]:
+    def _find_pending_clarification_memory(self, user_hash: str) -> dict[str, Any] | None:
         """Find pending clarification for user using in-memory storage"""
         try:
             # Cleanup expired entries
@@ -382,10 +381,9 @@ Just reply with the number or tell me what it was!"""
             self.logger.error(f"Error finding pending clarification in memory: {e}")
             return None
     
-    def _find_pending_clarification_db(self, user_hash: str) -> Optional[Dict[str, Any]]:
+    def _find_pending_clarification_db(self, user_hash: str) -> dict[str, Any] | None:
         """Find pending clarification for user using database"""
         from models import PendingExpense
-        from db_base import db
         
         try:
             # Clean up expired clarifications first
@@ -419,7 +417,7 @@ Just reply with the number or tell me what it was!"""
             # Use database storage
             self._remove_pending_clarification_db(clarification_id)
     
-    def store_clarification_data(self, clarification_id: str, data: Dict[str, Any]):
+    def store_clarification_data(self, clarification_id: str, data: dict[str, Any]):
         """
         PHASE 5: Store clarification data for session-based corrections
         This bridges the router session storage with the clarification system
@@ -434,8 +432,8 @@ Just reply with the number or tell me what it was!"""
     
     def _remove_pending_clarification_db(self, clarification_id: str):
         """Remove pending clarification from database"""
-        from models import PendingExpense
         from db_base import db
+        from models import PendingExpense
         
         try:
             pending_record = db.session.query(PendingExpense).filter(
@@ -448,7 +446,7 @@ Just reply with the number or tell me what it was!"""
             self.logger.error(f"Failed to delete pending clarification: {e}")
             db.session.rollback()
     
-    def _parse_clarification_response(self, response: str, options: List[Dict]) -> Optional[str]:
+    def _parse_clarification_response(self, response: str, options: list[dict]) -> str | None:
         """Parse user's clarification response"""
         response_clean = response.lower().strip()
         

@@ -3,8 +3,10 @@ Tenancy Tests for AI Insights: Verify user isolation and no-data handling
 Critical security tests to prevent cross-user contamination
 """
 
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import Mock, patch
+
 from ai.payloads.insight_payload import build_insight_payload, validate_insight_response
 from utils.ai_contamination_monitor import AIContaminationMonitor
 

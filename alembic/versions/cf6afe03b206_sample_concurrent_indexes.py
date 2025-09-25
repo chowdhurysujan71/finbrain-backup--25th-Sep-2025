@@ -26,16 +26,17 @@ Safety features:
 - No table locking during index creation
 - Fail-safe behavior for production environments
 """
-from typing import Sequence, Union
 import logging
+from collections.abc import Sequence
+from typing import Union
 
 from utils.migrations import (
-    create_index_concurrently,
-    replace_index_concurrently, 
     batch_create_indexes_concurrently,
     check_index_exists,
+    create_category_index,
+    create_index_concurrently,
     create_user_temporal_index,
-    create_category_index
+    replace_index_concurrently,
 )
 
 # Setup logging
@@ -43,9 +44,9 @@ logger = logging.getLogger('alembic.sample_concurrent_indexes')
 
 # revision identifiers, used by Alembic.
 revision: str = 'cf6afe03b206'
-down_revision: Union[str, Sequence[str], None] = '5b555895a514'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = '5b555895a514'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

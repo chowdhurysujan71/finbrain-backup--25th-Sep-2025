@@ -12,15 +12,14 @@ This audit validates:
 - User Categories: Existing users, new users, future users
 """
 
-import os
-import sys
 import json
+import sys
 import time
-import uuid
 import traceback
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Tuple, Optional
-from dataclasses import dataclass, asdict
+import uuid
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from typing import Any, Dict, List
 
 # Add project root to path
 sys.path.append('/home/runner/workspace')
@@ -34,8 +33,8 @@ class AuditResult:
     score: float  # 0-100
     execution_time_ms: float
     details: str
-    errors: List[str]
-    data: Dict[str, Any]
+    errors: list[str]
+    data: dict[str, Any]
 
 @dataclass
 class CategoryAudit:
@@ -46,8 +45,8 @@ class CategoryAudit:
     failed_tests: int
     warnings: int
     score: float
-    critical_issues: List[str]
-    results: List[AuditResult]
+    critical_issues: list[str]
+    results: list[AuditResult]
 
 class MasterUATAudit:
     """Master UAT audit orchestrator"""
@@ -70,8 +69,8 @@ class MasterUATAudit:
         print()
     
     def log_result(self, category: str, test_name: str, status: str, score: float, 
-                   execution_time_ms: float, details: str = "", errors: List[str] = None, 
-                   data: Dict[str, Any] = None):
+                   execution_time_ms: float, details: str = "", errors: list[str] = None, 
+                   data: dict[str, Any] = None):
         """Log an audit result"""
         if errors is None:
             errors = []
@@ -231,7 +230,7 @@ class MasterUATAudit:
             self.log_result(category, "Money Detection", 
                           "PASS" if money_score >= 80 else "FAIL",
                           money_score, exec_time,
-                          f"Bengali + English detection accuracy")
+                          "Bengali + English detection accuracy")
             
         except Exception as e:
             exec_time = (time.time() - start_time) * 1000
@@ -380,7 +379,7 @@ class MasterUATAudit:
             self.log_result(category, "Rate Limiting", 
                           "PASS" if rate_limit_score >= 70 else "WARNING",
                           rate_limit_score, exec_time,
-                          f"AI rate limiting active")
+                          "AI rate limiting active")
             
         except Exception as e:
             exec_time = (time.time() - start_time) * 1000
@@ -540,7 +539,7 @@ class MasterUATAudit:
         
         try:
             from app import app, db
-            from models import User, Expense
+            from models import Expense
             from utils.db import save_expense
             from utils.identity import psid_hash
             
@@ -680,8 +679,7 @@ class MasterUATAudit:
         
         try:
             from app import app, db
-            from models import User, Expense
-            from utils.identity import psid_hash
+            from models import Expense
             
             with app.app_context():
                 isolation_score = 0
@@ -738,7 +736,7 @@ class MasterUATAudit:
         start_time = time.time()
         
         try:
-            from utils.identity import psid_hash, ensure_hashed
+            from utils.identity import ensure_hashed, psid_hash
             
             hash_score = 0
             
@@ -775,7 +773,6 @@ class MasterUATAudit:
         
         try:
             # Run existing deep isolation test
-            from deep_user_isolation_test import test_cross_user_contamination
             
             # Capture the test output (simplified)
             contamination_score = 95  # Assume working unless proven otherwise
@@ -816,7 +813,7 @@ class MasterUATAudit:
         
         try:
             from app import app, db
-            from models import User, Expense
+            from models import Expense
             
             with app.app_context():
                 existing_score = 0
@@ -864,9 +861,9 @@ class MasterUATAudit:
         start_time = time.time()
         
         try:
+            from app import app
             from utils.db import get_or_create_user, save_expense
             from utils.identity import psid_hash
-            from app import app
             
             with app.app_context():
                 new_user_score = 0
@@ -916,8 +913,8 @@ class MasterUATAudit:
         start_time = time.time()
         
         try:
-            from models import User, Expense
             from app import app, db
+            from models import Expense
             
             with app.app_context():
                 future_score = 0

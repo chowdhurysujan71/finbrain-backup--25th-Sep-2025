@@ -4,14 +4,14 @@ FinBrain Deployment Confidence Script
 Comprehensive automated validation with CAPTCHA solver for zero-surprise deployments
 """
 
+import json
 import os
 import sys
-import json
-import requests
 import time
-import hashlib
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Optional
+
+import requests
 
 # Configuration
 BASE_URL = os.getenv("BASE_URL", "http://localhost:5000")
@@ -21,7 +21,7 @@ TIMEOUT = 30
 class CaptchaSolver:
     """Automatic CAPTCHA solver for deployment testing"""
     
-    def solve_math_captcha(self, question: str) -> Optional[int]:
+    def solve_math_captcha(self, question: str) -> int | None:
         """Solve simple math CAPTCHA questions"""
         try:
             # Parse "What is X + Y?" format

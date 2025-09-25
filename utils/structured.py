@@ -6,12 +6,12 @@ Phase 2: Enhanced telemetry and audit trails
 import json
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger("finbrain.structured")
 
-def log_structured_event(event_type: str, event_data: Dict[str, Any], 
-                        user_id: Optional[str] = None) -> bool:
+def log_structured_event(event_type: str, event_data: dict[str, Any], 
+                        user_id: str | None = None) -> bool:
     """
     Log structured events for PCA telemetry and analysis
     
@@ -126,7 +126,7 @@ def log_correction_applied(user_hash: str, mid: str, original_expense_id: str, n
     except Exception as e:
         logger.warning(f"Failed to log correction applied: {e}")
 
-def log_cc_generation_event(cc_dict: Dict[str, Any], processing_time_ms: int, 
+def log_cc_generation_event(cc_dict: dict[str, Any], processing_time_ms: int, 
                            applied: bool = False) -> bool:
     """
     Log Canonical Command generation events for analysis
@@ -171,7 +171,7 @@ def log_cc_generation_event(cc_dict: Dict[str, Any], processing_time_ms: int,
         logger.error(f"Failed to log CC generation event: {e}")
         return False
 
-def log_shadow_mode_event(user_id: str, message_text: str, cc_result: Dict[str, Any]) -> bool:
+def log_shadow_mode_event(user_id: str, message_text: str, cc_result: dict[str, Any]) -> bool:
     """
     Log SHADOW mode processing events for analysis
     
@@ -258,7 +258,7 @@ def log_money_detection_fallback(user_id: str, message_text: str,
 
 # Block 4 Growth Metrics Telemetry Functions
 
-def log_analytics_event(event_name: str, user_id_hash: str, event_data: Dict[str, Any]) -> bool:
+def log_analytics_event(event_name: str, user_id_hash: str, event_data: dict[str, Any]) -> bool:
     """
     Log Block 4 analytics events (D1/D3/report tracking)
     
@@ -283,7 +283,7 @@ def log_analytics_event(event_name: str, user_id_hash: str, event_data: Dict[str
         logger.error(f"Failed to log analytics event {event_name}: {e}")
         return False
 
-def log_milestone_event(milestone_type: str, user_id_hash: str, event_data: Dict[str, Any]) -> bool:
+def log_milestone_event(milestone_type: str, user_id_hash: str, event_data: dict[str, Any]) -> bool:
     """
     Log milestone gamification events (streak-3, 10-logs)
     
@@ -308,8 +308,8 @@ def log_milestone_event(milestone_type: str, user_id_hash: str, event_data: Dict
         logger.error(f"Failed to log milestone event {milestone_type}: {e}")
         return False
 
-def log_growth_metrics_summary(user_id_hash: str, analytics_state: Dict[str, Any], 
-                              milestone_state: Dict[str, Any]) -> bool:
+def log_growth_metrics_summary(user_id_hash: str, analytics_state: dict[str, Any], 
+                              milestone_state: dict[str, Any]) -> bool:
     """
     Log combined growth metrics summary for monitoring
     

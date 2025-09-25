@@ -2,8 +2,8 @@
 Complete AI-driven onboarding system with flexible data handling
 """
 import logging
-import json
-from typing import Dict, Any, Optional, Tuple
+from typing import Any, Dict, Tuple
+
 from ai_adapter_gemini import generate_with_schema
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ class AIOnboardingSystem:
 
 Just tell me in your own words - I'll understand!"""
 
-    def process_user_response(self, user_text: str, current_user_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+    def process_user_response(self, user_text: str, current_user_data: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         """
         Process user response using AI to understand intent and extract data
         Returns: (response_text, updated_user_data)
@@ -113,7 +113,7 @@ Analyze this message and determine:
             logger.error(f"Error in AI onboarding: {e}")
             return self._fallback_response(user_text, current_user_data)
     
-    def _build_user_context(self, user_data: Dict[str, Any]) -> str:
+    def _build_user_context(self, user_data: dict[str, Any]) -> str:
         """Build context string about user's current state"""
         context_parts = []
         
@@ -137,7 +137,7 @@ Analyze this message and determine:
         
         return "; ".join(context_parts) if context_parts else "New user, no data collected"
     
-    def _handle_ai_response(self, ai_response: Dict[str, Any], current_user_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+    def _handle_ai_response(self, ai_response: dict[str, Any], current_user_data: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         """Handle AI response and update user data"""
         
         user_state = ai_response.get("user_state", "new")
@@ -194,7 +194,7 @@ Analyze this message and determine:
         text_lower = user_text.lower().strip()
         return any(pattern in text_lower for pattern in consent_patterns)
     
-    def _handle_consent_step(self, user_text: str, current_user_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+    def _handle_consent_step(self, user_text: str, current_user_data: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         """Handle privacy consent step specifically"""
         from datetime import datetime
         
@@ -240,7 +240,7 @@ Analyze this message and determine:
         }
         return questions.get(user_state, "Tell me about your finances!")
     
-    def _fallback_response(self, user_text: str, current_user_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+    def _fallback_response(self, user_text: str, current_user_data: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         """Fallback when AI fails"""
         step = current_user_data.get('onboarding_step', 0)
         updated_data = current_user_data.copy()

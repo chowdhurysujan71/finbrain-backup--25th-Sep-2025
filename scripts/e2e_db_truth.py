@@ -3,10 +3,15 @@
 Validates that AI/brain outputs (amount/category) are actually persisted for the same user,
 and that users are isolated in storage. Exits nonzero on mismatch.
 """
-import os, sys, json, time, hashlib
-from datetime import datetime, timedelta
+import hashlib
+import json
+import os
+import sys
+from datetime import datetime
 from urllib.request import Request, urlopen
-import psycopg2, psycopg2.extras
+
+import psycopg2
+import psycopg2.extras
 
 APP = os.environ.get("APP_ORIGIN","http://localhost:5000")
 DB  = os.environ["DATABASE_URL"]

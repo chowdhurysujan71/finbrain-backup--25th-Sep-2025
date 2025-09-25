@@ -3,17 +3,16 @@ User Acceptance Test (UAT) Scenarios for Expense Logging System
 Tests complete user journeys from UI to database with repair capabilities
 """
 
-import requests
 import json
-import time
-import re
-from typing import Dict, Any, List, Optional
+from typing import Dict, List, Optional
+
+import requests
 
 BASE_URL = "http://localhost:5000"
 
 class UATTestResult:
     """Represents the result of a UAT test"""
-    def __init__(self, scenario: str, passed: bool, details: str, evidence: Optional[Dict] = None):
+    def __init__(self, scenario: str, passed: bool, details: str, evidence: dict | None = None):
         self.scenario = scenario
         self.passed = passed
         self.details = details
@@ -27,9 +26,9 @@ class UATRunner:
     """Runs comprehensive UAT scenarios"""
     
     def __init__(self):
-        self.results: List[UATTestResult] = []
+        self.results: list[UATTestResult] = []
         
-    def run_all_scenarios(self) -> List[UATTestResult]:
+    def run_all_scenarios(self) -> list[UATTestResult]:
         """Run all UAT scenarios"""
         print("🚀 Starting End-to-End UAT Scenarios")
         print("=" * 50)
@@ -204,7 +203,7 @@ class UATRunner:
         try:
             import sys
             sys.path.append('/home/runner/workspace')
-            from utils.expense_repair import looks_like_expense, extract_amount_minor
+            from utils.expense_repair import extract_amount_minor, looks_like_expense
             
             for message, should_detect, expected_amount in test_patterns:
                 detected = looks_like_expense(message)
@@ -234,7 +233,7 @@ class UATRunner:
         try:
             import sys
             sys.path.append('/home/runner/workspace')
-            from utils.expense_repair import normalize_category, guess_category
+            from utils.expense_repair import guess_category, normalize_category
             
             test_cases = [
                 # Normalization tests

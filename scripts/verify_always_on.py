@@ -7,7 +7,6 @@ Runs end-to-end tests against the stabilized system with no feature flags
 import os
 import sys
 import time
-import json
 from datetime import datetime
 
 # Add project root to path
@@ -19,7 +18,7 @@ def verify_config():
     print("=" * 50)
     
     try:
-        from utils.config import FEATURE_FLAGS_VERSION, get_config_summary
+        from utils.config import get_config_summary
         from utils.feature_flags import feature_enabled, get_canary_status
         
         config = get_config_summary()
@@ -30,7 +29,7 @@ def verify_config():
         
         # Test feature flags
         test_psid = "verification_test_psid"
-        print(f"\nFeature Flag Tests:")
+        print("\nFeature Flag Tests:")
         print(f"  SMART_NLP_ROUTING: {feature_enabled(test_psid, 'SMART_NLP_ROUTING')}")
         print(f"  SMART_CORRECTIONS: {feature_enabled(test_psid, 'SMART_CORRECTIONS')}")
         print(f"  SMART_NLP_TONE: {feature_enabled(test_psid, 'SMART_NLP_TONE')}")
@@ -52,7 +51,7 @@ def verify_database():
     print("=" * 50)
     
     try:
-        from db_base import db, app
+        from db_base import app, db
         
         with app.app_context():
             # Check if mid column exists
@@ -81,10 +80,10 @@ def test_multi_expense():
     print("=" * 50)
     
     try:
-        from parsers.expense import extract_all_expenses
-        from handlers.expense import handle_multi_expense_logging
         from app import app, db
+        from handlers.expense import handle_multi_expense_logging
         from models import Expense
+        from parsers.expense import extract_all_expenses
         
         test_text = "coffee 200 and lunch 300"
         test_psid = "verify_multi_test"
@@ -104,14 +103,14 @@ def test_multi_expense():
             # Test multi-expense logging
             result = handle_multi_expense_logging(test_psid, test_mid, test_text, datetime.now())
             
-            print(f"\nLogging result:")
+            print("\nLogging result:")
             print(f"  Intent: {result['intent']}")
             print(f"  Total amount: ৳{result['amount']}")
             print(f"  Response: {result['text'][:100]}...")
             
             # Verify database entries
             db_expenses = db.session.query(Expense).filter_by(user_id=test_psid).all()
-            print(f"\nDatabase verification:")
+            print("\nDatabase verification:")
             print(f"  Entries created: {len(db_expenses)}")
             for expense in db_expenses:
                 print(f"    MID: {expense.mid} | Amount: ৳{expense.amount} | Category: {expense.category}")
@@ -129,10 +128,11 @@ def test_correction():
     print("=" * 50)
     
     try:
-        from handlers.expense import handle_multi_expense_logging, handle_correction
-        from app import app, db
-        from models import Expense
         from datetime import timedelta
+
+        from app import app, db
+        from handlers.expense import handle_correction, handle_multi_expense_logging
+        from models import Expense
         
         test_psid = "verify_correction_test"
         original_mid = f"original_{int(time.time())}"
@@ -187,8 +187,8 @@ def test_idempotency():
     print("=" * 50)
     
     try:
-        from handlers.expense import handle_multi_expense_logging
         from app import app, db
+        from handlers.expense import handle_multi_expense_logging
         from models import Expense
         
         test_psid = "verify_idempotency_test"

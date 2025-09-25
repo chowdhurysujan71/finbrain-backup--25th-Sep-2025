@@ -3,19 +3,18 @@ Continuous Coaching Flow Engine
 Manages multi-turn conversations after summary/insight to help users pick actions
 """
 
+import logging
 import os
 import time
-import logging
-from typing import Dict, Any, Optional, List
-from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 # Import hardening components
 try:
-    from utils.coaching_resilience import coaching_resilience
     from utils.coaching_analytics import coaching_analytics
-    from utils.coaching_optimization import performance_monitor, coaching_cache
+    from utils.coaching_optimization import coaching_cache, performance_monitor
+    from utils.coaching_resilience import coaching_resilience
     from utils.coaching_safeguards import coaching_circuit_breaker, feature_flag_manager
     HARDENING_AVAILABLE = True
 except ImportError as e:
@@ -28,7 +27,7 @@ COACH_SESSION_TTL_SEC = int(os.getenv('COACH_SESSION_TTL_SEC', '300'))  # 5 min
 COACH_COOLDOWN_SEC = int(os.getenv('COACH_COOLDOWN_SEC', '900'))  # 15 min
 COACH_PER_DAY_MAX = int(os.getenv('COACH_PER_DAY_MAX', '6'))
 
-def can_start_coach(intent: str, last_outbound_intent: Optional[str], user_text: str, redis_ok: bool, caps_ok: bool) -> bool:
+def can_start_coach(intent: str, last_outbound_intent: str | None, user_text: str, redis_ok: bool, caps_ok: bool) -> bool:
     """
     Guard function: determines if coaching can be started
     
@@ -113,7 +112,7 @@ def can_continue(state: str, user_text: str) -> bool:
     log_structured_event("COACH_END", {"reason": "user_optout"})
     return False
 
-def get_last_outbound_intent(psid_hash: str) -> Optional[str]:
+def get_last_outbound_intent(psid_hash: str) -> str | None:
     """
     Accessor for last outbound intent (if available in session/memory)
     
@@ -146,7 +145,7 @@ def check_redis_health() -> bool:
     except Exception:
         return False
 
-def maybe_continue(psid_hash: str, intent: str, parsed_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def maybe_continue(psid_hash: str, intent: str, parsed_data: dict[str, Any]) -> dict[str, Any] | None:
     """
     HARDENED coaching flow entry point - NEVER overrides normal replies
     Only triggers coaching when explicitly appropriate per safety rules
@@ -189,7 +188,7 @@ def maybe_continue(psid_hash: str, intent: str, parsed_data: Dict[str, Any]) -> 
         logger.error(f"[COACH][ERROR] maybe_continue failed: {e}")
         return None
 
-def _maybe_continue_internal(psid_hash: str, intent: str, parsed_data: Dict[str, Any], start_time: float) -> Optional[Dict[str, Any]]:
+def _maybe_continue_internal(psid_hash: str, intent: str, parsed_data: dict[str, Any], start_time: float) -> dict[str, Any] | None:
     """Internal implementation with hardening and safety guards"""
     try:
         from utils.session import get_coaching_session, get_daily_coaching_count
@@ -246,7 +245,7 @@ def _maybe_continue_internal(psid_hash: str, intent: str, parsed_data: Dict[str,
         logger.error(f"[COACH][ERROR] maybe_continue failed: {e}")
         return None
 
-def handle_coaching_response(psid_hash: str, user_message: str) -> Optional[Dict[str, Any]]:
+def handle_coaching_response(psid_hash: str, user_message: str) -> dict[str, Any] | None:
     """
     Handle user response in active coaching session
     
@@ -258,8 +257,7 @@ def handle_coaching_response(psid_hash: str, user_message: str) -> Optional[Dict
         Coaching reply payload or None if session not active
     """
     try:
-        from utils.session import get_coaching_session, set_coaching_session, delete_coaching_session
-        from utils.structured import log_structured_event
+        from utils.session import delete_coaching_session, get_coaching_session
         
         session = get_coaching_session(psid_hash)
         if not session or session.get('state') == 'idle':
@@ -296,11 +294,11 @@ def handle_coaching_response(psid_hash: str, user_message: str) -> Optional[Dict
         logger.error(f"[COACH][ERROR] handle_coaching_response failed: {e}")
         return None
 
-def _start_coaching_flow(psid_hash: str, intent: str, parsed_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _start_coaching_flow(psid_hash: str, intent: str, parsed_data: dict[str, Any]) -> dict[str, Any] | None:
     """Start new coaching flow from summary/insight"""
-    from utils.session import set_coaching_session, increment_daily_coaching_count
-    from utils.structured import log_structured_event
     from templates.replies_ai import coach_focus
+    from utils.session import increment_daily_coaching_count, set_coaching_session
+    from utils.structured import log_structured_event
     
     # Extract top category from data
     top_category = _extract_top_category(parsed_data)
@@ -327,11 +325,11 @@ def _start_coaching_flow(psid_hash: str, intent: str, parsed_data: Dict[str, Any
     # Generate focus question
     return coach_focus(topic_suggestions)
 
-def _handle_focus_response(psid_hash: str, user_text: str, session: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _handle_focus_response(psid_hash: str, user_text: str, session: dict[str, Any]) -> dict[str, Any] | None:
     """Handle user's topic selection"""
+    from templates.replies_ai import coach_commit
     from utils.session import set_coaching_session
     from utils.structured import log_structured_event
-    from templates.replies_ai import coach_commit
     
     # Parse topic selection
     topic = _parse_topic_selection(user_text)
@@ -366,10 +364,10 @@ def _handle_focus_response(psid_hash: str, user_text: str, session: Dict[str, An
     
     return coach_commit(topic, action_options)
 
-def _handle_commit_response(psid_hash: str, user_text: str, session: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _handle_commit_response(psid_hash: str, user_text: str, session: dict[str, Any]) -> dict[str, Any] | None:
     """Handle user's action commitment"""
-    from utils.structured import log_structured_event
     from templates.replies_ai import coach_done
+    from utils.structured import log_structured_event
     
     if user_text in {'skip', 'not now', 'something else'}:
         _end_coaching_session(psid_hash, 'user_skip')
@@ -415,7 +413,7 @@ def _end_coaching_session(psid_hash: str, reason: str):
     
     log_structured_event("COACH_END", {"reason": reason})
 
-def _extract_top_category(parsed_data: Dict[str, Any]) -> str:
+def _extract_top_category(parsed_data: dict[str, Any]) -> str:
     """Extract the top spending category from summary/insight data"""
     # This would extract from actual parsed summary data
     # For now, return a common category
@@ -425,7 +423,7 @@ def _extract_top_category(parsed_data: Dict[str, Any]) -> str:
         return categories[0] if isinstance(categories[0], str) else normalize_category(categories[0].get('category'))
     return 'transport'
 
-def _get_topic_suggestions(top_category: str) -> List[str]:
+def _get_topic_suggestions(top_category: str) -> list[str]:
     """Get topic suggestions based on top category"""
     suggestions = ['transport', 'food', 'other']
     
@@ -436,7 +434,7 @@ def _get_topic_suggestions(top_category: str) -> List[str]:
     
     return suggestions
 
-def _parse_topic_selection(user_text: str) -> Optional[str]:
+def _parse_topic_selection(user_text: str) -> str | None:
     """Parse user's topic selection from text"""
     text = user_text.lower()
     
@@ -451,7 +449,7 @@ def _parse_topic_selection(user_text: str) -> Optional[str]:
     
     return None
 
-def _get_action_options(topic: str) -> List[str]:
+def _get_action_options(topic: str) -> list[str]:
     """Get actionable options for a topic"""
     options = {
         'transport': ['batch trips', 'off-peak'],
@@ -461,7 +459,7 @@ def _get_action_options(topic: str) -> List[str]:
     }
     return options.get(topic, ['track closer', 'set goal'])
 
-def _parse_action_selection(user_text: str, topic: Optional[str]) -> Optional[str]:
+def _parse_action_selection(user_text: str, topic: str | None) -> str | None:
     """Parse user's action selection"""
     text = user_text.lower()
     
@@ -484,7 +482,7 @@ def _parse_action_selection(user_text: str, topic: Optional[str]) -> Optional[st
     
     return None
 
-def _create_coaching_reply(text: str, quick_replies: Optional[List[str]] = None) -> Dict[str, Any]:
+def _create_coaching_reply(text: str, quick_replies: list[str] | None = None) -> dict[str, Any]:
     """Create coaching reply payload"""
     reply = {
         'text': text,

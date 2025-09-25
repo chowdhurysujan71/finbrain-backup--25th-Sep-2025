@@ -13,23 +13,23 @@ Focus Areas:
 
 import sys
 import time
-import json
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Optional
 
 # Add project root to path
 sys.path.append('/home/runner/workspace')
 
 from app import app, db
-from models import Expense, User, MonthlySummary
+from handlers.report import handle_report
+from models import Expense, MonthlySummary, User
+from parsers.expense import extract_all_expenses
+from utils.dispatcher import handle_message_dispatch
+from utils.intent_router import detect_intent
 from utils.production_router import ProductionRouter
 from utils.security import hash_psid, sanitize_input
-from utils.intent_router import detect_intent
-from utils.dispatcher import handle_message_dispatch
-from handlers.report import handle_report
-from parsers.expense import extract_all_expenses
+
 
 class ProductionUATSuite:
     """Comprehensive UAT covering all critical system areas"""
@@ -52,7 +52,7 @@ class ProductionUATSuite:
         print("=" * 80)
     
     def log_test(self, category: str, test_name: str, status: bool, details: str = "", 
-                 performance_ms: Optional[float] = None, severity: str = "normal"):
+                 performance_ms: float | None = None, severity: str = "normal"):
         """Log test result with enhanced metadata"""
         result = {
             'category': category,
@@ -655,7 +655,7 @@ class ProductionUATSuite:
         critical_failures = [r for r in self.test_results if r['status'] == 'FAIL' and r['severity'] in ['critical', 'security']]
         
         print(f"\n{'='*80}")
-        print(f"🔍 COMPREHENSIVE UAT AUDIT REPORT")
+        print("🔍 COMPREHENSIVE UAT AUDIT REPORT")
         print(f"{'='*80}")
         print(f"📅 Execution Time: {self.start_time} - {end_time}")
         print(f"⏱️  Total Duration: {duration:.2f} seconds")
@@ -664,7 +664,7 @@ class ProductionUATSuite:
         print(f"❌ Failed: {failed_tests}")
         print(f"📊 Success Rate: {success_rate:.1f}%")
         
-        print(f"\n📋 CATEGORY BREAKDOWN:")
+        print("\n📋 CATEGORY BREAKDOWN:")
         for category, stats in categories.items():
             cat_success = (stats['passed'] / stats['total'] * 100) if stats['total'] > 0 else 0
             status_icon = "✅" if cat_success == 100 else "⚠️" if cat_success >= 80 else "❌"
@@ -676,7 +676,7 @@ class ProductionUATSuite:
                 print(f"  ❌ [{failure['category']}] {failure['test']}")
                 print(f"     {failure['details']}")
         
-        print(f"\n📈 PERFORMANCE METRICS:")
+        print("\n📈 PERFORMANCE METRICS:")
         perf_tests = [r for r in self.test_results if r['performance_ms'] is not None]
         if perf_tests:
             avg_performance = sum(r['performance_ms'] for r in perf_tests) / len(perf_tests)
@@ -684,7 +684,7 @@ class ProductionUATSuite:
             print(f"  ⏱️  Average Response Time: {avg_performance:.1f}ms")
             print(f"  🏃 Max Response Time: {max_performance:.1f}ms")
         
-        print(f"\n🔍 DETAILED TEST RESULTS:")
+        print("\n🔍 DETAILED TEST RESULTS:")
         for result in self.test_results:
             icon = "✅" if result['status'] == 'PASS' else "❌"
             perf = f" ({result['performance_ms']:.1f}ms)" if result['performance_ms'] else ""

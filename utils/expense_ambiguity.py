@@ -4,9 +4,7 @@ Handles items like "mouse" that could be multiple categories (computer mouse vs 
 """
 
 import logging
-import re
-from typing import Dict, List, Optional, Tuple, Any
-from datetime import datetime, timedelta
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +63,7 @@ class AmbiguityDetector:
     def __init__(self):
         self.logger = logging.getLogger(f"{__name__}.AmbiguityDetector")
     
-    def detect_ambiguity(self, item_text: str, amount: float, context: str = "") -> Dict[str, Any]:
+    def detect_ambiguity(self, item_text: str, amount: float, context: str = "") -> dict[str, Any]:
         """
         Detect if an item is ambiguous and return clarification options
         
@@ -136,7 +134,7 @@ class AmbiguityDetector:
         return text
     
     def _calculate_category_scores(self, item: str, amount: float, context: str, 
-                                 ambiguous_info: Dict) -> Dict[str, float]:
+                                 ambiguous_info: dict) -> dict[str, float]:
         """Calculate confidence scores for each possible category"""
         scores = {}
         context_lower = context.lower()
@@ -169,7 +167,7 @@ class AmbiguityDetector:
         
         return scores
     
-    def _needs_clarification(self, scores: Dict[str, float]) -> bool:
+    def _needs_clarification(self, scores: dict[str, float]) -> bool:
         """Determine if user clarification is needed"""
         if not scores:
             return False
@@ -187,7 +185,7 @@ class AmbiguityDetector:
         # If top two scores are close, ask for clarification
         return True
     
-    def _generate_clarification_options(self, item: str, scores: Dict[str, float]) -> List[Dict[str, Any]]:
+    def _generate_clarification_options(self, item: str, scores: dict[str, float]) -> list[dict[str, Any]]:
         """Generate user-friendly clarification options"""
         options = []
         

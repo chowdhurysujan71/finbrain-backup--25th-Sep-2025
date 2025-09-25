@@ -3,24 +3,28 @@ Comprehensive Test Suite for Natural Language Expense Logging
 Tests both STD and AI modes with parameterized matrix
 """
 
-import pytest
 import hashlib
 import time
-from decimal import Decimal
 from datetime import datetime, timedelta
-from unittest.mock import patch, MagicMock
+from decimal import Decimal
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Import system components
-from finbrain.router import contains_money, normalize_text
-from parsers.expense import parse_expense, parse_amount_currency_category
+from finbrain.router import contains_money
+from parsers.expense import parse_expense
 from utils.feature_flags import is_smart_nlp_enabled, is_smart_tone_enabled
-from utils.db import ensure_idempotency_index
-from backend_assistant import add_expense
+
 # Mark as expected failure due to module restructuring
 pytestmark = pytest.mark.xfail(reason="Module restructuring - structured logging functions unavailable")
 
 try:
-    from utils.structured import log_intent_decision, log_expense_logged, log_duplicate_detected
+    from utils.structured import (
+        log_duplicate_detected,
+        log_expense_logged,
+        log_intent_decision,
+    )
 except ImportError:
     log_intent_decision = log_expense_logged = log_duplicate_detected = None
 

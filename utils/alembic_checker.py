@@ -7,11 +7,12 @@ import logging
 import os
 import sys
 from typing import Optional, Tuple
+
 from sqlalchemy import create_engine, text
 
 logger = logging.getLogger(__name__)
 
-def get_alembic_current_revision(database_url: str) -> Optional[str]:
+def get_alembic_current_revision(database_url: str) -> str | None:
     """
     Get the current Alembic revision from the database
     Returns None if unable to determine
@@ -50,7 +51,7 @@ def get_alembic_current_revision(database_url: str) -> Optional[str]:
         logger.error(f"Failed to get current Alembic revision: {e}")
         return None
 
-def get_alembic_head_revision() -> Optional[str]:
+def get_alembic_head_revision() -> str | None:
     """
     Get the head revision from Alembic configuration
     Returns None if unable to determine
@@ -77,7 +78,7 @@ def get_alembic_head_revision() -> Optional[str]:
         logger.error(f"Failed to get Alembic head revision: {e}")
         return None
 
-def check_alembic_revision_status(database_url: str) -> Tuple[bool, str]:
+def check_alembic_revision_status(database_url: str) -> tuple[bool, str]:
     """
     Check if database is at the current Alembic head revision
     

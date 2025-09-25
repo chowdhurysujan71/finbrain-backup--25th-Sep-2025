@@ -1,4 +1,7 @@
-import os, re, requests
+import os
+import re
+
+import requests
 
 PAGE_TOKEN = os.environ["FACEBOOK_PAGE_ACCESS_TOKEN"]
 GRAPH = "https://graph.facebook.com/v19.0/me/messages"

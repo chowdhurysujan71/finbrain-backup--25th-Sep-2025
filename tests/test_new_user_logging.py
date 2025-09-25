@@ -3,16 +3,16 @@ Test cases for new user expense logging with money detection
 Ensures LOG intent always prioritizes over SUMMARY when money is detected
 """
 
-import pytest
 from decimal import Decimal
-from datetime import datetime
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Import the functions we need to test
 from finbrain.router import contains_money
 from parsers.expense import parse_amount_currency_category
-from utils.production_router import ProductionRouter
 from utils.db import save_expense_idempotent
+from utils.production_router import ProductionRouter
 
 
 class TestMoneyDetection:

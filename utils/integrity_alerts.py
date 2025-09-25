@@ -3,17 +3,18 @@ Advanced alerting system for data integrity failures
 Handles notifications to operations team when data discrepancies are detected
 """
 
+import json
 import logging
 import os
-import json
 import smtplib
-import requests
 from datetime import datetime
-from email.mime.text import MimeText
 from email.mime.multipart import MimeMultipart
-from typing import Dict, Any, Optional, List
+from email.mime.text import MimeText
+from typing import Any, Dict
 
-from .data_integrity_check import IntegrityReport, IntegrityCheckResult
+import requests
+
+from .data_integrity_check import IntegrityReport
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,7 @@ class IntegrityAlerting:
         except Exception as e:
             logger.error(f"Alert sending failed: {e}")
     
-    def _generate_alert_content(self, report: IntegrityReport) -> Dict[str, Any]:
+    def _generate_alert_content(self, report: IntegrityReport) -> dict[str, Any]:
         """Generate structured alert content"""
         # Determine severity and emoji
         if report.overall_status == 'CRITICAL':
@@ -140,7 +141,7 @@ class IntegrityAlerting:
             'timestamp': datetime.utcnow().isoformat()
         }
     
-    def _send_email_alert(self, alert_data: Dict[str, Any]):
+    def _send_email_alert(self, alert_data: dict[str, Any]):
         """Send email alert to operations team"""
         smtp_host = os.getenv('SMTP_HOST')
         smtp_port = int(os.getenv('SMTP_PORT', '587'))
@@ -178,7 +179,7 @@ class IntegrityAlerting:
         
         logger.info(f"Email alert sent to {alert_email_to}")
     
-    def _send_slack_alert(self, alert_data: Dict[str, Any]):
+    def _send_slack_alert(self, alert_data: dict[str, Any]):
         """Send Slack alert to operations channel"""
         webhook_url = os.getenv('SLACK_WEBHOOK_URL')
         
@@ -257,7 +258,7 @@ class IntegrityAlerting:
         
         logger.info("Slack alert sent successfully")
     
-    def _send_webhook_alert(self, alert_data: Dict[str, Any]):
+    def _send_webhook_alert(self, alert_data: dict[str, Any]):
         """Send alert to generic webhook endpoint"""
         webhook_url = os.getenv('INTEGRITY_WEBHOOK_URL')
         webhook_secret = os.getenv('INTEGRITY_WEBHOOK_SECRET')
@@ -300,8 +301,8 @@ class IntegrityAlerting:
         
         if webhook_secret:
             # Add authentication header if secret is configured
-            import hmac
             import hashlib
+            import hmac
             payload_str = json.dumps(payload, sort_keys=True)
             signature = hmac.new(
                 webhook_secret.encode(),
@@ -316,7 +317,7 @@ class IntegrityAlerting:
         
         logger.info("Webhook alert sent successfully")
     
-    def _generate_email_text(self, alert_data: Dict[str, Any]) -> str:
+    def _generate_email_text(self, alert_data: dict[str, Any]) -> str:
         """Generate plain text email content"""
         report = alert_data['report']
         failed_checks = alert_data['failed_checks']
@@ -372,7 +373,7 @@ This alert was generated automatically by FinBrain's data integrity monitoring s
         
         return content
     
-    def _generate_email_html(self, alert_data: Dict[str, Any]) -> str:
+    def _generate_email_html(self, alert_data: dict[str, Any]) -> str:
         """Generate HTML email content"""
         report = alert_data['report']
         failed_checks = alert_data['failed_checks']

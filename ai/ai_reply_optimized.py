@@ -5,9 +5,11 @@ Replaces existing AI processing with streamlined context-driven responses
 
 import json
 import logging
-from utils.context_packet import build_context
+
 from ai_adapter_gemini import generate_with_schema
+
 from limiter import can_use_ai, fallback_blurb
+from utils.context_packet import build_context
 
 logger = logging.getLogger(__name__)
 

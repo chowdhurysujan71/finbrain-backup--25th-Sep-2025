@@ -15,10 +15,10 @@ Outputs:
 - Last telemetry line
 """
 
-import sys
-import os
 import json
-from unittest.mock import Mock, patch, MagicMock
+import os
+import sys
+from unittest.mock import patch
 
 # Add project root to path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -93,9 +93,9 @@ def simulate_intent_path(intent_text, description):
 
 def test_coaching_guards():
     """Test coaching guard functions directly"""
-    print(f"\n🛡️ Testing Coaching Guards")
+    print("\n🛡️ Testing Coaching Guards")
     
-    from handlers.coaching import can_start_coach, can_continue, check_redis_health
+    from handlers.coaching import can_continue, can_start_coach, check_redis_health
     
     # Test Redis health
     redis_health = check_redis_health()
@@ -142,7 +142,7 @@ def run_smoke_tests():
     test_coaching_guards()
     
     # Summary
-    print(f"\n📊 SMOKE TEST SUMMARY")
+    print("\n📊 SMOKE TEST SUMMARY")
     print("=" * 50)
     
     successful_tests = sum(1 for r in results if r['success'])

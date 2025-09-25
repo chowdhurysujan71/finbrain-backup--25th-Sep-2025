@@ -6,6 +6,7 @@ These tests must pass before deployment to lock behavior
 
 from app import app
 
+
 def test_expense_log_contracts():
     """Test all EXPENSE_LOG contract requirements"""
     
@@ -34,10 +35,10 @@ def test_expense_log_contracts():
         print(f"  Verb detected: {bn_signals.has_first_person_spent_verb}")
         
         if actual_intent == expected_intent:
-            print(f"  ✅ PASS")
+            print("  ✅ PASS")
             tests_passed += 1
         else:
-            print(f"  ❌ FAIL")
+            print("  ❌ FAIL")
         
         # Contract Test 2: BN expense without verb → CLARIFY_EXPENSE
         print("\n2️⃣ Bengali expense without verb")
@@ -55,10 +56,10 @@ def test_expense_log_contracts():
         print(f"  Verb detected: {bn_ambiguous_signals.has_first_person_spent_verb}")
         
         if actual_intent == expected_intent:
-            print(f"  ✅ PASS")
+            print("  ✅ PASS")
             tests_passed += 1
         else:
-            print(f"  ❌ FAIL")
+            print("  ❌ FAIL")
         
         # Contract Test 3: Explicit analysis wins even with money
         print("\n3️⃣ Explicit analysis wins")
@@ -75,10 +76,10 @@ def test_expense_log_contracts():
         print(f"  Explicit analysis: {analysis_signals.has_explicit_analysis}")
         
         if actual_intent == expected_intent:
-            print(f"  ✅ PASS")
+            print("  ✅ PASS")
             tests_passed += 1
         else:
-            print(f"  ❌ FAIL")
+            print("  ❌ FAIL")
         
         # Contract Test 4: Coaching stays coaching
         print("\n4️⃣ Coaching stays coaching")
@@ -97,10 +98,10 @@ def test_expense_log_contracts():
         print(f"  Ledger count: {coaching_signals.ledger_count_30d}")
         
         if actual_intent == expected_intent:
-            print(f"  ✅ PASS")
+            print("  ✅ PASS")
             tests_passed += 1
         else:
-            print(f"  ❌ FAIL")
+            print("  ❌ FAIL")
         
         # Contract Test 5: No false positives
         print("\n5️⃣ No false positives")
@@ -118,10 +119,10 @@ def test_expense_log_contracts():
         print(f"  Verb detected: {no_expense_signals.has_first_person_spent_verb}")
         
         if actual_intent != not_expected_intent:
-            print(f"  ✅ PASS")
+            print("  ✅ PASS")
             tests_passed += 1
         else:
-            print(f"  ❌ FAIL")
+            print("  ❌ FAIL")
         
         # Final Summary
         print("\n" + "=" * 50)

@@ -6,7 +6,7 @@ import os
 from typing import Set
 
 # Load dev PSIDs from environment variable (comma-separated)
-DEV_PSIDS: Set[str] = set(filter(None, os.getenv("DEV_PSIDS", "").split(",")))
+DEV_PSIDS: set[str] = set(filter(None, os.getenv("DEV_PSIDS", "").split(",")))
 
 def is_dev_psid(psid: str) -> bool:
     """

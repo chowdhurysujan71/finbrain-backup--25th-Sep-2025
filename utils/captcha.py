@@ -1,11 +1,12 @@
 """
 Simple math-based CAPTCHA system for preventing automated abuse
 """
-import random
 import hashlib
-import time
 import logging
-from typing import Dict, Tuple, Optional
+import random
+import time
+from typing import Dict, Tuple
+
 from flask import session
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ class MathCaptcha:
         self.operations = ['+', '-', '*']
         self.max_number = 20  # Keep numbers manageable for users
         
-    def generate_captcha(self) -> Dict[str, str]:
+    def generate_captcha(self) -> dict[str, str]:
         """
         Generate a simple math problem for CAPTCHA
         
@@ -68,7 +69,7 @@ class MathCaptcha:
                 'timestamp': str(int(time.time()))
             }
     
-    def verify_captcha(self, user_answer: str, encrypted_answer: str, timestamp: str) -> Tuple[bool, str]:
+    def verify_captcha(self, user_answer: str, encrypted_answer: str, timestamp: str) -> tuple[bool, str]:
         """
         Verify CAPTCHA answer
         
@@ -105,7 +106,7 @@ class MathCaptcha:
                 logger.info("CAPTCHA verification successful")
                 return True, ""
             else:
-                logger.warning(f"CAPTCHA verification failed: incorrect answer")
+                logger.warning("CAPTCHA verification failed: incorrect answer")
                 return False, "Incorrect answer. Please try again."
                 
         except Exception as e:
@@ -115,7 +116,7 @@ class MathCaptcha:
 # Global instance
 math_captcha = MathCaptcha()
 
-def generate_session_captcha() -> Dict[str, str]:
+def generate_session_captcha() -> dict[str, str]:
     """
     Generate CAPTCHA and store in session for stateful verification
     
@@ -139,7 +140,7 @@ def generate_session_captcha() -> Dict[str, str]:
             'question': "What is 2 + 2?"
         }
 
-def verify_session_captcha(user_answer: str) -> Tuple[bool, str]:
+def verify_session_captcha(user_answer: str) -> tuple[bool, str]:
     """
     Verify CAPTCHA answer using session data
     

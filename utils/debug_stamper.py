@@ -3,8 +3,8 @@
 Adds identity and processing mode to all outbound messages
 """
 
-import os
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 

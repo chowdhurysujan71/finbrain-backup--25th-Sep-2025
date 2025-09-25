@@ -7,13 +7,10 @@ End-to-end testing with detailed audit reports covering:
 """
 
 import logging
-import json
-import hashlib
-from datetime import datetime, timedelta, date
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass
-import os
 import uuid
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -23,28 +20,28 @@ class UATScenario:
     scenario_id: str
     user_type: str  # existing, new, future
     description: str
-    expected_behavior: Dict[str, Any]
-    test_data: Dict[str, Any]
+    expected_behavior: dict[str, Any]
+    test_data: dict[str, Any]
 
 @dataclass
 class AuditTrail:
     """Track data flow through the system"""
     step_id: str
     component: str
-    input_data: Dict[str, Any]
-    output_data: Dict[str, Any]
+    input_data: dict[str, Any]
+    output_data: dict[str, Any]
     timestamp: datetime
     success: bool
-    error_message: Optional[str] = None
-    data_integrity: Optional[Dict[str, Any]] = None
+    error_message: str | None = None
+    data_integrity: dict[str, Any] | None = None
 
 class ComprehensiveUAT:
     """Complete UAT framework for Block 4 Growth Metrics"""
     
     def __init__(self):
-        self.audit_trails: List[AuditTrail] = []
-        self.test_scenarios: List[UATScenario] = []
-        self.test_results: Dict[str, Any] = {}
+        self.audit_trails: list[AuditTrail] = []
+        self.test_scenarios: list[UATScenario] = []
+        self.test_results: dict[str, Any] = {}
         self.start_time = datetime.utcnow()
         
         # Initialize test database tracking
@@ -176,7 +173,7 @@ class ComprehensiveUAT:
         
         logger.info(f"Setup {len(self.test_scenarios)} comprehensive test scenarios")
     
-    def execute_scenario(self, scenario: UATScenario) -> Dict[str, Any]:
+    def execute_scenario(self, scenario: UATScenario) -> dict[str, Any]:
         """Execute a single UAT scenario with complete audit trail"""
         
         scenario_start = datetime.utcnow()
@@ -236,9 +233,9 @@ class ComprehensiveUAT:
         """Setup user state for testing"""
         
         try:
-            from utils.identity import psid_hash
-            from models import User
             from db_base import db
+            from models import User
+            from utils.identity import psid_hash
             
             # Create test user hash
             user_hash = psid_hash(scenario.test_data["user_id"])
@@ -431,8 +428,8 @@ class ComprehensiveUAT:
         """Execute report request actions"""
         
         try:
-            from handlers.summary import handle_summary
             from handlers.insight import handle_insight
+            from handlers.summary import handle_summary
             from utils.identity import psid_hash
             
             user_hash = psid_hash(scenario.test_data["user_id"])
@@ -481,8 +478,8 @@ class ComprehensiveUAT:
         """Validate analytics engine processing"""
         
         try:
-            from utils.identity import psid_hash
             from models import User
+            from utils.identity import psid_hash
             
             user_hash = psid_hash(scenario.test_data["user_id"])
             user = User.query.filter_by(user_id_hash=user_hash).first()
@@ -542,8 +539,8 @@ class ComprehensiveUAT:
         """Validate milestone engine processing"""
         
         try:
-            from utils.identity import psid_hash
             from models import User
+            from utils.identity import psid_hash
             from utils.timezone_helpers import today_local
             
             user_hash = psid_hash(scenario.test_data["user_id"])
@@ -613,9 +610,8 @@ class ComprehensiveUAT:
         """Validate data persistence and integrity"""
         
         try:
+            from models import Expense, MonthlySummary, User
             from utils.identity import psid_hash
-            from models import User, Expense, MonthlySummary
-            from db_base import db
             
             user_hash = psid_hash(scenario.test_data["user_id"])
             
@@ -735,7 +731,7 @@ class ComprehensiveUAT:
                 error_message=str(e)
             )
     
-    def generate_comprehensive_audit_report(self) -> Dict[str, Any]:
+    def generate_comprehensive_audit_report(self) -> dict[str, Any]:
         """Generate detailed audit report for all scenarios"""
         
         end_time = datetime.utcnow()
@@ -844,8 +840,8 @@ class ComprehensiveUAT:
         """Clean up test data after UAT completion"""
         
         try:
-            from models import User, Expense, MonthlySummary
             from db_base import db
+            from models import Expense, MonthlySummary, User
             
             cleanup_summary = {
                 "users_cleaned": 0,
@@ -883,7 +879,7 @@ class ComprehensiveUAT:
             return {"error": str(e)}
 
 # Main execution functions
-def run_comprehensive_uat() -> Dict[str, Any]:
+def run_comprehensive_uat() -> dict[str, Any]:
     """Execute complete UAT and return comprehensive audit report"""
     
     # Import Flask app and run within application context
@@ -918,7 +914,7 @@ def run_comprehensive_uat() -> Dict[str, Any]:
                 "partial_results": uat.test_results
             }
 
-def validate_deployment_readiness(audit_report: Dict[str, Any]) -> bool:
+def validate_deployment_readiness(audit_report: dict[str, Any]) -> bool:
     """Validate if system is ready for deployment based on audit report"""
     
     if "error" in audit_report:

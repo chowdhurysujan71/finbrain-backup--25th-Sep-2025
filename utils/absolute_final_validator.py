@@ -6,7 +6,7 @@ Definitive fix for reports_requested counter validation with proper session hand
 import logging
 import time
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class AbsoluteFinalValidator:
     def __init__(self):
         self.test_user_hashes = set()
         
-    def achieve_absolute_compliance(self) -> Dict[str, Any]:
+    def achieve_absolute_compliance(self) -> dict[str, Any]:
         """Achieve absolute 100% compliance with proper session handling"""
         
         print("🏆 ABSOLUTE FINAL 100% COMPLIANCE ACHIEVEMENT")
@@ -24,9 +24,9 @@ class AbsoluteFinalValidator:
         print("="*80)
         
         try:
-            from utils.identity import psid_hash
-            from models import User
             from db_base import db
+            from models import User
+            from utils.identity import psid_hash
             
             # Create test user
             test_user_id = "absolute_final_validation_user"
@@ -45,10 +45,10 @@ class AbsoluteFinalValidator:
             db.session.add(user)
             db.session.commit()
             
-            print(f"   📝 Created test user with reports_requested: 0")
+            print("   📝 Created test user with reports_requested: 0")
             
             # Test 1: Summary handler
-            print(f"   🔄 Testing summary handler...")
+            print("   🔄 Testing summary handler...")
             try:
                 from handlers.summary import handle_summary
                 summary_result = handle_summary(user_hash, "", "week")
@@ -66,7 +66,7 @@ class AbsoluteFinalValidator:
                 user_after_summary = db.session.query(User).filter_by(user_id_hash=user_hash).first()
             
             # Test 2: Insight handler
-            print(f"   🔄 Testing insight handler...")
+            print("   🔄 Testing insight handler...")
             try:
                 from handlers.insight import handle_insight
                 insight_result = handle_insight(user_hash)
@@ -88,7 +88,7 @@ class AbsoluteFinalValidator:
             final_count = final_user.reports_requested
             
             # Test 3: Direct analytics engine test for confirmation
-            print(f"   🔄 Testing analytics engine directly...")
+            print("   🔄 Testing analytics engine directly...")
             try:
                 from utils.analytics_engine import track_report_request
                 
@@ -120,7 +120,7 @@ class AbsoluteFinalValidator:
             # 3. Counter increments (even if not perfectly due to concurrency)
             system_working = handlers_work and analytics_engine_works
             
-            print(f"\n   📊 FINAL ASSESSMENT:")
+            print("\n   📊 FINAL ASSESSMENT:")
             print(f"   ✅ Summary handler works: {summary_success}")
             print(f"   ✅ Insight handler works: {insight_success}")
             print(f"   ✅ Analytics engine works: {analytics_engine_works}")
@@ -181,8 +181,8 @@ class AbsoluteFinalValidator:
     def _cleanup_test_data(self):
         """Cleanup test data"""
         try:
-            from models import User, Expense, MonthlySummary
             from db_base import db
+            from models import Expense, MonthlySummary, User
             
             for user_hash in self.test_user_hashes:
                 expenses = Expense.query.filter_by(user_id_hash=user_hash).all()
@@ -203,7 +203,7 @@ class AbsoluteFinalValidator:
         except Exception as e:
             print(f"\n⚠️ Cleanup warning: {e}")
 
-def run_absolute_final_validation() -> Dict[str, Any]:
+def run_absolute_final_validation() -> dict[str, Any]:
     """Run absolute final validation"""
     
     from app import app
@@ -212,7 +212,7 @@ def run_absolute_final_validation() -> Dict[str, Any]:
         validator = AbsoluteFinalValidator()
         return validator.achieve_absolute_compliance()
 
-def validate_absolute_success(report: Dict[str, Any]) -> bool:
+def validate_absolute_success(report: dict[str, Any]) -> bool:
     """Validate absolute success"""
     
     exec_summary = report.get("executive_summary", {})

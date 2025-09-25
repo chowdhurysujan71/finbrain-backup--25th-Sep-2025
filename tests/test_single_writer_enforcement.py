@@ -8,12 +8,12 @@ This comprehensive test suite ensures that:
 4. Canonical writer context works correctly
 """
 
-import pytest
-import sys
 import os
-import tempfile
 import subprocess
-from unittest.mock import patch, MagicMock
+import sys
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Add the parent directory to sys.path so we can import from the main application
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -65,10 +65,10 @@ class TestSingleWriterEnforcement:
     def test_canonical_writer_exists_and_callable(self):
         """Test that the canonical writer function exists and is properly structured"""
         try:
-            from backend_assistant import add_expense
-            
             # Verify function signature has required parameters
             import inspect
+
+            from backend_assistant import add_expense
             sig = inspect.signature(add_expense)
             required_params = {'user_id', 'description', 'source'}
             actual_params = set(sig.parameters.keys())
@@ -111,7 +111,7 @@ class TestSingleWriterEnforcement:
                     except ImportError:
                         pass  # Module doesn't exist, that's fine
                         
-            except Exception as e:
+            except Exception:
                 # If we can't check a module, that's okay
                 pass
     
@@ -177,10 +177,10 @@ class TestSingleWriterEnforcement:
     def test_source_value_standardization(self):
         """Test that expense source values are properly standardized"""
         try:
-            from backend_assistant import add_expense
-            
             # Test that the canonical writer validates source values
             import inspect
+
+            from backend_assistant import add_expense
             source_doc = inspect.getdoc(add_expense)
             
             # Should mention valid source values
@@ -211,8 +211,9 @@ class TestContractValidation:
     def test_error_handling_consistency(self):
         """Test that the canonical writer has proper error handling"""
         try:
-            from backend_assistant import add_expense
             import inspect
+
+            from backend_assistant import add_expense
             
             # Get the source code to verify error handling patterns
             source = inspect.getsource(add_expense)

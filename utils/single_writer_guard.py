@@ -3,10 +3,10 @@ SQLAlchemy Event Guard: Runtime protection for single writer principle
 Prevents any direct Expense model inserts that bypass backend_assistant.add_expense()
 """
 
-import logging
 import contextvars
+import logging
+
 from sqlalchemy import event
-from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)
 

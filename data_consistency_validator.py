@@ -4,13 +4,12 @@
 Ensures data integrity across the single writer system
 """
 
+import logging
 import os
 import sys
-import logging
-from typing import List, Dict, Any, Optional
-from decimal import Decimal, ROUND_HALF_UP
+from typing import Any, Dict, List
+
 import psycopg2
-from urllib.parse import urlparse
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -46,7 +45,7 @@ class DataConsistencyValidator:
             raise ValueError("DATABASE_URL environment variable not found")
         return psycopg2.connect(database_url)
     
-    def validate_currency_consistency(self) -> List[Dict]:
+    def validate_currency_consistency(self) -> list[dict]:
         """Check currency field consistency"""
         violations = []
         
@@ -105,7 +104,7 @@ class DataConsistencyValidator:
         
         return violations
     
-    def validate_amount_precision(self) -> List[Dict]:
+    def validate_amount_precision(self) -> list[dict]:
         """Check amount precision and formatting"""
         violations = []
         
@@ -153,7 +152,7 @@ class DataConsistencyValidator:
         
         return violations
     
-    def validate_required_fields(self) -> List[Dict]:
+    def validate_required_fields(self) -> list[dict]:
         """Check for missing required fields"""
         violations = []
         
@@ -200,7 +199,7 @@ class DataConsistencyValidator:
         
         return violations
     
-    def check_data_quality_metrics(self) -> Dict[str, Any]:
+    def check_data_quality_metrics(self) -> dict[str, Any]:
         """Generate data quality metrics"""
         metrics = {}
         
@@ -251,7 +250,7 @@ class DataConsistencyValidator:
         
         return metrics
     
-    def run_full_validation(self) -> Dict[str, Any]:
+    def run_full_validation(self) -> dict[str, Any]:
         """Run comprehensive data consistency validation"""
         logger.info("🔍 Starting comprehensive data consistency validation...")
         
@@ -286,7 +285,7 @@ class DataConsistencyValidator:
             'validation_summary': self.generate_summary()
         }
     
-    def generate_summary(self) -> Dict[str, Any]:
+    def generate_summary(self) -> dict[str, Any]:
         """Generate validation summary"""
         violations_by_severity = {}
         violations_by_type = {}
@@ -310,7 +309,7 @@ class DataConsistencyValidator:
             "📊 FINBRAIN DATA CONSISTENCY REPORT",
             "=" * 50,
             "",
-            f"🎯 VALIDATION STATISTICS:",
+            "🎯 VALIDATION STATISTICS:",
             f"  Total Violations: {len(self.violations)}",
             f"  Records Checked: {self.stats['records_checked']}",
             f"  Currency Issues: {self.stats['currency_inconsistencies']}",

@@ -4,9 +4,10 @@
 Defines and enforces consistent data formats across the single writer system
 """
 
-from typing import Dict, List, Any, Union
-from decimal import Decimal, ROUND_HALF_UP
 import re
+from decimal import ROUND_HALF_UP, Decimal
+from typing import Any, Dict, List, Union
+
 
 class DataConsistencyStandards:
     """Centralized data consistency standards for FinBrain"""
@@ -113,7 +114,7 @@ class DataConsistencyStandards:
         return normalized
     
     @staticmethod
-    def get_currency_info(currency: str) -> Dict[str, Any]:
+    def get_currency_info(currency: str) -> dict[str, Any]:
         """Get currency information"""
         return DataConsistencyStandards.CURRENCY_STANDARDS.get(
             currency, 
@@ -125,7 +126,7 @@ class DataConsistencyStandards:
     # ========================================
     
     @staticmethod
-    def validate_amount(amount: Union[float, Decimal, int], currency: str | None = None) -> bool:
+    def validate_amount(amount: float | Decimal | int, currency: str | None = None) -> bool:
         """Validate amount against currency standards"""
         if currency is None:
             currency = DataConsistencyStandards.DEFAULT_CURRENCY
@@ -139,7 +140,7 @@ class DataConsistencyStandards:
         return min_amount <= amount_decimal <= max_amount
     
     @staticmethod
-    def normalize_amount(amount: Union[float, str, Decimal], currency: str | None = None) -> Decimal:
+    def normalize_amount(amount: float | str | Decimal, currency: str | None = None) -> Decimal:
         """Normalize amount to standard decimal format"""
         if currency is None:
             currency = DataConsistencyStandards.DEFAULT_CURRENCY
@@ -157,7 +158,7 @@ class DataConsistencyStandards:
         )
     
     @staticmethod
-    def amount_to_minor_units(amount: Union[float, str, Decimal], currency: str | None = None) -> int:
+    def amount_to_minor_units(amount: float | str | Decimal, currency: str | None = None) -> int:
         """Convert amount to minor units (e.g., cents) for precise storage"""
         if currency is None:
             currency = DataConsistencyStandards.DEFAULT_CURRENCY
@@ -259,7 +260,7 @@ class DataConsistencyStandards:
     # ========================================
     
     @staticmethod
-    def validate_expense_data(expense_data: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_expense_data(expense_data: dict[str, Any]) -> dict[str, Any]:
         """Validate and normalize complete expense data"""
         errors = []
         normalized_data = {}
@@ -326,7 +327,7 @@ class DataConsistencyStandards:
 # CONVENIENCE FUNCTIONS
 # ========================================
 
-def validate_and_normalize_expense(expense_data: Dict[str, Any]) -> Dict[str, Any]:
+def validate_and_normalize_expense(expense_data: dict[str, Any]) -> dict[str, Any]:
     """
     Convenience function to validate and normalize expense data
     
@@ -335,11 +336,11 @@ def validate_and_normalize_expense(expense_data: Dict[str, Any]) -> Dict[str, An
     """
     return DataConsistencyStandards.validate_expense_data(expense_data)
 
-def get_supported_currencies() -> List[str]:
+def get_supported_currencies() -> list[str]:
     """Get list of supported currency codes"""
     return list(DataConsistencyStandards.CURRENCY_STANDARDS.keys())
 
-def get_valid_sources() -> List[str]:
+def get_valid_sources() -> list[str]:
     """Get list of valid source values"""
     from constants import ALLOWED_SOURCES
     return list(ALLOWED_SOURCES)
@@ -363,7 +364,7 @@ if __name__ == "__main__":
     }
     
     result = validate_and_normalize_expense(test_expense)
-    print(f"\n🧪 Test Validation:")
+    print("\n🧪 Test Validation:")
     print(f"Valid: {result['valid']}")
     if result['errors']:
         print(f"Errors: {result['errors']}")

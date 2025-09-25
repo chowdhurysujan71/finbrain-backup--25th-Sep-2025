@@ -3,12 +3,10 @@ Phase 2 Integration Test Suite for PCA Overlay System
 Tests end-to-end integration before 100% live deployment
 """
 
-import pytest
-import os
 import json
+import os
 from datetime import datetime
-from unittest.mock import patch, MagicMock
-from flask import Flask
+from unittest.mock import MagicMock, patch
 
 # Set test environment
 os.environ['PCA_OVERLAY_ENABLED'] = 'true'
@@ -17,13 +15,14 @@ os.environ['SHOW_AUDIT_UI'] = 'true'
 os.environ['ENABLE_RULES'] = 'true'
 os.environ['USE_PRECEDENCE'] = 'true'
 
-from app import app, db
+from app import app
 from routes.pca_api import pca_api
 from routes.pca_ui import pca_ui
-from utils.precedence_engine import precedence_engine
 from utils.canonical_command import CanonicalCommand, CCSlots
-from utils.pca_feature_flags import pca_feature_flags
 from utils.multi_item_parser import multi_item_parser
+from utils.pca_feature_flags import pca_feature_flags
+from utils.precedence_engine import precedence_engine
+
 
 class TestPhase2Integration:
     """Phase 2: End-to-End Integration Testing"""

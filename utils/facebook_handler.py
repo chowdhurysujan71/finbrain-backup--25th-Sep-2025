@@ -1,10 +1,8 @@
 """Facebook Messenger message handling via Graph API"""
-import os
 import logging
-import json
+import os
 import time
-from datetime import datetime
-from utils.expense import process_expense_message
+
 from .logger import log_graph_call
 
 # Lazy import for production safety - this function is defined below
@@ -25,7 +23,7 @@ def send_facebook_message(recipient_id, message_text):
     
     try:
         # Use the new validated Facebook client
-        from fb_client import send_text, is_valid_psid
+        from fb_client import is_valid_psid, send_text
         
         # Clear PSID validation with detailed error logging
         if not is_valid_psid(recipient_id):

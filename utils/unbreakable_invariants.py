@@ -7,12 +7,13 @@ with multiple fail-safe layers that make bypassing impossible.
 """
 
 import logging
-import time
-import threading
-from typing import Dict, Any, Optional
-from datetime import datetime, timedelta
-import psycopg2
 import os
+import threading
+from datetime import datetime
+from typing import Any, Dict
+
+import psycopg2
+
 from constants import ALLOWED_SOURCES, validate_expense_source
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ class SingleWriterInvariantMonitor:
         self.monitoring_active = True
         self._lock = threading.Lock()
         
-    def validate_expense_write(self, expense_data: Dict[str, Any]) -> bool:
+    def validate_expense_write(self, expense_data: dict[str, Any]) -> bool:
         """
         🎯 RUNTIME VALIDATION
         Surgical validation before any expense write operation
@@ -61,14 +62,14 @@ class SingleWriterInvariantMonitor:
             self._record_violation(str(e), expense_data)
             raise
     
-    def _record_violation(self, error: str, data: Dict[str, Any]):
+    def _record_violation(self, error: str, data: dict[str, Any]):
         """Record invariant violations for monitoring"""
         with self._lock:
             self.violation_count += 1
             logger.error(f"🚨 SINGLE_WRITER_VIOLATION #{self.violation_count}: {error}")
             logger.error(f"   Violation data: {data}")
     
-    def get_monitoring_stats(self) -> Dict[str, Any]:
+    def get_monitoring_stats(self) -> dict[str, Any]:
         """Get current monitoring statistics"""
         with self._lock:
             return {
@@ -104,7 +105,7 @@ class SingleWriterInvariantMonitor:
             logger.error(f"Failed to check database triggers: {e}")
             return False
 
-    def run_invariant_health_check(self) -> Dict[str, Any]:
+    def run_invariant_health_check(self) -> dict[str, Any]:
         """
         🔍 COMPREHENSIVE HEALTH CHECK
         Validates all layers of single writer protection
@@ -170,17 +171,17 @@ class SingleWriterInvariantMonitor:
 # Global instance for application-wide use
 invariant_monitor = SingleWriterInvariantMonitor()
 
-def enforce_single_writer_invariant(expense_data: Dict[str, Any]) -> bool:
+def enforce_single_writer_invariant(expense_data: dict[str, Any]) -> bool:
     """
     🎯 GLOBAL ENFORCEMENT ENTRY POINT
     Use this function before any expense write operation
     """
     return invariant_monitor.validate_expense_write(expense_data)
 
-def get_invariant_status() -> Dict[str, Any]:
+def get_invariant_status() -> dict[str, Any]:
     """Get current single writer invariant status"""
     return invariant_monitor.get_monitoring_stats()
 
-def run_invariant_health_check() -> Dict[str, Any]:
+def run_invariant_health_check() -> dict[str, Any]:
     """Run comprehensive invariant health check"""
     return invariant_monitor.run_invariant_health_check()

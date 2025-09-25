@@ -8,10 +8,9 @@ Tests comprehensive idempotency handling across all expense creation paths:
 - Duplicate detection and prevention
 - Cross-path idempotency consistency
 """
-import pytest
 import json
-import uuid
 import time
+import uuid
 from datetime import datetime
 
 from tests.e2e_pipeline.test_base import E2ETestBase
@@ -255,7 +254,7 @@ class TestIdempotencyE2E(E2ETestBase):
                     correlation_id=correlation_id
                 )
                 
-            except Exception as e:
+            except Exception:
                 # Implementation might reject or handle differently
                 pass
 

@@ -3,14 +3,14 @@ FinBrain Structured Telemetry System
 Emits structured logs for tracking intent routing and expense logging
 """
 
-import logging
 import json
+import logging
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
 logger = logging.getLogger("finbrain.structured")
 
-def emit_telemetry(telemetry_data: Dict[str, Any]):
+def emit_telemetry(telemetry_data: dict[str, Any]):
     """
     Emit structured telemetry data for analytics and monitoring.
     
@@ -38,7 +38,7 @@ def emit_telemetry(telemetry_data: Dict[str, Any]):
         logger.warning(f"Failed to emit telemetry: {e}")
         # Never fail main application flow due to telemetry issues
 
-def log_intent_decision(request_id: str, psid_hash: str, intent: str, reason: str, metadata: Dict = None):
+def log_intent_decision(request_id: str, psid_hash: str, intent: str, reason: str, metadata: dict = None):
     """Log intent routing decision for analysis"""
     emit_telemetry({
         "event": "intent_decision",

@@ -1,5 +1,6 @@
 from finbrain.ops import perf
 
+
 def test_p95_nearest_rank():
     # Clear any existing data from previous tests
     perf.clear()

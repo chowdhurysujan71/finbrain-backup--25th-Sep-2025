@@ -5,11 +5,10 @@ import json
 import logging
 import time
 import uuid
-import threading
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
-from .logger import log_webhook_success, get_request_id
+from typing import Any, Dict
+
+from .logger import log_webhook_success
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +64,7 @@ def cleanup_old_messages():
         del processed_messages[mid]
     logger.debug(f"Cleaned up {len(to_remove)} old message entries")
 
-def extract_webhook_events(data: Dict[str, Any]) -> list:
+def extract_webhook_events(data: dict[str, Any]) -> list:
     """Extract and validate webhook events using single-source-of-truth identity"""
     from .identity import extract_sender_psid, psid_hash
     
@@ -100,7 +99,7 @@ def extract_webhook_events(data: Dict[str, Any]) -> list:
     
     return events
 
-def process_message_async(event: Dict[str, Any], request_id: str):
+def process_message_async(event: dict[str, Any], request_id: str):
     """Process message asynchronously with canonical identity (DEPRECATED - now using background processor)"""
     # This function is deprecated - background processor now handles message processing
     # Keeping for compatibility but it should not be called in the current architecture

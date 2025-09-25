@@ -4,13 +4,12 @@ Developer CLI for Simulating New User Natural Language Expense Logging
 Tests the complete SMART_NLP_ROUTING system with comprehensive validation
 """
 
-import sys
-import os
-import json
 import hashlib
+import json
+import os
+import sys
 import time
 from datetime import datetime
-from decimal import Decimal
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -29,19 +28,21 @@ def simulate_smart_nlp_flow(text: str, mode: str = "STD", debug: bool = False):
     """
     try:
         # Import system components
-        from finbrain.router import contains_money, normalize_text
-        from parsers.expense import parse_expense, parse_amount_currency_category
-        from utils.feature_flags import is_smart_nlp_enabled, is_smart_tone_enabled, get_canary_status
-        from utils.db import upsert_expense_idempotent
-        from utils.structured import log_intent_decision, log_expense_logged
+        from finbrain.router import contains_money
+        from parsers.expense import parse_expense
         from templates.replies import format_expense_logged_reply, format_help_reply
+        from utils.feature_flags import (
+            get_canary_status,
+            is_smart_nlp_enabled,
+            is_smart_tone_enabled,
+        )
         
         # Generate fresh test user
         test_psid = f"sim_user_{int(time.time())}"
         psid_hash = hashlib.sha256(test_psid.encode()).hexdigest()
         mid = f"sim_msg_{int(time.time() * 1000)}"
         
-        print(f"🧪 Simulating SMART_NLP_ROUTING Flow")
+        print("🧪 Simulating SMART_NLP_ROUTING Flow")
         print(f"   Text: '{text}'")
         print(f"   Mode: {mode}")
         print(f"   PSID: {test_psid}")
@@ -54,7 +55,7 @@ def simulate_smart_nlp_flow(text: str, mode: str = "STD", debug: bool = False):
         tone_enabled = is_smart_tone_enabled(psid_hash)
         canary_status = get_canary_status()
         
-        print(f"🏁 Feature Flag Status:")
+        print("🏁 Feature Flag Status:")
         print(f"   SMART_NLP_ROUTING: {nlp_enabled}")
         print(f"   SMART_NLP_TONE: {tone_enabled}")
         print(f"   Canary users: {canary_status['allowlist_size']}")
@@ -87,7 +88,7 @@ def simulate_smart_nlp_flow(text: str, mode: str = "STD", debug: bool = False):
             
             if parsed_data and parsed_data.get('amount'):
                 # Step 4: Idempotent Database Save (mocked)
-                from unittest.mock import patch, MagicMock
+                from unittest.mock import MagicMock, patch
                 
                 with patch('app.db') as mock_db:
                     # Mock successful save (no duplicate)
@@ -122,7 +123,7 @@ def simulate_smart_nlp_flow(text: str, mode: str = "STD", debug: bool = False):
                                 message_id=mid
                             )
                 
-                print(f"💾 Database Result:")
+                print("💾 Database Result:")
                 print(f"   Success: {db_result.get('success', False)}")
                 print(f"   Duplicate: {db_result.get('duplicate', False)}")
                 print(f"   Expense ID: {db_result.get('expense_id', 'N/A')}")
@@ -143,7 +144,7 @@ def simulate_smart_nlp_flow(text: str, mode: str = "STD", debug: bool = False):
                 print(f"💬 Response: {response}")
                 
             else:
-                print(f"❌ Parsing failed - no valid expense found")
+                print("❌ Parsing failed - no valid expense found")
                 intent = "ERROR"
                 response = "I couldn't understand that expense. Try: 'spent 100 on lunch'"
         
@@ -160,7 +161,7 @@ def simulate_smart_nlp_flow(text: str, mode: str = "STD", debug: bool = False):
             print(f"💬 Response: {response}")
         
         # Step 6: Emit Structured Telemetry
-        print(f"📈 Structured Telemetry:")
+        print("📈 Structured Telemetry:")
         
         telemetry_data = {
             "timestamp": datetime.utcnow().isoformat(),
@@ -211,15 +212,15 @@ def simulate_smart_nlp_flow(text: str, mode: str = "STD", debug: bool = False):
         
         all_valid = all(validation_results.values())
         
-        print(f"\n✅ Validation Results:")
+        print("\n✅ Validation Results:")
         for check, result in validation_results.items():
             status = "PASS" if result else "FAIL"
             print(f"   {check}: {status}")
         
         if all_valid:
-            print(f"\n🎉 Simulation PASSED - All validations successful!")
+            print("\n🎉 Simulation PASSED - All validations successful!")
         else:
-            print(f"\n💥 Simulation FAILED - Some validations failed!")
+            print("\n💥 Simulation FAILED - Some validations failed!")
         
         return {
             'success': all_valid,
@@ -306,19 +307,19 @@ def run_comprehensive_test_suite():
         print("🎉 ALL TESTS PASSED - SMART_NLP_ROUTING is working correctly!")
         
         # Print acceptance checklist
-        print(f"\n✅ ACCEPTANCE CHECKLIST:")
-        print(f"   ✓ All tests in test_nlp_logging.py would pass")
-        print(f"   ✓ contains_money() called before SUMMARY in routing")
-        print(f"   ✓ Enhanced parse_expense() extracts merchant and category")
-        print(f"   ✓ Structured telemetry with 'smart_nlp_v1' emitted")
-        print(f"   ✓ Coach-tone replies generated when enabled")
-        print(f"   ✓ Feature flags provide safe rollback mechanism")
+        print("\n✅ ACCEPTANCE CHECKLIST:")
+        print("   ✓ All tests in test_nlp_logging.py would pass")
+        print("   ✓ contains_money() called before SUMMARY in routing")
+        print("   ✓ Enhanced parse_expense() extracts merchant and category")
+        print("   ✓ Structured telemetry with 'smart_nlp_v1' emitted")
+        print("   ✓ Coach-tone replies generated when enabled")
+        print("   ✓ Feature flags provide safe rollback mechanism")
         
     else:
         print("⚠️  Some tests failed - review implementation")
         
         failed_tests = [r for r in results if not r['success']]
-        print(f"\nFailed tests:")
+        print("\nFailed tests:")
         for test in failed_tests:
             print(f"   - {test['test_case']}: expected {test['expected_intent']}, got {test['actual_intent']}")
     
@@ -367,10 +368,10 @@ def main():
     result = simulate_smart_nlp_flow(text, mode=mode, debug=True)
     
     if result.get('success'):
-        print(f"\n🎉 Simulation completed successfully!")
+        print("\n🎉 Simulation completed successfully!")
         sys.exit(0)
     else:
-        print(f"\n💥 Simulation failed!")
+        print("\n💥 Simulation failed!")
         sys.exit(1)
 
 if __name__ == "__main__":

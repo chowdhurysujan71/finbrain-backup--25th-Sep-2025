@@ -3,17 +3,17 @@ Input Validation System for FinBrain API
 Provides comprehensive field validation with detailed error messages
 """
 
-import re
 import logging
-from typing import Dict, Any, List, Optional, Union
+import re
 from decimal import Decimal, InvalidOperation
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 class ValidationResult:
     """Container for validation results"""
     def __init__(self):
-        self.errors: Dict[str, str] = {}
+        self.errors: dict[str, str] = {}
         self.is_valid = True
     
     def add_error(self, field: str, message: str):
@@ -35,7 +35,7 @@ class ExpenseValidator:
     }
     
     @staticmethod
-    def validate_amount(amount: Any, field_name: str = "amount") -> Optional[str]:
+    def validate_amount(amount: Any, field_name: str = "amount") -> str | None:
         """
         Validate expense amount
         
@@ -76,7 +76,7 @@ class ExpenseValidator:
             return "Amount must be a valid number"
     
     @staticmethod
-    def validate_category(category: Any) -> Optional[str]:
+    def validate_category(category: Any) -> str | None:
         """Validate expense category"""
         if not category or str(category).strip() == "":
             return "Category is required"
@@ -90,7 +90,7 @@ class ExpenseValidator:
         return None
     
     @staticmethod
-    def validate_description(description: Any, required: bool = False) -> Optional[str]:
+    def validate_description(description: Any, required: bool = False) -> str | None:
         """Validate expense description"""
         if description is None or str(description).strip() == "":
             if required:
@@ -105,7 +105,7 @@ class ExpenseValidator:
         return None
     
     @staticmethod
-    def validate_expense_data(data: Dict[str, Any]) -> ValidationResult:
+    def validate_expense_data(data: dict[str, Any]) -> ValidationResult:
         """Validate complete expense submission"""
         result = ValidationResult()
         
@@ -135,7 +135,7 @@ class AuthValidator:
     )
     
     @staticmethod
-    def validate_email(email: Any) -> Optional[str]:
+    def validate_email(email: Any) -> str | None:
         """Validate email address format"""
         if not email or str(email).strip() == "":
             return "Email is required"
@@ -151,7 +151,7 @@ class AuthValidator:
         return None
     
     @staticmethod
-    def validate_password(password: Any, field_name: str = "password") -> Optional[str]:
+    def validate_password(password: Any, field_name: str = "password") -> str | None:
         """Validate password strength"""
         if not password:
             return f"{field_name.capitalize()} is required"
@@ -179,7 +179,7 @@ class AuthValidator:
         return None
     
     @staticmethod
-    def validate_name(name: Any, required: bool = True, field_name: str = "name") -> Optional[str]:
+    def validate_name(name: Any, required: bool = True, field_name: str = "name") -> str | None:
         """Validate person name"""
         if not name or str(name).strip() == "":
             if required:
@@ -198,7 +198,7 @@ class AuthValidator:
         return None
     
     @staticmethod
-    def validate_login_data(data: Dict[str, Any]) -> ValidationResult:
+    def validate_login_data(data: dict[str, Any]) -> ValidationResult:
         """Validate login form data"""
         result = ValidationResult()
         
@@ -215,7 +215,7 @@ class AuthValidator:
         return result
     
     @staticmethod
-    def validate_registration_data(data: Dict[str, Any]) -> ValidationResult:
+    def validate_registration_data(data: dict[str, Any]) -> ValidationResult:
         """Validate registration form data"""
         result = ValidationResult()
         
@@ -240,7 +240,7 @@ class APIValidator:
     """General API validation utilities"""
     
     @staticmethod
-    def validate_required_fields(data: Dict[str, Any], required_fields: List[str]) -> ValidationResult:
+    def validate_required_fields(data: dict[str, Any], required_fields: list[str]) -> ValidationResult:
         """Validate that all required fields are present and non-empty"""
         result = ValidationResult()
         
@@ -252,7 +252,7 @@ class APIValidator:
         return result
     
     @staticmethod
-    def validate_integer(value: Any, field_name: str, min_val: int = None, max_val: int = None) -> Optional[str]:
+    def validate_integer(value: Any, field_name: str, min_val: int = None, max_val: int = None) -> str | None:
         """Validate integer value with optional bounds"""
         if value is None:
             return f"{field_name.capitalize()} is required"
@@ -272,7 +272,7 @@ class APIValidator:
             return f"{field_name.capitalize()} must be a valid number"
     
     @staticmethod
-    def validate_string_length(value: Any, field_name: str, min_length: int = None, max_length: int = None) -> Optional[str]:
+    def validate_string_length(value: Any, field_name: str, min_length: int = None, max_length: int = None) -> str | None:
         """Validate string length"""
         if value is None:
             return f"{field_name.capitalize()} is required"
@@ -288,7 +288,7 @@ class APIValidator:
         return None
     
     @staticmethod
-    def validate_choice(value: Any, field_name: str, valid_choices: List[str]) -> Optional[str]:
+    def validate_choice(value: Any, field_name: str, valid_choices: list[str]) -> str | None:
         """Validate that value is in allowed choices"""
         if value is None:
             return f"{field_name.capitalize()} is required"
@@ -302,14 +302,14 @@ class APIValidator:
         return None
 
 # Convenience functions for common validations
-def validate_expense(data: Dict[str, Any]) -> ValidationResult:
+def validate_expense(data: dict[str, Any]) -> ValidationResult:
     """Convenience function to validate expense data"""
     return ExpenseValidator.validate_expense_data(data)
 
-def validate_login(data: Dict[str, Any]) -> ValidationResult:
+def validate_login(data: dict[str, Any]) -> ValidationResult:
     """Convenience function to validate login data"""
     return AuthValidator.validate_login_data(data)
 
-def validate_registration(data: Dict[str, Any]) -> ValidationResult:
+def validate_registration(data: dict[str, Any]) -> ValidationResult:
     """Convenience function to validate registration data"""
     return AuthValidator.validate_registration_data(data)

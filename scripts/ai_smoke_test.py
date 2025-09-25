@@ -5,8 +5,8 @@ Tests AI parsing capabilities without external API calls if keys missing
 """
 import json
 import sys
-import os
 from datetime import datetime
+
 
 def test_ai_adapter():
     """Test AI adapter with realistic expense parsing scenarios"""

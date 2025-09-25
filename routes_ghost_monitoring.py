@@ -3,13 +3,13 @@
 Real-time dead code detection and test coverage monitoring
 """
 
-from flask import Blueprint, jsonify, request
 import logging
 import os
 import re
 import time
-import json
 from pathlib import Path
+
+from flask import Blueprint, jsonify
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ def coverage_check():
         
         # Try to check if coverage tools are available
         if os.path.exists('coverage.json'):
-            with open('coverage.json', 'r') as f:
+            with open('coverage.json') as f:
                 import json
                 coverage_data = json.load(f)
                 
@@ -118,7 +118,7 @@ def legacy_cleanup_scan():
                 continue
                 
             try:
-                with open(py_file, 'r', encoding='utf-8') as f:
+                with open(py_file, encoding='utf-8') as f:
                     lines = f.readlines()
                 
                 for i, line in enumerate(lines, 1):
@@ -164,7 +164,7 @@ def _scan_file_for_ghosts(file_path: str) -> list:
     ]
     
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding='utf-8') as f:
             lines = f.readlines()
         
         for i, line in enumerate(lines, 1):

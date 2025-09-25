@@ -3,13 +3,12 @@ Load Optimization and Performance Management for Coaching Flow
 Caching, memory management, and performance monitoring
 """
 
+import logging
 import os
 import time
-import logging
-import hashlib
-from typing import Dict, Any, Optional, List, Tuple
 from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +36,7 @@ class CoachingCache:
             'last_cleanup': time.time()
         }
     
-    def get_topic_suggestions(self, context_key: str) -> Optional[List[str]]:
+    def get_topic_suggestions(self, context_key: str) -> list[str] | None:
         """Get cached topic suggestions based on context"""
         if not self.cache_enabled:
             return None
@@ -62,7 +61,7 @@ class CoachingCache:
             logger.error(f"Topic cache error: {e}")
             return None
     
-    def cache_topic_suggestions(self, context_key: str, suggestions: List[str]):
+    def cache_topic_suggestions(self, context_key: str, suggestions: list[str]):
         """Cache topic suggestions"""
         if not self.cache_enabled:
             return
@@ -82,7 +81,7 @@ class CoachingCache:
         except Exception as e:
             logger.error(f"Topic cache store error: {e}")
     
-    def get_user_context(self, psid_hash: str) -> Optional[Dict[str, Any]]:
+    def get_user_context(self, psid_hash: str) -> dict[str, Any] | None:
         """Get cached user context"""
         if not self.cache_enabled:
             return None
@@ -104,7 +103,7 @@ class CoachingCache:
             logger.error(f"User context cache error: {e}")
             return None
     
-    def cache_user_context(self, psid_hash: str, context: Dict[str, Any]):
+    def cache_user_context(self, psid_hash: str, context: dict[str, Any]):
         """Cache user context"""
         if not self.cache_enabled:
             return
@@ -122,7 +121,7 @@ class CoachingCache:
         except Exception as e:
             logger.error(f"User context cache store error: {e}")
     
-    def get_cache_stats(self) -> Dict[str, Any]:
+    def get_cache_stats(self) -> dict[str, Any]:
         """Get cache performance statistics"""
         total_requests = self.cache_stats['hits'] + self.cache_stats['misses']
         hit_rate = (self.cache_stats['hits'] / total_requests * 100) if total_requests > 0 else 0
@@ -257,7 +256,7 @@ class PerformanceMonitor:
         except Exception as e:
             logger.error(f"Memory tracking error: {e}")
     
-    def get_performance_summary(self) -> Dict[str, Any]:
+    def get_performance_summary(self) -> dict[str, Any]:
         """Get performance monitoring summary"""
         try:
             if not self.operation_times:
@@ -372,7 +371,7 @@ class MemoryOptimizer:
         self.memory_pressure_threshold = int(os.getenv('COACH_MEMORY_PRESSURE_THRESHOLD_MB', '200'))
         self.emergency_cleanup_threshold = int(os.getenv('COACH_EMERGENCY_CLEANUP_THRESHOLD_MB', '500'))
     
-    def check_memory_pressure(self) -> Tuple[bool, Dict[str, Any]]:
+    def check_memory_pressure(self) -> tuple[bool, dict[str, Any]]:
         """Check if system is under memory pressure"""
         try:
             import psutil
@@ -396,7 +395,7 @@ class MemoryOptimizer:
             logger.error(f"Memory pressure check error: {e}")
             return False, {'error': str(e)}
     
-    def perform_cleanup(self, emergency: bool = False) -> Dict[str, Any]:
+    def perform_cleanup(self, emergency: bool = False) -> dict[str, Any]:
         """Perform memory cleanup operations"""
         if not self.cleanup_enabled:
             return {'status': 'cleanup_disabled'}

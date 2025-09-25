@@ -8,11 +8,7 @@ Tests the complete Facebook Messenger webhook integration including:
 - User creation and management
 - Idempotency with message IDs
 """
-import pytest
 import json
-import hmac
-import hashlib
-from datetime import datetime
 
 from tests.e2e_pipeline.test_base import E2ETestBase
 

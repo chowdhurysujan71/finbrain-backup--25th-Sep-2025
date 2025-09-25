@@ -1,20 +1,21 @@
 """
 Insight handler: Provides spending insights and recommendations without AI
 """
-from typing import Dict
 import logging
+from typing import Dict
+
 from .summary import month_bounds
 
 logger = logging.getLogger(__name__)
 
-def handle_insight(user_id: str) -> Dict[str, str]:
+def handle_insight(user_id: str) -> dict[str, str]:
     """
     Generate AI-powered spending insights and recommendations
     Returns dict with 'text' key containing insights
     """
     try:
-        from models import Expense
         from db_base import db
+        from models import Expense
         
         start, end = month_bounds()
         
@@ -30,8 +31,8 @@ def handle_insight(user_id: str) -> Dict[str, str]:
         
         # BLOCK 4 ANALYTICS: Track report request (fail-safe)
         try:
-            from utils.analytics_engine import track_report_request
             from models import User
+            from utils.analytics_engine import track_report_request
             user = db.session.query(User).filter_by(user_id_hash=user_id).first()
             if user:
                 track_report_request(user, "insight_command")
@@ -64,8 +65,8 @@ def handle_insight(user_id: str) -> Dict[str, str]:
                 })
             
             # Add request uniqueness to prevent AI response caching
-            import time
             import random
+            import time
             request_uniqueness = f"{user_id}_{int(time.time())}_{random.randint(1000,9999)}"
             
             # Get recent activity context (last 7 days)

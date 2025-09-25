@@ -9,11 +9,11 @@ Tests comprehensive CI/CD pipeline integration including:
 - Database migration safety
 - Environment configuration validation
 """
-import pytest
 import json
 import os
-import subprocess
 from datetime import datetime
+
+import pytest
 
 from tests.e2e_pipeline.test_base import E2ETestBase
 
@@ -346,7 +346,7 @@ class TestCICDIntegrationE2E(E2ETestBase):
                     # Verify related operations were also completed
                     self.assert_user_totals_updated(user['psid_hash'], 500.0)
                     
-            except Exception as e:
+            except Exception:
                 # If operation fails, it should fail cleanly without partial state
                 # Verify no partial data was left behind
                 with client.application.app_context():
@@ -386,4 +386,4 @@ class TestCICDIntegrationE2E(E2ETestBase):
                 
                 # Should not expose server information
                 server_header = headers.get('Server', '')
-                assert 'gunicorn' not in server_header.lower(), f"Server header exposes implementation details"
+                assert 'gunicorn' not in server_header.lower(), "Server header exposes implementation details"

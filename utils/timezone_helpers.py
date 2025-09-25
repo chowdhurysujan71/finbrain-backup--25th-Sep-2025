@@ -4,10 +4,11 @@ Provides standardized timezone handling for Asia/Dhaka timezone
 Required by guardrails for D1/D3/streak calculations
 """
 
-import pytz
-from datetime import datetime, date
-from typing import Optional
 import logging
+from datetime import date, datetime
+from typing import Optional
+
+import pytz
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +91,7 @@ def is_same_local_day(dt1: datetime, dt2: datetime) -> bool:
         logger.error(f"Same day comparison failed for {dt1}, {dt2}: {e}")
         return False
 
-def local_date_from_datetime(dt: datetime) -> Optional[date]:
+def local_date_from_datetime(dt: datetime) -> date | None:
     """
     Extract local date from datetime
     
@@ -111,7 +112,7 @@ def local_date_from_datetime(dt: datetime) -> Optional[date]:
         logger.error(f"Local date extraction failed for {dt}: {e}")
         return None
 
-def days_between_local(dt1: datetime, dt2: datetime) -> Optional[int]:
+def days_between_local(dt1: datetime, dt2: datetime) -> int | None:
     """
     Calculate days between two datetimes in local timezone
     

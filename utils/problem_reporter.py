@@ -3,12 +3,13 @@ Problem Reporter System
 Logs user-reported issues to prevent them from escalating to negative reviews or support DMs
 """
 
+import json
 import logging
 import os
-import json
 from datetime import datetime
-from typing import Dict, Any, Optional
-from models import db, User
+from typing import Any, Dict
+
+from models import User, db
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ class ProblemReporter:
     def __init__(self):
         self.ticket_counter = 0
         
-    def log_problem_ticket(self, user_hash: str, user_message: str, context: Dict[str, Any] = None) -> str:
+    def log_problem_ticket(self, user_hash: str, user_message: str, context: dict[str, Any] = None) -> str:
         """
         Log a problem ticket from user report
         
@@ -100,7 +101,7 @@ class ProblemReporter:
         else:
             return 'general'
     
-    def _write_ticket_to_file(self, ticket_data: Dict[str, Any]) -> None:
+    def _write_ticket_to_file(self, ticket_data: dict[str, Any]) -> None:
         """Write ticket to local file for review"""
         try:
             # Create tickets directory if it doesn't exist
@@ -155,7 +156,7 @@ def get_problem_report_response(ticket_id: str) -> str:
     )
 
 # For monitoring/admin purposes
-def get_ticket_stats() -> Dict[str, Any]:
+def get_ticket_stats() -> dict[str, Any]:
     """Get statistics about reported problems"""
     try:
         tickets_dir = "/tmp/finbrain_tickets"

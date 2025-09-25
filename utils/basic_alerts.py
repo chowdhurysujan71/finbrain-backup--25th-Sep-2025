@@ -4,12 +4,12 @@ Minimal alerting for 5xx errors, webhook failures, and AI error rates
 """
 
 import logging
-import time
-import threading
-from collections import defaultdict, deque
-from datetime import datetime, timedelta
-from typing import Dict, List, Tuple
 import os
+import threading
+import time
+from collections import deque
+from datetime import datetime
+from typing import Dict
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +138,7 @@ class BasicAlertsSystem:
         except:
             pass  # Don't break if structured logging fails
     
-    def get_status(self) -> Dict:
+    def get_status(self) -> dict:
         """Get current alerting system status"""
         with self._lock:
             self._cleanup_windows()
@@ -166,7 +166,7 @@ class BasicAlertsSystem:
                 'alert_states': self.alert_states.copy()
             }
     
-    def get_health(self) -> Dict:
+    def get_health(self) -> dict:
         """Health check for monitoring systems"""
         try:
             status = self.get_status()

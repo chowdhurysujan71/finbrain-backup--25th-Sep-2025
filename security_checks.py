@@ -4,11 +4,11 @@
 Prevents security vulnerabilities from being committed
 """
 
-import os
-import sys
-import subprocess
 import re
+import subprocess
+import sys
 from pathlib import Path
+
 
 def check_environment_files():
     """Check for committed environment files"""
@@ -57,7 +57,7 @@ def check_hardcoded_secrets():
             continue
             
         try:
-            with open(py_file, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(py_file, encoding='utf-8', errors='ignore') as f:
                 content = f.read()
                 
             lines = content.split('\n')
@@ -101,7 +101,7 @@ def check_database_credentials():
             continue
             
         try:
-            with open(py_file, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(py_file, encoding='utf-8', errors='ignore') as f:
                 content = f.read()
                 
             for pattern in db_patterns:
@@ -161,7 +161,7 @@ def main():
         print("✅ No hardcoded database credentials found")
     
     # Summary
-    print(f"\n🎯 SECURITY SCAN RESULTS:")
+    print("\n🎯 SECURITY SCAN RESULTS:")
     print(f"Total violations: {len(all_violations)}")
     
     if all_violations:

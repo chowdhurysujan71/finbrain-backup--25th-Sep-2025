@@ -4,10 +4,10 @@ Comprehensive validation against the provided acceptance criteria document
 """
 
 import logging
-from datetime import datetime, timedelta, date
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass
 import uuid
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -18,20 +18,20 @@ class ValidationResult:
     description: str
     requirement: str
     validation_status: str  # PASS, FAIL, PARTIAL
-    details: Dict[str, Any]
-    evidence: List[str]
+    details: dict[str, Any]
+    evidence: list[str]
 
 class AcceptanceCriteriaValidator:
     """Validate implementation against acceptance criteria"""
     
     def __init__(self):
-        self.validation_results: List[ValidationResult] = []
+        self.validation_results: list[ValidationResult] = []
         self.test_user_hashes = set()
         self.start_time = datetime.utcnow()
         
         logger.info("Acceptance Criteria Validator initialized")
     
-    def validate_all_criteria(self) -> Dict[str, Any]:
+    def validate_all_criteria(self) -> dict[str, Any]:
         """Validate all acceptance criteria systematically"""
         
         print("🔍 VALIDATING AGAINST ACCEPTANCE CRITERIA")
@@ -70,9 +70,9 @@ class AcceptanceCriteriaValidator:
         print("\n1️⃣ VALIDATING DATA ANCHORS (MESSENGER DEMO MODE)")
         
         try:
-            from utils.identity import psid_hash
-            from models import User
             from db_base import db
+            from models import User
+            from utils.identity import psid_hash
             
             # Test user creation with messenger demo mode
             test_user_id = "validation_data_anchor_user"
@@ -137,11 +137,10 @@ class AcceptanceCriteriaValidator:
         print("\n2️⃣ VALIDATING D1 LOGGED ANALYTICS")
         
         try:
-            from utils.identity import psid_hash
-            from utils.db import save_expense
-            from models import User
             from db_base import db
-            from utils.timezone_helpers import today_local
+            from models import User
+            from utils.db import save_expense
+            from utils.identity import psid_hash
             
             # Test D1 logging on same day
             test_user_id = "validation_d1_user"
@@ -220,10 +219,10 @@ class AcceptanceCriteriaValidator:
         print("\n3️⃣ VALIDATING D3 COMPLETED ANALYTICS")
         
         try:
-            from utils.identity import psid_hash
-            from utils.db import save_expense
-            from models import User
             from db_base import db
+            from models import User
+            from utils.db import save_expense
+            from utils.identity import psid_hash
             
             # Test D3 completion within 72h
             test_user_id = "validation_d3_user"
@@ -307,9 +306,9 @@ class AcceptanceCriteriaValidator:
         print("\n4️⃣ VALIDATING REPORTS REQUESTED ANALYTICS")
         
         try:
-            from utils.identity import psid_hash
-            from models import User
             from db_base import db
+            from models import User
+            from utils.identity import psid_hash
             
             # Test report request tracking
             test_user_id = "validation_reports_user"
@@ -443,9 +442,9 @@ class AcceptanceCriteriaValidator:
         print("\n6️⃣ VALIDATING STREAK INDEPENDENCE")
         
         try:
-            from utils.identity import psid_hash
-            from models import User
             from db_base import db
+            from models import User
+            from utils.identity import psid_hash
             
             # Test streak calculation
             test_user_id = "validation_streak_user"
@@ -824,7 +823,7 @@ class AcceptanceCriteriaValidator:
             ))
             print(f"   ❌ Non-regressions validation failed: {e}")
     
-    def _generate_compliance_report(self) -> Dict[str, Any]:
+    def _generate_compliance_report(self) -> dict[str, Any]:
         """Generate comprehensive compliance report"""
         
         end_time = datetime.utcnow()
@@ -883,7 +882,7 @@ class AcceptanceCriteriaValidator:
             }
         }
     
-    def _get_block_compliance(self, criteria_ids: List[str]) -> Dict[str, Any]:
+    def _get_block_compliance(self, criteria_ids: list[str]) -> dict[str, Any]:
         """Calculate compliance for a specific block"""
         
         block_results = [r for r in self.validation_results if r.criteria_id in criteria_ids]
@@ -905,8 +904,8 @@ class AcceptanceCriteriaValidator:
         """Clean up test data created during validation"""
         
         try:
-            from models import User, Expense, MonthlySummary
             from db_base import db
+            from models import Expense, MonthlySummary, User
             
             for user_hash in self.test_user_hashes:
                 # Delete expenses
@@ -930,7 +929,7 @@ class AcceptanceCriteriaValidator:
         except Exception as e:
             print(f"\n⚠️ Cleanup warning: {e}")
 
-def run_acceptance_criteria_validation() -> Dict[str, Any]:
+def run_acceptance_criteria_validation() -> dict[str, Any]:
     """Run complete acceptance criteria validation"""
     
     from app import app

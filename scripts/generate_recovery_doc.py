@@ -14,15 +14,13 @@ Examples:
     python scripts/generate_recovery_doc.py --check-all
 """
 
-import os
-import sys
 import argparse
-import re
 import datetime
-from typing import Dict, List, Optional, Tuple, Set
-from pathlib import Path
-import subprocess
 import logging
+import re
+import sys
+from pathlib import Path
+from typing import List, Optional
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -32,14 +30,14 @@ class IrreversibleMigration:
     """Container for irreversible migration info and recovery procedures"""
     
     def __init__(self, revision_id: str, filename: str, summary: str, 
-                 create_date: str, down_revision: Optional[str] = None):
+                 create_date: str, down_revision: str | None = None):
         self.revision_id = revision_id
         self.filename = filename
         self.summary = summary
         self.create_date = create_date
         self.down_revision = down_revision
-        self.recovery_steps: List[str] = []
-        self.backup_requirements: List[str] = []
+        self.recovery_steps: list[str] = []
+        self.backup_requirements: list[str] = []
         self.risk_level = "HIGH"
         self.estimated_recovery_time = "Unknown"
         
@@ -90,7 +88,7 @@ class RecoveryDocumentGenerator:
         self.migrations_dir = project_root / "alembic" / "versions"
         self.recovery_doc_path = project_root / "RECOVERY.md"
         
-    def scan_for_irreversible_migrations(self) -> List[IrreversibleMigration]:
+    def scan_for_irreversible_migrations(self) -> list[IrreversibleMigration]:
         """Scan all migrations for irreversible patterns"""
         irreversible_migrations = []
         
@@ -135,7 +133,7 @@ class RecoveryDocumentGenerator:
                 
         return False
     
-    def _parse_migration_metadata(self, filepath: Path, content: str) -> Optional[IrreversibleMigration]:
+    def _parse_migration_metadata(self, filepath: Path, content: str) -> IrreversibleMigration | None:
         """Parse migration file metadata"""
         try:
             # Extract revision info
@@ -171,7 +169,7 @@ class RecoveryDocumentGenerator:
             logger.error(f"Error parsing migration metadata from {filepath}: {e}")
             return None
     
-    def generate_recovery_document(self, irreversible_migrations: List[IrreversibleMigration]) -> str:
+    def generate_recovery_document(self, irreversible_migrations: list[IrreversibleMigration]) -> str:
         """Generate comprehensive RECOVERY.md content"""
         
         doc_content = f"""# Migration Recovery Documentation
@@ -252,7 +250,7 @@ Before this migration was applied, the following backups should have been create
         for requirement in migration.backup_requirements:
             section += f"- {requirement}\n"
             
-        section += f"""
+        section += """
 
 ### Recovery Procedures
 
@@ -415,7 +413,7 @@ For any future irreversible migrations, ensure the following backups are availab
 
 """
 
-    def write_recovery_document(self, irreversible_migrations: List[IrreversibleMigration]):
+    def write_recovery_document(self, irreversible_migrations: list[IrreversibleMigration]):
         """Write RECOVERY.md file to disk"""
         content = self.generate_recovery_document(irreversible_migrations)
         

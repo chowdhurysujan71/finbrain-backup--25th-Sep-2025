@@ -2,10 +2,11 @@
 Emergency Panic Toggle System
 Provides global emergency mode functionality for infrastructure security
 """
-import os
 import logging
+import os
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
+
 from flask import jsonify
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ def is_emergency_mode() -> bool:
     
     return emergency or panic
 
-def get_safe_response(endpoint: str = "unknown", method: str = "GET") -> Dict[str, Any]:
+def get_safe_response(endpoint: str = "unknown", method: str = "GET") -> dict[str, Any]:
     """
     Generate a safe canned response for emergency mode
     
@@ -91,7 +92,7 @@ def check_emergency_and_respond(endpoint_name: str, method: str = "GET"):
         return wrapper
     return decorator
 
-def get_emergency_status() -> Dict[str, Any]:
+def get_emergency_status() -> dict[str, Any]:
     """
     Get current emergency mode status and configuration
     

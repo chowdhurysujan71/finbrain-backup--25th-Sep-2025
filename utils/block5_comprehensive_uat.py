@@ -4,17 +4,16 @@ End-to-End Testing: Data Handling, Routing, Processing, Storing, Integrity
 Testing for Existing Users, New Users, and Future Users
 """
 
-import logging
-import json
-import time
-import requests
-import uuid
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass, asdict
-import threading
 import concurrent.futures
+import logging
 import statistics
+import time
+import uuid
+from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta
+from typing import Any, Dict, List
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +26,8 @@ class UATestResult:
     user_type: str
     status: str  # PASS, FAIL, WARNING
     execution_time_ms: float
-    details: Dict[str, Any]
-    evidence: List[str]
+    details: dict[str, Any]
+    evidence: list[str]
     integrity_check: bool
     impact_assessment: str
 
@@ -36,14 +35,14 @@ class Block5ComprehensiveUAT:
     """Comprehensive UAT framework for Block 5 static preview JSON"""
     
     def __init__(self):
-        self.test_results: List[UATestResult] = []
+        self.test_results: list[UATestResult] = []
         self.test_user_hashes = set()
         self.start_time = datetime.utcnow()
         self.base_url = "http://localhost:5000"
         
         logger.info("Block 5 Comprehensive UAT Framework initialized")
     
-    def run_comprehensive_uat(self) -> Dict[str, Any]:
+    def run_comprehensive_uat(self) -> dict[str, Any]:
         """Execute comprehensive end-to-end UAT across all dimensions"""
         
         print("🏆 BLOCK 5 COMPREHENSIVE END-TO-END UAT")
@@ -296,9 +295,9 @@ class Block5ComprehensiveUAT:
         print("\n👤 PHASE 3: EXISTING USERS IMPACT")
         
         try:
-            from utils.identity import psid_hash
-            from models import User, Expense
             from db_base import db
+            from models import User
+            from utils.identity import psid_hash
             
             # Create existing user with historical data
             existing_user_id = "existing_user_block5_test"
@@ -382,8 +381,8 @@ class Block5ComprehensiveUAT:
             # Test existing user can still access their reports
             test_start = time.time()
             try:
-                from handlers.summary import handle_summary
                 from handlers.insight import handle_insight
+                from handlers.summary import handle_summary
                 
                 summary_result = handle_summary(user_hash, "", "week")
                 insight_result = handle_insight(user_hash)
@@ -441,9 +440,9 @@ class Block5ComprehensiveUAT:
         print("\n👶 PHASE 4: NEW USERS IMPACT")
         
         try:
-            from utils.identity import psid_hash
-            from models import User
             from db_base import db
+            from models import User
+            from utils.identity import psid_hash
             
             # Create new user while preview endpoint is active
             new_user_id = "new_user_block5_test"
@@ -625,7 +624,7 @@ class Block5ComprehensiveUAT:
                     "concurrency_safe": concurrency_safe
                 },
                 evidence=[
-                    f"Concurrent requests: 5/5 successful",
+                    "Concurrent requests: 5/5 successful",
                     f"Response consistency: {all_identical}",
                     f"Thread safety: {concurrency_safe}"
                 ],
@@ -656,8 +655,7 @@ class Block5ComprehensiveUAT:
         print("\n🔒 PHASE 7: DATA INTEGRITY VALIDATION")
         
         try:
-            from models import User, Expense
-            from db_base import db
+            from models import Expense, User
             
             # Count all users and expenses before preview access
             test_start = time.time()
@@ -846,8 +844,8 @@ class Block5ComprehensiveUAT:
         """Clean up test data created during UAT"""
         
         try:
-            from models import User, Expense
             from db_base import db
+            from models import Expense, User
             
             for user_hash in self.test_user_hashes:
                 # Delete expenses
@@ -866,7 +864,7 @@ class Block5ComprehensiveUAT:
         except Exception as e:
             print(f"\n⚠️ Cleanup warning: {e}")
     
-    def _generate_comprehensive_audit_report(self) -> Dict[str, Any]:
+    def _generate_comprehensive_audit_report(self) -> dict[str, Any]:
         """Generate comprehensive audit report"""
         
         end_time = datetime.utcnow()
@@ -952,7 +950,7 @@ class Block5ComprehensiveUAT:
             }
         }
 
-def run_block5_comprehensive_uat() -> Dict[str, Any]:
+def run_block5_comprehensive_uat() -> dict[str, Any]:
     """Execute Block 5 comprehensive UAT"""
     
     from app import app
@@ -961,7 +959,7 @@ def run_block5_comprehensive_uat() -> Dict[str, Any]:
         uat_framework = Block5ComprehensiveUAT()
         return uat_framework.run_comprehensive_uat()
 
-def validate_block5_production_readiness(audit_report: Dict[str, Any]) -> bool:
+def validate_block5_production_readiness(audit_report: dict[str, Any]) -> bool:
     """Validate Block 5 production readiness from audit report"""
     
     exec_summary = audit_report.get("executive_summary", {})

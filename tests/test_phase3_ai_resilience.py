@@ -2,10 +2,13 @@
 Phase 3 UAT: AI resilience and fallback system
 Tests AI processing reliability without affecting routing or data systems
 """
-import pytest
-import time
 import json
-from utils.ai_resilience import ResilientAIAdapter, AIMode, AIProvider, AIResponse
+import time
+
+import pytest
+
+from utils.ai_resilience import AIMode, AIProvider, AIResponse, ResilientAIAdapter
+
 
 class TestAIResilience:
     """Test AI resilience and fallback functionality"""
@@ -252,8 +255,8 @@ class TestIntegrationScenarios:
 
 def run_phase3_uat():
     """Run Phase 3 UAT and return results"""
-    import sys
     import subprocess
+    import sys
     
     # Run the tests
     result = subprocess.run([

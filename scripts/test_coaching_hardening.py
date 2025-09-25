@@ -4,11 +4,10 @@ Comprehensive test script for coaching system hardening
 Tests all production monitoring, resilience, and optimization components
 """
 
-import requests
-import json
 import time
-import os
-from typing import Dict, Any
+from typing import Any, Dict
+
+import requests
 
 BASE_URL = "http://localhost:5000"
 
@@ -64,7 +63,7 @@ def test_coaching_endpoints():
 def test_circuit_breaker_controls():
     """Test circuit breaker manual controls"""
     
-    print(f"\n🔌 Testing Circuit Breaker Controls...")
+    print("\n🔌 Testing Circuit Breaker Controls...")
     
     # Test opening circuit breaker
     try:
@@ -102,7 +101,7 @@ def test_circuit_breaker_controls():
 def test_memory_management():
     """Test memory management and cleanup"""
     
-    print(f"\n🧠 Testing Memory Management...")
+    print("\n🧠 Testing Memory Management...")
     
     try:
         # Test memory status
@@ -131,7 +130,7 @@ def test_memory_management():
 def test_cache_operations():
     """Test cache operations and statistics"""
     
-    print(f"\n💾 Testing Cache Operations...")
+    print("\n💾 Testing Cache Operations...")
     
     try:
         # Get cache stats
@@ -155,7 +154,7 @@ def test_cache_operations():
 def test_comprehensive_dashboard():
     """Test the comprehensive coaching dashboard"""
     
-    print(f"\n📊 Testing Comprehensive Dashboard...")
+    print("\n📊 Testing Comprehensive Dashboard...")
     
     try:
         response = requests.get(f"{BASE_URL}/ops/coaching/dashboard", timeout=15)
@@ -171,7 +170,7 @@ def test_comprehensive_dashboard():
                 if section in data and 'error' not in data[section]:
                     available_sections.append(section)
             
-            print(f"  ✅ Dashboard loaded successfully")
+            print("  ✅ Dashboard loaded successfully")
             print(f"  📋 Available sections: {', '.join(available_sections)}")
             
             # Show key metrics
@@ -195,7 +194,7 @@ def test_comprehensive_dashboard():
 def test_hardening_integration():
     """Test that hardening is properly integrated into the live system"""
     
-    print(f"\n🔗 Testing Hardening Integration...")
+    print("\n🔗 Testing Hardening Integration...")
     
     try:
         # Test that the imports work by checking logs
@@ -209,23 +208,23 @@ def test_hardening_integration():
         response = requests.get(f"{BASE_URL}/ops/coaching/health", timeout=10)
         
         if response.status_code == 200:
-            print(f"  ✅ Coaching monitoring properly integrated")
+            print("  ✅ Coaching monitoring properly integrated")
         elif response.status_code == 503:
             data = response.json()
             if 'monitoring_unavailable' in data.get('status', ''):
-                print(f"  ⚠️  Coaching monitoring not loaded (components missing)")
+                print("  ⚠️  Coaching monitoring not loaded (components missing)")
             else:
-                print(f"  ✅ Coaching monitoring integrated but degraded")
+                print("  ✅ Coaching monitoring integrated but degraded")
         else:
             print(f"  ❌ Coaching monitoring integration failed: {response.status_code}")
             
     except Exception as e:
         print(f"  ❌ Integration test error: {e}")
 
-def print_summary(results: Dict[str, Any]):
+def print_summary(results: dict[str, Any]):
     """Print test summary"""
     
-    print(f"\n" + "=" * 60)
+    print("\n" + "=" * 60)
     print("📋 TEST SUMMARY")
     print("=" * 60)
     

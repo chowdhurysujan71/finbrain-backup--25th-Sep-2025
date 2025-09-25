@@ -5,11 +5,12 @@ Ensures frontend can ONLY access data through approved backend API endpoints
 """
 
 import os
-import subprocess
 import re
+import subprocess
 from typing import List, Tuple
 
-def scan_ui_files_for_violations() -> List[Tuple[str, str, str]]:
+
+def scan_ui_files_for_violations() -> list[tuple[str, str, str]]:
     """
     Scan UI-related files for violations of UI guardrails
     Returns: List of (file_path, line_content, violation_type)
@@ -74,7 +75,7 @@ def scan_ui_files_for_violations() -> List[Tuple[str, str, str]]:
                     continue
                     
                 try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
+                    with open(file_path, encoding='utf-8') as f:
                         content = f.read()
                         lines = content.split('\n')
                         
@@ -115,7 +116,7 @@ def check_approved_endpoints_exist() -> bool:
     """Check that the approved API endpoints exist and are properly secured"""
     try:
         # Check routes_backend_assistant.py for the approved endpoints
-        with open('routes_backend_assistant.py', 'r') as f:
+        with open('routes_backend_assistant.py') as f:
             content = f.read()
             
         required_endpoints = [
@@ -139,7 +140,7 @@ def check_approved_endpoints_exist() -> bool:
 def check_backend_endpoint_security() -> bool:
     """Verify that backend endpoints use session auth and prepared statements"""
     try:
-        with open('backend_assistant.py', 'r') as f:
+        with open('backend_assistant.py') as f:
             content = f.read()
             
         # Check for proper authentication patterns

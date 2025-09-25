@@ -5,6 +5,7 @@ Quick routing test to debug E2E issues
 
 from app import app
 
+
 def test_routing_debug():
     with app.app_context():
         from utils.routing_policy import deterministic_router

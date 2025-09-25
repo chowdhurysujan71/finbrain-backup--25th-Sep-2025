@@ -4,12 +4,11 @@ FinBrain Comprehensive System Audit
 Generates a structured diagnostic report of all system components
 """
 
+import json
 import os
 import sys
 import time
-import json
 from datetime import datetime, timedelta
-from decimal import Decimal
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,13 +17,20 @@ def run_comprehensive_audit():
     """Run comprehensive system audit within application context"""
     
     from app import app, db
+    from finbrain.router import contains_money
     from models import Expense, User
-    from utils.feature_flags import get_canary_status, is_smart_nlp_enabled, is_smart_corrections_enabled
+    from parsers.expense import (
+        CORRECTION_PATTERNS,
+        is_correction_message,
+        parse_expense,
+    )
+    from utils.feature_flags import (
+        get_canary_status,
+        is_smart_corrections_enabled,
+        is_smart_nlp_enabled,
+    )
     from utils.identity import psid_hash
-    from finbrain.router import contains_money, normalize_text
-    from parsers.expense import parse_expense, is_correction_message, CORRECTION_PATTERNS
     from utils.production_router import production_router
-    import traceback
     
     print("=" * 80)
     print("FINBRAIN COMPREHENSIVE SYSTEM AUDIT")

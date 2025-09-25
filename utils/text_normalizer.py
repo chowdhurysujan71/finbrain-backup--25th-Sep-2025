@@ -3,8 +3,9 @@ Text normalization utilities for consistent processing
 Handles Unicode normalization, zero-width characters, and casefold for i18n
 """
 from __future__ import annotations
-import unicodedata
+
 import re
+import unicodedata
 
 # Zero-width characters: ZWSP, ZWNJ, ZWJ, BOM
 _ZERO_WIDTH_CHARS = re.compile(r"[\u200B-\u200D\uFEFF]")

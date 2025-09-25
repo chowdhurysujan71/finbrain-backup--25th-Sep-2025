@@ -7,7 +7,9 @@ Avoids database transaction issues while validating core functionality
 import json
 import time
 from datetime import datetime
+
 from app import app
+
 
 def run_streamlined_uat():
     """Run streamlined UAT with focus on routing validation"""
@@ -16,8 +18,8 @@ def run_streamlined_uat():
     print("=" * 50)
     
     with app.app_context():
-        from utils.contract_tests import run_all_contract_tests
         from test_routing_integration import test_routing_in_app_context
+        from utils.contract_tests import run_all_contract_tests
         from utils.routing_policy import deterministic_router
         
         # Phase 1: Contract Tests

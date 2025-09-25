@@ -7,7 +7,9 @@ Complete end-to-end validation with all fixes applied
 import json
 import time
 from datetime import datetime
+
 from app import app
+
 
 def run_final_comprehensive_uat():
     """Execute final comprehensive UAT targeting 100% success rate"""
@@ -33,7 +35,7 @@ def run_final_comprehensive_uat():
         
         # Test 1: Money Detection & Extraction (Fixed)
         try:
-            from nlp.money_patterns import has_money_mention, extract_money_amount
+            from nlp.money_patterns import extract_money_amount, has_money_mention
             
             money_test_cases = [
                 ("চা ৫০ টাকা", True, 50.0),
@@ -73,7 +75,7 @@ def run_final_comprehensive_uat():
         
         # Test 2: Identity Hashing (Fixed)
         try:
-            from utils.identity import ensure_hashed, psid_hash
+            from utils.identity import ensure_hashed
             
             test_psid = "final_uat_user_12345"
             hashed1 = ensure_hashed(test_psid)
@@ -100,7 +102,7 @@ def run_final_comprehensive_uat():
         
         # Test 3: Database Operations (Fixed)
         try:
-            from utils.db import save_expense, get_user_expenses
+            from utils.db import get_user_expenses, save_expense
             
             test_user = f"final_uat_db_user_{int(time.time())}"
             
@@ -304,8 +306,8 @@ def run_final_comprehensive_uat():
         integrity_results = []
         
         try:
-            from utils.identity import ensure_hashed
             from utils.bn_digits import to_en_digits
+            from utils.identity import ensure_hashed
             
             # Test 1: Hash consistency
             test_psid = "integrity_test_user"
@@ -385,10 +387,10 @@ def run_final_comprehensive_uat():
         passed_tests = len([test for test in all_tests if test.get("passed", False)])
         final_success_rate = (passed_tests / total_tests * 100) if total_tests > 0 else 0
         
-        print(f"\n📈 OVERALL RESULTS:")
+        print("\n📈 OVERALL RESULTS:")
         print(f"   Total Tests: {passed_tests}/{total_tests}")
         print(f"   Success Rate: {final_success_rate:.1f}%")
-        print(f"   Target: 100.0%")
+        print("   Target: 100.0%")
         print(f"   Gap: {100.0 - final_success_rate:.1f} percentage points")
         
         # Deployment recommendation
@@ -405,7 +407,7 @@ def run_final_comprehensive_uat():
             deployment_status = "❌ NOT APPROVED FOR DEPLOYMENT"
             recommendation = "Additional fixes required before deployment"
         
-        print(f"\n🚀 DEPLOYMENT RECOMMENDATION:")
+        print("\n🚀 DEPLOYMENT RECOMMENDATION:")
         print(f"   Status: {deployment_status}")
         print(f"   Recommendation: {recommendation}")
         

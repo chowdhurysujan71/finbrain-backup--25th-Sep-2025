@@ -4,13 +4,14 @@ Comprehensive End-to-End UAT Audit
 Tests complete user journeys: data handling → routing → processing → storing → integrity
 """
 
+import hashlib
 import json
 import time
-import uuid
-import hashlib
-from typing import Dict, List, Any, Optional
 from datetime import datetime
-from app import app, db
+from typing import Any, Dict
+
+from app import app
+
 # Database models simulation for E2E testing
 # Note: Using simulated models for comprehensive testing
 
@@ -33,7 +34,7 @@ class ComprehensiveE2EAudit:
             "final_assessment": {}
         }
         
-    def run_comprehensive_e2e_audit(self) -> Dict[str, Any]:
+    def run_comprehensive_e2e_audit(self) -> dict[str, Any]:
         print("🔍 COMPREHENSIVE END-TO-END UAT AUDIT")
         print("=" * 65)
         print("Testing: Complete user journeys with data integrity validation")
@@ -94,7 +95,7 @@ class ComprehensiveE2EAudit:
         
         return self.results
     
-    def _test_bengali_expense_e2e(self) -> Dict[str, Any]:
+    def _test_bengali_expense_e2e(self) -> dict[str, Any]:
         """Test complete Bengali expense workflow end-to-end"""
         
         # Create test user
@@ -273,7 +274,7 @@ class ComprehensiveE2EAudit:
                 "error": str(e)
             }
     
-    def _test_english_analysis_e2e(self) -> Dict[str, Any]:
+    def _test_english_analysis_e2e(self) -> dict[str, Any]:
         """Test complete English analysis request workflow"""
         
         test_psid = f"english_user_{int(time.time())}"
@@ -438,7 +439,7 @@ class ComprehensiveE2EAudit:
                 "error": str(e)
             }
     
-    def _test_mixed_coaching_e2e(self) -> Dict[str, Any]:
+    def _test_mixed_coaching_e2e(self) -> dict[str, Any]:
         """Test mixed language coaching workflow"""
         
         test_psid = f"mixed_user_{int(time.time())}"
@@ -546,7 +547,7 @@ class ComprehensiveE2EAudit:
                 "error": str(e)
             }
     
-    def _test_faq_admin_e2e(self) -> Dict[str, Any]:
+    def _test_faq_admin_e2e(self) -> dict[str, Any]:
         """Test FAQ and admin workflows"""
         
         workflow_steps = []
@@ -615,7 +616,7 @@ class ComprehensiveE2EAudit:
                 "error": str(e)
             }
     
-    def _test_edge_cases_e2e(self) -> Dict[str, Any]:
+    def _test_edge_cases_e2e(self) -> dict[str, Any]:
         """Test edge cases and error handling"""
         
         edge_cases = []
@@ -709,7 +710,7 @@ class ComprehensiveE2EAudit:
                 "error": str(e)
             }
     
-    def _test_data_integrity(self) -> Dict[str, Any]:
+    def _test_data_integrity(self) -> dict[str, Any]:
         """Test data integrity across the system"""
         
         integrity_checks = []
@@ -862,7 +863,7 @@ class ComprehensiveE2EAudit:
                 "error": str(e)
             }
     
-    def _test_system_health(self) -> Dict[str, Any]:
+    def _test_system_health(self) -> dict[str, Any]:
         """Test overall system health and performance"""
         
         health_checks = []
@@ -875,9 +876,7 @@ class ComprehensiveE2EAudit:
             start_time = time.time()
             
             from nlp.signals_extractor import extract_signals
-            from utils.input_sanitizer import InputSanitizer
             from utils.ai_adapter_never_empty import AIAdapterNeverEmpty
-            from utils.routing_policy import deterministic_router
             
             import_time = time.time() - start_time
             import_performance_ok = import_time < 1.0  # Less than 1 second
@@ -942,8 +941,9 @@ class ComprehensiveE2EAudit:
             print("  💾 Memory usage estimation")
             
             try:
-                import psutil
                 import os
+
+                import psutil
                 
                 process = psutil.Process(os.getpid())
                 memory_info = process.memory_info()
@@ -987,7 +987,7 @@ class ComprehensiveE2EAudit:
                 "error": str(e)
             }
     
-    def _print_detailed_results(self, workflow_name: str, results: Dict[str, Any]):
+    def _print_detailed_results(self, workflow_name: str, results: dict[str, Any]):
         """Print detailed results for each workflow"""
         success = results.get("overall_success", False)
         
@@ -1080,7 +1080,7 @@ class ComprehensiveE2EAudit:
             }
         }
         
-        print(f"\n🎯 COMPREHENSIVE END-TO-END ASSESSMENT")
+        print("\n🎯 COMPREHENSIVE END-TO-END ASSESSMENT")
         print("=" * 65)
         print(f"Bengali Expense Workflow: {'✅ PASS' if scenario_results.get('bengali_expense_workflow', {}).get('success', False) else '❌ FAIL'}")
         print(f"English Analysis Workflow: {'✅ PASS' if scenario_results.get('english_analysis_workflow', {}).get('success', False) else '❌ FAIL'}")
@@ -1110,7 +1110,7 @@ class ComprehensiveE2EAudit:
             if not health_pass:
                 print("   • System health issues detected")
     
-    def _calculate_success_rate(self, scenario_data: Dict[str, Any]) -> float:
+    def _calculate_success_rate(self, scenario_data: dict[str, Any]) -> float:
         """Calculate success rate for a scenario"""
         if "workflow_steps" in scenario_data:
             successful = scenario_data.get("successful_steps", 0)

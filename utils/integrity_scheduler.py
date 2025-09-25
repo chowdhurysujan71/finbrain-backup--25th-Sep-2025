@@ -5,15 +5,15 @@ Manages scheduled execution of data integrity validation
 
 import logging
 import os
-import json
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
+from datetime import datetime
+from typing import Any, Dict, Optional
+
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.jobstores.memory import MemoryJobStore
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 
-from .data_integrity_check import run_integrity_check, IntegrityReport
+from .data_integrity_check import IntegrityReport, run_integrity_check
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +22,8 @@ class IntegrityScheduler:
     
     def __init__(self):
         self.scheduler = None
-        self.last_report: Optional[IntegrityReport] = None
-        self.last_run_time: Optional[datetime] = None
+        self.last_report: IntegrityReport | None = None
+        self.last_run_time: datetime | None = None
         self.is_running = False
         
         # Configure scheduler
@@ -128,7 +128,7 @@ class IntegrityScheduler:
             logger.error(f"Manual integrity check failed: {e}")
             return self._create_failure_report(str(e))
     
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get current status of integrity checks"""
         next_run = None
         if self.scheduler and self.is_running:
@@ -145,7 +145,7 @@ class IntegrityScheduler:
             'checks_enabled': True
         }
     
-    def get_last_report(self) -> Optional[IntegrityReport]:
+    def get_last_report(self) -> IntegrityReport | None:
         """Get the last integrity check report"""
         return self.last_report
     

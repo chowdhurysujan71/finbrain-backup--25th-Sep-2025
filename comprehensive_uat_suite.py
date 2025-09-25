@@ -4,19 +4,17 @@ Comprehensive End-to-End UAT Suite for PoR v1.1
 Tests complete data flow: Input → Routing → Processing → Storage → Integrity
 """
 
-import os
+import hashlib
 import json
 import time
-import uuid
-import hashlib
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Tuple
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any, Dict, List
 
 from app import app, db
-from utils.routing_policy import deterministic_router, RoutingSignals, IntentType
 from utils.contract_tests import run_all_contract_tests
-from utils.uniqueness_handler import uniqueness_handler
+from utils.routing_policy import deterministic_router
+
 
 @dataclass
 class UATTestCase:
@@ -27,7 +25,7 @@ class UATTestCase:
     expected_intent: str
     expected_storage: bool
     expected_ai_calls: int
-    data_integrity_checks: List[str]
+    data_integrity_checks: list[str]
 
 @dataclass
 class UATResult:
@@ -37,8 +35,8 @@ class UATResult:
     actual_intent: str
     actual_storage: bool
     actual_ai_calls: int
-    integrity_results: Dict[str, bool]
-    errors: List[str]
+    integrity_results: dict[str, bool]
+    errors: list[str]
     execution_time_ms: float
 
 class ComprehensiveUATSuite:
@@ -50,7 +48,7 @@ class ComprehensiveUATSuite:
         self.test_user_id = "uat_test_user_" + str(int(time.time()))
         self.results = []
         
-    def _load_test_cases(self) -> List[UATTestCase]:
+    def _load_test_cases(self) -> list[UATTestCase]:
         """Load comprehensive test cases covering all scenarios"""
         return [
             # Analysis Intent Tests
@@ -205,7 +203,7 @@ class ComprehensiveUATSuite:
             ),
         ]
     
-    def run_comprehensive_uat(self) -> Dict[str, Any]:
+    def run_comprehensive_uat(self) -> dict[str, Any]:
         """Run complete UAT suite with detailed validation"""
         with app.app_context():
             print("🧪 Starting Comprehensive End-to-End UAT Suite")
@@ -248,7 +246,7 @@ class ComprehensiveUATSuite:
             
             return audit_report
     
-    def _run_contract_validation(self) -> Dict[str, Any]:
+    def _run_contract_validation(self) -> dict[str, Any]:
         """Run contract tests with 100% requirement"""
         print("\n📋 Phase 1: Contract Test Validation")
         print("-" * 40)
@@ -266,7 +264,7 @@ class ComprehensiveUATSuite:
         
         return results
     
-    def _run_integration_validation(self) -> Dict[str, Any]:
+    def _run_integration_validation(self) -> dict[str, Any]:
         """Run integration tests with 100% requirement"""
         print("\n🔗 Phase 2: Integration Test Validation")
         print("-" * 40)
@@ -281,7 +279,7 @@ class ComprehensiveUATSuite:
             'success': success_rate == 100.0
         }
     
-    def _run_e2e_data_flow_tests(self) -> Dict[str, Any]:
+    def _run_e2e_data_flow_tests(self) -> dict[str, Any]:
         """Run end-to-end data flow validation"""
         print("\n🔄 Phase 3: End-to-End Data Flow Tests")
         print("-" * 40)
@@ -454,7 +452,7 @@ class ComprehensiveUATSuite:
             print(f"Integrity check {check} failed: {e}")
             return False
     
-    def _run_data_integrity_audit(self) -> Dict[str, Any]:
+    def _run_data_integrity_audit(self) -> dict[str, Any]:
         """Run comprehensive data integrity audit"""
         print("\n🔐 Phase 4: Data Integrity Audit")
         print("-" * 30)
@@ -473,7 +471,7 @@ class ComprehensiveUATSuite:
         
         return audit_results
     
-    def _audit_user_isolation(self) -> Dict[str, Any]:
+    def _audit_user_isolation(self) -> dict[str, Any]:
         """Audit user data isolation"""
         # Check no global state contamination
         test_user1 = "test_user_1"
@@ -489,7 +487,7 @@ class ComprehensiveUATSuite:
             'message': 'User data properly isolated' if isolated else 'User data contamination detected'
         }
     
-    def _audit_data_consistency(self) -> Dict[str, Any]:
+    def _audit_data_consistency(self) -> dict[str, Any]:
         """Audit data consistency"""
         # Check routing produces consistent results
         text = "analysis please"
@@ -505,7 +503,7 @@ class ComprehensiveUATSuite:
             'message': 'Routing is deterministic and consistent' if consistent else 'Routing inconsistency detected'
         }
     
-    def _audit_routing_determinism(self) -> Dict[str, Any]:
+    def _audit_routing_determinism(self) -> dict[str, Any]:
         """Audit routing determinism"""
         # Test same input produces same routing
         deterministic_tests = [
@@ -529,7 +527,7 @@ class ComprehensiveUATSuite:
             'message': 'All routing is deterministic' if all_deterministic else 'Non-deterministic routing detected'
         }
     
-    def _audit_bilingual_coverage(self) -> Dict[str, Any]:
+    def _audit_bilingual_coverage(self) -> dict[str, Any]:
         """Audit bilingual pattern coverage"""
         bilingual_tests = [
             ("analysis please", "বিশ্লেষণ দাও"),
@@ -554,7 +552,7 @@ class ComprehensiveUATSuite:
             'message': 'Bilingual routing coverage complete' if coverage_passed else 'Bilingual coverage gaps detected'
         }
     
-    def _audit_performance_bounds(self) -> Dict[str, Any]:
+    def _audit_performance_bounds(self) -> dict[str, Any]:
         """Audit performance bounds"""
         # Test routing performance
         start_time = time.time()
@@ -571,7 +569,7 @@ class ComprehensiveUATSuite:
             'message': f'Routing performance: {avg_time_ms:.1f}ms avg' + (' (within bounds)' if performance_ok else ' (exceeds bounds)')
         }
     
-    def _run_performance_validation(self) -> Dict[str, Any]:
+    def _run_performance_validation(self) -> dict[str, Any]:
         """Run performance validation"""
         print("\n⚡ Phase 5: Performance Validation")
         print("-" * 30)
@@ -585,7 +583,7 @@ class ComprehensiveUATSuite:
             'memory_usage': memory_usage
         }
     
-    def _measure_routing_performance(self) -> Dict[str, Any]:
+    def _measure_routing_performance(self) -> dict[str, Any]:
         """Measure routing performance"""
         import time
         
@@ -614,10 +612,11 @@ class ComprehensiveUATSuite:
             'within_bounds': max_time < 100
         }
     
-    def _measure_memory_usage(self) -> Dict[str, Any]:
+    def _measure_memory_usage(self) -> dict[str, Any]:
         """Measure memory usage"""
-        import psutil
         import os
+
+        import psutil
         
         process = psutil.Process(os.getpid())
         memory_mb = process.memory_info().rss / 1024 / 1024
@@ -627,7 +626,7 @@ class ComprehensiveUATSuite:
             'within_bounds': memory_mb < 512  # Should use less than 512MB
         }
     
-    def _generate_audit_report(self, contract_results, integration_results, e2e_results, integrity_results, performance_results) -> Dict[str, Any]:
+    def _generate_audit_report(self, contract_results, integration_results, e2e_results, integrity_results, performance_results) -> dict[str, Any]:
         """Generate comprehensive audit report"""
         
         # Determine overall success
@@ -661,7 +660,7 @@ class ComprehensiveUATSuite:
             'recommendations': self._generate_recommendations(overall_success, contract_results, integration_results, e2e_results, integrity_results, performance_results)
         }
     
-    def _generate_recommendations(self, overall_success, contract_results, integration_results, e2e_results, integrity_results, performance_results) -> List[str]:
+    def _generate_recommendations(self, overall_success, contract_results, integration_results, e2e_results, integrity_results, performance_results) -> list[str]:
         """Generate deployment recommendations"""
         recommendations = []
         
@@ -701,15 +700,15 @@ def main():
     with open(report_file, 'w') as f:
         json.dump(report, f, indent=2, default=str)
     
-    print(f"\n📊 COMPREHENSIVE UAT COMPLETE")
+    print("\n📊 COMPREHENSIVE UAT COMPLETE")
     print("=" * 50)
     print(f"Overall Success: {report['overall_success']}")
     print(f"Deployment Readiness: {report['deployment_readiness']}")
-    print(f"\nSummary:")
+    print("\nSummary:")
     for category, result in report['summary'].items():
         print(f"  {category}: {result}")
     
-    print(f"\nRecommendations:")
+    print("\nRecommendations:")
     for rec in report['recommendations']:
         print(f"  {rec}")
     

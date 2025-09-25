@@ -2,10 +2,10 @@
 Test cases for AI chat authentication enforcement
 Based on specification requirements for 100% success criteria
 """
-import pytest
-import json
-from flask import Flask
 from unittest.mock import patch
+
+import pytest
+
 
 def test_ai_chat_requires_auth(client):
     """

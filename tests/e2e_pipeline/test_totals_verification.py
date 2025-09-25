@@ -8,10 +8,8 @@ Tests the complete totals calculation and retrieval system including:
 - User isolation in totals calculation
 - Concurrent update handling
 """
-import pytest
 import json
-from decimal import Decimal
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
 
 from tests.e2e_pipeline.test_base import E2ETestBase
 
@@ -218,6 +216,7 @@ class TestTotalsVerificationE2E(E2ETestBase):
             
             # Create multiple expenses concurrently
             import threading
+
             from utils.db import create_expense
             
             results = []
@@ -355,7 +354,7 @@ class TestTotalsVerificationE2E(E2ETestBase):
                 if 'total_expenses' in current_data:
                     current_total = float(current_data['total_expenses'])
                     # Should include current month expense
-                    assert current_total >= 100.0, f"Current month total should include 100"
+                    assert current_total >= 100.0, "Current month total should include 100"
 
     def test_totals_category_breakdown(self, client, test_users):
         """Test totals with category breakdown"""

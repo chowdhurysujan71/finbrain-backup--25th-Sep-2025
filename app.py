@@ -1,14 +1,15 @@
-import os
-import logging
-import sys
-from flask import Flask, request, jsonify, render_template, session, make_response, g
-import uuid
-import time
-from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_cors import CORS
-from functools import wraps
 import json
-from datetime import datetime, timedelta, timezone
+import logging
+import os
+import sys
+import time
+import uuid
+from datetime import UTC, datetime, timedelta, timezone
+from functools import wraps
+
+from flask import Flask, g, jsonify, make_response, render_template, request, session
+from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Configure logging - production mode removes debug and reload
 log_level = logging.INFO if os.environ.get('ENV') == 'production' else logging.DEBUG
@@ -137,18 +138,26 @@ CORS(app, supports_credentials=True, resources={
     # Removed global r"/*" route for security
 })
 from utils.rate_limiting import limiter
+
 limiter.init_app(app)
 
 # Request logging middleware using existing structured logger
 from utils.logger import structured_logger
 
+
 @app.before_request
 def attach_user_and_trace():
     """Capture request start time, generate request_id, set user context, and enforce subdomain auth"""
     import os
-    from flask import request, jsonify, after_this_request, redirect
-    from auth_helpers import get_user_id_from_session, get_subdomain, is_protected_subdomain
     from urllib.parse import quote
+
+    from flask import after_this_request, jsonify, redirect, request
+
+    from auth_helpers import (
+        get_subdomain,
+        get_user_id_from_session,
+        is_protected_subdomain,
+    )
     
     g.start_time = time.time()
     # Get request_id from header or generate new one
@@ -317,8 +326,8 @@ db.init_app(app)
 
 with app.app_context():
     # Import models to ensure tables are created
-    import models  # noqa: F401
-    import models_pca  # noqa: F401
+    import models
+    import models_pca
     
     # Use read-only database validation for Alembic-managed environments
     # Schema creation is now handled by Alembic migrations
@@ -495,7 +504,14 @@ with app.app_context():
         # Don't fail app startup if scheduler fails to start
     
     # Log centralized configuration for observability
-    from config import AI_RL_USER_LIMIT, AI_RL_WINDOW_SEC, AI_RL_GLOBAL_LIMIT, MSG_MAX_CHARS, TIMEZONE, CURRENCY_SYMBOL
+    from config import (
+        AI_RL_GLOBAL_LIMIT,
+        AI_RL_USER_LIMIT,
+        AI_RL_WINDOW_SEC,
+        CURRENCY_SYMBOL,
+        MSG_MAX_CHARS,
+        TIMEZONE,
+    )
     logger.info({
         "startup_configuration": {
             "rate_limits": {
@@ -588,8 +604,9 @@ def check_admin_auth():
 def public_landing():
     """Public landing page - no authentication required"""
     try:
-        from models import Expense
         from sqlalchemy import func
+
+        from models import Expense
         
         # Get basic stats without requiring auth
         total_transactions = db.session.query(func.count(Expense.id)).scalar() or 0
@@ -798,8 +815,8 @@ def get_alembic_data_cached():
         migrations_applied = False
         
         try:
-            from alembic.script import ScriptDirectory
             from alembic.config import Config
+            from alembic.script import ScriptDirectory
             
             # Load Alembic config
             alembic_cfg = Config("alembic.ini")
@@ -899,9 +916,10 @@ def health_check():
 @app.route('/readyz', methods=['GET'])
 def readiness_check():
     """Readiness check with dependency validation - returns 200 only if DB + AI key OK"""
+    import time
+
     import psycopg
     import redis
-    import time
     
     start_time = time.time()
     
@@ -952,6 +970,7 @@ def readiness_check():
 # Import admin authentication from admin_ops
 from admin_ops import require_admin
 
+
 # Diagnostic helper functions
 def get_database_role_grants():
     """Get role grants from database"""
@@ -998,8 +1017,8 @@ def check_pending_migrations():
         pending_migrations = []
         
         try:
-            from alembic.script import ScriptDirectory
             from alembic.config import Config
+            from alembic.script import ScriptDirectory
             
             # Load Alembic config
             alembic_cfg = Config("alembic.ini")
@@ -1216,8 +1235,8 @@ def webhook_messenger():
 @require_basic_auth
 def diagnose_router():
     """Diagnostic endpoint to test router directly with real PSID and query - ADMIN ACCESS REQUIRED"""
-    import uuid
     import hashlib
+    import uuid
     
     query = request.args.get('q', '')
     psid = request.args.get('psid', '')
@@ -1278,8 +1297,9 @@ def diagnose_router():
 def ops_status():
     """Operations status endpoint (JSON) - Admin access required"""
     try:
-        from models import User, Expense
         from datetime import date, timedelta
+
+        from models import Expense, User
         
         # Get message counts today
         today = date.today()
@@ -1295,6 +1315,7 @@ def ops_status():
         # Get AI status from production systems
         try:
             import os
+
             from utils.production_router import production_router
             
             ai_enabled = os.environ.get("AI_ENABLED", "false").lower() == "true"
@@ -1426,8 +1447,9 @@ def user_category_breakdown(psid_hash, category_name):
 def user_categories_list(psid_hash):
     """List all categories with spending totals for a user"""
     try:
-        from models import User, Expense
-        from datetime import datetime, timedelta
+        from datetime import datetime
+
+        from models import Expense, User
         
         # Find user by PSID hash
         user = User.query.filter_by(user_id_hash=psid_hash).first()
@@ -1663,7 +1685,7 @@ def user_insights(psid_hash):
             
     except Exception as e:
         logger.error(f"User insights error: {str(e)}")
-        return f"""
+        return """
         <!DOCTYPE html>
         <html lang="en" data-bs-theme="dark">
         <head>
@@ -1689,8 +1711,8 @@ def user_insights(psid_hash):
 def pca_status():
     """PCA system status endpoint for monitoring"""
     try:
-        from utils.pca_flags import pca_flags
         from utils.config import get_config_summary
+        from utils.pca_flags import pca_flags
         
         status = pca_flags.get_status()
         config = get_config_summary()
@@ -1715,7 +1737,7 @@ def pca_status():
 def pca_health():
     """Simple PCA health check for monitoring systems"""
     try:
-        from utils.pca_flags import pca_flags, force_fallback_mode
+        from utils.pca_flags import force_fallback_mode, pca_flags
         
         return jsonify({
             'healthy': True,
@@ -1778,8 +1800,8 @@ def pca_canary_management():
     if request.method == "GET":
         # Get current canary user status
         try:
-            from utils.pca_integration import get_pca_deployment_status
             from utils.pca_flags import pca_flags
+            from utils.pca_integration import get_pca_deployment_status
             
             deployment_status = get_pca_deployment_status()
             
@@ -1826,7 +1848,7 @@ def pca_canary_management():
 def psid_explorer(psid_hash):
     """PSID Explorer - Last 20 messages and computed summary (Read-only)"""
     try:
-        from models import User, Expense
+        from models import Expense, User
         
         # Find user by PSID hash
         user = User.query.filter_by(user_id_hash=psid_hash).first()
@@ -1902,7 +1924,7 @@ def version():
         # Try to read deployment info if available
         import json
         try:
-            with open('deployment_info.json', 'r') as f:
+            with open('deployment_info.json') as f:
                 deployment_info = json.load(f)
                 release_info = deployment_info.get('release', {})
         except FileNotFoundError:
@@ -1971,13 +1993,14 @@ def preview_report():
 def ops_telemetry():
     """Advanced telemetry endpoint for comprehensive system monitoring"""
     try:
-        from utils.production_router import production_router
         import os
+
+        from utils.production_router import production_router
         
         telemetry_data = production_router.get_telemetry()
         
         return jsonify({
-            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'timestamp': datetime.now(UTC).isoformat(),
             'system_status': 'healthy',
             'config': {
                 'ai_enabled_effective': os.environ.get("AI_ENABLED", "false").lower() == "true",
@@ -2015,8 +2038,9 @@ def ops_telemetry():
 def ops_ai_ping():
     """AI provider ping test with latency measurement"""
     try:
-        from utils.ai_adapter_v2 import production_ai_adapter
         import time
+
+        from utils.ai_adapter_v2 import production_ai_adapter
         
         if not production_ai_adapter.enabled:
             return jsonify({
@@ -2130,6 +2154,7 @@ def ops_users():
 
 # Register streamlined admin operations
 from admin_ops import admin_ops
+
 app.register_blueprint(admin_ops)
 
 # Register coaching monitoring endpoints
@@ -2172,8 +2197,9 @@ def ops_hash():
 @app.get("/supabase-test")
 def supabase_test():
     """Supabase connectivity smoke test - lists objects in configured bucket"""
-    import requests
     import os
+
+    import requests
     
     # Get Supabase configuration
     supabase_url = os.environ.get("SUPABASE_URL")
@@ -2207,8 +2233,9 @@ def supabase_test():
 @app.get("/supabase-smoke")
 def supabase_smoke():
     """Supabase connectivity smoke test - validates Storage API connection"""
-    import requests
     import os
+
+    import requests
     
     # Get Supabase configuration
     supabase_url = os.environ.get("SUPABASE_URL")
@@ -2265,9 +2292,9 @@ except ImportError:
 
 # Phase C: Job Queue API endpoints
 try:
+    from utils.circuit_breaker import circuit_breaker
     from utils.job_queue import job_queue
     from utils.rate_limiter_jobs import get_job_rate_limiter
-    from utils.circuit_breaker import circuit_breaker
     
     # Initialize job rate limiter with Redis client
     if hasattr(job_queue, 'redis_client') and job_queue.redis_client:

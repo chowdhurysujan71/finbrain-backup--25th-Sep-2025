@@ -4,13 +4,10 @@ Comprehensive end-to-end testing with improved validation logic
 """
 
 import logging
-import json
-import hashlib
-from datetime import datetime, timedelta, date
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass
-import os
 import uuid
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -20,28 +17,28 @@ class UATScenario:
     scenario_id: str
     user_type: str  # existing, new, future
     description: str
-    expected_behavior: Dict[str, Any]
-    test_data: Dict[str, Any]
+    expected_behavior: dict[str, Any]
+    test_data: dict[str, Any]
 
 @dataclass
 class AuditTrail:
     """Track data flow through the system"""
     step_id: str
     component: str
-    input_data: Dict[str, Any]
-    output_data: Dict[str, Any]
+    input_data: dict[str, Any]
+    output_data: dict[str, Any]
     timestamp: datetime
     success: bool
-    error_message: Optional[str] = None
-    data_integrity: Optional[Dict[str, Any]] = None
+    error_message: str | None = None
+    data_integrity: dict[str, Any] | None = None
 
 class EnhancedUAT:
     """Enhanced UAT framework targeting 100% success rate"""
     
     def __init__(self):
-        self.audit_trails: List[AuditTrail] = []
-        self.test_scenarios: List[UATScenario] = []
-        self.test_results: Dict[str, Any] = {}
+        self.audit_trails: list[AuditTrail] = []
+        self.test_scenarios: list[UATScenario] = []
+        self.test_results: dict[str, Any] = {}
         self.start_time = datetime.utcnow()
         
         # Initialize test database tracking
@@ -177,7 +174,7 @@ class EnhancedUAT:
         
         logger.info(f"Setup {len(self.test_scenarios)} enhanced test scenarios")
     
-    def execute_scenario(self, scenario: UATScenario) -> Dict[str, Any]:
+    def execute_scenario(self, scenario: UATScenario) -> dict[str, Any]:
         """Execute a single UAT scenario with enhanced validation"""
         
         scenario_start = datetime.utcnow()
@@ -237,9 +234,9 @@ class EnhancedUAT:
         """Enhanced user state setup with comprehensive validation"""
         
         try:
-            from utils.identity import psid_hash
-            from models import User
             from db_base import db
+            from models import User
+            from utils.identity import psid_hash
             
             # Create test user hash
             user_hash = psid_hash(scenario.test_data["user_id"])
@@ -496,8 +493,8 @@ class EnhancedUAT:
         """Enhanced report request handling with comprehensive validation"""
         
         try:
-            from handlers.summary import handle_summary
             from handlers.insight import handle_insight
+            from handlers.summary import handle_summary
             from utils.identity import psid_hash
             
             user_hash = psid_hash(scenario.test_data["user_id"])
@@ -562,8 +559,8 @@ class EnhancedUAT:
         """Enhanced router validation with comprehensive testing"""
         
         try:
-            from utils.production_router import ProductionRouter
             from utils.identity import psid_hash
+            from utils.production_router import ProductionRouter
             
             user_hash = psid_hash(scenario.test_data["user_id"])
             router = ProductionRouter()
@@ -638,9 +635,9 @@ class EnhancedUAT:
         """Enhanced edge case testing"""
         
         try:
+            from models import User
             from utils.identity import psid_hash
             from utils.timezone_helpers import today_local
-            from models import User
             
             user_hash = psid_hash(scenario.test_data["user_id"])
             edge_results = {}
@@ -704,8 +701,8 @@ class EnhancedUAT:
         """Enhanced analytics validation with comprehensive checks"""
         
         try:
-            from utils.identity import psid_hash
             from models import User
+            from utils.identity import psid_hash
             
             user_hash = psid_hash(scenario.test_data["user_id"])
             user = User.query.filter_by(user_id_hash=user_hash).first()
@@ -769,8 +766,8 @@ class EnhancedUAT:
         """Enhanced milestone validation with comprehensive checks"""
         
         try:
-            from utils.identity import psid_hash
             from models import User
+            from utils.identity import psid_hash
             from utils.timezone_helpers import today_local
             
             user_hash = psid_hash(scenario.test_data["user_id"])
@@ -837,8 +834,8 @@ class EnhancedUAT:
         """Enhanced data persistence validation with comprehensive integrity checks"""
         
         try:
+            from models import Expense, MonthlySummary, User
             from utils.identity import psid_hash
-            from models import User, Expense, MonthlySummary
             
             user_hash = psid_hash(scenario.test_data["user_id"])
             
@@ -999,7 +996,7 @@ class EnhancedUAT:
                 error_message=str(e)
             )
     
-    def generate_enhanced_audit_report(self) -> Dict[str, Any]:
+    def generate_enhanced_audit_report(self) -> dict[str, Any]:
         """Generate comprehensive enhanced audit report"""
         
         end_time = datetime.utcnow()
@@ -1120,8 +1117,8 @@ class EnhancedUAT:
         """Enhanced cleanup with comprehensive validation"""
         
         try:
-            from models import User, Expense, MonthlySummary
             from db_base import db
+            from models import Expense, MonthlySummary, User
             
             cleanup_summary = {
                 "users_cleaned": 0,
@@ -1166,7 +1163,7 @@ class EnhancedUAT:
             return {"error": str(e), "cleanup_successful": False}
 
 # Enhanced main execution functions
-def run_enhanced_uat() -> Dict[str, Any]:
+def run_enhanced_uat() -> dict[str, Any]:
     """Execute enhanced UAT targeting 100% success rate"""
     
     from app import app
@@ -1200,7 +1197,7 @@ def run_enhanced_uat() -> Dict[str, Any]:
                 "partial_results": uat.test_results
             }
 
-def validate_100_percent_success(audit_report: Dict[str, Any]) -> bool:
+def validate_100_percent_success(audit_report: dict[str, Any]) -> bool:
     """Validate if 100% success rate has been achieved"""
     
     if "error" in audit_report:

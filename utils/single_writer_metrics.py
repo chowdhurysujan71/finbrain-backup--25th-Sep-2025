@@ -5,15 +5,14 @@ Provides monitoring, alerting, and SLA tracking for the single writer principle 
 This module ensures we can detect violations, performance issues, and system health.
 """
 
-import time
 import logging
-import json
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, asdict
-from enum import Enum
 import threading
+import time
 from collections import defaultdict, deque
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +30,7 @@ class SingleWriterMetric:
     timestamp: float
     metric_type: str
     value: float
-    tags: Dict[str, str]
+    tags: dict[str, str]
     source: str
 
 @dataclass
@@ -40,7 +39,7 @@ class ViolationEvent:
     timestamp: float
     violation_type: ViolationType
     source: str
-    details: Dict[str, Any]
+    details: dict[str, Any]
     severity: str  # "low", "medium", "high", "critical"
     resolved: bool = False
 
@@ -58,7 +57,7 @@ class SingleWriterMonitor:
     
     def __init__(self):
         self._metrics: deque = deque(maxlen=10000)  # Last 10k metrics
-        self._violations: List[ViolationEvent] = []
+        self._violations: list[ViolationEvent] = []
         self._hourly_stats = defaultdict(int)
         self._daily_stats = defaultdict(int)
         self._lock = threading.Lock()
@@ -128,7 +127,7 @@ class SingleWriterMonitor:
                 self._hourly_stats[f"{hour_key}_blocks_successful"] += 1
                 self._daily_stats[f"{day_key}_blocks_successful"] += 1
     
-    def record_violation(self, violation_type: ViolationType, source: str, details: Dict[str, Any], severity: str = "medium"):
+    def record_violation(self, violation_type: ViolationType, source: str, details: dict[str, Any], severity: str = "medium"):
         """Record a single writer violation"""
         with self._lock:
             violation = ViolationEvent(
@@ -171,7 +170,7 @@ class SingleWriterMonitor:
             )
             self._metrics.append(metric)
     
-    def get_health_status(self) -> Dict[str, Any]:
+    def get_health_status(self) -> dict[str, Any]:
         """Get overall health status of single writer enforcement"""
         with self._lock:
             now = time.time()
@@ -224,7 +223,7 @@ class SingleWriterMonitor:
                 }
             }
     
-    def get_dashboard_data(self) -> Dict[str, Any]:
+    def get_dashboard_data(self) -> dict[str, Any]:
         """Get data for monitoring dashboard"""
         health = self.get_health_status()
         
@@ -279,7 +278,7 @@ def record_canonical_write(user_id: str, success: bool, duration_ms: float, **kw
     """Helper function to record canonical writer operations"""
     single_writer_monitor.record_canonical_write(user_id, success, duration_ms, **kwargs)
 
-def record_violation(violation_type: ViolationType, source: str, details: Dict[str, Any], severity: str = "medium"):
+def record_violation(violation_type: ViolationType, source: str, details: dict[str, Any], severity: str = "medium"):
     """Helper function to record violations"""
     single_writer_monitor.record_violation(violation_type, source, details, severity)
 
@@ -287,10 +286,10 @@ def record_protection_trigger(protection_type: str, blocked: bool, source: str, 
     """Helper function to record protection triggers"""
     single_writer_monitor.record_protection_trigger(protection_type, blocked, source, **kwargs)
 
-def get_health_status() -> Dict[str, Any]:
+def get_health_status() -> dict[str, Any]:
     """Helper function to get health status"""
     return single_writer_monitor.get_health_status()
 
-def get_dashboard_data() -> Dict[str, Any]:
+def get_dashboard_data() -> dict[str, Any]:
     """Helper function to get dashboard data"""
     return single_writer_monitor.get_dashboard_data()

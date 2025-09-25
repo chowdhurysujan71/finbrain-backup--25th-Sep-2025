@@ -3,7 +3,6 @@ Guardrail test to prevent regressions in router canonicality
 Ensures all imports use utils.production_router instead of non-canonical paths
 """
 
-import os
 import re
 from pathlib import Path
 
@@ -26,7 +25,7 @@ def test_no_noncanonical_router_imports():
 
 def test_canonical_router_importable():
     """Ensure canonical router path is valid and importable"""
-    from utils.production_router import production_router, ProductionRouter
+    from utils.production_router import ProductionRouter, production_router
     assert production_router is not None
     assert ProductionRouter is not None
 

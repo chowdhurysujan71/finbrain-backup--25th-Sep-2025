@@ -8,11 +8,12 @@ Target: 90%+ accuracy, <10% fallback rate
 import csv
 import json
 import sys
-from typing import Dict, List, Tuple
 from datetime import datetime
+from typing import Dict, List
 
 # Import our implementation
-from utils.nl_expense_parser import parse_nl_expense, ExpenseParseResult
+from utils.nl_expense_parser import parse_nl_expense
+
 
 class NLParserTester:
     """Test runner for natural language expense parser"""
@@ -23,16 +24,16 @@ class NLParserTester:
         self.total_tests = 0
         self.passed_tests = 0
         
-    def load_test_cases(self) -> List[Dict]:
+    def load_test_cases(self) -> list[dict]:
         """Load test cases from CSV file"""
         test_cases = []
-        with open(self.test_file, 'r', encoding='utf-8') as f:
+        with open(self.test_file, encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 test_cases.append(row)
         return test_cases
     
-    def run_single_test(self, test_case: Dict) -> Dict:
+    def run_single_test(self, test_case: dict) -> dict:
         """Run a single test case and evaluate results"""
         input_text = test_case['input_text']
         expected_amount = float(test_case['expected_amount']) if test_case['expected_amount'].replace('.', '').isdigit() else 0
@@ -142,7 +143,7 @@ class NLParserTester:
         else:
             return 0.4  # Reasonable but not optimal
     
-    def run_all_tests(self) -> Dict:
+    def run_all_tests(self) -> dict:
         """Run all test cases and generate comprehensive report"""
         print("🧪 Starting Natural Language Parser Test Suite...")
         print("=" * 60)
@@ -166,7 +167,7 @@ class NLParserTester:
             
         return self._generate_report()
     
-    def _generate_report(self) -> Dict:
+    def _generate_report(self) -> dict:
         """Generate comprehensive test report"""
         # Calculate overall metrics
         overall_accuracy = (self.passed_tests / self.total_tests) * 100
@@ -229,7 +230,7 @@ class NLParserTester:
         
         return report
     
-    def print_summary(self, report: Dict):
+    def print_summary(self, report: dict):
         """Print human-readable test summary"""
         print("\n" + "=" * 60)
         print("🎯 NATURAL LANGUAGE PARSER TEST RESULTS")
@@ -238,18 +239,18 @@ class NLParserTester:
         summary = report['summary']
         targets = report['target_achievement']
         
-        print(f"📊 OVERALL PERFORMANCE")
+        print("📊 OVERALL PERFORMANCE")
         print(f"   Tests Passed: {summary['passed_tests']}/{summary['total_tests']} ({summary['overall_accuracy']:.1f}%)")
         print(f"   Target Met: {'✅ YES' if targets['overall_target_met'] else '❌ NO'} (≥90% required)")
         
-        print(f"\n📏 DETAILED METRICS")
+        print("\n📏 DETAILED METRICS")
         print(f"   Amount Extraction: {summary['amount_accuracy']:.1f}% {'✅' if targets['amount_target_met'] else '❌'} (≥95% required)")
         print(f"   Category Classification: {summary['category_accuracy']:.1f}% {'✅' if targets['category_target_met'] else '❌'} (≥85% required)")
         print(f"   Language Detection: {summary['language_accuracy']:.1f}% {'✅' if targets['language_target_met'] else '❌'} (≥95% required)")
         print(f"   Confidence Calibration: {summary['confidence_accuracy']:.1f}% {'✅' if targets['confidence_target_met'] else '❌'} (≥80% required)")
         print(f"   Fallback Rate: {summary['fallback_rate']:.1f}% {'✅' if targets['fallback_target_met'] else '❌'} (<10% required)")
         
-        print(f"\n🌐 LANGUAGE PERFORMANCE")
+        print("\n🌐 LANGUAGE PERFORMANCE")
         lang_perf = report['language_performance']
         print(f"   Bangla: {lang_perf['bangla_accuracy']:.1f}%")
         print(f"   English: {lang_perf['english_accuracy']:.1f}%")
@@ -263,7 +264,7 @@ class NLParserTester:
         
         # Production readiness assessment
         all_targets_met = all(targets.values())
-        print(f"\n🚀 PRODUCTION READINESS")
+        print("\n🚀 PRODUCTION READINESS")
         print(f"   Status: {'✅ READY' if all_targets_met else '❌ NOT READY'}")
         print(f"   Recommendation: {'Deploy to production' if all_targets_met else 'Requires improvement before deployment'}")
 
@@ -279,7 +280,7 @@ def main():
         with open('test_results.json', 'w', encoding='utf-8') as f:
             json.dump(report, f, indent=2, ensure_ascii=False)
         
-        print(f"\n📄 Detailed results saved to: test_results.json")
+        print("\n📄 Detailed results saved to: test_results.json")
         
         # Exit with appropriate code
         all_targets_met = all(report['target_achievement'].values())

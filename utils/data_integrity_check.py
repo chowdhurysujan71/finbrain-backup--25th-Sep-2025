@@ -17,18 +17,16 @@ Key Integrity Checks:
 - Superseded expense handling
 """
 
+import json
 import logging
 import time
-import json
-from datetime import datetime, timedelta, date
-from typing import Dict, List, Any, Tuple, Optional
-from decimal import Decimal
-from dataclasses import dataclass, asdict
-from sqlalchemy import text, func
-from sqlalchemy.exc import SQLAlchemyError
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from typing import Any, Dict, List
+
+from sqlalchemy import text
 
 from db_base import db
-from models import Expense, User, MonthlySummary
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +36,7 @@ class IntegrityCheckResult:
     check_name: str
     status: str  # 'PASS', 'FAIL', 'WARNING'
     message: str
-    affected_users: List[str] = None
+    affected_users: list[str] = None
     affected_count: int = 0
     expected_value: Any = None
     actual_value: Any = None
@@ -61,10 +59,10 @@ class IntegrityReport:
     failed: int
     warnings: int
     overall_status: str
-    checks: List[IntegrityCheckResult]
+    checks: list[IntegrityCheckResult]
     summary: str
     
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return asdict(self)
 
 class DataIntegrityChecker:

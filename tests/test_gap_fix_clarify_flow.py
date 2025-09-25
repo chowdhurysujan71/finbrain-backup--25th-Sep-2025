@@ -3,9 +3,11 @@ Test suite for gap-fix clarifier flow implementation
 Tests targeted clarification for missing amount/category with confidence==0.5
 """
 
-import pytest
 import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
+import pytest
+
 import backend_assistant as ba
 
 

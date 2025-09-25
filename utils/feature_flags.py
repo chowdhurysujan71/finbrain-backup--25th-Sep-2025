@@ -3,31 +3,31 @@ Feature Flags for FinBrain - PHASE 7 CONSOLIDATION SHIM
 This module now delegates to the unified flags system for single source of truth
 """
 
-import os
 import logging
-from typing import Set, List, Optional
+import os
+from typing import Optional
 
 logger = logging.getLogger("finbrain.feature_flags")
 
 # PHASE 7: Import unified flags system
-from utils.flags import unified_flags
-
 # Import centralized config for backward compatibility
 from utils.config import FEATURE_FLAGS_VERSION
+from utils.flags import unified_flags
 
-def is_smart_nlp_enabled(psid_hash: Optional[str] = None) -> bool:
+
+def is_smart_nlp_enabled(psid_hash: str | None = None) -> bool:
     """
     PHASE 7: Delegates to unified flags system
     """
     return unified_flags.is_smart_nlp_enabled(psid_hash)
 
-def is_smart_tone_enabled(psid_hash: Optional[str] = None) -> bool:
+def is_smart_tone_enabled(psid_hash: str | None = None) -> bool:
     """
     PHASE 7: Delegates to unified flags system
     """
     return unified_flags.is_smart_tone_enabled(psid_hash)
 
-def is_smart_corrections_enabled(psid_hash: Optional[str] = None) -> bool:
+def is_smart_corrections_enabled(psid_hash: str | None = None) -> bool:
     """
     PHASE 7: Delegates to unified flags system
     """

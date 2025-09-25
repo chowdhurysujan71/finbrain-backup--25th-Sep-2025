@@ -8,7 +8,9 @@ import json
 import time
 import uuid
 from datetime import datetime
+
 from app import app
+
 
 class ProductionFlowUAT:
     """Comprehensive UAT simulating exact live user experience"""
@@ -584,7 +586,7 @@ class ProductionFlowUAT:
         print(f"  🔒 Confidence Level: {confidence}")
         
         # Detailed criteria breakdown
-        print(f"\n  📋 Deployment Criteria:")
+        print("\n  📋 Deployment Criteria:")
         for criterion, met in criteria.items():
             print(f"     {'✅' if met else '❌'} {criterion.replace('_', ' ').title()}")
         

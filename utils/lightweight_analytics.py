@@ -4,12 +4,12 @@ Builds on existing structured telemetry infrastructure to track key metrics
 100% additive - no changes to existing functionality
 """
 
-import logging
 import json
-from datetime import datetime, date
-from typing import Dict, Any, Optional
-from collections import defaultdict, deque
+import logging
 import os
+from collections import defaultdict, deque
+from datetime import date, datetime
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +106,7 @@ class LightweightAnalytics:
         except Exception as e:
             logger.warning(f"AI call tracking failed: {e}")
     
-    def track_abandonment(self, user_hash: str, step: str, context: Dict[str, Any] = None) -> None:
+    def track_abandonment(self, user_hash: str, step: str, context: dict[str, Any] = None) -> None:
         """Track user abandonment at specific steps"""
         if not self.enabled:
             return
@@ -126,7 +126,7 @@ class LightweightAnalytics:
         except Exception as e:
             logger.warning(f"Abandonment tracking failed: {e}")
     
-    def get_daily_metrics(self) -> Dict[str, Any]:
+    def get_daily_metrics(self) -> dict[str, Any]:
         """Get current daily metrics for monitoring"""
         try:
             self._check_daily_reset()
@@ -169,7 +169,7 @@ class LightweightAnalytics:
                 'reset_date': current_date.isoformat()
             })
     
-    def _log_analytics_event(self, event_name: str, data: Dict[str, Any]) -> None:
+    def _log_analytics_event(self, event_name: str, data: dict[str, Any]) -> None:
         """Log analytics event using existing structured logging"""
         try:
             # Use existing structured logging infrastructure
@@ -184,7 +184,7 @@ class LightweightAnalytics:
             
             log_structured_event(f"ANALYTICS_{event_name}", analytics_data)
             
-        except Exception as e:
+        except Exception:
             # Use basic logging as fallback
             logger.info(f"ANALYTICS_{event_name} {json.dumps(data)}")
 
@@ -206,16 +206,16 @@ def track_ai_usage(user_hash: str, intent: str, response_time_ms: float) -> None
     """Track AI API usage and performance"""
     lightweight_analytics.track_ai_call(user_hash, intent, response_time_ms)
 
-def track_user_abandonment(user_hash: str, step: str, context: Dict[str, Any] = None) -> None:
+def track_user_abandonment(user_hash: str, step: str, context: dict[str, Any] = None) -> None:
     """Track user abandonment at critical steps"""
     lightweight_analytics.track_abandonment(user_hash, step, context)
 
-def get_analytics_summary() -> Dict[str, Any]:
+def get_analytics_summary() -> dict[str, Any]:
     """Get daily analytics summary"""
     return lightweight_analytics.get_daily_metrics()
 
 # Health check function for monitoring
-def analytics_health_check() -> Dict[str, Any]:
+def analytics_health_check() -> dict[str, Any]:
     """Health check for analytics system"""
     try:
         metrics = get_analytics_summary()

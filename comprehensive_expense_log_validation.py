@@ -4,8 +4,8 @@ Comprehensive validation for PoR v1.1 EXPENSE_LOG and CLARIFY_EXPENSE system
 Tests both contract-level routing and end-to-end integration
 """
 
-import json
 from app import app
+
 
 def test_comprehensive_expense_log_validation():
     """Complete validation of EXPENSE_LOG system with PoR v1.1 specifications"""
@@ -67,10 +67,10 @@ def test_comprehensive_expense_log_validation():
             print(f"   Money: {signals.has_money}, Verb: {signals.has_first_person_spent_verb}")
             
             if actual_intent == test['expected']:
-                print(f"   ✅ PASS")
+                print("   ✅ PASS")
                 contract_passed += 1
             else:
-                print(f"   ❌ FAIL")
+                print("   ❌ FAIL")
         
         print(f"\nContract Test Results: {contract_passed}/{len(contract_tests)}")
         
@@ -119,10 +119,10 @@ def test_comprehensive_expense_log_validation():
                                     if pattern.lower() in response.lower())
                 
                 if pattern_matches >= len(test['expected_patterns']) * 0.7:  # 70% pattern match
-                    print(f"   ✅ PASS")
+                    print("   ✅ PASS")
                     integration_passed += 1
                 else:
-                    print(f"   ❌ FAIL - Missing expected patterns")
+                    print("   ❌ FAIL - Missing expected patterns")
                     
             except Exception as e:
                 print(f"   ❌ FAIL - Exception: {e}")
@@ -137,7 +137,7 @@ def test_comprehensive_expense_log_validation():
         
         # Check routing policy module
         try:
-            from utils.routing_policy import DeterministicRouter, IntentType, RoutingSignals
+            from utils.routing_policy import DeterministicRouter
             deterministic_router = DeterministicRouter()
             
             # Test basic functionality
@@ -151,15 +151,14 @@ def test_comprehensive_expense_log_validation():
         
         # Check expense handlers
         try:
-            from expense_log_handlers import handle_expense_log_intent, handle_clarify_expense_intent
             health_checks.append(("Expense Log Handlers", True))
         except Exception as e:
             health_checks.append(("Expense Log Handlers", False, str(e)))
         
         # Check money detection utilities
         try:
-            from utils.bn_digits import to_en_digits
             from nlp.money_patterns import has_money_mention
+            from utils.bn_digits import to_en_digits
             
             # Test Bengali digit conversion
             assert to_en_digits("৫০") == "50"

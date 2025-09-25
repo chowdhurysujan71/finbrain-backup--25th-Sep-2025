@@ -5,21 +5,21 @@ Validates all core functionality to ensure deployment health
 
 import logging
 import os
-import json
 import time
 import uuid
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional, Tuple
-from flask import Blueprint, jsonify, request, session
+from datetime import datetime
 from functools import wraps
+from typing import Any, Dict, List
 
-from models import Expense, User, MonthlySummary
-from db_base import db
-from utils.identity import psid_hash, ensure_hashed
-from utils.crypto import ensure_hashed as crypto_ensure_hashed
-from utils.rate_limiting import limiter
-from parsers.expense import infer_category_with_strength
+from flask import Blueprint, jsonify, request
+
 import backend_assistant
+from db_base import db
+from models import Expense, User
+from parsers.expense import infer_category_with_strength
+from utils.crypto import ensure_hashed as crypto_ensure_hashed
+from utils.identity import ensure_hashed, psid_hash
+from utils.rate_limiting import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ def require_admin_or_probe_auth(f):
 
 class ProbeResult:
     """Individual probe test result"""
-    def __init__(self, name: str, passed: bool, message: str, duration_ms: float, details: Dict = None):
+    def __init__(self, name: str, passed: bool, message: str, duration_ms: float, details: dict = None):
         self.name = name
         self.passed = passed
         self.message = message
@@ -66,11 +66,11 @@ class DeployProbe:
     def __init__(self):
         self.test_user_id = "deploy_probe_test_user"
         self.test_user_email = "probe@finbrain.test"
-        self.test_results: List[ProbeResult] = []
+        self.test_results: list[ProbeResult] = []
         self.start_time = None
-        self.cleanup_items: List[str] = []  # Track items to cleanup
+        self.cleanup_items: list[str] = []  # Track items to cleanup
         
-    def run_comprehensive_probe(self) -> Dict[str, Any]:
+    def run_comprehensive_probe(self) -> dict[str, Any]:
         """
         Run all probe tests and return comprehensive results
         
@@ -132,7 +132,7 @@ class DeployProbe:
         # Calculate overall results
         return self._generate_probe_report()
     
-    def _test_database_connectivity(self) -> Dict[str, Any]:
+    def _test_database_connectivity(self) -> dict[str, Any]:
         """Test basic database connectivity and schema validation"""
         try:
             # Test basic connectivity
@@ -187,7 +187,7 @@ class DeployProbe:
                 'details': {'error': str(e)}
             }
     
-    def _test_hash_consistency(self) -> Dict[str, Any]:
+    def _test_hash_consistency(self) -> dict[str, Any]:
         """Test hash consistency between identity and crypto modules"""
         try:
             test_psid = "probe_test_hash_consistency_12345"
@@ -239,7 +239,7 @@ class DeployProbe:
                 'details': {'error': str(e)}
             }
     
-    def _test_authentication_flow(self) -> Dict[str, Any]:
+    def _test_authentication_flow(self) -> dict[str, Any]:
         """Test user authentication and session management"""
         try:
             # Create test user for authentication
@@ -310,7 +310,7 @@ class DeployProbe:
                 'details': {'error': str(e)}
             }
     
-    def _test_expense_logging(self) -> Dict[str, Any]:
+    def _test_expense_logging(self) -> dict[str, Any]:
         """Test expense logging from chat input to database persistence"""
         try:
             user_hash = psid_hash(self.test_user_id)
@@ -347,7 +347,7 @@ class DeployProbe:
                     if not expense:
                         return {
                             'passed': False,
-                            'message': f'Expense not found in database after logging',
+                            'message': 'Expense not found in database after logging',
                             'details': {'expense_id': result['expense_id']}
                         }
                     
@@ -355,7 +355,7 @@ class DeployProbe:
                     if expense.user_id_hash != user_hash:
                         return {
                             'passed': False,
-                            'message': f'Expense has wrong user association',
+                            'message': 'Expense has wrong user association',
                             'details': {
                                 'expected_user': user_hash,
                                 'actual_user': expense.user_id_hash,
@@ -387,7 +387,7 @@ class DeployProbe:
                 'details': {'error': str(e)}
             }
     
-    def _test_category_recognition(self) -> Dict[str, Any]:
+    def _test_category_recognition(self) -> dict[str, Any]:
         """Test category recognition for food, salon, health, general mappings"""
         try:
             test_cases = [
@@ -479,7 +479,7 @@ class DeployProbe:
                 'details': {'error': str(e)}
             }
     
-    def _test_reconciliation_integrity(self) -> Dict[str, Any]:
+    def _test_reconciliation_integrity(self) -> dict[str, Any]:
         """Test reconciliation - totals match between itemized and summary views"""
         try:
             user_hash = psid_hash(self.test_user_id)
@@ -594,7 +594,7 @@ class DeployProbe:
                 'details': {'error': str(e)}
             }
     
-    def _test_performance_benchmarks(self) -> Dict[str, Any]:
+    def _test_performance_benchmarks(self) -> dict[str, Any]:
         """Test performance benchmarks for key operations"""
         try:
             benchmarks = {}
@@ -712,7 +712,7 @@ class DeployProbe:
             except:
                 pass
     
-    def _generate_probe_report(self) -> Dict[str, Any]:
+    def _generate_probe_report(self) -> dict[str, Any]:
         """Generate comprehensive probe validation report"""
         total_duration = (time.time() - self.start_time) * 1000 if self.start_time else 0
         

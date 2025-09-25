@@ -14,15 +14,14 @@ Examples:
     python scripts/update_changelog.py --dry-run          # Preview changes without writing
 """
 
-import os
-import sys
 import argparse
-import re
 import datetime
-from typing import Dict, List, Optional, Tuple
-from pathlib import Path
-import subprocess
 import logging
+import re
+import subprocess
+import sys
+from pathlib import Path
+from typing import List, Optional
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -30,8 +29,8 @@ logger = logging.getLogger(__name__)
 
 class MigrationInfo:
     """Container for migration metadata"""
-    def __init__(self, revision_id: str, filename: str, down_revision: Optional[str] = None, 
-                 create_date: Optional[str] = None, summary: Optional[str] = None, author: Optional[str] = None):
+    def __init__(self, revision_id: str, filename: str, down_revision: str | None = None, 
+                 create_date: str | None = None, summary: str | None = None, author: str | None = None):
         self.revision_id = revision_id
         self.filename = filename
         self.down_revision = down_revision
@@ -117,7 +116,7 @@ Each migration entry includes:
 
 """
     
-    def parse_migration_file(self, filepath: Path) -> Optional[MigrationInfo]:
+    def parse_migration_file(self, filepath: Path) -> MigrationInfo | None:
         """Parse migration file to extract metadata"""
         try:
             content = filepath.read_text()
@@ -154,7 +153,7 @@ Each migration entry includes:
             logger.error(f"Error parsing migration file {filepath}: {e}")
             return None
     
-    def get_existing_entries(self) -> List[str]:
+    def get_existing_entries(self) -> list[str]:
         """Get list of revision IDs already in CHANGELOG"""
         if not self.changelog_path.exists():
             return []
@@ -231,7 +230,7 @@ Each migration entry includes:
         logger.info(f"Added migration {migration.revision_id} to CHANGELOG")
         return True
     
-    def process_migrations(self, specific_revision: Optional[str] = None) -> List[str]:
+    def process_migrations(self, specific_revision: str | None = None) -> list[str]:
         """Process all migrations or a specific revision"""
         if not self.migrations_dir.exists():
             logger.error(f"Migrations directory not found: {self.migrations_dir}")

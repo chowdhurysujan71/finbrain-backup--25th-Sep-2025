@@ -4,9 +4,9 @@ Security Audit - Verify Gemini AI security checklist compliance
 """
 
 import os
-import requests
-import json
 import time
+
+import requests
 
 BASE_URL = "http://localhost:5000"
 AUTH = ("secure_password_here", "admin")
@@ -83,7 +83,7 @@ class SecurityAudit:
             hardcoded_found = False
             for py_file in glob.glob("*.py"):
                 try:
-                    with open(py_file, 'r') as f:
+                    with open(py_file) as f:
                         content = f.read()
                         if 'AIzaSy' in content and 'example' not in content.lower():
                             hardcoded_found = True
@@ -214,7 +214,7 @@ class SecurityAudit:
         
         # Check if rotation schedule is documented
         if os.path.exists("SECURITY_CHECKLIST.md"):
-            with open("SECURITY_CHECKLIST.md", "r") as f:
+            with open("SECURITY_CHECKLIST.md") as f:
                 content = f.read()
                 if "rotation" in content.lower() and "september" in content.lower():
                     self.audit_result("Key rotation plan", "pass", 

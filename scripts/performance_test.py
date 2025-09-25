@@ -4,11 +4,10 @@ Performance Baseline Test for FinBrain
 Measures P50, P90, P95, P99 for webhook processing
 """
 import json
-import time
 import statistics
+import time
+
 import requests
-from concurrent.futures import ThreadPoolExecutor
-import sys
 
 BASE_URL = "http://localhost:5000"
 

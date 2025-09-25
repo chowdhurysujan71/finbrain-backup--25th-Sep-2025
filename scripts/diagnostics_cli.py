@@ -2,11 +2,11 @@
 """
 FinBrain Diagnostic CLI - Health monitoring script for development
 """
-import json
 import sys
-import os
 from datetime import datetime
+
 import requests
+
 
 def check_health_endpoint():
     """Check the /health endpoint"""
@@ -31,7 +31,7 @@ def check_database():
             result = db.session.execute(db.text("SELECT 1")).scalar()
             
             # Check table counts
-            from models import User, Expense
+            from models import Expense, User
             user_count = User.query.count()
             expense_count = Expense.query.count()
             

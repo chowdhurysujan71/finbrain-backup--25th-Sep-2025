@@ -5,9 +5,10 @@ Handles schema creation with IF NOT EXISTS to prevent duplicate errors during de
 """
 
 import logging
-from sqlalchemy import text, inspect
+
+from sqlalchemy import inspect, text
 from sqlalchemy.exc import ProgrammingError
-from sqlalchemy.schema import CreateTable
+
 from db_base import db
 
 logger = logging.getLogger(__name__)

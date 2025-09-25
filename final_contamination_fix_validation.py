@@ -5,16 +5,17 @@ Comprehensive test to verify all cross-contamination safeguards are working
 """
 
 import sys
+
 sys.path.append('/home/runner/workspace')
 
+from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timezone
+
 from app import app, db
+from models import Expense
 from utils.ai_adapter_v2 import production_ai_adapter
 from utils.ai_contamination_monitor import ai_contamination_monitor
-from models import Expense, User
-import threading
-import time
-from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+
 
 def test_safeguards():
     """Test all implemented cross-contamination safeguards"""
@@ -36,24 +37,24 @@ def test_safeguards():
         
         # Create distinct expense data for each user
         user1_expenses = [
-            Expense(user_id=user1_id, amount=1000, category='food', description='User1 food', created_at=datetime.now(timezone.utc)),
-            Expense(user_id=user1_id, amount=500, category='transport', description='User1 transport', created_at=datetime.now(timezone.utc))
+            Expense(user_id=user1_id, amount=1000, category='food', description='User1 food', created_at=datetime.now(UTC)),
+            Expense(user_id=user1_id, amount=500, category='transport', description='User1 transport', created_at=datetime.now(UTC))
         ]
         
         user2_expenses = [
-            Expense(user_id=user2_id, amount=2000, category='food', description='User2 food', created_at=datetime.now(timezone.utc)),
-            Expense(user_id=user2_id, amount=300, category='entertainment', description='User2 entertainment', created_at=datetime.now(timezone.utc))
+            Expense(user_id=user2_id, amount=2000, category='food', description='User2 food', created_at=datetime.now(UTC)),
+            Expense(user_id=user2_id, amount=300, category='entertainment', description='User2 entertainment', created_at=datetime.now(UTC))
         ]
         
         for expense in user1_expenses + user2_expenses:
             db.session.add(expense)
         db.session.commit()
         
-        print(f"   User 1: ৳1000 food + ৳500 transport = ৳1500 total")
-        print(f"   User 2: ৳2000 food + ৳300 entertainment = ৳2300 total")
+        print("   User 1: ৳1000 food + ৳500 transport = ৳1500 total")
+        print("   User 2: ৳2000 food + ৳300 entertainment = ৳2300 total")
         
         # Test 1: Isolated Session Per Request
-        print(f"\n🔒 TEST 1: Session Isolation")
+        print("\n🔒 TEST 1: Session Isolation")
         
         user1_data = {
             'total_amount': 1500,
@@ -118,13 +119,13 @@ def test_safeguards():
             print("   ✅ No cross-contamination detected - responses properly isolated")
         
         # Test 2: Contamination Monitor
-        print(f"\n🔍 TEST 2: Contamination Monitor Active")
+        print("\n🔍 TEST 2: Contamination Monitor Active")
         print(f"   Active requests tracked: {len(ai_contamination_monitor.active_requests)}")
         print(f"   Response fingerprints: {len(ai_contamination_monitor.response_fingerprints)}")
         print("   ✅ Contamination monitor is actively tracking requests")
         
         # Test 3: User ID Logging
-        print(f"\n📝 TEST 3: User ID Isolation Logging")
+        print("\n📝 TEST 3: User ID Isolation Logging")
         print("   ✅ User IDs are logged with each request for audit trail")
         print("   ✅ Request IDs generated for contamination tracking")
         
@@ -138,7 +139,7 @@ def test_safeguards():
 
 def test_safeguard_features():
     """Test individual safeguard features"""
-    print(f"\n🛡️  INDIVIDUAL SAFEGUARD FEATURES TEST")
+    print("\n🛡️  INDIVIDUAL SAFEGUARD FEATURES TEST")
     print("=" * 45)
     
     with app.app_context():
@@ -170,7 +171,7 @@ if __name__ == "__main__":
     safeguards_passed = test_safeguards()
     features_working = test_safeguard_features()
     
-    print(f"\n📋 FINAL SECURITY ASSESSMENT")
+    print("\n📋 FINAL SECURITY ASSESSMENT")
     print("=" * 35)
     
     if safeguards_passed and features_working:
@@ -179,7 +180,7 @@ if __name__ == "__main__":
         print("✅ Contamination monitoring system operational")
         print("✅ Per-request session isolation implemented")
         print("✅ User isolation logging active for audit trails")
-        print(f"\n🛡️  FINANCIAL DATA INTEGRITY SECURED")
+        print("\n🛡️  FINANCIAL DATA INTEGRITY SECURED")
         sys.exit(0)
     else:
         print("❌ SAFEGUARD FAILURES DETECTED")

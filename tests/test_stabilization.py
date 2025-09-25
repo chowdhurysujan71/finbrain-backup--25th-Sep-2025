@@ -3,22 +3,24 @@ Tests for FinBrain Stabilization (Always-On AI Features)
 Tests multi-expense, corrections, idempotency, router precedence, and summary exclusion
 """
 
-import pytest
 import os
 import sys
 from datetime import datetime, timedelta
 from decimal import Decimal
 
+import pytest
+
 # Add project root to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import app, db
-from models import Expense, User
-from parsers.expense import extract_all_expenses, parse_expense, is_correction_message
-from handlers.expense import handle_multi_expense_logging, handle_correction
-from utils.feature_flags import feature_enabled
-from utils.config import FEATURE_FLAGS_VERSION
 from finbrain.router import contains_money_with_correction_fallback
+from handlers.expense import handle_correction, handle_multi_expense_logging
+from models import Expense
+from parsers.expense import extract_all_expenses, is_correction_message
+from utils.config import FEATURE_FLAGS_VERSION
+from utils.feature_flags import feature_enabled
+
 
 class TestAlwaysOnStabilization:
     """Test suite for always-on AI features with no flags"""
@@ -167,8 +169,8 @@ class TestAlwaysOnStabilization:
             assert float(corrected_expenses[0].amount) == 500.0
             
             print("✅ Correction detection and supersede logic")
-            print(f"   ├─ Original: ৳50 → superseded")
-            print(f"   └─ Corrected: ৳500 → active")
+            print("   ├─ Original: ৳50 → superseded")
+            print("   └─ Corrected: ৳500 → active")
     
     def test_bare_number_correction_fallback(self, setup_db):
         """Test correction with bare numbers (currency inheritance)"""

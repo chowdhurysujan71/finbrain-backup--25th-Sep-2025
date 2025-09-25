@@ -5,13 +5,16 @@ Fixes orphaned expenses and invalid user hashes while preserving data
 """
 
 import sys
+
 sys.path.append('/home/runner/workspace')
 
-from app import app, db
-from models import User, Expense
-import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
+
 from sqlalchemy import text
+
+from app import app, db
+from models import Expense, User
+
 
 def fix_orphaned_expenses():
     """Create missing user records for orphaned expenses"""
@@ -38,8 +41,8 @@ def fix_orphaned_expenses():
                 # Create missing user record
                 new_user = User(
                     user_id_hash=user_id_hash,
-                    created_at=datetime.now(timezone.utc),
-                    last_interaction=datetime.now(timezone.utc),
+                    created_at=datetime.now(UTC),
+                    last_interaction=datetime.now(UTC),
                     total_expenses=0
                 )
                 
@@ -90,7 +93,7 @@ def fix_invalid_user_hashes():
                     # Safe to remove unused invalid user record
                     db.session.delete(user)
                     fixes_applied += 1
-                    print(f"      ✅ Removed invalid unused user record")
+                    print("      ✅ Removed invalid unused user record")
         
         if fixes_applied > 0:
             db.session.commit()
@@ -159,12 +162,12 @@ def main():
         total_fixes = fixes_1 + fixes_2
         
         if validate_fixes():
-            print(f"\\n✅ ALL DATA INTEGRITY ISSUES RESOLVED")
+            print("\\n✅ ALL DATA INTEGRITY ISSUES RESOLVED")
             print(f"✅ Applied {total_fixes} fixes successfully")
             print("✅ Financial data integrity restored")
             return True
         else:
-            print(f"\\n❌ Some issues remain after fixes")
+            print("\\n❌ Some issues remain after fixes")
             return False
             
     except Exception as e:

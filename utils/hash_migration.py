@@ -7,12 +7,13 @@ with the old unsalted method while migrating to the new salted approach.
 CRITICAL: This prevents data loss during the hash standardization fix.
 """
 
-import logging
 import hashlib
-import os
-from typing import Optional, Dict, Any, List
+import logging
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy.orm import Session
-from utils.identity import psid_hash, ensure_hashed as salted_ensure_hashed
+
+from utils.identity import ensure_hashed as salted_ensure_hashed
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ def get_legacy_hash(user_identifier: str) -> str:
     """
     return hashlib.sha256(user_identifier.encode('utf-8')).hexdigest()
 
-def dual_read_user_hash(user_identifier: str, db_session: Session, model_class, hash_field: str = 'user_id_hash') -> Optional[Any]:
+def dual_read_user_hash(user_identifier: str, db_session: Session, model_class, hash_field: str = 'user_id_hash') -> Any | None:
     """
     Dual-read pattern: Try salted hash first, fallback to legacy hash
     
@@ -81,7 +82,7 @@ def dual_read_user_hash(user_identifier: str, db_session: Session, model_class, 
                 return record  # Return record even if migration failed
     
     # Not found with either hash method
-    logger.debug(f"No record found for user_identifier with either hash method")
+    logger.debug("No record found for user_identifier with either hash method")
     return None
 
 def migrate_record_hash(record: Any, hash_field: str, new_hash: str, db_session: Session) -> bool:
@@ -117,7 +118,7 @@ def migrate_record_hash(record: Any, hash_field: str, new_hash: str, db_session:
         _migration_metrics['migration_errors'] += 1
         return False
 
-def dual_read_user_expenses(user_identifier: str, db_session: Session) -> List[Any]:
+def dual_read_user_expenses(user_identifier: str, db_session: Session) -> list[Any]:
     """
     Get all expenses for a user using dual-read pattern
     
@@ -165,7 +166,7 @@ def dual_read_user_expenses(user_identifier: str, db_session: Session) -> List[A
     
     return []
 
-def get_migration_metrics() -> Dict[str, int]:
+def get_migration_metrics() -> dict[str, int]:
     """Get current migration metrics for monitoring"""
     return _migration_metrics.copy()
 

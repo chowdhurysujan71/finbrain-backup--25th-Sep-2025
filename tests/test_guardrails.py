@@ -5,8 +5,16 @@ Validates TTL store and UX copy functionality
 """
 
 import time
-from utils.ttl_store import get_store, InProcTTL
-from utils.ux_copy import SLOW_DOWN, DAILY_LIMIT, REPEAT_HINT, PII_WARNING, BUSY, FALLBACK
+
+from utils.ttl_store import InProcTTL, get_store
+from utils.ux_copy import (
+    BUSY,
+    DAILY_LIMIT,
+    FALLBACK,
+    PII_WARNING,
+    REPEAT_HINT,
+    SLOW_DOWN,
+)
 
 
 def test_in_proc_ttl_basic():
@@ -134,8 +142,9 @@ def test_guardrail_integration():
 
 def test_messaging_guardrail_disabled():
     """Test guardrail method when disabled (fail-open)"""
-    from utils.production_router import ProductionRouter
     import os
+
+    from utils.production_router import ProductionRouter
     
     # Ensure disabled
     os.environ["MESSAGING_GUARDRAILS_ENABLED"] = "false"

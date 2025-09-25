@@ -3,6 +3,7 @@ Test suite for summary intent detection and routing
 """
 from utils.production_router import _is_summary_command
 
+
 def test_summary_detection_variants():
     """Test various summary command patterns"""
     # Basic commands

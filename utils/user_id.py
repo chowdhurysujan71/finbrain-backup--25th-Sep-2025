@@ -1,6 +1,8 @@
 # utils/user_id.py
-from flask import session, jsonify
 from functools import wraps
+
+from flask import jsonify, session
+
 
 def get_canonical_user_id():
     return session.get("user_id")

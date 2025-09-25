@@ -4,16 +4,23 @@ Integrates with the background processor and webhook system for production use
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict
+
 from sqlalchemy.orm import Session
-from utils.context_packet import build_context, is_context_thin, get_thin_context_reply, format_context_for_ai, CONTEXT_SYSTEM_PROMPT, RESPONSE_SCHEMA
-from utils.ai_context_adapter import ContextDrivenAI, handle_context_driven_message
-from utils.ux_components import safe_send_text, record_event, format_coach_reply
+
+from db_base import db
+from limiter import can_use_ai
+from utils.context_packet import (
+    CONTEXT_SYSTEM_PROMPT,
+    RESPONSE_SCHEMA,
+    build_context,
+    format_context_for_ai,
+    get_thin_context_reply,
+    is_context_thin,
+)
 from utils.facebook_handler import send_message
 from utils.quick_reply_system import send_custom_quick_replies
-from utils.ai_adapter_v2 import production_ai_adapter
-from limiter import can_use_ai
-from db_base import db
+from utils.ux_components import format_coach_reply, record_event
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +30,7 @@ class ContextAwareMessageProcessor:
     def __init__(self, db_session: Session):
         self.db = db_session
         
-    def process_message(self, psid: str, text: str) -> Dict[str, Any]:
+    def process_message(self, psid: str, text: str) -> dict[str, Any]:
         """
         Process message with context-driven AI and guard logic
         
@@ -146,7 +153,7 @@ class ContextAwareMessageProcessor:
                 "error": str(e)
             }
     
-    def _generate_context_fallback(self, context: Dict[str, Any], user_text: str) -> Dict[str, Any]:
+    def _generate_context_fallback(self, context: dict[str, Any], user_text: str) -> dict[str, Any]:
         """
         Generate structured fallback response using context data when AI fails
         
@@ -202,7 +209,7 @@ def initialize_context_processor():
         context_processor = ContextAwareMessageProcessor(db.session)
     return context_processor
 
-def process_message_with_context(psid: str, text: str) -> Dict[str, Any]:
+def process_message_with_context(psid: str, text: str) -> dict[str, Any]:
     """
     Main entry point for context-driven message processing
     

@@ -6,10 +6,10 @@ Requires authenticated session for backend API endpoints
 """
 import os
 import sys
-import json
-import requests
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
+
+import requests
 
 # Configuration (override via ENV)
 BASE_URL = os.getenv("BASE_URL", "http://localhost:5000/api/backend")
@@ -24,7 +24,7 @@ def fail(msg: str) -> None:
     print(f"\n❌ FAIL: {msg}")
     sys.exit(1)
 
-def post_json(url: str, data: Dict[str, Any], headers: Dict[str, str]) -> requests.Response:
+def post_json(url: str, data: dict[str, Any], headers: dict[str, str]) -> requests.Response:
     try:
         return requests.post(url, json=data, headers=headers, timeout=30)
     except requests.exceptions.RequestException as e:

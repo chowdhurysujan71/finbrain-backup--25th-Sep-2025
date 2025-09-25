@@ -6,11 +6,11 @@ Demonstrates all 4 PCA_MODE states and their behaviors
 
 import os
 import sys
+
 sys.path.append('.')
 
 def test_pca_modes():
     """Test all 4 PCA modes and their conditional logic"""
-    from utils.pca_flags import pca_flags, PCAMode
     
     print("🚀 Feature Flags/Kill Switch Test Suite")
     print("=" * 50)
@@ -61,18 +61,17 @@ def test_pca_modes():
         # Restore original environment
         os.environ['PCA_MODE'] = original_mode
     
-    print(f"\n🎯 All 4 PCA modes tested successfully!")
+    print("\n🎯 All 4 PCA modes tested successfully!")
     print("✅ Conditional flow logic working correctly")
     print("✅ Feature Flags system fully operational")
     
 def test_production_router_integration():
     """Test that production router recognizes all modes"""
-    print(f"\n🔧 Testing Production Router Integration")
+    print("\n🔧 Testing Production Router Integration")
     print("-" * 40)
     
     try:
         from utils.production_router import ProductionRouter
-        from utils.pca_flags import PCAMode
         
         # Create router instance
         router = ProductionRouter()
@@ -94,7 +93,7 @@ def test_production_router_integration():
 
 def test_kill_switch():
     """Test global kill switch functionality"""
-    print(f"\n🛑 Testing Kill Switch")
+    print("\n🛑 Testing Kill Switch")
     print("-" * 40)
     
     original_kill = os.environ.get('PCA_KILL_SWITCH', 'false')

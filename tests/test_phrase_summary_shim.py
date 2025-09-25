@@ -1,5 +1,6 @@
 import importlib
 
+
 def test_phrase_summary_exists_and_works():
     ga = importlib.import_module("finbrain.ai.gemini_adapter")
     contracts = importlib.import_module("finbrain.ai.contracts")

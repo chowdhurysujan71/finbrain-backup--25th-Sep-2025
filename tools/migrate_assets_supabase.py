@@ -3,14 +3,16 @@
 Migration helper to upload local files to Supabase Storage
 Usage: python tools/migrate_assets_supabase.py --src ./local_uploads --user-id <uid>
 """
-import os
-import sys
 import argparse
 import json
+import os
+import sys
 import time
-import requests
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
+
+import requests
+
 
 class SupabaseMigrator:
     """Helper class for migrating files to Supabase Storage"""
@@ -29,7 +31,7 @@ class SupabaseMigrator:
             "Content-Type": "application/json"
         }
     
-    def upload_file(self, local_path: Path, remote_path: str) -> Dict[str, Any]:
+    def upload_file(self, local_path: Path, remote_path: str) -> dict[str, Any]:
         """
         Upload a single file to Supabase Storage
         
@@ -103,7 +105,7 @@ class SupabaseMigrator:
         }
         return content_type_map.get(file_extension.lower(), 'application/octet-stream')
     
-    def migrate_directory(self, src_dir: Path, user_id: str) -> Dict[str, Any]:
+    def migrate_directory(self, src_dir: Path, user_id: str) -> dict[str, Any]:
         """
         Migrate entire directory to Supabase Storage
         

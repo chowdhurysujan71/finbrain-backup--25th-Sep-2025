@@ -1,8 +1,9 @@
 """Database operations and connection utilities"""
 import logging
-from datetime import datetime, date
-from typing import Dict, Any
+from datetime import date, datetime
+
 from sqlalchemy.exc import SQLAlchemyError
+
 from utils.identity import psid_hash
 
 logger = logging.getLogger(__name__)
@@ -13,7 +14,6 @@ logger = logging.getLogger(__name__)
 def get_or_create_user(user_identifier, platform, db_session=None):
     """Get existing user or create new one with hashed ID"""
     from models import User
-    from flask import current_app
     
     if db_session is None:
         from db_base import db
@@ -44,10 +44,9 @@ def get_or_create_user(user_identifier, platform, db_session=None):
 
 # REMOVED: save_expense() - DEPRECATED ghost code eliminated 2025-09-20
 # Use backend_assistant.add_expense() instead (canonical single writer)
-    from models import Expense, User, MonthlySummary
-    from utils.tracer import trace_event
-    from utils.identity import psid_hash
+    from models import Expense, MonthlySummary, User
     from utils.telemetry import TelemetryTracker
+    from utils.tracer import trace_event
     
     if db_session is None:
         from db_base import db
@@ -163,7 +162,10 @@ def get_or_create_user(user_identifier, platform, db_session=None):
         milestone_message = None
         try:
             from utils.analytics_engine import track_d1_activation, track_d3_completion
-            from utils.milestone_engine import update_user_streak, check_milestone_nudges
+            from utils.milestone_engine import (
+                check_milestone_nudges,
+                update_user_streak,
+            )
             from utils.timezone_helpers import local_date_from_datetime
             
             # Get expense local date for streak calculations

@@ -3,9 +3,10 @@ Smoke tests for API non-breaking changes
 Simple tests to verify core functionality without complex authentication
 """
 
-import requests
 import json
+
 import pytest
+import requests
 
 BASE_URL = "http://localhost:5000"
 

@@ -3,30 +3,33 @@ Routes for finbrain Backend Assistant API
 Strict no-hallucination backend following exact specification
 """
 
-from flask import Blueprint, request, jsonify, session, g, current_app
-from functools import wraps
-from db_base import db
-from backend_assistant import (
-    propose_expense, 
-    add_expense,
-    delete_expense,
-    get_totals, 
-    get_recent_expenses, 
-    run_uat_checklist,
-    get_sql_schemas,
-    process_message,
-    get_user_summary,
-    get_user_expenses
-)
-from utils.error_responses import (
-    standardized_error_response, internal_error, unauthorized_error,
-    validation_error_response, success_response, ErrorCodes, safe_error_message
-)
-from utils.validators import APIValidator
-from utils.structured_logger import api_logger, security_logger, log_validation_failure
 import logging
 import time
-from datetime import datetime
+from functools import wraps
+
+from flask import Blueprint, current_app, jsonify, request, session
+
+from backend_assistant import (
+    delete_expense,
+    get_recent_expenses,
+    get_sql_schemas,
+    get_totals,
+    get_user_expenses,
+    get_user_summary,
+    process_message,
+    run_uat_checklist,
+)
+from db_base import db
+from utils.error_responses import (
+    ErrorCodes,
+    internal_error,
+    safe_error_message,
+    standardized_error_response,
+    success_response,
+    unauthorized_error,
+)
+from utils.structured_logger import api_logger, security_logger
+from utils.validators import APIValidator
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +102,8 @@ def api_confirm_expense(authenticated_user_id):
     Authentication: Required (session only)
     Completes a pending expense clarification by applying the user's selected category
     """
-    import uuid, time, json
+    import time
+    import uuid
     start = time.time()
     trace_id = str(uuid.uuid4())
     

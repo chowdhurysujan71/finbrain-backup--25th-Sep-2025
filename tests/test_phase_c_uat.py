@@ -13,23 +13,21 @@ Comprehensive User Acceptance Testing for Phase C implementation covering:
 All tests use mocking to avoid external dependencies and enable fast execution.
 """
 
+import json
 import os
 import time
-import json
 import uuid
-import pytest
-from unittest.mock import Mock, patch, MagicMock, call
-from datetime import datetime
 from dataclasses import asdict
+from unittest.mock import Mock, patch
 
-import redis
-from flask import Flask
+import pytest
+
+from utils.circuit_breaker import CircuitBreaker, CircuitState
+from utils.job_processor import JobProcessor
 
 # Import the components we're testing
-from utils.job_queue import JobQueue, Job, job_queue
-from utils.circuit_breaker import CircuitBreaker, CircuitState, CircuitBreakerConfig
-from utils.rate_limiter_jobs import JobRateLimiter, RateLimitResult
-from utils.job_processor import JobProcessor
+from utils.job_queue import Job, JobQueue
+from utils.rate_limiter_jobs import JobRateLimiter
 
 
 class TestPhaseC_HappyPath:

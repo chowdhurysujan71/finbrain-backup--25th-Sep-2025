@@ -9,9 +9,9 @@ Tests comprehensive audit trail functionality including:
 - Correction history preservation
 - Audit data integrity
 """
-import pytest
-import json
 from datetime import datetime, timedelta
+
+import pytest
 
 from tests.e2e_pipeline.test_base import E2ETestBase
 
@@ -333,8 +333,9 @@ class TestAuditTrailE2E(E2ETestBase):
             user = test_users['alice']
             
             # Create multiple expenses for performance testing
-            from utils.db import create_expense
             import time
+
+            from utils.db import create_expense
             
             expense_count = 20  # Reasonable for testing
             start_time = time.time()

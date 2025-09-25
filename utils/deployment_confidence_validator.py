@@ -7,14 +7,14 @@ security controls, and core functionality before deployment approval.
 Designed for zero-surprise deployments with complete validation coverage.
 """
 
-import requests
 import json
+import logging
+import os
 import sys
 import time
-from typing import Dict, List, Tuple, Optional
-import logging
-from urllib.parse import urljoin
-import os
+from typing import Dict
+
+import requests
 
 # Configure logging
 logging.basicConfig(
@@ -249,7 +249,7 @@ class DeploymentValidator:
             status = "✅ PASS" if suite_passed else "❌ FAIL"
             logger.info(f"{status} {suite_name}")
         
-        logger.info(f"\nOverall Results:")
+        logger.info("\nOverall Results:")
         logger.info(f"  Tests Passed: {passed_tests}/{total_tests}")
         logger.info(f"  Tests Failed: {failed_tests}")
         logger.info(f"  Duration: {duration:.2f}s")
@@ -262,7 +262,7 @@ class DeploymentValidator:
             
         return overall_passed
     
-    def generate_report(self) -> Dict:
+    def generate_report(self) -> dict:
         """Generate detailed validation report"""
         return {
             'timestamp': time.time(),

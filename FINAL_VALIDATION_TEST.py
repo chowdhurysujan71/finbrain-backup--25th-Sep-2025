@@ -3,13 +3,16 @@
 Final CC System Validation - Test all operational phases
 """
 
-import sys
-import requests
 import json
+import sys
+
+import requests
 
 sys.path.append('/home/runner/workspace')
-from app import app, db
 from sqlalchemy import text
+
+from app import app, db
+
 
 def test_all_phases():
     """Test all implemented phases with corrected endpoints"""

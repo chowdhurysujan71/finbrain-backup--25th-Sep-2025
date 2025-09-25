@@ -3,13 +3,10 @@ Advanced Error Recovery for Coaching Flow
 Handles session corruption, concurrent conflicts, and database failures
 """
 
+import logging
 import os
 import time
-import logging
-import json
-import hashlib
-from typing import Dict, Any, Optional, Tuple
-from datetime import datetime, timedelta
+from typing import Any, Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +21,7 @@ class CoachingResilience:
         self.corruption_detection_enabled = os.getenv('COACH_CORRUPTION_DETECTION', 'true').lower() == 'true'
         self.max_recovery_attempts = int(os.getenv('COACH_MAX_RECOVERY_ATTEMPTS', '3'))
         
-    def validate_session_integrity(self, session_data: Dict[str, Any]) -> Tuple[bool, str]:
+    def validate_session_integrity(self, session_data: dict[str, Any]) -> tuple[bool, str]:
         """
         Validate session data integrity without modifying anything
         Returns (is_valid, reason)
@@ -65,7 +62,7 @@ class CoachingResilience:
             logger.error(f"Session validation error: {e}")
             return False, f"validation_exception_{str(e)[:20]}"
     
-    def detect_concurrent_conflict(self, psid_hash: str, session_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def detect_concurrent_conflict(self, psid_hash: str, session_data: dict[str, Any]) -> dict[str, Any] | None:
         """
         Detect if there's a concurrent session conflict
         Returns conflict info or None
@@ -104,7 +101,7 @@ class CoachingResilience:
                 'resolution': 'fail_safe'
             }
     
-    def recover_corrupted_session(self, psid_hash: str, corruption_reason: str) -> Optional[Dict[str, Any]]:
+    def recover_corrupted_session(self, psid_hash: str, corruption_reason: str) -> dict[str, Any] | None:
         """
         Attempt to recover a corrupted session safely
         Returns recovered session or None
@@ -158,7 +155,7 @@ class CoachingResilience:
             logger.error(f"Session recovery failed: {e}")
             return None
     
-    def resolve_concurrent_conflict(self, psid_hash: str, conflict_info: Dict[str, Any]) -> bool:
+    def resolve_concurrent_conflict(self, psid_hash: str, conflict_info: dict[str, Any]) -> bool:
         """
         Resolve concurrent session conflicts safely
         Returns True if resolved, False if failed
@@ -168,7 +165,7 @@ class CoachingResilience:
             
             if resolution == 'keep_most_recent':
                 # Keep the session with the most recent activity
-                from utils.session import get_coaching_session, delete_coaching_session
+                from utils.session import delete_coaching_session, get_coaching_session
                 
                 current_session = get_coaching_session(psid_hash)
                 if not current_session:

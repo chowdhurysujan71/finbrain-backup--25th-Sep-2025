@@ -4,25 +4,16 @@ Tests session management, rate limiting, and conversation flow
 """
 
 import unittest
-import time
-from datetime import datetime
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from handlers.coaching import (
-    maybe_continue,
-    handle_coaching_response,
-    _start_coaching_flow,
-    _handle_focus_response,
-    _handle_commit_response,
-    _end_coaching_session
-)
+from handlers.coaching import handle_coaching_response, maybe_continue
 from utils.session import (
-    get_coaching_session,
-    set_coaching_session,
     delete_coaching_session,
+    get_coaching_session,
+    get_daily_coaching_count,
     increment_daily_coaching_count,
-    get_daily_coaching_count
 )
+
 
 class TestCoachingFlow(unittest.TestCase):
     

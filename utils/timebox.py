@@ -2,11 +2,12 @@
 Timeout wrapper utility to prevent hanging AI calls
 Provides guaranteed timeouts with fallback responses
 """
-import time
-import signal
 import logging
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as Tmo
-from typing import Callable, Any
+import time
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as Tmo
+from typing import Any
 
 logger = logging.getLogger(__name__)
 

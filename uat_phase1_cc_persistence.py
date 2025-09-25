@@ -4,21 +4,18 @@ Phase 1 UAT: CC Persistence & Schema Compliance
 Validates that Canonical Commands are being properly stored and match specification
 """
 
-import sys
-import os
 import json
-import time
-import uuid
+import sys
 from datetime import datetime
-from typing import Dict, Any, List
 
 # Add project root to path
 sys.path.append('/home/runner/workspace')
 
 # Import Flask app for context
-from app import app, db
 from sqlalchemy import text
-from utils.pca_flags import pca_flags
+
+from app import app, db
+
 
 class Phase1UAT:
     def __init__(self):
@@ -340,7 +337,7 @@ class Phase1UAT:
         
         print()
         print("=" * 70)
-        print(f"PHASE 1 UAT RESULTS:")
+        print("PHASE 1 UAT RESULTS:")
         print(f"✅ Passed: {passed_tests}/{total_tests} ({pass_rate:.1f}%)")
         print(f"⏱️  Duration: {duration:.2f}s")
         print(f"🎯 Exit Gate: {'PASS' if pass_rate >= 90 else 'FAIL'}")

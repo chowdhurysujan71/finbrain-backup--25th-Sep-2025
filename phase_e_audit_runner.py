@@ -4,14 +4,14 @@ Phase E Focused UAT Runner
 Direct testing of NL processing components without full app stack
 """
 
-import json
 import hashlib
-import uuid
+import json
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 # Import Phase E components directly
-from utils.nl_expense_parser import parse_nl_expense, ExpenseParseResult
+from utils.nl_expense_parser import parse_nl_expense
+
 
 class PhaseEAuditRunner:
     """Focused audit runner for Phase E natural language processing"""
@@ -20,7 +20,7 @@ class PhaseEAuditRunner:
         self.results = []
         self.audit_findings = []
         
-    def execute_focused_audit(self) -> Dict[str, Any]:
+    def execute_focused_audit(self) -> dict[str, Any]:
         """Execute focused audit of Phase E components"""
         print("🔍 PHASE E FOCUSED AUDIT RUNNER")
         print("=" * 50)
@@ -60,7 +60,7 @@ class PhaseEAuditRunner:
         
         return self._generate_focused_audit_report()
     
-    def _test_nl_parser_core(self) -> Dict[str, Any]:
+    def _test_nl_parser_core(self) -> dict[str, Any]:
         """Test core NL parser functionality"""
         test_cases = [
             # New User Scenarios
@@ -140,7 +140,7 @@ class PhaseEAuditRunner:
         
         return results
     
-    def _test_data_handling(self) -> Dict[str, Any]:
+    def _test_data_handling(self) -> dict[str, Any]:
         """Test data handling and integrity patterns"""
         results = {
             'success': True,
@@ -217,7 +217,7 @@ class PhaseEAuditRunner:
         
         return results
     
-    def _test_processing_pipeline(self) -> Dict[str, Any]:
+    def _test_processing_pipeline(self) -> dict[str, Any]:
         """Test processing pipeline flow"""
         results = {
             'success': True,
@@ -291,7 +291,7 @@ class PhaseEAuditRunner:
         
         return results
     
-    def _test_error_handling(self) -> Dict[str, Any]:
+    def _test_error_handling(self) -> dict[str, Any]:
         """Test error handling and edge cases"""
         results = {
             'success': True,
@@ -348,7 +348,7 @@ class PhaseEAuditRunner:
         
         return results
     
-    def _test_security_patterns(self) -> Dict[str, Any]:
+    def _test_security_patterns(self) -> dict[str, Any]:
         """Test security patterns and user isolation"""
         results = {
             'success': True,
@@ -421,7 +421,7 @@ class PhaseEAuditRunner:
         
         return results
     
-    def _generate_focused_audit_report(self) -> Dict[str, Any]:
+    def _generate_focused_audit_report(self) -> dict[str, Any]:
         """Generate focused audit report"""
         total_tests = len(self.results)
         passed_tests = sum(1 for test in self.results if test['status'] == 'PASS')
@@ -470,7 +470,7 @@ class PhaseEAuditRunner:
             }
         }
     
-    def _generate_recommendations(self, deployment_ready: bool, success_rate: float, critical_failures: List) -> List[str]:
+    def _generate_recommendations(self, deployment_ready: bool, success_rate: float, critical_failures: list) -> list[str]:
         """Generate deployment recommendations"""
         recommendations = []
         
@@ -508,14 +508,14 @@ def main():
         summary = audit_report['audit_summary']
         assessment = audit_report['deployment_assessment']
         
-        print(f"\n🎯 PHASE E AUDIT SUMMARY")
+        print("\n🎯 PHASE E AUDIT SUMMARY")
         print("=" * 40)
         print(f"📊 Success Rate: {summary['overall_success_rate']:.1f}%")
         print(f"✅ Categories Passed: {summary['categories_passed']}/{summary['total_test_categories']}")
         print(f"🚨 Critical Issues: {summary['critical_failures']}")
         print(f"🚀 Deployment Ready: {'YES' if summary['deployment_ready'] else 'NO'}")
         
-        print(f"\n🔍 DEPLOYMENT ASSESSMENT")
+        print("\n🔍 DEPLOYMENT ASSESSMENT")
         print(f"Status: {assessment['readiness_status']}")
         print(f"Confidence: {assessment['confidence_level']}")
         
@@ -524,7 +524,7 @@ def main():
             for issue in assessment['blocking_issues']:
                 print(f"  • {issue}")
         
-        print(f"\nRecommendations:")
+        print("\nRecommendations:")
         for rec in assessment['recommendations']:
             print(f"  {rec}")
         
@@ -532,7 +532,7 @@ def main():
         with open('phase_e_focused_audit_report.json', 'w', encoding='utf-8') as f:
             json.dump(audit_report, f, indent=2, ensure_ascii=False)
         
-        print(f"\n📄 Detailed audit report: phase_e_focused_audit_report.json")
+        print("\n📄 Detailed audit report: phase_e_focused_audit_report.json")
         
         return audit_report
         

@@ -4,10 +4,8 @@ Implements deterministic resolution order for user-specific views
 """
 
 import logging
-from typing import Dict, Any, Optional, List
-from datetime import datetime
 from dataclasses import dataclass
-import json
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger("finbrain.precedence")
 
@@ -15,15 +13,15 @@ logger = logging.getLogger("finbrain.precedence")
 class PrecedenceResult:
     """Result of precedence resolution"""
     category: str
-    subcategory: Optional[str]
+    subcategory: str | None
     amount: float
-    merchant_text: Optional[str]
+    merchant_text: str | None
     source: str  # 'correction', 'rule', 'effective', 'raw'
-    applied_rule_id: Optional[int] = None
-    correction_id: Optional[int] = None
+    applied_rule_id: int | None = None
+    correction_id: int | None = None
     confidence: float = 0.0
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             'category': self.category,
             'subcategory': self.subcategory,
@@ -45,7 +43,7 @@ class PrecedenceEngine:
         self.cache = {}  # Simple request-level cache
         
     def get_effective_view(self, user_id: str, tx_id: str, 
-                          raw_expense: Optional[Dict] = None) -> PrecedenceResult:
+                          raw_expense: dict | None = None) -> PrecedenceResult:
         """
         Get the effective view of a transaction for a specific user
         
@@ -98,7 +96,7 @@ class PrecedenceEngine:
             logger.error(f"Precedence resolution failed: {e}")
             return self._raw_fallback(raw_expense)
     
-    def _get_latest_correction(self, user_id: str, tx_id: str) -> Optional[Dict]:
+    def _get_latest_correction(self, user_id: str, tx_id: str) -> dict | None:
         """Get the most recent user correction for a transaction"""
         try:
             from db_base import db
@@ -122,7 +120,7 @@ class PrecedenceEngine:
             logger.warning(f"Failed to fetch correction: {e}")
             return None
     
-    def _get_matching_rule(self, user_id: str, raw_expense: Optional[Dict]) -> Optional[Dict]:
+    def _get_matching_rule(self, user_id: str, raw_expense: dict | None) -> dict | None:
         """Find the highest priority matching rule for the user"""
         if not raw_expense:
             return None
@@ -166,7 +164,7 @@ class PrecedenceEngine:
             logger.warning(f"Failed to fetch matching rule: {e}")
             return None
     
-    def _calculate_rule_specificity(self, pattern: Dict, expense: Dict) -> int:
+    def _calculate_rule_specificity(self, pattern: dict, expense: dict) -> int:
         """
         Calculate rule specificity score
         Higher score = more specific = higher priority
@@ -206,7 +204,7 @@ class PrecedenceEngine:
                 
         return score
     
-    def _get_transaction_effective(self, user_id: str, tx_id: str) -> Optional[Dict]:
+    def _get_transaction_effective(self, user_id: str, tx_id: str) -> dict | None:
         """Get transaction from effective table"""
         try:
             from db_base import db
@@ -232,7 +230,7 @@ class PrecedenceEngine:
             logger.warning(f"Failed to fetch effective transaction: {e}")
             return None
     
-    def _apply_correction(self, correction: Dict, raw_expense: Optional[Dict]) -> PrecedenceResult:
+    def _apply_correction(self, correction: dict, raw_expense: dict | None) -> PrecedenceResult:
         """Apply user correction to create precedence result"""
         fields = correction['fields']
         base = raw_expense or {}
@@ -247,7 +245,7 @@ class PrecedenceEngine:
             confidence=1.0  # User corrections have full confidence
         )
     
-    def _apply_rule(self, rule: Dict, raw_expense: Optional[Dict]) -> PrecedenceResult:
+    def _apply_rule(self, rule: dict, raw_expense: dict | None) -> PrecedenceResult:
         """Apply user rule to create precedence result"""
         rule_set = rule['rule_set']
         base = raw_expense or {}
@@ -262,7 +260,7 @@ class PrecedenceEngine:
             confidence=0.9  # Rules have high confidence
         )
     
-    def _from_effective(self, effective: Dict) -> PrecedenceResult:
+    def _from_effective(self, effective: dict) -> PrecedenceResult:
         """Create precedence result from effective transaction"""
         return PrecedenceResult(
             category=effective['category'],
@@ -273,7 +271,7 @@ class PrecedenceEngine:
             confidence=effective.get('confidence', 0.85)
         )
     
-    def _raw_fallback(self, raw_expense: Optional[Dict]) -> PrecedenceResult:
+    def _raw_fallback(self, raw_expense: dict | None) -> PrecedenceResult:
         """Fallback to raw expense data"""
         if not raw_expense:
             return PrecedenceResult(

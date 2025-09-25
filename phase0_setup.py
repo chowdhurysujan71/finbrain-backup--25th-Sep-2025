@@ -26,6 +26,7 @@ for flag, value in flags_to_set.items():
 # Test that flags are properly set
 print("\n🔍 Verifying flag configuration:")
 from utils.pca_feature_flags import pca_feature_flags
+
 pca_feature_flags.refresh_flags()
 
 print(f"  Overlay System: {'Enabled' if os.environ.get('PCA_OVERLAY_ENABLED') == 'true' else 'Disabled'}")

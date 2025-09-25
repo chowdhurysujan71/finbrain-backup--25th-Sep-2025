@@ -4,8 +4,7 @@ Handles natural language FAQ detection using existing Gemini integration
 """
 
 import logging
-from typing import Optional, Dict, Any
-from utils.ai_adapter_v2 import production_ai_adapter
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +20,7 @@ FAQ_CATEGORIES = {
     "platforms": "what messaging platforms do you support"
 }
 
-def classify_faq_question(user_text: str) -> Optional[str]:
+def classify_faq_question(user_text: str) -> str | None:
     """
     Use AI to classify if user question is FAQ-related
     
@@ -64,7 +63,7 @@ def classify_faq_question(user_text: str) -> Optional[str]:
         logger.error(f"[AI_FAQ] Classification error: {e}")
         return None
 
-def get_faq_response(category: str) -> Optional[str]:
+def get_faq_response(category: str) -> str | None:
     """
     Get FAQ response for classified category
     
@@ -82,7 +81,7 @@ def get_faq_response(category: str) -> Optional[str]:
         logger.error(f"[AI_FAQ] Error getting FAQ response: {e}")
         return None
 
-def ai_enhanced_faq_detection(user_text: str) -> Optional[str]:
+def ai_enhanced_faq_detection(user_text: str) -> str | None:
     """
     Complete AI-powered FAQ detection pipeline
     

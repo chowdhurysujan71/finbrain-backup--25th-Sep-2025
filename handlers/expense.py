@@ -6,23 +6,37 @@ Handles expense corrections with idempotent supersede logic and coach-style conf
 import logging
 import re
 import time
-from typing import Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
 from decimal import Decimal
+from typing import Any, Dict, Optional
 
 from db_base import db
 from models import Expense, User
-from parsers.expense import parse_expense, extract_all_expenses, parse_correction_reason, similar_category, similar_merchant
-from utils.structured import log_correction_detected, log_correction_no_candidate, log_correction_duplicate, log_correction_applied
-from templates.replies import format_correction_no_candidate_reply, format_corrected_reply, format_correction_duplicate_reply
-from utils.identity import psid_hash
+from parsers.expense import (
+    extract_all_expenses,
+    parse_correction_reason,
+    parse_expense,
+    similar_category,
+    similar_merchant,
+)
+from templates.replies import (
+    format_corrected_reply,
+    format_correction_duplicate_reply,
+    format_correction_no_candidate_reply,
+)
+from utils.structured import (
+    log_correction_applied,
+    log_correction_detected,
+    log_correction_duplicate,
+    log_correction_no_candidate,
+)
 
 logger = logging.getLogger("handlers.expense")
 
 # Context cache for Q&A intent (2-minute TTL)
 _recent_expense_context = {}
 
-def handle_multi_expense_logging(psid_hash_val: str, mid: str, text: str, now: datetime) -> Dict[str, Any]:
+def handle_multi_expense_logging(psid_hash_val: str, mid: str, text: str, now: datetime) -> dict[str, Any]:
     """
     Handle logging of multiple expenses from a single message.
     
@@ -135,7 +149,7 @@ def handle_multi_expense_logging(psid_hash_val: str, mid: str, text: str, now: d
             'amount': None
         }
 
-def handle_qa_intent(psid_hash_val: str, text: str, now: datetime) -> Optional[Dict[str, Any]]:
+def handle_qa_intent(psid_hash_val: str, text: str, now: datetime) -> dict[str, Any] | None:
     """
     Handle Q&A intent for questions like 'did you log my breakfast above?'
     
@@ -182,7 +196,7 @@ def handle_qa_intent(psid_hash_val: str, text: str, now: datetime) -> Optional[D
     
     return None  # Not a Q&A intent
 
-def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: Dict[str, Any], original_text: str, now: datetime) -> Dict[str, Any]:
+def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: dict[str, Any], original_text: str, now: datetime) -> dict[str, Any]:
     """
     Handle logging of a single expense.
     """
@@ -252,7 +266,7 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: Dict[str,
         'amount': amount
     }
 
-def _create_expense_from_data(psid_hash_val: str, unique_id: str, expense_data: Dict[str, Any], original_text: str, now: datetime, mid: Optional[str] = None) -> Expense:
+def _create_expense_from_data(psid_hash_val: str, unique_id: str, expense_data: dict[str, Any], original_text: str, now: datetime, mid: str | None = None) -> Expense:
     """
     Create Expense record from parsed expense data.
     """
@@ -313,7 +327,7 @@ def _cache_expense_context(psid_hash_val: str, mids: list, expenses: list, times
     for key in keys_to_remove:
         del _recent_expense_context[key]
 
-def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) -> Dict[str, Any]:
+def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) -> dict[str, Any]:
     """
     Handle expense correction with supersede logic.
     
@@ -504,7 +518,7 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
             'amount': None
         }
 
-def _find_best_correction_candidate(candidates: list, target_expense: Dict[str, Any]) -> Optional[Expense]:
+def _find_best_correction_candidate(candidates: list, target_expense: dict[str, Any]) -> Expense | None:
     """
     Find the best expense to correct based on category and merchant similarity.
     
@@ -553,7 +567,7 @@ def _find_best_correction_candidate(candidates: list, target_expense: Dict[str, 
         # Fall back to most recent if no semantic match
         return candidates[0]
 
-def _create_new_expense(psid_hash_val: str, mid: str, expense_data: Dict[str, Any], original_text: str, now: datetime, message_id: Optional[str] = None) -> Expense:
+def _create_new_expense(psid_hash_val: str, mid: str, expense_data: dict[str, Any], original_text: str, now: datetime, message_id: str | None = None) -> Expense:
     """
     Create new expense record from parsed data.
     

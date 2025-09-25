@@ -5,15 +5,17 @@ Builds on existing FinBrain AI infrastructure with confidence scoring and clarif
 
 import logging
 import re
-import json
-from typing import Dict, Any, Optional, Tuple
-from datetime import datetime
 from dataclasses import dataclass
+from typing import Optional
+
+from parsers.expense import (
+    BANGLA_NUMERALS,
+    CATEGORY_ALIASES,
+    parse_amount_currency_category,
+)
 
 # Import existing FinBrain AI infrastructure  
 from utils.ai_adapter_v2 import production_ai_adapter
-from parsers.expense import parse_amount_currency_category, BANGLA_NUMERALS, CATEGORY_ALIASES
-from utils.categories import categorize_expense
 
 logger = logging.getLogger(__name__)
 
@@ -21,16 +23,16 @@ logger = logging.getLogger(__name__)
 class ExpenseParseResult:
     """Result of natural language expense parsing"""
     success: bool
-    amount: Optional[float] = None
-    category: Optional[str] = None
-    description: Optional[str] = None
-    language: Optional[str] = None  # 'bangla', 'english', 'mixed'
+    amount: float | None = None
+    category: str | None = None
+    description: str | None = None
+    language: str | None = None  # 'bangla', 'english', 'mixed'
     confidence: float = 0.0  # 0.0 to 1.0
     needs_clarification: bool = False
-    clarification_type: Optional[str] = None  # 'amount', 'category', 'both'
-    suggested_categories: Optional[list] = None
-    error_message: Optional[str] = None
-    raw_ai_response: Optional[dict] = None
+    clarification_type: str | None = None  # 'amount', 'category', 'both'
+    suggested_categories: list | None = None
+    error_message: str | None = None
+    raw_ai_response: dict | None = None
 
 class NLExpenseParser:
     """Enhanced Natural Language Expense Parser with confidence scoring"""
@@ -237,7 +239,7 @@ Respond in JSON format:
 }}
 """
     
-    def _call_ai_structured(self, prompt: str) -> Optional[dict]:
+    def _call_ai_structured(self, prompt: str) -> dict | None:
         """Call AI with structured JSON response using existing infrastructure"""
         try:
             # Create a simple expense data structure to reuse existing AI infrastructure
@@ -369,7 +371,7 @@ Respond in JSON format:
 # Global instance
 nl_expense_parser = NLExpenseParser()
 
-def parse_nl_expense(text: str, user_id_hash: Optional[str] = None) -> ExpenseParseResult:
+def parse_nl_expense(text: str, user_id_hash: str | None = None) -> ExpenseParseResult:
     """
     Convenience function for natural language expense parsing
     

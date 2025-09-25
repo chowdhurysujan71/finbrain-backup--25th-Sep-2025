@@ -5,11 +5,15 @@ Direct SQL approach to fix orphaned expenses and invalid user hashes
 """
 
 import sys
+
 sys.path.append('/home/runner/workspace')
 
-from app import app, db
+from datetime import UTC, datetime, timezone
+
 from sqlalchemy import text
-from datetime import datetime, timezone
+
+from app import app, db
+
 
 def emergency_fix():
     """Execute emergency SQL fixes for data integrity"""
@@ -54,7 +58,7 @@ def emergency_fix():
                     )
                     """
                     
-                    now = datetime.now(timezone.utc)
+                    now = datetime.now(UTC)
                     today = now.date()
                     
                     db.session.execute(text(insert_user_sql), {

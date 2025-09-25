@@ -3,13 +3,12 @@ Production Analytics and Monitoring for Coaching Flow
 Real-time metrics, effectiveness tracking, and performance monitoring
 """
 
+import logging
 import os
 import time
-import logging
-import json
-from typing import Dict, Any, Optional, List
-from datetime import datetime, timedelta
 from collections import defaultdict, deque
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,7 @@ class CoachingAnalytics:
             'active_sessions': 0
         }
     
-    def track_session_start(self, psid_hash: str, trigger_intent: str, context_data: Dict[str, Any]):
+    def track_session_start(self, psid_hash: str, trigger_intent: str, context_data: dict[str, Any]):
         """Track coaching session initiation"""
         if not self.analytics_enabled:
             return
@@ -121,7 +120,7 @@ class CoachingAnalytics:
         except Exception as e:
             logger.error(f"Analytics tracking error (action_commitment): {e}")
     
-    def track_session_abandonment(self, psid_hash: str, reason: str, stage: str, partial_data: Dict[str, Any]):
+    def track_session_abandonment(self, psid_hash: str, reason: str, stage: str, partial_data: dict[str, Any]):
         """Track session abandonment with context"""
         if not self.analytics_enabled:
             return
@@ -144,7 +143,7 @@ class CoachingAnalytics:
         except Exception as e:
             logger.error(f"Analytics tracking error (abandonment): {e}")
     
-    def track_error(self, error_type: str, error_details: str, psid_hash: Optional[str] = None):
+    def track_error(self, error_type: str, error_details: str, psid_hash: str | None = None):
         """Track coaching system errors"""
         if not self.analytics_enabled:
             return
@@ -184,7 +183,7 @@ class CoachingAnalytics:
         except Exception as e:
             logger.error(f"Analytics tracking error (performance): {e}")
     
-    def get_real_time_metrics(self) -> Dict[str, Any]:
+    def get_real_time_metrics(self) -> dict[str, Any]:
         """Get current real-time metrics dashboard"""
         try:
             current_time = time.time()
@@ -243,7 +242,7 @@ class CoachingAnalytics:
             logger.error(f"Error generating metrics: {e}")
             return {'error': str(e), 'timestamp': datetime.utcnow().isoformat()}
     
-    def get_coaching_effectiveness_report(self) -> Dict[str, Any]:
+    def get_coaching_effectiveness_report(self) -> dict[str, Any]:
         """Generate coaching effectiveness analysis"""
         try:
             current_time = time.time()
@@ -321,7 +320,7 @@ class CoachingAnalytics:
         except:
             return 'unknown'
     
-    def _generate_effectiveness_recommendations(self, topic_effectiveness: Dict, avg_duration: float) -> List[str]:
+    def _generate_effectiveness_recommendations(self, topic_effectiveness: dict, avg_duration: float) -> list[str]:
         """Generate coaching improvement recommendations"""
         recommendations = []
         

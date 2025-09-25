@@ -2,19 +2,19 @@
 Advanced AI rate limiter with per-PSID sliding 60s windows + global per-minute caps
 Supports Redis backend (optional) and comprehensive telemetry
 """
+import logging
 import os
 import time
-import json
-import logging
-from datetime import datetime, timezone, timedelta
-from collections import deque, defaultdict
+from collections import defaultdict, deque
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Any
+from datetime import UTC, datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 # Configuration from centralized config
 from config import AI_RL_GLOBAL_LIMIT, AI_RL_USER_LIMIT
+
 AI_ENABLED = os.environ.get("AI_ENABLED", "false").lower() == "true"
 AI_MAX_CALLS_PER_MIN = AI_RL_GLOBAL_LIMIT
 AI_MAX_CALLS_PER_MIN_PER_PSID = AI_RL_USER_LIMIT
@@ -24,7 +24,7 @@ class RateLimitResult:
     """Rate limit check result"""
     ai_allowed: bool
     reason: str  # "ok" | "per_psid_limit" | "global_limit" | "ai_disabled"
-    tokens_remaining: Optional[int]
+    tokens_remaining: int | None
     window_reset_at: str  # ISO8601
     psid_calls_in_window: int = 0
     global_calls_this_minute: int = 0
@@ -48,11 +48,11 @@ class AdvancedAILimiter:
         self.redis_client = None
         
         # In-memory storage (fallback or primary)
-        self.psid_windows: Dict[str, deque] = defaultdict(lambda: deque())
-        self.global_minute_calls: Dict[str, int] = defaultdict(int)
+        self.psid_windows: dict[str, deque] = defaultdict(lambda: deque())
+        self.global_minute_calls: dict[str, int] = defaultdict(int)
         
         # Telemetry storage
-        self.rate_limit_events: List[RateLimitEvent] = []
+        self.rate_limit_events: list[RateLimitEvent] = []
         self.stats = {
             'ai_calls_ok_minute': 0,
             'ai_calls_blocked_per_psid': 0,
@@ -225,7 +225,7 @@ class AdvancedAILimiter:
     
     def _record_rate_limit_event(self, psid_hash: str, reason: str):
         """Record rate limit event for telemetry"""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         reset_time = now.replace(second=0, microsecond=0) + timedelta(minutes=1)
         reset_in_s = int((reset_time - now).total_seconds())
         
@@ -243,7 +243,7 @@ class AdvancedAILimiter:
     
     def _get_next_minute_iso(self) -> str:
         """Get next minute boundary as ISO8601 string"""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         next_minute = now.replace(second=0, microsecond=0) + timedelta(minutes=1)
         return next_minute.isoformat()
     
@@ -251,7 +251,7 @@ class AdvancedAILimiter:
         """Record RL-2 error for telemetry"""
         self.stats['rl2_errors_last_5m'] += 1
     
-    def get_telemetry(self) -> Dict[str, Any]:
+    def get_telemetry(self) -> dict[str, Any]:
         """Get comprehensive telemetry data for /ops endpoint"""
         # Clean old minute buckets
         current_minute = datetime.now().strftime("%Y%m%d%H%M")
@@ -260,7 +260,7 @@ class AdvancedAILimiter:
             del self.global_minute_calls[old_minute]
         
         # Clean old rate limit events (keep last 5 minutes)
-        cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=5)
+        cutoff_time = datetime.now(UTC) - timedelta(minutes=5)
         self.rate_limit_events = [
             event for event in self.rate_limit_events
             if datetime.fromisoformat(event.at.replace('Z', '+00:00')) > cutoff_time

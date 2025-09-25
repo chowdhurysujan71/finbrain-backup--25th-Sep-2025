@@ -1,10 +1,10 @@
 """
 AI Contamination Monitor: Detect cross-user data contamination in AI responses
 """
-import logging
 import hashlib
-from typing import Dict, Any, Set, List
+import logging
 from datetime import datetime
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -12,10 +12,10 @@ class AIContaminationMonitor:
     """Monitor AI responses for cross-user data contamination"""
     
     def __init__(self):
-        self.active_requests: Dict[str, Dict[str, Any]] = {}
-        self.response_fingerprints: Dict[str, str] = {}
+        self.active_requests: dict[str, dict[str, Any]] = {}
+        self.response_fingerprints: dict[str, str] = {}
     
-    def log_request(self, user_id: str, expenses_data: Dict[str, Any]) -> str:
+    def log_request(self, user_id: str, expenses_data: dict[str, Any]) -> str:
         """Log an AI request and return a request ID"""
         request_id = f"{user_id[:8]}_{datetime.now().isoformat()}"
         
@@ -39,7 +39,7 @@ class AIContaminationMonitor:
         logger.info(f"AI request logged: {request_id} user={user_id[:8]}... amounts={len(amounts)} categories={len(set(categories))}")
         return request_id
     
-    def check_response(self, request_id: str, response_text: str) -> Dict[str, Any]:
+    def check_response(self, request_id: str, response_text: str) -> dict[str, Any]:
         """Check AI response for contamination and log results"""
         if request_id not in self.active_requests:
             return {"status": "unknown_request", "contamination": False}

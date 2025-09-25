@@ -4,19 +4,16 @@ Phase 1: Read-only endpoints for dual-view (original + corrected)
 Safe implementation with feature flags and caching
 """
 
-from flask import Blueprint, jsonify, request
-from sqlalchemy import text
 import time
-from functools import lru_cache
-from datetime import datetime, timedelta
-import hashlib
+
+from flask import Blueprint, jsonify, request
 
 from db_base import db
 from models import Expense
-from models_pca import UserCorrection, UserRule
+from models_pca import UserCorrection
+from utils.deterministic import ensure_hashed
 from utils.pca_feature_flags import pca_feature_flags
 from utils.precedence_engine import precedence_engine
-from utils.deterministic import ensure_hashed
 
 audit_api = Blueprint('audit_api', __name__, url_prefix='/api/audit')
 

@@ -3,11 +3,11 @@ Enhanced UX components for FinBrain with structured messaging, retention loops, 
 Implements the user experience specifications including fallback messaging, system prompts, and quick replies
 """
 
-import re
-import time
 import logging
-from typing import Dict, List, Optional, Tuple, Any
+import re
 from collections import Counter
+from typing import Any, Dict, Optional, Tuple
+
 from config import MSG_MAX_CHARS
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ def record_event(name: str, n: int = 1):
     """Record UX events for observability"""
     metrics[name] += n
 
-def telemetry_snapshot() -> Dict[str, Any]:
+def telemetry_snapshot() -> dict[str, Any]:
     """Return observability metrics snapshot"""
     return {
         "counters": dict(metrics),
@@ -59,7 +59,7 @@ def safe_send_text(send_func, psid: str, text: str):
     record_event("messages_clipped")
 
 # Fast non-AI utilities (work during cool-downs)
-def parse_expense(text: str) -> Tuple[Optional[str], Optional[float]]:
+def parse_expense(text: str) -> tuple[str | None, float | None]:
     """Parse expense from text like 'Groceries 650' or '650 groceries'"""
     # Pattern: category amount or amount category
     patterns = [
@@ -333,7 +333,7 @@ def handle_enhanced_message(psid: str, text: str, db_func, send_func, quick_repl
         record_event("ai_error")
         return True
 
-def get_ux_metrics() -> Dict[str, Any]:
+def get_ux_metrics() -> dict[str, Any]:
     """Get UX metrics for observability endpoint"""
     return {
         "ux_metrics": telemetry_snapshot(),

@@ -1,17 +1,16 @@
 """
 Redis-backed job queue for FinBrain with idempotency and DLQ support
 """
-import os
 import json
+import logging
+import os
 import time
 import uuid
-import logging
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List, Tuple, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
     from redis import Redis
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 
 try:
     import redis
@@ -27,22 +26,22 @@ class Job:
     """Job definition for queue processing"""
     job_id: str
     type: str
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
     user_id: str
     idempotency_key: str
     status: str  # queued, running, succeeded, failed
     attempts: int
     created_at: float
     updated_at: float
-    result_path: Optional[str] = None
-    error: Optional[str] = None
-    next_retry_at: Optional[float] = None
+    result_path: str | None = None
+    error: str | None = None
+    next_retry_at: float | None = None
 
 class JobQueue:
     """Redis-backed job queue with retries and DLQ"""
     
     def __init__(self):
-        self.redis_client: Optional['Redis'] = None
+        self.redis_client: Redis | None = None
         self.redis_available = False
         
         # Configuration
@@ -98,7 +97,7 @@ class JobQueue:
             logger.error(f"Failed to connect to Redis at {redis_url}: {e}")
             raise
     
-    def enqueue(self, job_type: str, payload: Dict[str, Any], user_id: str, 
+    def enqueue(self, job_type: str, payload: dict[str, Any], user_id: str, 
                 idempotency_key: str) -> str:
         """
         Enqueue a job with idempotency support
@@ -139,7 +138,7 @@ class JobQueue:
         logger.info(f"Job {job_id} enqueued for user {user_id} with type {job_type}")
         return job_id
     
-    def dequeue(self) -> Optional[Job]:
+    def dequeue(self) -> Job | None:
         """
         Dequeue next job for processing
         
@@ -175,8 +174,8 @@ class JobQueue:
             logger.error(f"Failed to dequeue job: {e}")
             return None
     
-    def complete_job(self, job_id: str, success: bool, result_path: Optional[str] = None, 
-                     error: Optional[str] = None) -> None:
+    def complete_job(self, job_id: str, success: bool, result_path: str | None = None, 
+                     error: str | None = None) -> None:
         """
         Mark job as completed (success or failure)
         
@@ -218,7 +217,7 @@ class JobQueue:
         
         self._store_job(job)
     
-    def get_job_status(self, job_id: str) -> Optional[Dict[str, Any]]:
+    def get_job_status(self, job_id: str) -> dict[str, Any] | None:
         """Get job status and metadata"""
         job = self._get_job(job_id)
         if not job:
@@ -270,7 +269,7 @@ class JobQueue:
         data = json.dumps(asdict(job))
         self.redis_client.setex(key, self.job_ttl, data)
     
-    def _get_job(self, job_id: str) -> Optional[Job]:
+    def _get_job(self, job_id: str) -> Job | None:
         """Get job metadata from Redis"""
         if not self.redis_client:
             return None
@@ -329,7 +328,7 @@ class JobQueue:
         key = f"jobs:idem:{idempotency_key}"
         self.redis_client.setex(key, self.job_ttl, job_id)
     
-    def _get_job_by_idempotency_key(self, idempotency_key: str) -> Optional[str]:
+    def _get_job_by_idempotency_key(self, idempotency_key: str) -> str | None:
         """Get job ID by idempotency key"""
         if not self.redis_client:
             return None
@@ -337,7 +336,7 @@ class JobQueue:
         key = f"jobs:idem:{idempotency_key}"
         return self.redis_client.get(key)
     
-    def process_retry_queue(self) -> List[str]:
+    def process_retry_queue(self) -> list[str]:
         """
         Process retry queue and move ready jobs back to main queue
         
@@ -361,7 +360,7 @@ class JobQueue:
         
         return ready_jobs
     
-    def get_queue_stats(self) -> Dict[str, int]:
+    def get_queue_stats(self) -> dict[str, int]:
         """Get queue statistics"""
         if not self.redis_client:
             return {

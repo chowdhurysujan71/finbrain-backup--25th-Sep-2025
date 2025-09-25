@@ -4,6 +4,7 @@ Allows real-time AI enable/disable without restart
 """
 from config import AI_ENABLED as AI_DEFAULT
 
+
 class Flags:
     """Runtime feature flags"""
     ai_enabled = AI_DEFAULT

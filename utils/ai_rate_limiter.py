@@ -2,13 +2,13 @@
 AI Rate Limiter with sliding 60s window per-PSID and global limits
 Phase 1 implementation - deterministic, never blocks request threads
 """
-import os
-import time
 import logging
+import os
 import threading
-from datetime import datetime, timezone
-from typing import Dict, List, Tuple, Optional
+import time
 from dataclasses import dataclass
+from datetime import UTC, datetime, timezone
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class RateLimitResult:
     """Result of AI rate limit check"""
     ai_allowed: bool
     reason: str  # "ok", "per_psid_limit", "global_limit"
-    tokens_remaining: Optional[int]
+    tokens_remaining: int | None
     window_reset_at: str  # ISO8601
 
 class AIRateLimiter:
@@ -31,10 +31,10 @@ class AIRateLimiter:
         self.max_calls_per_min_per_psid = AI_RL_USER_LIMIT
         
         # Sliding window storage: psid -> List[timestamp]
-        self.psid_windows: Dict[str, List[float]] = {}
+        self.psid_windows: dict[str, list[float]] = {}
         
         # Global sliding window
-        self.global_window: List[float] = []
+        self.global_window: list[float] = []
         
         # Thread safety
         self._lock = threading.Lock()
@@ -69,7 +69,7 @@ class AIRateLimiter:
             
             # Window reset time (next full minute)
             reset_time = current_time + self.window_seconds
-            reset_iso = datetime.fromtimestamp(reset_time, tz=timezone.utc).isoformat()
+            reset_iso = datetime.fromtimestamp(reset_time, tz=UTC).isoformat()
             
             # Check limits
             if psid_calls >= self.max_calls_per_min_per_psid:
@@ -130,7 +130,7 @@ class AIRateLimiter:
             if not self.psid_windows[psid_hash]:
                 del self.psid_windows[psid_hash]
     
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Get current rate limiter statistics"""
         current_time = time.time()
         

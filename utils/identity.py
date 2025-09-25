@@ -2,8 +2,8 @@
 Single Source of Identity - hash once, carry through
 Centralized extraction + hashing to prevent identity fragmentation
 """
-import os
 import hashlib
+import os
 
 ID_SALT = os.getenv("ID_SALT")
 if not ID_SALT:

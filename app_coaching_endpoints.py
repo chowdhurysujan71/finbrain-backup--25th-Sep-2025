@@ -4,6 +4,7 @@ Provides real-time metrics, health checks, and operational controls
 """
 
 from datetime import datetime
+
 from flask import Blueprint, jsonify, request
 
 # Create coaching blueprint
@@ -12,8 +13,16 @@ coaching_bp = Blueprint('coaching', __name__, url_prefix='/ops/coaching')
 # Import coaching components with fallback
 try:
     from utils.coaching_analytics import coaching_analytics
-    from utils.coaching_optimization import performance_monitor, coaching_cache, memory_optimizer
-    from utils.coaching_safeguards import coaching_circuit_breaker, health_checker, feature_flag_manager
+    from utils.coaching_optimization import (
+        coaching_cache,
+        memory_optimizer,
+        performance_monitor,
+    )
+    from utils.coaching_safeguards import (
+        coaching_circuit_breaker,
+        feature_flag_manager,
+        health_checker,
+    )
     COACHING_MONITORING_AVAILABLE = True
 except ImportError as e:
     COACHING_MONITORING_AVAILABLE = False

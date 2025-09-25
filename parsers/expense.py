@@ -112,12 +112,12 @@ Strength Guidelines:
 ===================================================================================
 """
 
-import re
 import logging
+import re
 import unicodedata
-from decimal import Decimal, InvalidOperation
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List, Tuple
+from decimal import Decimal, InvalidOperation
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("parsers.expense")
 
@@ -558,7 +558,7 @@ def strip_bengali_suffixes(word: str) -> str:
                 break
     return root
 
-def infer_category_from_description(text: str) -> Optional[Tuple[str, int]]:
+def infer_category_from_description(text: str) -> tuple[str, int] | None:
     """
     Infer category from description using CATEGORY_ALIASES when trailing token is vague.
     
@@ -933,7 +933,7 @@ def similar_merchant(merchant1: str, merchant2: str) -> bool:
     return (merchant1.lower() in merchant2.lower() or 
             merchant2.lower() in merchant1.lower())
 
-def extract_merchant(text: str) -> Optional[str]:
+def extract_merchant(text: str) -> str | None:
     """
     Extract merchant name from text using patterns like "at", "in", "from".
     """
@@ -960,7 +960,7 @@ def extract_merchant(text: str) -> Optional[str]:
     
     return None
 
-def extract_date_context(text: str, now_ts: datetime) -> Optional[datetime]:
+def extract_date_context(text: str, now_ts: datetime) -> datetime | None:
     """
     Extract date context from text (today, yesterday, last night, etc.).
     """
@@ -1007,7 +1007,7 @@ def infer_category_with_strength(text: str) -> str:
     
     return best_category
 
-def extract_all_expenses(text: str, now: Optional[datetime] = None, **kwargs) -> List[Dict[str, Any]]:
+def extract_all_expenses(text: str, now: datetime | None = None, **kwargs) -> list[dict[str, Any]]:
     """
     Extract all expenses from text that may contain multiple amounts.
     
@@ -1212,7 +1212,7 @@ def _extract_targeted_context(text: str, amount_info: dict) -> str:
     
     return ' '.join(target_words)
 
-def _infer_category_from_context(context_text: str, user_hash: Optional[str] = None) -> str:
+def _infer_category_from_context(context_text: str, user_hash: str | None = None) -> str:
     """
     Infer category from context text using a ±6 word window with user learning integration.
     
@@ -1249,7 +1249,7 @@ def _infer_category_from_context(context_text: str, user_hash: Optional[str] = N
                 user_pref = user_learning_system.get_user_preference(user_hash, two_word_item)
                 if user_pref:
                     return user_pref['category']
-        except Exception as e:
+        except Exception:
             # Don't fail parsing if learning system has issues
             pass
     
@@ -1351,7 +1351,7 @@ def _infer_category_from_context(context_text: str, user_hash: Optional[str] = N
     
     return best_category
 
-def parse_expense(text: str, now: datetime, correction_context: bool = False) -> Optional[Dict[str, Any]]:
+def parse_expense(text: str, now: datetime, correction_context: bool = False) -> dict[str, Any] | None:
     """
     Enhanced expense parser with correction context support.
     Preserved for backward compatibility - returns first expense from extract_all_expenses.
@@ -1394,7 +1394,7 @@ def parse_expense(text: str, now: datetime, correction_context: bool = False) ->
     all_expenses = extract_all_expenses(text, now)
     return all_expenses[0] if all_expenses else None
 
-def _parse_standard_expense(normalized: str, original_text: str, now_ts: datetime) -> Optional[Dict[str, Any]]:
+def _parse_standard_expense(normalized: str, original_text: str, now_ts: datetime) -> dict[str, Any] | None:
     """
     Standard expense parsing logic.
     
@@ -1514,7 +1514,7 @@ def _parse_standard_expense(normalized: str, original_text: str, now_ts: datetim
     
     return result
 
-def parse_amount_currency_category(text: str) -> Dict[str, Any]:
+def parse_amount_currency_category(text: str) -> dict[str, Any]:
     """
     Parse expense text and extract amount, currency, category, and note.
     

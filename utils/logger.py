@@ -3,12 +3,14 @@ Production-ready structured JSON logging for FinBrain
 Tracks all inbound requests and outbound Facebook Graph API calls
 """
 import json
-import time
 import logging
+import time
 import uuid
-from functools import wraps
-from flask import request, g
 from datetime import datetime
+from functools import wraps
+
+from flask import g, request
+
 
 class StructuredLogger:
     """Structured JSON logger for production observability"""
@@ -148,7 +150,7 @@ def request_logger(f):
             
             return response
             
-        except Exception as e:
+        except Exception:
             # Calculate duration even for errors
             duration_ms = (time.time() - g.request_start_time) * 1000
             

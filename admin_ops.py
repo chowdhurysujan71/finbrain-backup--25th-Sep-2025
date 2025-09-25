@@ -2,9 +2,10 @@
 Admin operations for runtime control
 Real-time AI toggle and system monitoring
 """
-from flask import Blueprint, request, jsonify
-from functools import wraps
 import os
+from functools import wraps
+
+from flask import Blueprint, jsonify, request
 
 from flags import FLAGS, toggle_ai
 from utils.ai_adapter_v2 import production_ai_adapter

@@ -3,9 +3,10 @@ Comprehensive test for the Bengali money fix
 Validates the exact failing cases mentioned in the specification
 """
 import pytest
+
 from nlp.signals_extractor import extract_signals
 from utils.bn_digits import to_en_digits
-from nlp.money_patterns import extract_money_mentions, has_money_mention
+
 
 class TestBengaliMoneyFix:
     """Test the specific Bengali money cases that were failing"""
@@ -168,8 +169,8 @@ class TestDataHandlingIntegration:
 
 def run_comprehensive_money_tests():
     """Run comprehensive money fix validation"""
-    import sys
     import subprocess
+    import sys
     
     # Run the tests
     result = subprocess.run([

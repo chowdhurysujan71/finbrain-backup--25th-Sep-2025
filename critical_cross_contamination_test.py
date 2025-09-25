@@ -5,13 +5,15 @@ Test for AI response mixing between users - this is a financial data security br
 """
 
 import sys
+
 sys.path.append('/home/runner/workspace')
+
+from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC
 
 from app import app, db
 from utils.ai_adapter_v2 import production_ai_adapter
-import threading
-import time
-from concurrent.futures import ThreadPoolExecutor
+
 
 def test_concurrent_ai_contamination():
     """Test if AI responses get mixed between concurrent users"""
@@ -26,11 +28,13 @@ def test_concurrent_ai_contamination():
         kc_id = 'd17538bfc1dd48052f6df15a1ae94cb1f9b4c5e7a2f8f8d3c5e9f2a6b7c8d1e4'
         
         # Get their actual data
-        from models import Expense
+        from datetime import datetime, timezone
+
         from sqlalchemy import func
-        from datetime import datetime, timezone, timedelta
+
+        from models import Expense
         
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         
         # User 1 actual data
@@ -91,7 +95,7 @@ def test_concurrent_ai_contamination():
             'timeframe': 'this month'
         }
         
-        print(f"\n🔄 TESTING CONCURRENT AI REQUESTS...")
+        print("\n🔄 TESTING CONCURRENT AI REQUESTS...")
         
         contamination_issues = []
         
@@ -172,14 +176,14 @@ if __name__ == "__main__":
     
     all_issues = contamination_issues + state_issues
     
-    print(f"\n📋 CRITICAL SECURITY ASSESSMENT")
+    print("\n📋 CRITICAL SECURITY ASSESSMENT")
     print("=" * 40)
     
     if all_issues:
         print(f"🚨 CRITICAL DATA BREACH: {len(all_issues)} cross-contamination issues found")
         for i, issue in enumerate(all_issues, 1):
             print(f"{i}. {issue}")
-        print(f"\n🚨 IMMEDIATE ACTION REQUIRED - USERS SEEING OTHER USERS' FINANCIAL DATA")
+        print("\n🚨 IMMEDIATE ACTION REQUIRED - USERS SEEING OTHER USERS' FINANCIAL DATA")
     else:
         print("✅ No cross-contamination detected in AI responses")
         print("✅ User financial data properly isolated")

@@ -3,10 +3,9 @@ Clarifier Flow Validator
 Addresses DoD Criterion: Ask-rate 10-25% with realistic user inputs
 """
 
-import re
-import random
-from typing import Dict, Any, List, Tuple
 import logging
+import re
+from typing import Any, Dict, List, Tuple
 
 logger = logging.getLogger("finbrain.clarifier")
 
@@ -16,7 +15,7 @@ class ClarifierFlowValidator:
     def __init__(self):
         self.test_results = []
         
-    def get_realistic_user_messages(self) -> List[Tuple[str, str, bool]]:
+    def get_realistic_user_messages(self) -> list[tuple[str, str, bool]]:
         """
         Get realistic user messages reflecting actual user behavior patterns
         Real users send mostly CLEAR expenses (80%), few ambiguous (15%), some non-expenses (5%)
@@ -54,7 +53,7 @@ class ClarifierFlowValidator:
             ("show summary", "summary_request", False),
         ]
     
-    def analyze_message_clarity(self, message: str) -> Dict[str, Any]:
+    def analyze_message_clarity(self, message: str) -> dict[str, Any]:
         """
         Analyze if a message requires clarification
         Returns confidence and clarification decision
@@ -140,7 +139,7 @@ class ClarifierFlowValidator:
             }
         }
     
-    def validate_clarifier_flow(self) -> Dict[str, Any]:
+    def validate_clarifier_flow(self) -> dict[str, Any]:
         """
         Run comprehensive clarifier flow validation
         Returns validation results and ask-rate analysis
@@ -197,7 +196,7 @@ class ClarifierFlowValidator:
         
         return results
     
-    def generate_clarification_prompt(self, message: str, analysis: Dict[str, Any]) -> str:
+    def generate_clarification_prompt(self, message: str, analysis: dict[str, Any]) -> str:
         """Generate appropriate clarification prompt based on what's missing"""
         
         if not analysis['has_specific_amount'] and analysis['has_expense_context']:
@@ -215,6 +214,6 @@ class ClarifierFlowValidator:
 # Global validator instance
 clarifier_validator = ClarifierFlowValidator()
 
-def run_clarifier_validation() -> Dict[str, Any]:
+def run_clarifier_validation() -> dict[str, Any]:
     """Run complete clarifier flow validation and return results"""
     return clarifier_validator.validate_clarifier_flow()

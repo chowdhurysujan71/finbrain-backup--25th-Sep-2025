@@ -2,7 +2,7 @@
 Expense parser: Extracts amounts and categories from text
 """
 import re
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 # Pattern for amounts with optional currency
 AMOUNT_PATTERN = r'(\d+(?:\.\d{1,2})?)\s*(?:bdt|tk|taka|usd)?'
@@ -20,7 +20,7 @@ CATEGORY_KEYWORDS = {
     'health': ['medicine', 'doctor', 'hospital', 'pharmacy', 'health'],
 }
 
-def extract_expenses(text: str) -> List[Dict[str, Any]]:
+def extract_expenses(text: str) -> list[dict[str, Any]]:
     """
     Extract expense amounts and categories from text
     Returns list of dicts with 'amount' and 'category' keys

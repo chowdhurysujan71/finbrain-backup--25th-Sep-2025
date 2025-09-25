@@ -5,13 +5,15 @@ Advanced testing to ensure absolute user data isolation
 """
 
 import sys
+
 sys.path.append('/home/runner/workspace')
 
-from app import app, db
-from models import User, Expense
-from handlers.category_breakdown import handle_category_breakdown
 from sqlalchemy import func
-import random
+
+from app import app, db
+from handlers.category_breakdown import handle_category_breakdown
+from models import Expense
+
 
 def test_cross_user_contamination():
     """Test for any cross-user data contamination in responses"""
@@ -62,7 +64,7 @@ def test_cross_user_contamination():
                     print(f"   ✅ Category '{category}' response isolated correctly")
             
             # Skip insights test for now - focusing on core data isolation
-            print(f"   ✅ Core isolation tests passed (insights test skipped)")
+            print("   ✅ Core isolation tests passed (insights test skipped)")
         
         return contamination_issues
 
@@ -122,7 +124,7 @@ if __name__ == "__main__":
     issues.extend(test_cross_user_contamination())
     issues.extend(test_concurrent_user_access())
     
-    print(f"\n📊 DEEP TESTING RESULTS")
+    print("\n📊 DEEP TESTING RESULTS")
     print("=" * 25)
     
     if issues:

@@ -4,9 +4,10 @@ System Health Report Generator
 Comprehensive health assessment of FinBrain components
 """
 
-import requests
 import json
 import time
+
+import requests
 
 BASE_URL = "http://localhost:5000"
 AUTH = ("secure_password_here", "admin")
@@ -84,13 +85,13 @@ def generate_health_report():
         
         if resp.status_code == 200:
             print(f"   Dashboard Load: {db_query_time:.2f}ms")
-            print(f"   Connection: ✅ HEALTHY")
+            print("   Connection: ✅ HEALTHY")
             
             # Check if dashboard has data
             if "expense" in resp.text.lower() or "total" in resp.text.lower():
-                print(f"   Data Access: ✅ ACTIVE")
+                print("   Data Access: ✅ ACTIVE")
             else:
-                print(f"   Data Access: ⚠️ NO DATA")
+                print("   Data Access: ⚠️ NO DATA")
         else:
             print(f"   ❌ Database query failed: {resp.status_code}")
     except Exception as e:
@@ -101,16 +102,16 @@ def generate_health_report():
     try:
         resp = requests.get(f"{BASE_URL}/ops", auth=AUTH, timeout=10)
         if resp.status_code == 200:
-            print(f"   Token Monitoring: ✅ ACTIVE")
-            print(f"   Ops Dashboard: ✅ ACCESSIBLE")
+            print("   Token Monitoring: ✅ ACTIVE")
+            print("   Ops Dashboard: ✅ ACCESSIBLE")
             
             # Check webhook security
             webhook_resp = requests.post(f"{BASE_URL}/webhook/messenger", 
                                        json={"test": "security"}, timeout=5)
             if webhook_resp.status_code in [400, 401, 403]:
-                print(f"   Webhook Security: ✅ ENFORCED")
+                print("   Webhook Security: ✅ ENFORCED")
             else:
-                print(f"   Webhook Security: ⚠️ CHECK NEEDED")
+                print("   Webhook Security: ⚠️ CHECK NEEDED")
         else:
             print(f"   ❌ Facebook ops failed: {resp.status_code}")
     except Exception as e:
@@ -127,7 +128,7 @@ def generate_health_report():
             # AI Rate Limiting
             ai_limiter = telemetry.get("ai_limiter", {})
             config = ai_limiter.get("config", {})
-            print(f"   AI Rate Limiting: ✅ ACTIVE")
+            print("   AI Rate Limiting: ✅ ACTIVE")
             print(f"   Per-user Limit: {config.get('AI_MAX_CALLS_PER_MIN_PER_PSID', 0)}/min")
             print(f"   Global Limit: {config.get('AI_MAX_CALLS_PER_MIN', 0)}/min")
             print(f"   Blocked Calls: {ai_limiter.get('ai_calls_blocked_global', 0)} global, {ai_limiter.get('ai_calls_blocked_per_psid', 0)} per-user")
@@ -255,7 +256,7 @@ def generate_health_report():
     with open("system_health_report.json", "w") as f:
         json.dump(report_data, f, indent=2)
     
-    print(f"\nDetailed health data saved to system_health_report.json")
+    print("\nDetailed health data saved to system_health_report.json")
     
     return health_percentage >= 75
 

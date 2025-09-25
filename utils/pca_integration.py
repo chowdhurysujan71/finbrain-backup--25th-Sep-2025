@@ -4,14 +4,14 @@ Phase 2: Shadow Mode Integration with Webhook Pipeline
 """
 
 import logging
-from datetime import datetime
-from typing import Dict, Any, Optional, Tuple
 import time
+from datetime import datetime
+from typing import Any, Dict, Tuple
 
 logger = logging.getLogger("finbrain.pca_integration")
 
 def integrate_pca_with_webhook(user_id: str, message_text: str, message_id: str, 
-                              timestamp: datetime) -> Tuple[bool, Dict[str, Any]]:
+                              timestamp: datetime) -> tuple[bool, dict[str, Any]]:
     """
     Integrate PCA processing with webhook message handling
     
@@ -25,7 +25,7 @@ def integrate_pca_with_webhook(user_id: str, message_text: str, message_id: str,
         Tuple of (should_continue_legacy_flow, pca_result)
     """
     try:
-        from utils.pca_flags import pca_flags, PCAMode
+        from utils.pca_flags import PCAMode, pca_flags
         from utils.pca_processor import process_message_with_pca
         from utils.structured import log_structured_event
         
@@ -81,7 +81,7 @@ def integrate_pca_with_webhook(user_id: str, message_text: str, message_id: str,
         # Always fallback to legacy on errors
         return True, {'pca_processed': False, 'error': str(e)}
 
-def get_pca_deployment_status() -> Dict[str, Any]:
+def get_pca_deployment_status() -> dict[str, Any]:
     """
     Get PCA deployment status (simplified from canary system)
     
@@ -99,7 +99,7 @@ def get_pca_deployment_status() -> Dict[str, Any]:
         'setup_timestamp': datetime.utcnow().isoformat()
     }
 
-def get_pca_telemetry_summary() -> Dict[str, Any]:
+def get_pca_telemetry_summary() -> dict[str, Any]:
     """
     Get PCA processing telemetry summary for monitoring
     
@@ -107,9 +107,10 @@ def get_pca_telemetry_summary() -> Dict[str, Any]:
         Dictionary with processing statistics
     """
     try:
+        from datetime import timedelta
+
         from db_base import db
         from models_pca import InferenceSnapshot
-        from datetime import timedelta
         
         # Get processing stats for last 24 hours
         yesterday = datetime.utcnow() - timedelta(days=1)
@@ -167,7 +168,7 @@ def get_pca_telemetry_summary() -> Dict[str, Any]:
             'timestamp': datetime.utcnow().isoformat()
         }
 
-def enable_shadow_mode_for_user(user_id_hash: str) -> Dict[str, Any]:
+def enable_shadow_mode_for_user(user_id_hash: str) -> dict[str, Any]:
     """
     Enable SHADOW mode for a specific user by adding to canary list
     
@@ -179,6 +180,7 @@ def enable_shadow_mode_for_user(user_id_hash: str) -> Dict[str, Any]:
     """
     try:
         import os
+
         from utils.pca_flags import pca_flags
         
         # Get current canary users

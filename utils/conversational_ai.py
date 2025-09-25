@@ -4,8 +4,9 @@ Provides intelligent summaries and maintains conversational flow based on user d
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Tuple
+
 from utils.identity import psid_hash
 
 logger = logging.getLogger(__name__)
@@ -16,10 +17,9 @@ class ConversationalAI:
     def __init__(self):
         self.logger = logger
     
-    def get_user_expense_context(self, psid: str, days: int = 30) -> Dict[str, Any]:
+    def get_user_expense_context(self, psid: str, days: int = 30) -> dict[str, Any]:
         """Get comprehensive user expense context for conversations"""
         from models import Expense
-        from db_base import db
         from utils.identity import psid_hash as ensure_hashed
         from utils.tracer import trace_event
         
@@ -102,7 +102,7 @@ class ConversationalAI:
                 'patterns': 'Unable to analyze spending data'
             }
     
-    def _analyze_spending_patterns(self, categories: Dict, total_amount: float, total_count: int) -> str:
+    def _analyze_spending_patterns(self, categories: dict, total_amount: float, total_count: int) -> str:
         """Analyze spending patterns for conversation context"""
         if not categories:
             return "No spending patterns available"
@@ -128,13 +128,12 @@ class ConversationalAI:
         
         return patterns
     
-    def generate_conversational_response(self, psid_hash: str, user_message: str) -> Tuple[str, str]:
+    def generate_conversational_response(self, psid_hash: str, user_message: str) -> tuple[str, str]:
         """EMERGENCY FIX: Generate conversational response that production router expects"""
         return self.handle_conversational_query_with_hash(psid_hash, user_message)
     
-    def generate_summary_response_direct(self, psid_hash: str, user_message: str) -> Tuple[str, str]:
+    def generate_summary_response_direct(self, psid_hash: str, user_message: str) -> tuple[str, str]:
         """Generate intelligent summary response based on user data (direct hash access)"""
-        from utils.ai_adapter_v2 import production_ai_adapter
         
         # Get user expense context using direct hash
         context = self.get_user_expense_context_direct(psid_hash, days=30)
@@ -169,7 +168,7 @@ class ConversationalAI:
             # Fallback with context data
             return self._generate_fallback_summary(context), "summary_fallback"
     
-    def _build_summary_prompt(self, context: Dict, user_message: str) -> str:
+    def _build_summary_prompt(self, context: dict, user_message: str) -> str:
         """Build context-rich prompt for AI summary generation"""
         return f"""You are a personal finance assistant providing expense summaries and insights.
 
@@ -194,7 +193,7 @@ Provide a conversational, insightful response that:
 4. Maintains friendly, engaging tone
 5. Keep under 300 words total"""
     
-    def _format_recent_expenses(self, recent: List[Dict]) -> str:
+    def _format_recent_expenses(self, recent: list[dict]) -> str:
         """Format recent expenses for prompt"""
         if not recent:
             return "No recent expenses"
@@ -205,7 +204,7 @@ Provide a conversational, insightful response that:
         
         return "\n".join(formatted)
     
-    def _format_categories(self, categories: Dict) -> str:
+    def _format_categories(self, categories: dict) -> str:
         """Format category breakdown for prompt"""
         if not categories:
             return "No category data"
@@ -216,7 +215,7 @@ Provide a conversational, insightful response that:
         
         return "\n".join(formatted)
     
-    def _generate_fallback_summary(self, context: Dict) -> str:
+    def _generate_fallback_summary(self, context: dict) -> str:
         """Generate fallback summary when AI fails"""
         if not context['has_data']:
             return "No expense data to summarize yet. Start logging expenses for insights!"
@@ -233,7 +232,7 @@ Provide a conversational, insightful response that:
         
         return summary
     
-    def handle_conversational_query_with_hash(self, psid_hash: str, user_message: str) -> Tuple[str, str]:
+    def handle_conversational_query_with_hash(self, psid_hash: str, user_message: str) -> tuple[str, str]:
         """Handle conversational queries using user-level memory with pre-computed hash"""
         # --- DEFENSIVE TYPE GUARD ---
         if callable(psid_hash) or not isinstance(psid_hash, str):
@@ -256,7 +255,7 @@ Provide a conversational, insightful response that:
         else:
             return self.generate_contextual_response_direct(psid_hash, user_message)
     
-    def handle_conversational_query(self, psid_or_hash: str, user_message: str) -> Tuple[str, str]:
+    def handle_conversational_query(self, psid_or_hash: str, user_message: str) -> tuple[str, str]:
         """Handle conversational queries using user-level memory (legacy method for backwards compatibility)"""
         message_lower = user_message.lower()
         
@@ -268,7 +267,7 @@ Provide a conversational, insightful response that:
         
         return self.handle_conversational_query_with_hash(user_hash, user_message)
     
-    def generate_analysis_response_direct(self, psid_hash: str, user_message: str) -> Tuple[str, str]:
+    def generate_analysis_response_direct(self, psid_hash: str, user_message: str) -> tuple[str, str]:
         """Generate analysis response with user context (direct hash access)"""
         context = self.get_user_expense_context_direct(psid_hash)
         
@@ -309,10 +308,9 @@ Keep response conversational and under 280 characters."""
         else:
             return self._generate_fallback_analysis(context), "analysis_fallback"
     
-    def get_user_expense_context_direct(self, psid_hash: str, days: int = 30) -> Dict[str, Any]:
+    def get_user_expense_context_direct(self, psid_hash: str, days: int = 30) -> dict[str, Any]:
         """Get user expense context using pre-hashed PSID (no double hashing)"""
         from models import Expense
-        from db_base import db
         
         cutoff_date = datetime.utcnow() - timedelta(days=days)
         
@@ -386,7 +384,7 @@ Keep response conversational and under 280 characters."""
                 'patterns': 'Unable to analyze spending data'
             }
     
-    def generate_contextual_response_direct(self, psid_hash: str, user_message: str) -> Tuple[str, str]:
+    def generate_contextual_response_direct(self, psid_hash: str, user_message: str) -> tuple[str, str]:
         """Generate contextual response using user data (direct hash access)"""
         context = self.get_user_expense_context_direct(psid_hash, days=7)  # Recent week
         
@@ -422,7 +420,7 @@ Provide a helpful, personalized response that:
         else:
             return "I'm here to help with your finances. What would you like to know?", "contextual_fallback"
     
-    def _build_context_summary(self, context: Dict) -> str:
+    def _build_context_summary(self, context: dict) -> str:
         """Build context summary for AI prompts"""
         if not context['has_data']:
             return "User has no expense data yet."
@@ -433,7 +431,7 @@ Provide a helpful, personalized response that:
         
         return summary
     
-    def _generate_fallback_analysis(self, context: Dict) -> str:
+    def _generate_fallback_analysis(self, context: dict) -> str:
         """Generate fallback analysis when AI fails"""
         if not context['has_data']:
             return "Start tracking expenses for personalized analysis!"

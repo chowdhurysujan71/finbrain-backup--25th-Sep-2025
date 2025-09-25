@@ -4,12 +4,10 @@ Deterministic JSON structure for PCA system
 """
 
 import json
-import hashlib
-from datetime import datetime
-from typing import Dict, Any, Optional, List
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from enum import Enum
-import uuid
+from typing import Any, Dict, List, Optional
+
 
 class CCIntent(Enum):
     """Valid Canonical Command Intents"""
@@ -40,36 +38,36 @@ class ClarifierType(Enum):
 class CCSlots:
     """Canonical Command Slots - structured data extraction"""
     # Basic expense fields
-    amount: Optional[float] = None
-    currency: Optional[str] = None
-    time_expr: Optional[str] = None
-    time_abs: Optional[str] = None
-    merchant_text: Optional[str] = None
-    merchant_id: Optional[str] = None
-    category: Optional[str] = None
-    subcategory: Optional[str] = None
-    account: Optional[str] = None
-    person: Optional[str] = None
-    period: Optional[str] = None
-    note: Optional[str] = None
+    amount: float | None = None
+    currency: str | None = None
+    time_expr: str | None = None
+    time_abs: str | None = None
+    merchant_text: str | None = None
+    merchant_id: str | None = None
+    category: str | None = None
+    subcategory: str | None = None
+    account: str | None = None
+    person: str | None = None
+    period: str | None = None
+    note: str | None = None
     
     # Multi-item support
-    items: Optional[List[Dict[str, Any]]] = None
+    items: list[dict[str, Any]] | None = None
     
     # Correction targeting
-    target: Optional[Dict[str, Any]] = None
-    pattern: Optional[Dict[str, Any]] = None
-    rule_set: Optional[Dict[str, Any]] = None
+    target: dict[str, Any] | None = None
+    pattern: dict[str, Any] | None = None
+    rule_set: dict[str, Any] | None = None
     
     # Special actions
-    subscription_action: Optional[str] = None
-    transfer: Optional[Dict[str, Any]] = None
+    subscription_action: str | None = None
+    transfer: dict[str, Any] | None = None
 
 @dataclass
 class CCClarifier:
     """Canonical Command Clarifier for ambiguous inputs"""
     type: str = "none"
-    options: Optional[List[str]] = None
+    options: list[str] | None = None
     prompt: str = ""
     
     def __post_init__(self):
@@ -84,10 +82,10 @@ class CanonicalCommand:
     schema_hash: str = "pca-v1.1-cc-keys"  # Static integrity marker
     user_id: str = ""
     intent: str = ""
-    slots: Optional[CCSlots] = None
+    slots: CCSlots | None = None
     confidence: float = 0.0
     decision: str = ""
-    clarifier: Optional[CCClarifier] = None
+    clarifier: CCClarifier | None = None
     source_text: str = ""
     model_version: str = ""
     ui_note: str = ""
@@ -105,7 +103,7 @@ class CanonicalCommand:
         from utils.pca_flags import get_schema_hash
         return get_schema_hash()
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization"""
         return asdict(self)
     
@@ -114,7 +112,7 @@ class CanonicalCommand:
         return json.dumps(self.to_dict(), ensure_ascii=False)
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'CanonicalCommand':
+    def from_dict(cls, data: dict[str, Any]) -> 'CanonicalCommand':
         """Create from dictionary"""
         # Extract nested objects
         slots_data = data.get('slots', {})
@@ -146,7 +144,7 @@ class CanonicalCommand:
             ui_note=data.get('ui_note', '')
         )
     
-    def validate(self) -> tuple[bool, Optional[str]]:
+    def validate(self) -> tuple[bool, str | None]:
         """
         Validate CC structure and constraints
         
@@ -225,7 +223,7 @@ def create_help_cc(user_id: str, cc_id: str, source_text: str, note: str = "") -
         ui_note=note or "finbrain logs and corrects expenses; ask me to fix or show a report."
     )
 
-def create_fallback_cc(user_id: str, cc_id: str, source_text: str, amount: Optional[float] = None) -> CanonicalCommand:
+def create_fallback_cc(user_id: str, cc_id: str, source_text: str, amount: float | None = None) -> CanonicalCommand:
     """Create a fallback CC when AI parsing fails but amount is detected"""
     if amount and amount > 0:
         # Money event - create RAW_ONLY CC

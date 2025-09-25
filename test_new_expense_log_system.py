@@ -4,8 +4,8 @@ End-to-end test for the new EXPENSE_LOG system integration
 Validates full pipeline from routing to storage to response
 """
 
-import json
 from app import app
+
 
 def test_new_expense_log_system():
     """Test complete EXPENSE_LOG pipeline integration"""
@@ -86,10 +86,10 @@ def test_new_expense_log_system():
                 )
                 
                 if intent_match:
-                    print(f"  ✅ PASS")
+                    print("  ✅ PASS")
                     passed_tests += 1
                 else:
-                    print(f"  ❌ FAIL - Intent mismatch")
+                    print("  ❌ FAIL - Intent mismatch")
                     
             except Exception as e:
                 print(f"  ❌ FAIL - Exception: {e}")

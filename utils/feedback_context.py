@@ -3,17 +3,17 @@ Report Feedback Context Management
 Handles temporary context tracking for report feedback collection
 """
 
-import time
 import logging
 import secrets
-from typing import Optional, Dict
+import time
 from datetime import datetime, timedelta
+from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 # CRITICAL FIX: Global context storage to persist across router instances
 # In production, this should be Redis-backed for scalability
-_GLOBAL_FEEDBACK_CONTEXTS: Dict[str, Dict] = {}
+_GLOBAL_FEEDBACK_CONTEXTS: dict[str, dict] = {}
 
 class FeedbackContextManager:
     """Manages temporary feedback contexts for report responses"""
@@ -65,7 +65,7 @@ class FeedbackContextManager:
             logger.error(f"Failed to set feedback context: {e}")
             return False
     
-    def get_context(self, user_id_hash: str) -> Optional[str]:
+    def get_context(self, user_id_hash: str) -> str | None:
         """
         Get active feedback context for user
         Returns context_id if active, None if expired or not found
@@ -139,7 +139,7 @@ class FeedbackContextManager:
         except Exception as e:
             logger.error(f"Failed to cleanup expired contexts: {e}")
     
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Get context manager statistics"""
         try:
             self._cleanup_expired_contexts()
@@ -166,7 +166,7 @@ def set_feedback_context(user_id_hash: str, report_context_id: str) -> bool:
     """Set feedback context for user after sending report"""
     return feedback_context_manager.set_context(user_id_hash, report_context_id)
 
-def get_feedback_context(user_id_hash: str) -> Optional[str]:
+def get_feedback_context(user_id_hash: str) -> str | None:
     """Get active feedback context for user (if expecting feedback)"""
     return feedback_context_manager.get_context(user_id_hash)
 

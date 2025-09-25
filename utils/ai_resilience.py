@@ -3,12 +3,13 @@ AI resilience and fallback system
 Provides reliable AI processing with local fallbacks and retry logic
 """
 from __future__ import annotations
-import time
+
 import json
 import logging
-from typing import Dict, Any, Optional, Union, Callable
+import time
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ class AIResponse:
     tokens_used: int = 0
     retry_count: int = 0
     fallback_used: bool = False
-    metadata: Dict[str, Any] = None
+    metadata: dict[str, Any] = None
 
     def __post_init__(self):
         if self.metadata is None:
@@ -70,8 +71,8 @@ class ResilientAIAdapter:
     
     def generate_insight(self, 
                         user_id: str, 
-                        expense_data: Dict[str, Any], 
-                        context: Dict[str, Any] = None) -> AIResponse:
+                        expense_data: dict[str, Any], 
+                        context: dict[str, Any] = None) -> AIResponse:
         """
         Generate AI insight with fallback resilience
         
@@ -158,7 +159,7 @@ class ResilientAIAdapter:
         # Fallback to local categorization
         return self._generate_local_categorization(expense_text, amount, start_time, fallback_used=True)
     
-    def _call_primary_ai(self, user_id: str, expense_data: Dict, context: Dict, attempt: int) -> AIResponse:
+    def _call_primary_ai(self, user_id: str, expense_data: dict, context: dict, attempt: int) -> AIResponse:
         """Call primary AI provider (placeholder for actual AI integration)"""
         start_time = time.time()
         
@@ -204,7 +205,7 @@ class ResilientAIAdapter:
             fallback_used=False
         )
     
-    def _generate_stub_response(self, user_id: str, expense_data: Dict, start_time: float) -> AIResponse:
+    def _generate_stub_response(self, user_id: str, expense_data: dict, start_time: float) -> AIResponse:
         """Generate stub response for testing"""
         processing_time = (time.time() - start_time) * 1000
         
@@ -235,7 +236,7 @@ class ResilientAIAdapter:
             fallback_used=False
         )
     
-    def _generate_local_fallback(self, user_id: str, expense_data: Dict, start_time: float, fallback_used: bool = False) -> AIResponse:
+    def _generate_local_fallback(self, user_id: str, expense_data: dict, start_time: float, fallback_used: bool = False) -> AIResponse:
         """Generate local fallback response"""
         processing_time = (time.time() - start_time) * 1000
         
@@ -305,7 +306,7 @@ class ResilientAIAdapter:
         
         return "Other"
     
-    def _generate_deterministic_insight(self, expense_data: Dict) -> str:
+    def _generate_deterministic_insight(self, expense_data: dict) -> str:
         """Generate deterministic insight for testing"""
         total = expense_data.get("total_amount", 0)
         count = expense_data.get("expense_count", 0)
@@ -345,7 +346,7 @@ class ResilientAIAdapter:
             self.circuit_breaker["is_open"] = True
             logger.warning(f"Circuit breaker opened after {self.circuit_breaker['failures']} failures")
     
-    def get_health_status(self) -> Dict[str, Any]:
+    def get_health_status(self) -> dict[str, Any]:
         """Get AI adapter health status"""
         return {
             "primary_provider": self.primary_provider.value,

@@ -6,8 +6,10 @@ Data Handling → Routing → Processing → Storing → Integrity Validation
 
 import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
+
 from app import app
+
 
 class ComprehensiveUATFramework:
     """Complete UAT framework for expense logging system"""
@@ -79,8 +81,8 @@ class ComprehensiveUATFramework:
         
         for test_case in test_cases:
             try:
-                from utils.bn_digits import to_en_digits
                 from nlp.money_patterns import extract_money_amount, has_money_mention
+                from utils.bn_digits import to_en_digits
                 from utils.routing_policy import deterministic_router
                 
                 # Test Bengali digit conversion
@@ -217,7 +219,10 @@ class ComprehensiveUATFramework:
         print("-" * 40)
         
         try:
-            from expense_log_handlers import handle_expense_log_intent, handle_clarify_expense_intent
+            from expense_log_handlers import (
+                handle_clarify_expense_intent,
+                handle_expense_log_intent,
+            )
             
             # Test EXPENSE_LOG handler
             expense_test_input = "আজ চা ৫০ টাকা খরচ করেছি"
@@ -273,7 +278,7 @@ class ComprehensiveUATFramework:
         print("-" * 40)
         
         try:
-            from utils.db import save_expense, get_user_expenses
+            from utils.db import get_user_expenses, save_expense
             from utils.identity import ensure_hashed
             
             # Test user creation and expense storage
@@ -410,8 +415,8 @@ class ComprehensiveUATFramework:
         print("-" * 40)
         
         try:
-            from utils.identity import ensure_hashed
             from utils.db import get_user_expenses
+            from utils.identity import ensure_hashed
             
             # Test user ID consistency
             test_psid = "uat_integrity_test"
@@ -470,7 +475,7 @@ class ComprehensiveUATFramework:
             # Show failed tests
             failed_tests = [test for test in data["tests"] if not test["passed"]]
             if failed_tests:
-                print(f"   ❌ Failed Tests:")
+                print("   ❌ Failed Tests:")
                 for failed in failed_tests:
                     print(f"      - {failed['name']}: {failed['details']}")
         
@@ -483,7 +488,7 @@ class ComprehensiveUATFramework:
             "deployment_ready": overall_success_rate >= 90
         }
         
-        print(f"\n📈 OVERALL RESULTS")
+        print("\n📈 OVERALL RESULTS")
         print(f"   Total Tests: {total_passed}/{total_tests}")
         print(f"   Success Rate: {overall_success_rate:.1f}%")
         
@@ -501,7 +506,7 @@ class ComprehensiveUATFramework:
             deployment_status = "❌ NOT APPROVED FOR DEPLOYMENT"
             self.results["recommendations"].append("Critical issues must be resolved")
         
-        print(f"\n🚀 DEPLOYMENT RECOMMENDATION")
+        print("\n🚀 DEPLOYMENT RECOMMENDATION")
         print(f"   Status: {deployment_status}")
         
         # Save detailed report

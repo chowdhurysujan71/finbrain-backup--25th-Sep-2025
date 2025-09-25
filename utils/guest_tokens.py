@@ -6,11 +6,11 @@ Prevents unauthorized access to guest expense data
 import hashlib
 import hmac
 import json
-import time
+import logging
 import os
 import secrets
-import logging
-from typing import Tuple, Optional, Dict, Any
+import time
+from typing import Any, Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ def generate_guest_token(guest_id: str, validity_hours: int = 720) -> str:
         logger.error(f"Failed to generate guest token: {e}")
         raise ValueError("Token generation failed")
 
-def verify_guest_token(token: str, expected_guest_id: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
+def verify_guest_token(token: str, expected_guest_id: str) -> tuple[bool, dict[str, Any] | None]:
     """
     Verify a guest token and return validation result
     
@@ -158,7 +158,7 @@ def is_token_recently_used(guest_id: str, nonce: str) -> bool:
     try:
         # For now, use simple in-memory tracking
         # In production, implement with Redis with expiry
-        used_tokens_key = f"used_guest_tokens"
+        used_tokens_key = "used_guest_tokens"
         
         # Simple implementation - in production use proper cache
         import tempfile
@@ -166,7 +166,7 @@ def is_token_recently_used(guest_id: str, nonce: str) -> bool:
         
         if os.path.exists(cache_file):
             try:
-                with open(cache_file, 'r') as f:
+                with open(cache_file) as f:
                     used_nonces = f.read().split('\n')
                 if nonce in used_nonces:
                     return True
@@ -195,7 +195,7 @@ def mark_token_as_used(guest_id: str, nonce: str):
         used_nonces = []
         if os.path.exists(cache_file):
             try:
-                with open(cache_file, 'r') as f:
+                with open(cache_file) as f:
                     used_nonces = [line.strip() for line in f.readlines() if line.strip()]
             except Exception:
                 pass
@@ -222,8 +222,8 @@ def cleanup_expired_tokens():
     Should be called periodically in production
     """
     try:
-        import tempfile
         import glob
+        import tempfile
         
         cache_pattern = os.path.join(tempfile.gettempdir(), "finbrain_token_cache_*.txt")
         cache_files = glob.glob(cache_pattern)

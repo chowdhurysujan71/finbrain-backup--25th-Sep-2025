@@ -2,13 +2,13 @@
 External health ping system to keep server warm
 Implements 5-minute health check pings to prevent cold starts
 """
-import os
-import time
 import logging
-import requests
+import os
 import threading
+import time
 from datetime import datetime
-from typing import Optional
+
+import requests
 
 logger = logging.getLogger(__name__)
 

@@ -5,9 +5,6 @@ Tests HTTP endpoints to ensure backward compatibility and new features
 
 import pytest
 import requests
-import json
-import time
-from typing import Dict, Any
 
 # Base URL for the application
 BASE_URL = "http://localhost:5000"

@@ -8,7 +8,6 @@ Test script to verify reconciliation system fixes:
 
 import hashlib
 import sys
-import os
 
 # Add project root to path
 sys.path.insert(0, '/home/runner/workspace')
@@ -118,7 +117,7 @@ def test_nl_integration_normalization():
     
     try:
         # Check that pwa_nl_integration imports normalize_category
-        with open('/home/runner/workspace/pwa_nl_integration.py', 'r') as f:
+        with open('/home/runner/workspace/pwa_nl_integration.py') as f:
             content = f.read()
             
         if 'from utils.categories import normalize_category' in content:
@@ -150,7 +149,7 @@ def test_hash_usage_in_nl_integration():
     print("\n=== Testing Hash Usage in NL Integration ===")
     
     try:
-        with open('/home/runner/workspace/pwa_nl_integration.py', 'r') as f:
+        with open('/home/runner/workspace/pwa_nl_integration.py') as f:
             content = f.read()
             
         if 'import hashlib' in content:

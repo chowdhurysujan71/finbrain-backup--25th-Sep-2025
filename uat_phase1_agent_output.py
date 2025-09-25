@@ -5,17 +5,14 @@ Validates that AI agent emits schema-valid CC with decision and clarifier fields
 """
 
 import sys
-import os
-import json
-import time
 from datetime import datetime
-from typing import Dict, Any
 
 # Add project root to path
 sys.path.append('/home/runner/workspace')
 
 from utils.ai_adapter_v2 import ProductionAIAdapter
 from utils.pca_flags import pca_flags
+
 
 class Phase1UAT:
     def __init__(self):
@@ -192,7 +189,7 @@ class Phase1UAT:
                     options = clarifier.get("options", [])
                     if not isinstance(options, list) or len(options) == 0:
                         clarifier_valid = False
-                        clarifier_details += f", missing_options"
+                        clarifier_details += ", missing_options"
                     else:
                         clarifier_details += f", options_count={len(options)}"
                 
@@ -309,7 +306,7 @@ class Phase1UAT:
         
         print()
         print("=" * 60)
-        print(f"PHASE 1 UAT RESULTS:")
+        print("PHASE 1 UAT RESULTS:")
         print(f"✅ Passed: {passed_tests}/{total_tests} ({pass_rate:.1f}%)")
         print(f"⏱️  Duration: {duration:.2f}s")
         print(f"🎯 Exit Gate: {'PASS' if pass_rate == 100 else 'FAIL'}")

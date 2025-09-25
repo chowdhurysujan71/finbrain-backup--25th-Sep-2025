@@ -3,12 +3,15 @@
 Test script to verify Bengali food categorization is working correctly
 """
 
-import sys
 import os
+import sys
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from parsers.expense import extract_all_expenses, infer_category_with_strength
 from datetime import datetime
+
+from parsers.expense import extract_all_expenses, infer_category_with_strength
+
 
 def test_categorization():
     """Test that Bengali food terms are properly categorized"""

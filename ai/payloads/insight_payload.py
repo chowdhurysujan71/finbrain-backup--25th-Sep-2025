@@ -3,13 +3,13 @@ Insight Payload Builder: Structures data for AI insight generation
 Ensures proper user isolation and handles no-data scenarios
 """
 
-from typing import Dict, Any, List
 import hashlib
 from datetime import datetime
+from typing import Any, Dict, List
 
 
-def build_insight_payload(user_id: str, expenses: List[Dict], total_amount: float, 
-                         timeframe: str = "this month") -> Dict[str, Any]:
+def build_insight_payload(user_id: str, expenses: list[dict], total_amount: float, 
+                         timeframe: str = "this month") -> dict[str, Any]:
     """
     Build structured payload for AI insight generation
     
@@ -58,7 +58,7 @@ def build_insight_payload(user_id: str, expenses: List[Dict], total_amount: floa
     return payload
 
 
-def validate_insight_response(response: Dict[str, Any], expected_user_id: str) -> Dict[str, Any]:
+def validate_insight_response(response: dict[str, Any], expected_user_id: str) -> dict[str, Any]:
     """
     Validate AI insight response for user isolation and schema compliance
     

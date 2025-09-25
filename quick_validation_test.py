@@ -5,6 +5,7 @@ Quick validation test to confirm critical fixes are working
 
 from app import app
 
+
 def test_critical_fixes():
     """Test that the critical UAT failures have been resolved"""
     
@@ -34,7 +35,7 @@ def test_critical_fixes():
         
         # Test 2: Identity hashing  
         try:
-            from utils.identity import ensure_hashed, psid_hash
+            from utils.identity import ensure_hashed
             
             print("\n🔒 Identity Hashing:")
             test_psid = "test_user_12345"

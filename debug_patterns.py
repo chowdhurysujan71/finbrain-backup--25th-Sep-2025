@@ -2,7 +2,9 @@
 """Debug pattern matching to achieve 100% success"""
 
 import re
+
 from utils.routing_policy import BilingualPatterns
+
 
 def test_pattern_matching():
     """Test and debug pattern matching"""
@@ -45,7 +47,7 @@ def test_pattern_matching():
         print(f"    FAQ: {has_faq}, Coaching: {has_coaching}")
     
     # Analyze coaching pattern regex
-    print(f"\n🔧 Current Coaching Regex:")
+    print("\n🔧 Current Coaching Regex:")
     print(f"EN: {patterns.coaching_verbs_en.pattern}")
     print(f"BN: {patterns.coaching_verbs_bn.pattern}")
     
@@ -58,13 +60,13 @@ def test_pattern_matching():
         'reduce transport costs'
     ]
     
-    print(f"\n🧪 Individual Coaching Tests:")
+    print("\n🧪 Individual Coaching Tests:")
     for phrase in coaching_phrases:
         match = patterns.coaching_verbs_en.search(phrase.lower())
         print(f"'{phrase}' → Match: {match.group() if match else None}")
     
     # Suggest improved patterns
-    print(f"\n💡 Pattern Improvement Suggestions:")
+    print("\n💡 Pattern Improvement Suggestions:")
     
     # More comprehensive coaching pattern
     improved_coaching = r'(save money|reduce|cut|budget|plan|help me reduce|how can I save|' \
@@ -76,7 +78,7 @@ def test_pattern_matching():
     # Test improved pattern
     improved_regex = re.compile(improved_coaching, re.IGNORECASE)
     
-    print(f"\n✨ Testing Improved Pattern:")
+    print("\n✨ Testing Improved Pattern:")
     for phrase in coaching_phrases:
         match = improved_regex.search(phrase.lower())
         status = '✅' if match else '❌'

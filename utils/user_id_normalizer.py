@@ -2,7 +2,7 @@
 User ID Normalizer - Ensures consistent user_id_hash usage across the platform
 """
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ class UserIdNormalizer:
     def __init__(self):
         self.normalization_warnings = []
     
-    def normalize_expense_record(self, expense_data: Dict[str, Any]) -> Dict[str, Any]:
+    def normalize_expense_record(self, expense_data: dict[str, Any]) -> dict[str, Any]:
         """
         Normalize expense record to ensure user_id_hash is always present
         
@@ -27,7 +27,7 @@ class UserIdNormalizer:
         # Ensure user_id_hash is present
         if 'user_id_hash' not in normalized and 'user_id' in normalized:
             normalized['user_id_hash'] = normalized['user_id']
-            logger.debug(f"Normalized user_id to user_id_hash for expense")
+            logger.debug("Normalized user_id to user_id_hash for expense")
         
         # Ensure both fields are consistent (backwards compatibility)
         if 'user_id_hash' in normalized and 'user_id' not in normalized:
@@ -35,7 +35,7 @@ class UserIdNormalizer:
         
         return normalized
     
-    def get_user_identifier(self, user_data: Dict[str, Any]) -> str:
+    def get_user_identifier(self, user_data: dict[str, Any]) -> str:
         """
         Get the canonical user identifier, preferring user_id_hash
         
@@ -85,7 +85,7 @@ class UserIdNormalizer:
 # Global normalizer instance
 user_id_normalizer = UserIdNormalizer()
 
-def ensure_user_id_hash(data: Dict[str, Any]) -> Dict[str, Any]:
+def ensure_user_id_hash(data: dict[str, Any]) -> dict[str, Any]:
     """
     Convenience function to ensure user_id_hash is present in data
     

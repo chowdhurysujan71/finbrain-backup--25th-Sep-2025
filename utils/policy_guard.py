@@ -1,7 +1,6 @@
 """24-hour policy compliance for Facebook Messenger"""
 import logging
 from datetime import datetime, timedelta
-from typing import Optional
 
 from utils.user_manager import resolve_user_id
 
@@ -10,7 +9,7 @@ logger = logging.getLogger(__name__)
 def is_within_24_hour_window(psid: str) -> bool:
     """Check if user's last message was within 24 hours (policy-safe to respond)"""
     try:
-        from models import User, db
+        from models import User
         
         user_hash = resolve_user_id(psid=psid)
         user = User.query.filter_by(user_id_hash=user_hash).first()

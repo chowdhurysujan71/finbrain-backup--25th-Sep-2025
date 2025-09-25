@@ -3,13 +3,13 @@ Advanced Deployment Safeguards for Coaching Flow
 Circuit breakers, health checks, and rollback mechanisms
 """
 
+import logging
 import os
 import time
-import logging
-import json
-from typing import Dict, Any, Optional, List, Callable
-from datetime import datetime, timedelta
+from collections.abc import Callable
+from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ class CoachingCircuitBreaker:
             self.state_changed_time = time.time()
             logger.error(f"[CIRCUIT] Circuit breaker reopened - coaching disabled: {error}")
     
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get circuit breaker status"""
         return {
             'enabled': self.enabled,
@@ -150,7 +150,7 @@ class HealthChecker:
         self.max_history_size = 100
         self.last_check_time = 0
     
-    def perform_health_check(self) -> Dict[str, Any]:
+    def perform_health_check(self) -> dict[str, Any]:
         """Perform comprehensive health check"""
         if not self.enabled:
             return {'status': 'disabled', 'timestamp': datetime.utcnow().isoformat()}
@@ -205,14 +205,18 @@ class HealthChecker:
         
         return health_result
     
-    def _check_session_health(self) -> Dict[str, Any]:
+    def _check_session_health(self) -> dict[str, Any]:
         """Check session management component health"""
         try:
             start_time = time.time()
             
             # Test session operations
             test_psid = "health_check_test"
-            from utils.session import get_coaching_session, set_coaching_session, delete_coaching_session
+            from utils.session import (
+                delete_coaching_session,
+                get_coaching_session,
+                set_coaching_session,
+            )
             
             # Test write
             test_session = {'state': 'test', 'health_check': True, 'timestamp': time.time()}
@@ -247,7 +251,7 @@ class HealthChecker:
                 'operations_successful': False
             }
     
-    def _check_analytics_health(self) -> Dict[str, Any]:
+    def _check_analytics_health(self) -> dict[str, Any]:
         """Check analytics component health"""
         try:
             from utils.coaching_analytics import coaching_analytics
@@ -279,7 +283,7 @@ class HealthChecker:
                 'metrics_available': False
             }
     
-    def _check_performance_health(self) -> Dict[str, Any]:
+    def _check_performance_health(self) -> dict[str, Any]:
         """Check performance component health"""
         try:
             from utils.coaching_optimization import performance_monitor
@@ -315,7 +319,7 @@ class HealthChecker:
                 'error': str(e)
             }
     
-    def _check_memory_health(self) -> Dict[str, Any]:
+    def _check_memory_health(self) -> dict[str, Any]:
         """Check memory usage health"""
         try:
             from utils.coaching_optimization import memory_optimizer
@@ -359,7 +363,7 @@ class HealthChecker:
                 'error': str(e)
             }
     
-    def _check_circuit_breaker_health(self) -> Dict[str, Any]:
+    def _check_circuit_breaker_health(self) -> dict[str, Any]:
         """Check circuit breaker status"""
         try:
             from utils.coaching_safeguards import coaching_circuit_breaker
@@ -386,7 +390,7 @@ class HealthChecker:
                 'error': str(e)
             }
     
-    def _calculate_overall_health(self, components: Dict[str, Dict]) -> str:
+    def _calculate_overall_health(self, components: dict[str, dict]) -> str:
         """Calculate overall health from component health"""
         health_scores = []
         
@@ -415,7 +419,7 @@ class HealthChecker:
         else:
             return SystemHealth.HEALTHY.value
     
-    def _generate_health_alerts(self, health_result: Dict) -> List[str]:
+    def _generate_health_alerts(self, health_result: dict) -> list[str]:
         """Generate alerts based on health status"""
         alerts = []
         
@@ -437,7 +441,7 @@ class HealthChecker:
         
         return alerts
     
-    def get_health_summary(self) -> Dict[str, Any]:
+    def get_health_summary(self) -> dict[str, Any]:
         """Get current health summary"""
         if not self.health_history:
             return {'status': 'no_data', 'last_check': 'never'}
@@ -477,7 +481,7 @@ class FeatureFlagManager:
             'coaching_optimization': int(os.getenv('COACH_OPTIMIZATION_ROLLOUT_PCT', '100'))
         }
     
-    def is_enabled(self, flag_name: str, user_id: Optional[str] = None) -> bool:
+    def is_enabled(self, flag_name: str, user_id: str | None = None) -> bool:
         """Check if feature flag is enabled for user"""
         if not self.enabled:
             return True  # Default to enabled if flag system is disabled
@@ -498,7 +502,7 @@ class FeatureFlagManager:
         
         return True
     
-    def get_all_flags(self) -> Dict[str, Any]:
+    def get_all_flags(self) -> dict[str, Any]:
         """Get all feature flags and rollout settings"""
         return {
             'enabled': self.enabled,

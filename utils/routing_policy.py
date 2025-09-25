@@ -3,15 +3,14 @@ PoR v1.1 - Finbrain Deterministic Routing Policy
 Implements rules-first routing with bilingual support and state awareness
 """
 
+import logging
 import os
 import re
 import time
-import hashlib
-import logging
-from typing import Dict, Any, Optional, Tuple, List
-from enum import Enum
-from datetime import datetime, timezone
 from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+from typing import List
 
 logger = logging.getLogger("finbrain.routing_policy")
 
@@ -58,8 +57,8 @@ class RoutingSignals:
 class RoutingResult:
     """Result of routing decision"""
     intent: IntentType
-    reason_codes: List[str]
-    matched_patterns: List[str]
+    reason_codes: list[str]
+    matched_patterns: list[str]
     confidence: float
 
 class RoutingPolicyFlags:
@@ -231,11 +230,10 @@ class DataVersionManager:
             SHA-256 hex digest of user's expense data in window
         """
         try:
-            from db_base import db
-            from models import Expense
-            
             # Strong fingerprint: ID + amount + category + merchant + timestamp
             from sqlalchemy import text
+
+            from db_base import db
             result = db.session.execute(
                 text("""
                 SELECT encode(
@@ -275,9 +273,9 @@ class DataVersionManager:
         Uses COUNT + SUM + MAX(updated_at) to catch changes efficiently
         """
         try:
-            from db_base import db
-            
             from sqlalchemy import text
+
+            from db_base import db
             result = db.session.execute(
                 text("""
                 SELECT encode(
@@ -494,8 +492,8 @@ class DeterministicRouter:
         """Check if text contains money patterns using existing Bengali-aware utilities"""
         try:
             # Use existing Bengali digit normalization and money detection
-            from utils.bn_digits import to_en_digits
             from nlp.money_patterns import has_money_mention
+            from utils.bn_digits import to_en_digits
             
             # Normalize Bengali digits to ASCII first
             normalized_text = to_en_digits(text)
@@ -547,8 +545,9 @@ class DeterministicRouter:
     def _get_ledger_count_30d(self, user_id: str) -> int:
         """Get user's expense count in last 30 days"""
         try:
-            from db_base import db
             from datetime import timedelta
+
+            from db_base import db
             
             thirty_days_ago = datetime.utcnow() - timedelta(days=30)
             from sqlalchemy import text

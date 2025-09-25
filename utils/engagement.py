@@ -3,8 +3,8 @@ Engagement system for proactive finance coaching and user onboarding
 Implements welcome prompts, learning loops, and habit-forming UX patterns
 """
 import logging
-from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class EngagementEngine:
     def __init__(self):
         self.user_requests = {}  # In-memory store for rate limiting
         
-    def get_ai_prompt(self, user_data: Dict[str, Any], message: str, spend_data: Optional[Dict] = None) -> str:
+    def get_ai_prompt(self, user_data: dict[str, Any], message: str, spend_data: dict | None = None) -> str:
         """Generate contextual AI prompt based on user state and data"""
         
         # New user onboarding
@@ -58,7 +58,7 @@ class EngagementEngine:
         first_name = user_data.get('first_name', 'there')
         return f"🤔 Can you tell me what expense you want me to log or analyze today, {first_name}?"
     
-    def _make_engaging_response(self, user_data: Dict, spend_data: Dict) -> str:
+    def _make_engaging_response(self, user_data: dict, spend_data: dict) -> str:
         """Create engaging response with micro-insights and direct questions"""
         
         # Calculate percentages and insights
@@ -82,7 +82,7 @@ class EngagementEngine:
         
         return response
     
-    def check_ai_rate_limit(self, user_id: str) -> Dict[str, Any]:
+    def check_ai_rate_limit(self, user_id: str) -> dict[str, Any]:
         """Check if user has exceeded AI interaction limit"""
         now = datetime.now()
         cutoff = now - timedelta(seconds=WINDOW_SECONDS)
@@ -113,7 +113,7 @@ class EngagementEngine:
             'remaining': AI_LIMIT - current_count - 1
         }
     
-    def get_habit_forming_response(self, user_data: Dict, interaction_count: int) -> Optional[str]:
+    def get_habit_forming_response(self, user_data: dict, interaction_count: int) -> str | None:
         """Generate habit-forming prompts after certain interaction thresholds"""
         
         if interaction_count == 3:
@@ -144,9 +144,12 @@ class EngagementEngine:
         else:
             return endings[2]  # Default to challenge
     
-    def update_user_onboarding(self, user_id: str, response: str, current_step: int) -> Dict[str, Any]:
+    def update_user_onboarding(self, user_id: str, response: str, current_step: int) -> dict[str, Any]:
         """Process onboarding response using AI-powered parsing"""
-        from utils.ai_onboarding_parser import ai_parse_onboarding_response, convert_ai_parse_to_updates
+        from utils.ai_onboarding_parser import (
+            ai_parse_onboarding_response,
+            convert_ai_parse_to_updates,
+        )
         
         try:
             # Use AI to parse the user response

@@ -5,12 +5,14 @@ Fixes the critical Messenger delivery issue by mapping hashes back to valid PSID
 
 import logging
 from typing import Optional
-from db_base import db
+
 from sqlalchemy import text
+
+from db_base import db
 
 logger = logging.getLogger(__name__)
 
-def get_original_psid(user_id_hash: str) -> Optional[str]:
+def get_original_psid(user_id_hash: str) -> str | None:
     """
     Get the original Facebook PSID from user_id_hash using expenses table lookup
     

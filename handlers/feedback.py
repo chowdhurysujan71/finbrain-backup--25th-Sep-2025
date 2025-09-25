@@ -4,12 +4,12 @@ Processes YES/NO responses to Money Story reports
 """
 
 import logging
-from typing import Optional, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
-def handle_report_feedback(user_id_hash: str, text: str) -> Optional[Dict[str, Any]]:
+def handle_report_feedback(user_id_hash: str, text: str) -> dict[str, Any] | None:
     """
     Handle YES/NO feedback responses to reports
     
@@ -32,10 +32,10 @@ def handle_report_feedback(user_id_hash: str, text: str) -> Optional[Dict[str, A
         return None
     
     try:
-        from utils.feedback_context import get_feedback_context, clear_feedback_context
-        from utils.structured import log_report_feedback
-        from models import ReportFeedback
         from db_base import db
+        from models import ReportFeedback
+        from utils.feedback_context import clear_feedback_context, get_feedback_context
+        from utils.structured import log_report_feedback
         
         # Check if user has pending feedback context
         report_context_id = get_feedback_context(user_id_hash)

@@ -3,11 +3,11 @@ Enhanced Unified Expense Parser: Robust NLP for STD and AI modes
 Implements parse_expense() with comprehensive merchant extraction and multilingual support
 """
 
-import re
-from decimal import Decimal, InvalidOperation
-from typing import Dict, Any, Optional
-from datetime import datetime, timedelta
 import logging
+import re
+from datetime import datetime, timedelta
+from decimal import Decimal, InvalidOperation
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger("parsers.expense")
 
@@ -214,7 +214,7 @@ def similar_merchant(merchant1: str, merchant2: str) -> bool:
     return (merchant1.lower() in merchant2.lower() or 
             merchant2.lower() in merchant1.lower())
 
-def parse_expense(text: str, now: datetime, correction_context: bool = False) -> Optional[Dict[str, Any]]:
+def parse_expense(text: str, now: datetime, correction_context: bool = False) -> dict[str, Any] | None:
     """
     Enhanced expense parser with correction context support.
     
@@ -255,7 +255,7 @@ def parse_expense(text: str, now: datetime, correction_context: bool = False) ->
     # Standard parsing logic continues...
     return _parse_standard_expense(normalized, text, now)
 
-def extract_merchant(text: str) -> Optional[str]:
+def extract_merchant(text: str) -> str | None:
     """
     Extract merchant name from text using patterns like "at", "in", "from".
     """
@@ -282,7 +282,7 @@ def extract_merchant(text: str) -> Optional[str]:
     
     return None
 
-def extract_date_context(text: str, now_ts: datetime) -> Optional[datetime]:
+def extract_date_context(text: str, now_ts: datetime) -> datetime | None:
     """
     Extract date context from text (today, yesterday, last night, etc.).
     """
@@ -322,7 +322,7 @@ def infer_category_with_strength(text: str) -> str:
     
     return best_category
 
-def _parse_standard_expense(normalized: str, original_text: str, now_ts: datetime) -> Optional[Dict[str, Any]]:
+def _parse_standard_expense(normalized: str, original_text: str, now_ts: datetime) -> dict[str, Any] | None:
     """
     Standard expense parsing logic.
     
@@ -561,7 +561,7 @@ def similar_merchant(merchant_a: str, merchant_b: str) -> bool:
     
     return False
 
-def parse_amount_currency_category(text: str) -> Dict[str, Any]:
+def parse_amount_currency_category(text: str) -> dict[str, Any]:
     """
     Parse expense text and extract amount, currency, category, and note.
     

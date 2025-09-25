@@ -4,9 +4,9 @@ Maintains running totals and category breakdowns for instant reporting
 """
 
 import logging
-from typing import Dict, Optional
-from datetime import datetime, timedelta
 from collections import defaultdict
+from datetime import datetime, timedelta
+from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class AggregationCache:
     def __init__(self):
         self.cache_timeout_minutes = 15  # Refresh every 15 minutes
     
-    def get_user_aggregations(self, user_id: str, days_window: int) -> Optional[Dict]:
+    def get_user_aggregations(self, user_id: str, days_window: int) -> dict | None:
         """Get pre-computed aggregations for user"""
         cache_key = f"{user_id}:{days_window}"
         
@@ -36,7 +36,7 @@ class AggregationCache:
         
         return None
     
-    def update_user_aggregations(self, user_id: str, days_window: int, expenses) -> Dict:
+    def update_user_aggregations(self, user_id: str, days_window: int, expenses) -> dict:
         """Compute and cache aggregations"""
         try:
             # Compute aggregations in single pass
@@ -57,7 +57,7 @@ class AggregationCache:
             logger.error(f"Aggregation computation failed: {e}")
             return self._empty_aggregations()
     
-    def _compute_aggregations(self, expenses) -> Dict:
+    def _compute_aggregations(self, expenses) -> dict:
         """Lightning-fast aggregation computation"""
         if not expenses:
             return self._empty_aggregations()
@@ -92,7 +92,7 @@ class AggregationCache:
             "top_percentage": top_percentage
         }
     
-    def _empty_aggregations(self) -> Dict:
+    def _empty_aggregations(self) -> dict:
         """Return empty aggregation structure"""
         from utils.categories import normalize_category
         return {

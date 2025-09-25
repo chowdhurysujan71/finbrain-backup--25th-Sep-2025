@@ -3,14 +3,14 @@ Structured Logging System for FinBrain API
 Provides JSON logging with trace IDs, request context, and security-safe messaging
 """
 
-import logging
 import json
+import logging
 import uuid
-from typing import Dict, Any, Optional
 from datetime import datetime
-from flask import request, g, has_request_context
-import traceback
-import sys
+from typing import Any, Dict, Optional
+
+from flask import g, has_request_context, request
+
 
 class StructuredLogger:
     """Enhanced logger with structured JSON output and security-safe messaging"""
@@ -26,7 +26,7 @@ class StructuredLogger:
             return g.trace_id
         return str(uuid.uuid4())[:8]
     
-    def _get_request_context(self) -> Dict[str, Any]:
+    def _get_request_context(self) -> dict[str, Any]:
         """Extract safe request context for logging"""
         context = {}
         
@@ -78,9 +78,9 @@ class StructuredLogger:
         
         return data
     
-    def _create_log_entry(self, level: str, message: str, extra_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _create_log_entry(self, level: str, message: str, extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
         """Create structured log entry"""
-        entry: Dict[str, Any] = {
+        entry: dict[str, Any] = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "level": level,
             "message": message,
@@ -99,17 +99,17 @@ class StructuredLogger:
         
         return entry
     
-    def info(self, message: str, extra_data: Optional[Dict[str, Any]] = None):
+    def info(self, message: str, extra_data: dict[str, Any] | None = None):
         """Log info level message with structured data"""
         entry = self._create_log_entry("INFO", message, extra_data)
         self.logger.info(json.dumps(entry))
     
-    def warning(self, message: str, extra_data: Optional[Dict[str, Any]] = None):
+    def warning(self, message: str, extra_data: dict[str, Any] | None = None):
         """Log warning level message with structured data"""
         entry = self._create_log_entry("WARNING", message, extra_data)
         self.logger.warning(json.dumps(entry))
     
-    def error(self, message: str, extra_data: Optional[Dict[str, Any]] = None, exception: Optional[Exception] = None):
+    def error(self, message: str, extra_data: dict[str, Any] | None = None, exception: Exception | None = None):
         """Log error level message with structured data and optional exception"""
         entry = self._create_log_entry("ERROR", message, extra_data)
         
@@ -122,7 +122,7 @@ class StructuredLogger:
         
         self.logger.error(json.dumps(entry))
     
-    def critical(self, message: str, extra_data: Optional[Dict[str, Any]] = None, exception: Optional[Exception] = None):
+    def critical(self, message: str, extra_data: dict[str, Any] | None = None, exception: Exception | None = None):
         """Log critical level message with structured data"""
         entry = self._create_log_entry("CRITICAL", message, extra_data)
         
@@ -158,7 +158,7 @@ class StructuredLogger:
         # Truncate very long messages
         return message[:300] + "..." if len(message) > 300 else message
     
-    def log_api_request(self, success: bool = True, response_time: Optional[float] = None, extra_data: Optional[Dict[str, Any]] = None):
+    def log_api_request(self, success: bool = True, response_time: float | None = None, extra_data: dict[str, Any] | None = None):
         """Log API request with performance metrics"""
         status = "SUCCESS" if success else "FAILED"
         message = f"API Request {status}"
@@ -172,7 +172,7 @@ class StructuredLogger:
         else:
             self.warning(message, log_data)
     
-    def log_validation_error(self, field_errors: Dict[str, str], endpoint: str):
+    def log_validation_error(self, field_errors: dict[str, str], endpoint: str):
         """Log validation errors (info level since these are expected)"""
         message = f"Validation failed for {endpoint}"
         extra_data = {
@@ -181,12 +181,12 @@ class StructuredLogger:
         }
         self.info(message, extra_data)
     
-    def log_security_event(self, event_type: str, details: Dict[str, Any]):
+    def log_security_event(self, event_type: str, details: dict[str, Any]):
         """Log security-related events at warning level"""
         message = f"Security Event: {event_type}"
         self.warning(message, {"security_event": details})
     
-    def log_business_error(self, error_code: str, details: str, extra_data: Optional[Dict[str, Any]] = None):
+    def log_business_error(self, error_code: str, details: str, extra_data: dict[str, Any] | None = None):
         """Log business logic errors"""
         message = f"Business Error [{error_code}]: {details}"
         self.warning(message, extra_data)
@@ -197,15 +197,15 @@ auth_logger = StructuredLogger("finbrain.auth")
 validation_logger = StructuredLogger("finbrain.validation")
 security_logger = StructuredLogger("finbrain.security")
 
-def log_api_error(error_code: str, message: str, extra_data: Optional[Dict[str, Any]] = None, exception: Optional[Exception] = None):
+def log_api_error(error_code: str, message: str, extra_data: dict[str, Any] | None = None, exception: Exception | None = None):
     """Convenience function to log API errors"""
     api_logger.error(f"[{error_code}] {message}", extra_data, exception)
 
-def log_validation_failure(field_errors: Dict[str, str], endpoint: str):
+def log_validation_failure(field_errors: dict[str, str], endpoint: str):
     """Convenience function to log validation failures"""
     validation_logger.log_validation_error(field_errors, endpoint)
 
-def log_auth_event(event_type: str, user_identifier: Optional[str] = None, success: bool = True):
+def log_auth_event(event_type: str, user_identifier: str | None = None, success: bool = True):
     """Convenience function to log authentication events"""
     details = {"event_type": event_type, "success": success}
     if user_identifier:
@@ -215,7 +215,7 @@ def log_auth_event(event_type: str, user_identifier: Optional[str] = None, succe
     level_logger = auth_logger.info if success else auth_logger.warning
     level_logger(f"Auth Event: {event_type}", details)
 
-def log_security_incident(incident_type: str, details: Dict[str, Any]):
+def log_security_incident(incident_type: str, details: dict[str, Any]):
     """Convenience function to log security incidents"""
     security_logger.log_security_event(incident_type, details)
 

@@ -2,16 +2,17 @@
 Last-mile text utilities for safe formatting, sanitization, and variants
 Handles EMOJI_ENABLED, SAY_ENABLED, MAX_REPLY_LEN flags for production control
 """
-import os
-import re
-import random
 import logging
-from typing import Union, Dict, Any, List, Optional
+import os
+import random
+import re
+from typing import Any, Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 
 # Configuration from centralized config and environment
 from config import MSG_MAX_CHARS
+
 SAY_ENABLED = os.environ.get("SAY_ENABLED", "true").lower() == "true"
 EMOJI_ENABLED = os.environ.get("EMOJI_ENABLED", "true").lower() == "true"
 MAX_REPLY_LEN = MSG_MAX_CHARS  # Use centralized constant
@@ -41,7 +42,7 @@ RL2_DISCLAIMER = "NOTE: Taking a quick breather. I can do 4 smart replies per mi
 
 RL2_BREATHER_SUMMARY_PREFIX = "NOTE: Smart replies are capped at 4/min. Here is your recap without AI:"
 
-def safe_format(template: str, data: Dict[str, Any]) -> str:
+def safe_format(template: str, data: dict[str, Any]) -> str:
     """
     Safe string formatting that leaves {missing} keys as-is (no exceptions)
     """
@@ -101,7 +102,7 @@ def normalize(message: str) -> str:
     
     return normalized
 
-def cap_len(message: str, max_len: Optional[int] = None) -> str:
+def cap_len(message: str, max_len: int | None = None) -> str:
     """Smart cap message length with graceful truncation"""
     if max_len is None:
         max_len = MAX_REPLY_LEN
@@ -131,7 +132,7 @@ def cap_len(message: str, max_len: Optional[int] = None) -> str:
     # Last resort: hard truncate with ellipsis (preserve existing behavior)
     return message[:target_length] + "..."
 
-def finalize_message(template_or_list: Union[str, List[str]], data: Optional[Dict[str, Any]] = None) -> str:
+def finalize_message(template_or_list: str | list[str], data: dict[str, Any] | None = None) -> str:
     """
     Complete message processing pipeline:
     1. Pick variant if SAY_ENABLED=true and list provided
@@ -174,7 +175,7 @@ def finalize_message(template_or_list: Union[str, List[str]], data: Optional[Dic
         logger.error(f"Message finalization error: {e}")
         return "OK"
 
-def say(options: Union[str, List[str]], data: Optional[Dict[str, Any]] = None) -> str:
+def say(options: str | list[str], data: dict[str, Any] | None = None) -> str:
     """
     Wrapper over finalize_message for convenient variant handling
     """
@@ -197,7 +198,7 @@ def format_logged_response(amount: float, note: str, category: str) -> str:
     }
     return say(LOGGED_VARIANTS, data)
 
-def format_summary_response(totals: Dict[str, float], tip: Optional[str] = None) -> str:
+def format_summary_response(totals: dict[str, float], tip: str | None = None) -> str:
     """Format summary response with variants"""
     data = {
         'total': f"{totals.get('total', 0):.0f}",
@@ -227,7 +228,7 @@ def format_help_response() -> str:
     """Format help response with variants"""
     return say(HELP_VARIANTS)
 
-def format_undo_response(amount: Optional[float] = None, note: Optional[str] = None) -> str:
+def format_undo_response(amount: float | None = None, note: str | None = None) -> str:
     """Format undo response"""
     if amount is not None and note is not None:
         if EMOJI_ENABLED:

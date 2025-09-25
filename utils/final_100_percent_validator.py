@@ -4,11 +4,8 @@ Final targeted fix for the insight handler signature issue
 """
 
 import logging
-import json
-from datetime import datetime, timedelta, date
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass
-import uuid
+from datetime import datetime
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +18,7 @@ class Final100PercentValidator:
         
         logger.info("Final 100% Validator initialized")
     
-    def achieve_100_percent_compliance(self) -> Dict[str, Any]:
+    def achieve_100_percent_compliance(self) -> dict[str, Any]:
         """Ultimate fix to achieve 100% compliance"""
         
         print("🎯 FINAL 100% COMPLIANCE ACHIEVEMENT")
@@ -29,9 +26,9 @@ class Final100PercentValidator:
         print("="*80)
         
         try:
-            from utils.identity import psid_hash
-            from models import User
             from db_base import db
+            from models import User
+            from utils.identity import psid_hash
             
             # Test report request tracking with correct handler signatures
             test_user_id = "ultimate_validation_user"
@@ -150,8 +147,8 @@ class Final100PercentValidator:
         """Clean up test data"""
         
         try:
-            from models import User, Expense, MonthlySummary
             from db_base import db
+            from models import Expense, MonthlySummary, User
             
             for user_hash in self.test_user_hashes:
                 # Delete expenses
@@ -175,7 +172,7 @@ class Final100PercentValidator:
         except Exception as e:
             print(f"\n⚠️ Cleanup warning: {e}")
 
-def run_final_100_percent_validation() -> Dict[str, Any]:
+def run_final_100_percent_validation() -> dict[str, Any]:
     """Run ultimate validation for 100% compliance achievement"""
     
     from app import app
@@ -184,7 +181,7 @@ def run_final_100_percent_validation() -> Dict[str, Any]:
         validator = Final100PercentValidator()
         return validator.achieve_100_percent_compliance()
 
-def validate_ultimate_success(report: Dict[str, Any]) -> bool:
+def validate_ultimate_success(report: dict[str, Any]) -> bool:
     """Validate ultimate 100% success achievement"""
     
     exec_summary = report.get("executive_summary", {})

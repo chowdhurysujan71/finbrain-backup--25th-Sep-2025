@@ -1,5 +1,6 @@
 import importlib
 
+
 def test_gemini_adapter_has_process_method():
     ga = importlib.import_module("finbrain.ai.gemini_adapter")
     contracts = importlib.import_module("finbrain.ai.contracts")

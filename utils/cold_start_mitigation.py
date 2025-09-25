@@ -2,13 +2,14 @@
 Cold-start mitigation and server warm-up functionality
 Pre-warms AI providers and external services on app boot
 """
-import os
-import time
-import socket
 import logging
-import requests
+import os
+import socket
+import time
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Any, Dict
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ class ColdStartMitigation:
             logger.error(f"DNS resolution failed for AI provider: {str(e)}")
             return False
     
-    def warm_up_ai_provider(self) -> Dict[str, Any]:
+    def warm_up_ai_provider(self) -> dict[str, Any]:
         """Send warm-up request to AI provider status endpoint"""
         if not self.ai_enabled:
             return {
@@ -115,7 +116,7 @@ class ColdStartMitigation:
                 "response_time_ms": 0
             }
     
-    def run_warm_up_sequence(self) -> Dict[str, Any]:
+    def run_warm_up_sequence(self) -> dict[str, Any]:
         """Execute complete server warm-up sequence"""
         logger.info("Starting cold-start mitigation warm-up sequence...")
         warm_up_start = time.time()
@@ -164,7 +165,7 @@ class ColdStartMitigation:
             
         return results
     
-    def get_ai_status(self) -> Dict[str, Any]:
+    def get_ai_status(self) -> dict[str, Any]:
         """Get current AI status for health checks"""
         if not self.ai_enabled:
             return {

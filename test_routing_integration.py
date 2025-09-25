@@ -4,9 +4,10 @@ PoR v1.1 Integration Test Suite
 Tests the complete routing system in Flask app context
 """
 
-from app import app, db
-from utils.routing_policy import deterministic_router, RoutingSignals, IntentType
+from app import app
 from utils.contract_tests import run_all_contract_tests
+from utils.routing_policy import IntentType, RoutingSignals, deterministic_router
+
 
 def test_routing_in_app_context():
     """Test routing with proper Flask app context"""
@@ -173,8 +174,8 @@ if __name__ == "__main__":
                 print(f"  ... and {len(results['failures']) - 5} more")
     
     # Summary
-    print(f"\n🎉 PoR v1.1 Implementation Summary")
+    print("\n🎉 PoR v1.1 Implementation Summary")
     print(f"✅ Integration Tests: {routing_rate:.1f}% success")
     print(f"✅ Contract Tests: {results['success_rate']}% success") 
-    print(f"✅ Phase 1 Configuration: Safe and ready")
-    print(f"🚀 Ready for Phase 1 deployment!")
+    print("✅ Phase 1 Configuration: Safe and ready")
+    print("🚀 Ready for Phase 1 deployment!")

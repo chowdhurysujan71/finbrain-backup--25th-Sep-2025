@@ -2,10 +2,11 @@
 Supabase Storage integration for FinBrain
 Provides signed URL generation for secure file uploads/downloads
 """
-import os
-import requests
 import logging
-from typing import Dict, Any
+import os
+from typing import Any, Dict
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class SupabaseStorageClient:
             "Content-Type": "application/json"
         }
     
-    def get_upload_url(self, path: str, content_type: str, expires_in: int = 60) -> Dict[str, Any]:
+    def get_upload_url(self, path: str, content_type: str, expires_in: int = 60) -> dict[str, Any]:
         """
         Generate a signed URL for uploading a file to Supabase Storage
         
@@ -83,7 +84,7 @@ class SupabaseStorageClient:
             logger.error(f"Supabase upload URL generation failed: {str(e)}")
             raise RuntimeError(f"Failed to generate upload URL: {str(e)}")
     
-    def get_download_url(self, path: str, expires_in: int = 60) -> Dict[str, Any]:
+    def get_download_url(self, path: str, expires_in: int = 60) -> dict[str, Any]:
         """
         Generate a signed URL for downloading a file from Supabase Storage
         

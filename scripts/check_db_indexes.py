@@ -2,9 +2,11 @@
 """
 Check and create database indexes for performance optimization
 """
-from app import app, db
-from sqlalchemy import text
 import logging
+
+from sqlalchemy import text
+
+from app import app, db
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,7 +43,7 @@ def check_and_create_indexes():
             for idx_name, idx_def in indexes:
                 print(f"  - {idx_name}")
                 if "user_id" in idx_def:
-                    print(f"    ✓ Has user_id index")
+                    print("    ✓ Has user_id index")
         
         # Create missing indexes
         try:

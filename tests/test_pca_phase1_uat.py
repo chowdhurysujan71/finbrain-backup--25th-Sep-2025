@@ -3,11 +3,9 @@ Phase 1 UAT Test Suite for PCA Overlay System
 Tests foundation components before deployment
 """
 
-import pytest
 import os
-import json
 from datetime import datetime
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 # Set test environment
 os.environ['PCA_OVERLAY_ENABLED'] = 'false'  # Start with overlay disabled
@@ -16,10 +14,11 @@ os.environ['SHOW_AUDIT_UI'] = 'false'
 os.environ['ENABLE_RULES'] = 'false'
 os.environ['USE_PRECEDENCE'] = 'false'
 
-from utils.precedence_engine import PrecedenceEngine, PrecedenceResult
 from utils.canonical_command import CanonicalCommand, CCSlots
-from utils.pca_feature_flags import PCAFeatureFlags
 from utils.multi_item_parser import MultiItemParser
+from utils.pca_feature_flags import PCAFeatureFlags
+from utils.precedence_engine import PrecedenceEngine, PrecedenceResult
+
 
 class TestPhase1UAT:
     """Phase 1: Foundation Components UAT"""

@@ -4,10 +4,10 @@ Simple UAT verification for expense logging system
 Tests key functionality without complex test frameworks
 """
 
-import requests
 import sys
-import time
-import json
+
+import requests
+
 
 def test_system_health():
     """Test basic system health"""
@@ -46,7 +46,7 @@ def test_expense_patterns():
     try:
         # Import our expense detection logic
         sys.path.append('/home/runner/workspace')
-        from utils.expense_repair import looks_like_expense, extract_amount_minor
+        from utils.expense_repair import extract_amount_minor, looks_like_expense
         
         test_cases = [
             ("I spent 100 taka on lunch", True, 10000),

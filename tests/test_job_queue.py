@@ -1,16 +1,18 @@
 """Test suite for Redis Job Queue implementation"""
-import pytest
-import time
-from unittest.mock import Mock, patch, MagicMock
 import json
+import time
 import uuid
-from datetime import datetime
+from unittest.mock import Mock, patch
+
+import pytest
+
+from utils.circuit_breaker import CircuitBreaker
+from utils.job_processor import JobProcessor
 
 # Import modules to test
 from utils.job_queue import Job, JobQueue
-from utils.circuit_breaker import CircuitBreaker 
-from utils.rate_limiter_jobs import get_job_rate_limiter, RateLimitResult
-from utils.job_processor import JobProcessor
+from utils.rate_limiter_jobs import RateLimitResult, get_job_rate_limiter
+
 
 class TestJob:
     """Test Job dataclass"""

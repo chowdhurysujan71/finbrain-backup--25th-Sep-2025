@@ -3,21 +3,21 @@ Production routing system: Deterministic Core + Flag-Gated AI + Canary Rollout
 Implements single entry point with rate limiting, AI failover, and comprehensive telemetry
 """
 
+import hashlib
+import logging
 import os
+import pathlib
 import re
 import time
-import logging
-import pathlib
-import hashlib
-from typing import Tuple, Optional, Dict, Any, List
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
 log = logging.getLogger(__name__)
 
 def _H(u): return hashlib.sha256(str(u).encode()).hexdigest()[:8]
 
 # Money detection and unified parsing (enhanced) - inlined from deprecated router
-from parsers.expense import parse_amount_currency_category, parse_expense as parse_expense_enhanced
+from parsers.expense import parse_amount_currency_category
 
 # Money detection patterns - inlined from quarantined code
 CURRENCY_SYMBOL_PATTERN = re.compile(r'[৳$£€₹]\s*\d+(?:[.,]\d{1,2})?', re.IGNORECASE)
@@ -61,7 +61,7 @@ def safe_dict_get(obj: Any, key: str, default: Any = None) -> Any:
         return obj.get(key, default)
     return default
 
-def normalize_amount(amount: Any) -> Optional[int]:
+def normalize_amount(amount: Any) -> int | None:
     """Convert amount to int (minor units) with proper type checking"""
     if amount is None:
         return None
@@ -85,7 +85,7 @@ def normalize_string(value: Any, default: str = "") -> str:
         return value
     return str(value)
 
-def normalize_dict_response(result: Any) -> Dict[str, Any]:
+def normalize_dict_response(result: Any) -> dict[str, Any]:
     """Ensure response is a proper dict with safe access"""
     if isinstance(result, dict):
         return result
@@ -190,24 +190,27 @@ def contains_money_with_correction_fallback(text: str, psid_hash: str) -> bool:
     return False
 
 # SMART_NLP_ROUTING and SMART_CORRECTIONS system components
-from utils.feature_flags import is_smart_nlp_enabled, is_smart_tone_enabled, is_smart_corrections_enabled
-from utils.structured import log_routing_decision, log_money_detection_fallback
 from parsers.expense import is_correction_message
+from utils.ai_adapter_v2 import production_ai_adapter
+from utils.ai_limiter import advanced_ai_limiter
+from utils.background_processor_rl2 import rl2_processor
+from utils.categories import categorize_expense
+
 # Lazy import for handle_correction to break circular dependency
 # from handlers.expense import handle_correction
-
 # Single source of truth for user ID resolution  
 from utils.identity import psid_hash
-from utils.background_processor_rl2 import rl2_processor
-from utils.ai_limiter import advanced_ai_limiter
-from utils.ai_adapter_v2 import production_ai_adapter
-from utils.textutil import (
-    format_logged_response, format_summary_response, format_help_response,
-    format_undo_response, get_random_tip, normalize, PANIC_PLAIN_REPLY
-)
-from utils.parser import parse_expense
-from utils.categories import categorize_expense
 from utils.logger import get_request_id
+from utils.parser import parse_expense
+from utils.textutil import (
+    PANIC_PLAIN_REPLY,
+    format_help_response,
+    format_logged_response,
+    format_summary_response,
+    format_undo_response,
+    get_random_tip,
+    normalize,
+)
 
 # Import performance monitoring
 try:
@@ -216,16 +219,13 @@ except ImportError:
     perf = None
 
 # FAQ/Smalltalk guardrail imports
-from utils.faq_map import match_faq_or_smalltalk, fallback_default
+from utils.faq_map import fallback_default, match_faq_or_smalltalk
 
 # Messaging guardrails imports
 from utils.ttl_store import get_store
-from utils.ux_copy import (
-    SLOW_DOWN, DAILY_LIMIT, REPEAT_HINT, PII_WARNING, BUSY, FALLBACK
-)
+from utils.ux_copy import DAILY_LIMIT, PII_WARNING, REPEAT_HINT, SLOW_DOWN
 
 # Flask imports for webhook blueprint
-from flask import Blueprint, request, jsonify
 
 # Log which router file each process loads with SHA verification
 _P = pathlib.Path(__file__).resolve()
@@ -233,7 +233,7 @@ logging.warning("PRODUCTION_ROUTER_INIT file=%s sha=%s",
                 _P, hashlib.sha256(_P.read_bytes()).hexdigest()[:12])
 
 # Facade: One Brain, Two Doors  
-def route_message(user_id_hash: str, text: str, channel: str = "web", locale: Optional[str] = None, meta: Optional[dict] = None):
+def route_message(user_id_hash: str, text: str, channel: str = "web", locale: str | None = None, meta: dict | None = None):
     """
     Stable entrypoint for ALL channels. Web should call this.
     FB Messenger calls this through background_processor, Web calls this directly.
@@ -280,7 +280,7 @@ def _is_audit_ui_enabled() -> bool:
     try:
         from utils.pca_feature_flags import pca_feature_flags
         return pca_feature_flags.should_show_audit_ui()
-    except:
+    except Exception:
         return False
 
 # Summary detection patterns (Enhanced for Bengali + comprehensive English)
@@ -411,19 +411,17 @@ class ProductionRouter:
         
         return bool(has_separator and has_expense_keyword)
 
-    def _handle_multi_expense_logging(self, text: str, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _handle_multi_expense_logging(self, text: str, psid: str, psid_hash: str, rid: str) -> tuple[str, str, str | None, float | None]:
         """Handle logging multiple expenses from a single message with feature flag guard"""
         try:
             # Feature flag guard for multi-expense functionality
             from utils.gap_fix_flags import gap_fix_flags
             if not gap_fix_flags.is_multi_expense_enabled():
-                logger.info(f"[MULTI_EXPENSE] Feature disabled, falling back to single expense handling")
+                logger.info("[MULTI_EXPENSE] Feature disabled, falling back to single expense handling")
                 return self._handle_single_expense_logging(text, psid, psid_hash, rid)
             
             # PHASE 4: Use dedicated multi-item parser instead of generic extractor
             from utils.multi_item_parser import multi_item_parser
-            from backend_assistant import add_expense
-            from datetime import datetime
             
             # Check if message contains multiple items using dedicated parser
             if not multi_item_parser.detect_multi_item(text):
@@ -496,11 +494,10 @@ class ProductionRouter:
             # Fall back to single expense handling
             return self._handle_single_expense_logging(text, psid, psid_hash, rid)
 
-    def _handle_single_expense_logging(self, text: str, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _handle_single_expense_logging(self, text: str, psid: str, psid_hash: str, rid: str) -> tuple[str, str, str | None, float | None]:
         """Handle logging a single expense with enhanced backend assistant and clarifier support"""
         try:
             import backend_assistant as ba
-            import json
             
             # Use enhanced backend assistant with confidence scoring and clarifier support
             expense_result = ba.propose_expense(text)
@@ -595,7 +592,7 @@ class ProductionRouter:
             response = "Something went wrong logging your expense. Please try again."
             return normalize(response), "expense_error", None, None
     
-    def route_message(self, text: str, psid_or_hash: str, rid: str = "", channel: str = "messenger") -> Tuple[str, str, Optional[str], Optional[float]]:
+    def route_message(self, text: str, psid_or_hash: str, rid: str = "", channel: str = "messenger") -> tuple[str, str, str | None, float | None]:
         """
         Single entry point for all message processing
         Now accepts either original PSID or user_id_hash for flexible processing
@@ -625,9 +622,9 @@ class ProductionRouter:
         
         # ANALYTICS: Track user activity (100% additive, fail-safe)
         try:
-            from utils.lightweight_analytics import track_user_activity
-            from models import User
             from db_base import db
+            from models import User
+            from utils.lightweight_analytics import track_user_activity
             user = db.session.query(User).filter_by(user_id_hash=user_hash).first()
             is_new_user = user is None or user.is_new if user else False
             track_user_activity(user_hash, is_new_user)
@@ -762,7 +759,10 @@ class ProductionRouter:
             # Step 1.5: REPORT FEEDBACK DETECTION (BEFORE DETERMINISTIC ROUTING)
             # Check for YES/NO responses to Money Story reports
             try:
-                from handlers.feedback import handle_report_feedback, is_feedback_response
+                from handlers.feedback import (
+                    handle_report_feedback,
+                    is_feedback_response,
+                )
                 
                 # Quick pre-check to avoid unnecessary processing
                 if is_feedback_response(text):
@@ -783,7 +783,7 @@ class ProductionRouter:
                         self._record_processing_time(time.time() - start_time)
                         return normalize(text_content), "report_feedback", None, None
                     else:
-                        logger.debug(f"[ROUTER] Not a valid feedback response, continuing routing")
+                        logger.debug("[ROUTER] Not a valid feedback response, continuing routing")
                         
             except Exception as e:
                 logger.warning(f"Report feedback handler error: {e}, continuing routing")
@@ -819,7 +819,9 @@ class ProductionRouter:
                     elif routing_result.intent.value == "CLARIFY_EXPENSE":
                         logger.info(f"[ROUTER] CLARIFY_EXPENSE intent detected: '{text[:50]}...'")
                         try:
-                            from expense_log_handlers import handle_clarify_expense_intent
+                            from expense_log_handlers import (
+                                handle_clarify_expense_intent,
+                            )
                             clarify_result = handle_clarify_expense_intent(user_hash, text, signals.__dict__)
                             
                             if clarify_result['success']:
@@ -843,7 +845,9 @@ class ProductionRouter:
                 
                 # Handle correction flow (always enabled)
                 try:
-                    from handlers.expense import handle_correction  # Lazy import to avoid circular dependency
+                    from handlers.expense import (
+                        handle_correction,  # Lazy import to avoid circular dependency
+                    )
                     correction_result = handle_correction(user_hash, rid, text, datetime.utcnow())
                     
                     self._emit_structured_telemetry(rid, user_hash, "CORRECTION", "processed", {
@@ -987,7 +991,7 @@ class ProductionRouter:
                 logger.info(f"[ROUTER] INTENT_UPGRADE: {previous_intent}→INSIGHT reason={upgrade_reason}")
             elif intent == "INSIGHT" and any(keyword in text.lower() for keyword in ["analysis", "analyze", "advise", "advice", "suggest", "tips", "optimize", "insight", "breakdown", "review", "how am i doing", "help me save"]):
                 upgrade_reason = "ask_keywords"
-                logger.info(f"[ROUTER] INTENT_UPGRADE: UNKNOWN→INSIGHT reason=ask_keywords")
+                logger.info("[ROUTER] INTENT_UPGRADE: UNKNOWN→INSIGHT reason=ask_keywords")
             
             # Step 3.5: Handle contradiction guard for spending increase requests
             if intent == "CLARIFY_SPENDING_INTENT":
@@ -1108,7 +1112,7 @@ class ProductionRouter:
                 faq_response = ai_enhanced_faq_detection(text)
                 if faq_response:
                     # Found FAQ match - return FAQ response
-                    logger.info(f"[ROUTER] AI FAQ detection successful")
+                    logger.info("[ROUTER] AI FAQ detection successful")
                     self._log_routing_decision(rid, user_hash, "ai_faq", "faq_detected")
                     self._record_processing_time(time.time() - start_time)
                     return normalize(faq_response), "faq", None, None
@@ -1263,9 +1267,10 @@ class ProductionRouter:
     def _update_recent_expense_category(self, user_hash: str, item: str, category: str):
         """Update recent expense category if item matches"""
         try:
-            from models import Expense
-            from db_base import db
             from datetime import datetime, timedelta
+
+            from db_base import db
+            from models import Expense
             
             # Look for recent expenses (last 10 minutes) that might match
             recent_time = datetime.utcnow() - timedelta(minutes=10)
@@ -1286,7 +1291,7 @@ class ProductionRouter:
         except Exception as e:
             logger.warning(f"Failed to update recent expense: {e}")
     
-    def _check_messaging_guardrails(self, text: str, user_hash: str, rid: str) -> Optional[str]:
+    def _check_messaging_guardrails(self, text: str, user_hash: str, rid: str) -> str | None:
         """
         Post-FAQ messaging guardrails with fail-open design
         Checks: rate limiting, daily caps, repeat detection, PII, spam
@@ -1390,7 +1395,7 @@ class ProductionRouter:
         router = DeterministicRouter()
         return router._is_category_breakdown_query(text)
 
-    def _get_previous_bot_intent(self, user_hash: str) -> Optional[str]:
+    def _get_previous_bot_intent(self, user_hash: str) -> str | None:
         """
         Get the previous bot intent for this user (for intent upgrade detection)
         Returns the last bot intent or None if not found
@@ -1410,7 +1415,7 @@ class ProductionRouter:
             items = list(self._previous_intents.items())[-500:]
             self._previous_intents = dict(items)
     
-    def _handle_expense_log(self, parsed_expense, text: str, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _handle_expense_log(self, parsed_expense, text: str, psid: str, psid_hash: str, rid: str) -> tuple[str, str, str | None, float | None]:
         """Handle deterministic expense logging"""
         amount, description = parsed_expense
         category = categorize_expense(description)
@@ -1430,7 +1435,7 @@ class ProductionRouter:
         self._log_routing_decision(rid, psid_hash, "log", f"logged: {amount} {category}")
         return response, "log", category, amount
     
-    def _route_rl2(self, text: str, psid: str, psid_hash: str, rid: str, rate_limit_result) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _route_rl2(self, text: str, psid: str, psid_hash: str, rid: str, rate_limit_result) -> tuple[str, str, str | None, float | None]:
         """Route to RL-2 system for rate-limited processing"""
         self._log_routing_decision(rid, psid_hash, "rl2", f"rate_limited: {rate_limit_result.reason}")
         
@@ -1442,7 +1447,7 @@ class ProductionRouter:
         
         return response, intent, category, amount
     
-    def _route_ai(self, text: str, psid: str, psid_hash: str, rid: str, rate_limit_result) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _route_ai(self, text: str, psid: str, psid_hash: str, rid: str, rate_limit_result) -> tuple[str, str, str | None, float | None]:
         """Route to AI processing with defensive normalization - fixes 'function has no len()' crash"""
         self._log_routing_decision(rid, psid_hash, "ai", "attempting_ai_parse")
         
@@ -1455,7 +1460,10 @@ class ProductionRouter:
             if expense.get('needs_clarification'):
                 try:
                     from flask import session
-                    from utils.expense_clarification import expense_clarification_handler
+
+                    from utils.expense_clarification import (
+                        expense_clarification_handler,
+                    )
                     
                     # Use the clarification handler to properly initiate clarification
                     # This ensures consistent ID generation and proper storage
@@ -1544,15 +1552,14 @@ class ProductionRouter:
         
         return response, "ai_expense_logged", category, amount
     
-    def _route_cc_decision(self, text: str, psid: str, psid_hash: str, rid: str) -> Optional[Tuple[str, str, Optional[str], Optional[float]]]:
+    def _route_cc_decision(self, text: str, psid: str, psid_hash: str, rid: str) -> tuple[str, str, str | None, float | None] | None:
         """
         Route based on Canonical Command decision logic with Feature Flags/Kill Switch
         Implements 4-state PCA_MODE conditional flow: FALLBACK/SHADOW/DRYRUN/ON
         """
         try:
             from utils.ai_adapter_v2 import production_ai_adapter
-            from utils.pca_flags import pca_flags, PCAMode
-            from datetime import datetime
+            from utils.pca_flags import PCAMode, pca_flags
             
             # PHASE 0: Check PCA_MODE and apply conditional flow
             current_mode = pca_flags.mode
@@ -1621,10 +1628,12 @@ class ProductionRouter:
     def _persist_cc_snapshot(self, cc_id: str, user_hash: str, text: str, ai_result: dict, pca_mode: str, rid: str):
         """Persist CC snapshot to inference_snapshots table (append-only)"""
         try:
-            from db_base import db
-            from sqlalchemy import text as sql_text
-            from datetime import datetime
             import json
+            from datetime import datetime
+
+            from sqlalchemy import text as sql_text
+
+            from db_base import db
             
             # Create CC snapshot record - handle duplicates gracefully
             db.session.execute(sql_text("""
@@ -1808,7 +1817,7 @@ class ProductionRouter:
             logger.error(f"Failed to save CC expense with overlays: {e}")
             return False
     
-    def _format_full_audit_response(self, amount: float, category: str, ui_note: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _format_full_audit_response(self, amount: float, category: str, ui_note: str) -> tuple[str, str, str | None, float | None]:
         """Format response for ON mode with full audit transparency"""
         if ui_note:
             # Use AI-generated response
@@ -1822,7 +1831,7 @@ class ProductionRouter:
         
         return response, "log_single", category, amount
     
-    def _render_clarifier_response(self, cc_data: Dict[str, Any], user_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _render_clarifier_response(self, cc_data: dict[str, Any], user_hash: str, rid: str) -> tuple[str, str, str | None, float | None]:
         """Render clarifier UI (Phase 3+) - placeholder for now"""
         # Phase 2: clarifiers disabled, should not reach here
         # Phase 3+: will implement clarifier chip rendering
@@ -1830,7 +1839,7 @@ class ProductionRouter:
         slots = cc_data.get('slots', {})
         return ui_note, "clarification_needed", slots.get('category'), slots.get('amount')
     
-    def _route_ai_conversation(self, text: str, psid: str, psid_hash: str, rid: str, rate_limit_result) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _route_ai_conversation(self, text: str, psid: str, psid_hash: str, rid: str, rate_limit_result) -> tuple[str, str, str | None, float | None]:
         """Route to AI for natural conversation (NOT expense parsing)"""
         self._log_routing_decision(rid, psid_hash, "ai_conversation", "natural_chat_attempt")
         
@@ -1893,7 +1902,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             self._log_routing_decision(rid, psid_hash, "ai_conversation", f"chat_error: {str(e)}")
             return normalize(response), "conversation_error", None, None
     
-    def _route_rules(self, text: str, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _route_rules(self, text: str, psid: str, psid_hash: str, rid: str) -> tuple[str, str, str | None, float | None]:
         """Route to deterministic rules processing"""
         self._log_routing_decision(rid, psid_hash, "rules", "deterministic_processing")
         
@@ -1927,7 +1936,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
         self._log_routing_decision(rid, psid_hash, "rules", "help_provided")
         return response, "help", None, None
     
-    def _handle_ai_log(self, ai_result: Dict[str, Any], text: str, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _handle_ai_log(self, ai_result: dict[str, Any], text: str, psid: str, psid_hash: str, rid: str) -> tuple[str, str, str | None, float | None]:
         """Handle AI-detected expense logging"""
         amount = ai_result.get('amount')
         note = ai_result.get('note', '')
@@ -1947,7 +1956,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
         self._log_routing_decision(rid, psid_hash, "ai_log", f"logged: {amount} {category}")
         return normalize(response), "log", category, amount
     
-    def _handle_ai_summary(self, ai_result: Dict[str, Any], psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _handle_ai_summary(self, ai_result: dict[str, Any], psid: str, psid_hash: str, rid: str) -> tuple[str, str, str | None, float | None]:
         """Handle AI-enhanced summary"""
         # Generate deterministic summary
         totals = self._get_summary_data(psid)
@@ -1961,7 +1970,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
         self._log_routing_decision(rid, psid_hash, "ai_summary", f"total: {totals.get('total', 0)}")
         return response, "summary", None, None
     
-    def _handle_ai_undo(self, ai_result: Dict[str, Any], psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _handle_ai_undo(self, ai_result: dict[str, Any], psid: str, psid_hash: str, rid: str) -> tuple[str, str, str | None, float | None]:
         """Handle AI-detected undo request"""
         # Perform deterministic undo
         removed_expense = self._undo_last_expense(psid)
@@ -1976,7 +1985,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             self._log_routing_decision(rid, psid_hash, "ai_undo", "nothing_to_undo")
             return response, "undo", None, None
     
-    def _handle_ai_help(self, ai_result: Dict[str, Any], psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _handle_ai_help(self, ai_result: dict[str, Any], psid_hash: str, rid: str) -> tuple[str, str, str | None, float | None]:
         """Handle AI help response with intelligent advice"""
         # Use AI-generated tips for advice/help requests
         ai_tips = ai_result.get('tips', [])
@@ -1995,10 +2004,10 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
         self._log_routing_decision(rid, psid_hash, "ai_help", "help_provided")
         return normalize(response), "help", None, None
         
-    def route_message_engagement(self, text: str, psid: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def route_message_engagement(self, text: str, psid: str, rid: str) -> tuple[str, str, str | None, float | None]:
         """Engagement-driven message routing with UAT testing and personalization (deprecated)"""
-        from utils.uat_system import uat_system
         from db_base import db
+        from utils.uat_system import uat_system
         
         # Start performance tracking
         start_time = time.time()
@@ -2147,7 +2156,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             response = "Got it. Try 'summary' for a quick recap of your spending."
             return self._format_response(response), "fallback_error", None, None
     
-    def _handle_ai_expense_logging(self, parse_result: Dict[str, Any], psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _handle_ai_expense_logging(self, parse_result: dict[str, Any], psid: str, psid_hash: str, rid: str) -> tuple[str, str, str | None, float | None]:
         """Handle AI-parsed expense logging with multiple items"""
         try:
             from backend_assistant import add_expense
@@ -2184,8 +2193,8 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             # Update user interaction count
             try:
                 # Simple interaction count update without user_manager
-                from models import User
                 from db_base import db
+                from models import User
                 from utils.identity import psid_hash as psid_hash_func
                 user_hash = psid_hash_func(psid)  # Compute the hash from PSID
                 user = db.session.query(User).filter_by(user_id_hash=user_hash).first()
@@ -2229,7 +2238,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             response = "Got it! I'll track that spending for you."
             return self._format_response(response), "expense_fallback", None, None
     
-    def _handle_onboarding(self, text: str, psid: str, user_data: Dict[str, Any], rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _handle_onboarding(self, text: str, psid: str, user_data: dict[str, Any], rid: str) -> tuple[str, str, str | None, float | None]:
         """Handle user onboarding with complete AI-driven system"""
         from utils.ai_onboarding_system import ai_onboarding_system
         from utils.identity import psid_hash
@@ -2241,8 +2250,8 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             response_text, updated_user_data = ai_onboarding_system.process_user_response(text, user_data)
             
             # Update the database with AI-extracted data directly
-            from models import User
             from db_base import db
+            from models import User
             user_hash_value = user_hash  # Use the already computed hash from above
             # Guard against model regressions
             assert hasattr(User, "user_id_hash"), "User model must expose user_id_hash"
@@ -2290,10 +2299,10 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             self._log_routing_decision(rid, fallback_hash, "onboarding_fallback", "ai_error")
             return self._format_response(fallback_response), "onboarding", None, None
     
-    def _handle_uat_commands(self, text: str, psid: str, rid: str) -> Optional[Tuple[str, str, Optional[str], Optional[float]]]:
+    def _handle_uat_commands(self, text: str, psid: str, rid: str) -> tuple[str, str, str | None, float | None] | None:
         """Handle UAT system commands"""
-        from utils.uat_system import uat_system
         from utils.identity import psid_hash
+        from utils.uat_system import uat_system
         
         user_hash = psid_hash(psid)
         text_lower = text.lower().strip()
@@ -2313,10 +2322,10 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
         
         return None
     
-    def _handle_uat_flow(self, text: str, psid: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _handle_uat_flow(self, text: str, psid: str, rid: str) -> tuple[str, str, str | None, float | None]:
         """Handle active UAT testing flow"""
-        from utils.uat_system import uat_system
         from utils.identity import psid_hash
+        from utils.uat_system import uat_system
         
         user_hash = psid_hash(psid)
         
@@ -2359,7 +2368,10 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
     def _handle_problem_report(self, user_hash: str, text: str) -> str:
         """Handle user problem report and create ticket"""
         try:
-            from utils.problem_reporter import report_problem, get_problem_report_response
+            from utils.problem_reporter import (
+                get_problem_report_response,
+                report_problem,
+            )
             
             # Determine what the user was trying to do (context)
             last_action = "unknown"
@@ -2377,7 +2389,6 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             response = get_problem_report_response(ticket_id)
             
             # Add quick replies for follow-up support
-            from utils.quick_reply_system import send_custom_quick_replies
             support_replies = [
                 {"title": "Get help", "payload": "HELP"},
                 {"title": "Try again", "payload": "TRY_AGAIN"},
@@ -2405,7 +2416,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
         
         return clipped
     
-    def _handle_rules_summary(self, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _handle_rules_summary(self, psid: str, psid_hash: str, rid: str) -> tuple[str, str, str | None, float | None]:
         """Handle deterministic summary"""
         totals = self._get_summary_data(psid)
         tip = get_random_tip()
@@ -2415,7 +2426,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
         self._log_routing_decision(rid, psid_hash, "rules_summary", f"total: {totals.get('total', 0)}")
         return response, "summary", None, None
     
-    def _handle_rules_undo(self, psid: str, psid_hash: str, rid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _handle_rules_undo(self, psid: str, psid_hash: str, rid: str) -> tuple[str, str, str | None, float | None]:
         """Handle deterministic undo"""
         removed_expense = self._undo_last_expense(psid)
         
@@ -2432,10 +2443,11 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
     def _store_expense_deterministic(self, psid: str, amount: float, description: str, category: str, original_text: str):
         """Store expense with deterministic error handling"""
         try:
+            import random
+            from datetime import datetime
+
             from db_base import db
             from models import Expense, User
-            from datetime import datetime
-            import random
             
             user_hash = psid_hash(psid)
             
@@ -2474,12 +2486,14 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             logger.warning(f"Production expense storage error: {e}")
             # Continue without throwing - UX not affected
     
-    def _get_summary_data(self, psid: str) -> Dict[str, float]:
+    def _get_summary_data(self, psid: str) -> dict[str, float]:
         """Get summary data for user"""
         try:
-            from db_base import db
-            from sqlalchemy import text
             from datetime import datetime, timedelta
+
+            from sqlalchemy import text
+
+            from db_base import db
             
             user_hash = psid_hash(psid)
             seven_days_ago = datetime.now() - timedelta(days=7)
@@ -2518,7 +2532,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             logger.error(f"Summary data error: {e}")
             return {'total': 0.0, 'food': 0.0, 'ride': 0.0, 'bill': 0.0, 'grocery': 0.0, 'other': 0.0}
     
-    def _generate_ai_logged_response(self, amount: float, note: str, category: str, tips: List[str], tx_id: Optional[str] = None, psid: Optional[str] = None) -> str:
+    def _generate_ai_logged_response(self, amount: float, note: str, category: str, tips: list[str], tx_id: str | None = None, psid: str | None = None) -> str:
         """Generate AI-powered response for logged expenses with audit transparency"""
         
         # Base confirmation with amount and note
@@ -2555,7 +2569,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
         
         return response
     
-    def _get_audit_transparency_info(self, tx_id: str, psid: str, amount: float, category: str, note: str) -> Optional[str]:
+    def _get_audit_transparency_info(self, tx_id: str, psid: str, amount: float, category: str, note: str) -> str | None:
         """Get audit transparency information for a transaction if enabled"""
         
         # Check if audit UI is enabled
@@ -2565,6 +2579,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
         try:
             # Import audit API functions
             import requests
+
             from utils.identity import psid_hash
             
             # Get user hash
@@ -2593,7 +2608,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             
         return None
     
-    def _undo_last_expense(self, psid: str) -> Optional[Tuple[float, str]]:
+    def _undo_last_expense(self, psid: str) -> tuple[float, str] | None:
         """Undo last expense for user"""
         try:
             from db_base import db
@@ -2628,7 +2643,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             logger.error(f"Undo expense error: {e}")
             return None
 
-    def _handle_unified_log(self, text: str, psid: str, psid_hash: str, rid: str, parsed_data: Dict) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _handle_unified_log(self, text: str, psid: str, psid_hash: str, rid: str, parsed_data: dict) -> tuple[str, str, str | None, float | None]:
         """Handle expense logging with unified parser and idempotency protection"""
         try:
             amount = parsed_data['amount']
@@ -2671,7 +2686,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             response = "Unable to log expense. Please try again."
             return normalize(response), "error", None, None
     
-    def _emit_structured_telemetry(self, rid: str, psid_hash: str, intent: str, reason: str, data: Dict):
+    def _emit_structured_telemetry(self, rid: str, psid_hash: str, intent: str, reason: str, data: dict):
         """Emit structured telemetry for tracking and debugging"""
         try:
             # Create structured telemetry entry
@@ -2701,7 +2716,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
     
     def _log_routing_decision(self, rid: str, psid_hash: str, route: str, details: str):
         """Log routing decision for telemetry"""
-        logger.info(f"Production routing: {{\"rid\": \"{rid}\", \"psid_hash\": \"{psid_hash[:8]}...\", \"route\": \"{route}\", \"details\": \"{details}\", \"timestamp\": \"{datetime.now(timezone.utc).isoformat()}\"}}")
+        logger.info(f"Production routing: {{\"rid\": \"{rid}\", \"psid_hash\": \"{psid_hash[:8]}...\", \"route\": \"{route}\", \"details\": \"{details}\", \"timestamp\": \"{datetime.now(UTC).isoformat()}\"}}")
     
     def _record_processing_time(self, duration: float):
         """Record processing time for telemetry"""
@@ -2710,7 +2725,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
         if len(self.telemetry['processing_times']) > 100:
             self.telemetry['processing_times'].pop(0)
     
-    def get_telemetry(self) -> Dict[str, Any]:
+    def get_telemetry(self) -> dict[str, Any]:
         """Get comprehensive routing telemetry"""
         processing_times = self.telemetry['processing_times']
         
@@ -2733,7 +2748,7 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             }
         }
     
-    def get_trace_logs(self) -> List[Dict[str, Any]]:
+    def get_trace_logs(self) -> list[dict[str, Any]]:
         """Get recent routing decisions for trace analysis"""
         # For now, return empty list since we log to structured JSON
         # In production, this would integrate with log aggregation

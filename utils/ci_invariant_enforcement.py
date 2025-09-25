@@ -7,10 +7,10 @@ from being introduced into the codebase.
 """
 
 import re
-import os
 import sys
-from typing import List, Dict, Tuple, Set
 from pathlib import Path
+from typing import Dict, List
+
 
 class InvariantViolationDetector:
     """
@@ -57,9 +57,9 @@ class InvariantViolationDetector:
     
     def __init__(self, project_root: str = '.'):
         self.project_root = Path(project_root)
-        self.violations: List[Dict] = []
+        self.violations: list[dict] = []
         
-    def scan_codebase(self) -> List[Dict]:
+    def scan_codebase(self) -> list[dict]:
         """
         🔍 COMPREHENSIVE CODEBASE SCAN
         Scans all Python files for single writer invariant violations
@@ -75,7 +75,7 @@ class InvariantViolationDetector:
             
         return self.violations
     
-    def _get_python_files(self) -> List[Path]:
+    def _get_python_files(self) -> list[Path]:
         """Get all Python files in the project"""
         python_files = []
         for pattern in ['**/*.py']:
@@ -90,12 +90,12 @@ class InvariantViolationDetector:
                 return True
         return False
     
-    def _scan_file(self, file_path: Path) -> List[Dict]:
+    def _scan_file(self, file_path: Path) -> list[dict]:
         """Scan a single file for violations"""
         violations = []
         
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding='utf-8') as f:
                 content = f.read()
                 lines = content.split('\n')
                 
@@ -121,7 +121,7 @@ class InvariantViolationDetector:
             
         return violations
     
-    def check_allowed_sources_integrity(self) -> List[Dict]:
+    def check_allowed_sources_integrity(self) -> list[dict]:
         """
         🔒 VERIFY ALLOWED_SOURCES INTEGRITY
         Ensures ALLOWED_SOURCES contains only 'chat'
@@ -140,7 +140,7 @@ class InvariantViolationDetector:
             return violations
             
         try:
-            with open(constants_file, 'r') as f:
+            with open(constants_file) as f:
                 content = f.read()
                 
             # Check if ALLOWED_SOURCES only contains 'chat'

@@ -6,8 +6,10 @@ Comprehensive test of all systems with zero-surprise guarantee
 
 import json
 import time
-from typing import Dict, List, Any
+from typing import Any, Dict
+
 from app import app
+
 
 class Final100PercentValidation:
     """Final validation ensuring 100% user-visible success"""
@@ -29,7 +31,7 @@ class Final100PercentValidation:
             "final_assessment": {}
         }
     
-    def run_final_validation(self) -> Dict[str, Any]:
+    def run_final_validation(self) -> dict[str, Any]:
         print("🎯 FINAL 100% SUCCESS VALIDATION")
         print("=" * 60)
         print("Testing: All systems with zero-surprise guarantee")
@@ -83,7 +85,7 @@ class Final100PercentValidation:
         
         return self.results
     
-    def _test_data_handling_100_percent(self) -> Dict[str, Any]:
+    def _test_data_handling_100_percent(self) -> dict[str, Any]:
         """Test data handling with emphasis on Bengali money fix"""
         from nlp.signals_extractor import extract_signals
         
@@ -185,7 +187,7 @@ class Final100PercentValidation:
             "critical_bengali_fix": "VERIFIED" if success_rate == 100.0 else "FAILED"
         }
     
-    def _test_security_100_percent(self) -> Dict[str, Any]:
+    def _test_security_100_percent(self) -> dict[str, Any]:
         """Test security with all edge cases"""
         from utils.input_sanitizer import InputSanitizer
         
@@ -271,7 +273,7 @@ class Final100PercentValidation:
             "security_hardening": "VERIFIED" if success_rate >= 95.0 else "INSUFFICIENT"
         }
     
-    def _test_ai_processing_100_percent(self) -> Dict[str, Any]:
+    def _test_ai_processing_100_percent(self) -> dict[str, Any]:
         """Test AI processing with never-empty contract"""
         from utils.ai_adapter_never_empty import AIAdapterNeverEmpty
         
@@ -380,7 +382,7 @@ class Final100PercentValidation:
             "never_empty_contract": "VERIFIED" if success_rate == 100.0 else "VIOLATED"
         }
     
-    def _test_routing_100_percent(self) -> Dict[str, Any]:
+    def _test_routing_100_percent(self) -> dict[str, Any]:
         """Test routing system with 100% preservation requirement"""
         
         routing_cases = [
@@ -436,7 +438,7 @@ class Final100PercentValidation:
             "routing_preservation": "PERFECT" if success_rate == 100.0 else "COMPROMISED"
         }
     
-    def _test_bilingual_100_percent(self) -> Dict[str, Any]:
+    def _test_bilingual_100_percent(self) -> dict[str, Any]:
         """Test comprehensive bilingual support"""
         from nlp.signals_extractor import extract_signals
         
@@ -521,7 +523,7 @@ class Final100PercentValidation:
             "bilingual_support": "COMPLETE" if success_rate == 100.0 else "INCOMPLETE"
         }
     
-    def _test_integration_100_percent(self) -> Dict[str, Any]:
+    def _test_integration_100_percent(self) -> dict[str, Any]:
         """Test integration and edge cases"""
         
         integration_checks = [
@@ -573,15 +575,15 @@ class Final100PercentValidation:
             "overall_success": success_rate == 100.0
         }
     
-    def _test_module_imports(self) -> Dict[str, Any]:
+    def _test_module_imports(self) -> dict[str, Any]:
         """Test all module imports work correctly"""
         try:
-            from utils.text_normalizer import normalize_for_processing
-            from utils.bn_digits import to_en_digits
-            from nlp.signals_extractor import extract_signals
             from nlp.money_patterns import extract_money_mentions
-            from utils.input_sanitizer import InputSanitizer
+            from nlp.signals_extractor import extract_signals
             from utils.ai_adapter_never_empty import AIAdapterNeverEmpty
+            from utils.bn_digits import to_en_digits
+            from utils.input_sanitizer import InputSanitizer
+            from utils.text_normalizer import normalize_for_processing
             
             # Test basic functionality
             normalized = normalize_for_processing("test ৫০০ টাকা")
@@ -601,12 +603,12 @@ class Final100PercentValidation:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_phase_interactions(self) -> Dict[str, Any]:
+    def _test_phase_interactions(self) -> dict[str, Any]:
         """Test that all phases work together"""
         try:
-            from utils.input_sanitizer import InputSanitizer
             from nlp.signals_extractor import extract_signals
             from utils.ai_adapter_never_empty import AIAdapterNeverEmpty
+            from utils.input_sanitizer import InputSanitizer
             
             # Test full workflow: Security → Data → AI
             raw_input = "আজ lunch ৳৫০০ <script>alert(1)</script>"
@@ -643,7 +645,7 @@ class Final100PercentValidation:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_edge_cases(self) -> Dict[str, Any]:
+    def _test_edge_cases(self) -> dict[str, Any]:
         """Test edge case handling"""
         try:
             from nlp.signals_extractor import extract_signals
@@ -678,11 +680,12 @@ class Final100PercentValidation:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_performance_bounds(self) -> Dict[str, Any]:
+    def _test_performance_bounds(self) -> dict[str, Any]:
         """Test performance is within acceptable bounds"""
         try:
-            from nlp.signals_extractor import extract_signals
             import time
+
+            from nlp.signals_extractor import extract_signals
             
             test_cases = [
                 "lunch 500 taka",
@@ -713,7 +716,7 @@ class Final100PercentValidation:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _print_results(self, phase_name: str, results: Dict[str, Any]):
+    def _print_results(self, phase_name: str, results: dict[str, Any]):
         """Print formatted results"""
         success = results.get("overall_success", False)
         
@@ -778,7 +781,7 @@ class Final100PercentValidation:
             }
         }
         
-        print(f"\n🎯 FINAL 100% SUCCESS ASSESSMENT")
+        print("\n🎯 FINAL 100% SUCCESS ASSESSMENT")
         print("=" * 60)
         print(f"Data Handling: {systems['data_handling'].get('success_rate', 0):.1f}% ({systems['data_handling'].get('critical_bengali_fix', 'UNKNOWN')})")
         print(f"Security: {systems['security'].get('success_rate', 0):.1f}% ({systems['security'].get('security_hardening', 'UNKNOWN')})")

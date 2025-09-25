@@ -7,11 +7,12 @@ import hashlib
 import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, Tuple, List
+from typing import Any, Dict, List, Optional
+
 from flask import request
 
-from models import Expense, ExpenseEdit, User
 from db_base import db
+from models import Expense, ExpenseEdit
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ class ExpenseEditor:
     def __init__(self):
         self.duplicate_time_window = 5  # minutes
         
-    def get_last_expense(self, user_id_hash: str) -> Optional[Expense]:
+    def get_last_expense(self, user_id_hash: str) -> Expense | None:
         """Get user's most recent expense"""
         try:
             return Expense.query.filter_by(
@@ -35,11 +36,11 @@ class ExpenseEditor:
         self, 
         expense_id: int, 
         editor_user_id: str,
-        new_amount: Optional[float] = None,
-        new_category: Optional[str] = None, 
-        new_description: Optional[str] = None,
-        reason: Optional[str] = None
-    ) -> Dict[str, Any]:
+        new_amount: float | None = None,
+        new_category: str | None = None, 
+        new_description: str | None = None,
+        reason: str | None = None
+    ) -> dict[str, Any]:
         """
         Edit an expense with complete audit trail
         
@@ -171,7 +172,7 @@ class ExpenseEditor:
         data = f"{expense.amount}|{expense.category}|{expense.description}|{expense.created_at}"
         return hashlib.sha256(data.encode()).hexdigest()
     
-    def _is_duplicate_edit(self, expense_id: int, changes: Dict) -> bool:
+    def _is_duplicate_edit(self, expense_id: int, changes: dict) -> bool:
         """Check if this edit is a duplicate of a recent edit attempt"""
         try:
             # Look for recent edits within time window
@@ -204,7 +205,7 @@ class ExpenseEditor:
             logger.error(f"Error checking duplicate edit: {e}")
             return False
     
-    def _get_client_info(self) -> Dict[str, Any]:
+    def _get_client_info(self) -> dict[str, Any]:
         """Get client information for audit trail"""
         try:
             # Hash IP address for privacy
@@ -221,7 +222,7 @@ class ExpenseEditor:
         except:
             return {"error": "Could not capture client info"}
     
-    def get_edit_history(self, expense_id: int, user_id_hash: str) -> List[Dict]:
+    def get_edit_history(self, expense_id: int, user_id_hash: str) -> list[dict]:
         """Get edit history for an expense"""
         try:
             # Verify user owns the expense
@@ -253,7 +254,7 @@ class ExpenseEditor:
 # Global instance
 expense_editor = ExpenseEditor()
 
-def edit_last_expense(user_id_hash: str, **kwargs) -> Dict[str, Any]:
+def edit_last_expense(user_id_hash: str, **kwargs) -> dict[str, Any]:
     """
     Convenience function to edit user's last expense
     

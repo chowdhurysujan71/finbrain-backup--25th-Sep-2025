@@ -4,11 +4,10 @@ Addresses the 2 remaining issues: Reports Requested Analytics and Non-Regression
 """
 
 import logging
-import json
-from datetime import datetime, timedelta, date
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass
 import uuid
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -19,20 +18,20 @@ class ValidationResult:
     description: str
     requirement: str
     validation_status: str  # PASS, FAIL, PARTIAL
-    details: Dict[str, Any]
-    evidence: List[str]
+    details: dict[str, Any]
+    evidence: list[str]
 
 class FinalComplianceValidator:
     """Targeted validator for 100% compliance achievement"""
     
     def __init__(self):
-        self.validation_results: List[ValidationResult] = []
+        self.validation_results: list[ValidationResult] = []
         self.test_user_hashes = set()
         self.start_time = datetime.utcnow()
         
         logger.info("Final Compliance Validator initialized for 100% achievement")
     
-    def fix_remaining_issues(self) -> Dict[str, Any]:
+    def fix_remaining_issues(self) -> dict[str, Any]:
         """Fix the 2 remaining issues to achieve 100% compliance"""
         
         print("🎯 FINAL COMPLIANCE VALIDATION - 100% TARGET")
@@ -56,9 +55,9 @@ class FinalComplianceValidator:
         print("\n1️⃣ ENHANCED REPORTS REQUESTED ANALYTICS VALIDATION")
         
         try:
-            from utils.identity import psid_hash
-            from models import User
             from db_base import db
+            from models import User
+            from utils.identity import psid_hash
             
             # Test report request tracking with actual handler calls
             test_user_id = "final_reports_validation_user"
@@ -171,10 +170,10 @@ class FinalComplianceValidator:
         print("\n2️⃣ ENHANCED NON-REGRESSIONS VALIDATION")
         
         try:
+            from db_base import db
+            from models import User
             from utils.db import save_expense
             from utils.identity import psid_hash
-            from models import User
-            from db_base import db
             
             # Test expense logging performance with multiple operations
             test_user_id = "final_performance_validation_user"
@@ -356,7 +355,7 @@ class FinalComplianceValidator:
             
             print(f"   ✅ {criteria_id}: {description}")
     
-    def _generate_final_compliance_report(self) -> Dict[str, Any]:
+    def _generate_final_compliance_report(self) -> dict[str, Any]:
         """Generate final compliance report targeting 100% achievement"""
         
         end_time = datetime.utcnow()
@@ -418,8 +417,8 @@ class FinalComplianceValidator:
         """Clean up test data created during validation"""
         
         try:
-            from models import User, Expense, MonthlySummary
             from db_base import db
+            from models import Expense, MonthlySummary, User
             
             for user_hash in self.test_user_hashes:
                 # Delete expenses
@@ -443,7 +442,7 @@ class FinalComplianceValidator:
         except Exception as e:
             print(f"\n⚠️ Cleanup warning: {e}")
 
-def run_final_compliance_validation() -> Dict[str, Any]:
+def run_final_compliance_validation() -> dict[str, Any]:
     """Run final compliance validation targeting 100% achievement"""
     
     from app import app
@@ -452,7 +451,7 @@ def run_final_compliance_validation() -> Dict[str, Any]:
         validator = FinalComplianceValidator()
         return validator.fix_remaining_issues()
 
-def validate_100_percent_achievement(compliance_report: Dict[str, Any]) -> bool:
+def validate_100_percent_achievement(compliance_report: dict[str, Any]) -> bool:
     """Validate that 100% compliance has been achieved"""
     
     exec_summary = compliance_report.get("executive_summary", {})

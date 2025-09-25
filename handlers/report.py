@@ -3,14 +3,13 @@ Money Story Report Handler - Generates gamified financial narratives
 """
 
 import logging
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Dict
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
 
-def handle_report(user_id: str) -> Dict[str, str]:
+def handle_report(user_id: str) -> dict[str, str]:
     """
     Generate Money Story report for user with feedback collection
     Returns dict with 'text' key containing the narrative report + feedback prompt
@@ -23,11 +22,10 @@ def handle_report(user_id: str) -> Dict[str, str]:
         return {"text": "Unable to generate report due to invalid user identifier."}
     
     try:
-        from models import Expense
         from db_base import db
+        from models import Expense
         from utils.feedback_context import set_feedback_context
         from utils.performance_cache import performance_cache
-        import uuid
         
         # Emit telemetry event
         _emit_telemetry_event(user_id)
@@ -52,7 +50,7 @@ def handle_report(user_id: str) -> Dict[str, str]:
                 return {"text": cached_story}
         
         # days_window already determined above for caching
-        end_time = datetime.now(timezone.utc)
+        end_time = datetime.now(UTC)
         start_time = end_time - timedelta(days=days_window)
         
         # Optimized query: only fetch required fields and limit results
@@ -123,16 +121,16 @@ def _generate_money_story(expenses, days_window: int, user_id: str) -> str:
         if not expenses:
             # Enhanced empty state with user context
             try:
-                from models import User
                 from db_base import db
+                from models import User
                 
                 user = db.session.query(User).filter_by(user_id_hash=user_id).first()
                 if user and user.is_new and user.expense_count == 0:
                     # First-time user experience
                     return (
-                        f"🌟 Welcome to FinBrain! You haven't logged any expenses yet. "
-                        f"Start by telling me about your spending - like 'bought coffee for ৳50' - "
-                        f"and I'll help you track your money story!"
+                        "🌟 Welcome to FinBrain! You haven't logged any expenses yet. "
+                        "Start by telling me about your spending - like 'bought coffee for ৳50' - "
+                        "and I'll help you track your money story!"
                     )
                 else:
                     # Returning user with no recent activity
@@ -211,11 +209,11 @@ def _generate_money_story(expenses, days_window: int, user_id: str) -> str:
 def _find_spending_win(expenses, days_window: int, user_id: str) -> str:
     """Find a spending win by comparing with previous period"""
     try:
-        from models import Expense
         from db_base import db
+        from models import Expense
         
         # Get previous period expenses
-        end_time = datetime.now(timezone.utc) - timedelta(days=days_window)
+        end_time = datetime.now(UTC) - timedelta(days=days_window)
         start_time = end_time - timedelta(days=days_window)
         
         prev_expenses = db.session.query(Expense).filter(
@@ -256,11 +254,11 @@ def _find_spending_win(expenses, days_window: int, user_id: str) -> str:
 def _get_streak_text(user_id: str) -> str:
     """Get streak text if streak ≥ 3 days"""
     try:
-        from models import Expense
         from db_base import db
+        from models import Expense
         
         # Calculate consecutive logging days
-        today = datetime.now(timezone.utc).date()
+        today = datetime.now(UTC).date()
         streak_days = 0
         check_date = today
         
@@ -309,6 +307,7 @@ def _emit_telemetry_event(user_id: str):
     """Emit telemetry event for report request"""
     try:
         import time
+
         from utils.structured import log_structured_event
         
         # Determine window days (same logic as main function)

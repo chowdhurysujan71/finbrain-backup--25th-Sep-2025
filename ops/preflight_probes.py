@@ -3,12 +3,11 @@
 Pre-flight probes to prevent deployment surprises
 Tests live endpoints with synthetic users before production flip
 """
-import json
-import sys
-import os
-import time
-from typing import Dict, Any, List
 import logging
+import os
+import sys
+import time
+from typing import Any, Dict, List
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,7 +20,7 @@ class PreflightProbes:
         self.base_url = base_url or os.environ.get("APP_URL", "http://localhost:5000")
         self.failures = []
         
-    def probe_endpoint(self, path: str, payload: Dict[str, Any], expected_fields: List[str] = None) -> Dict[str, Any]:
+    def probe_endpoint(self, path: str, payload: dict[str, Any], expected_fields: list[str] = None) -> dict[str, Any]:
         """
         Probe an endpoint with payload and validate response
         
@@ -213,7 +212,7 @@ class PreflightProbes:
         logger.info("🎉 All pre-flight probes passed successfully")
         return True
     
-    def get_failure_summary(self) -> List[str]:
+    def get_failure_summary(self) -> list[str]:
         """Get list of probe failures"""
         return self.failures.copy()
 

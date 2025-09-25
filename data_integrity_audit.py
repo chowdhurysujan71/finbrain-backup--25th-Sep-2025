@@ -4,15 +4,17 @@ CRITICAL DATA INTEGRITY AUDIT
 Comprehensive audit to ensure users only see their own accurate financial data
 """
 
-import os
 import sys
+
 sys.path.append('/home/runner/workspace')
 
+from datetime import UTC, datetime, timezone
+
+from sqlalchemy import func
+
 from app import app, db
-from models import User, Expense
-from sqlalchemy import func, text
-from datetime import datetime, timezone, timedelta
-import hashlib
+from models import Expense, User
+
 
 def audit_user_isolation():
     """Verify users can only access their own expense data"""
@@ -53,7 +55,7 @@ def audit_user_isolation():
                 result = handle_category_breakdown(user_id, "How much did I spend this month")
                 # Verify response doesn't contain other users' data
                 if "Error" not in result.get('text', ''):
-                    print(f"   ✅ Category breakdown isolated correctly")
+                    print("   ✅ Category breakdown isolated correctly")
                 else:
                     issues.append(f"❌ Category breakdown error for user {user_id[:16]}")
             except Exception as e:
@@ -163,7 +165,7 @@ def audit_timeframe_accuracy():
         issues = []
         
         # Test current month timeframe
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         
         print(f"Current month timeframe: {current_month_start.strftime('%Y-%m-%d')} to {now.strftime('%Y-%m-%d %H:%M')}")
@@ -181,7 +183,7 @@ def audit_timeframe_accuracy():
         for exp in all_expenses:
             exp_time = exp.created_at
             if exp_time.tzinfo is None:
-                exp_time = exp_time.replace(tzinfo=timezone.utc)
+                exp_time = exp_time.replace(tzinfo=UTC)
             
             if current_month_start <= exp_time <= now:
                 manual_current_month.append(exp)
@@ -272,14 +274,14 @@ def main():
     all_issues.extend(audit_category_consistency())
     
     # Final report
-    print(f"\n📋 AUDIT SUMMARY")
+    print("\n📋 AUDIT SUMMARY")
     print("=" * 30)
     
     if all_issues:
         print(f"❌ FOUND {len(all_issues)} CRITICAL ISSUES:")
         for i, issue in enumerate(all_issues, 1):
             print(f"{i}. {issue}")
-        print(f"\n🚨 DATA INTEGRITY COMPROMISED - IMMEDIATE ACTION REQUIRED")
+        print("\n🚨 DATA INTEGRITY COMPROMISED - IMMEDIATE ACTION REQUIRED")
         return False
     else:
         print("✅ ALL AUDIT CHECKS PASSED")

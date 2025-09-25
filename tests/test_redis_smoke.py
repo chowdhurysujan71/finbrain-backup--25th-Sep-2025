@@ -1,15 +1,16 @@
 """Tests for Redis smoke test endpoint"""
-import pytest
 import json
 import os
-from unittest.mock import Mock, patch, MagicMock
-from flask import Flask
 import sys
-import os
+from unittest.mock import Mock, patch
+
+import pytest
+from flask import Flask
 
 # Add parent directory to path to import from app directory
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'app'))
 from routes_redis_smoke import redis_smoke_bp
+
 
 @pytest.fixture
 def app():

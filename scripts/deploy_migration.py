@@ -4,9 +4,10 @@ Database Migration Script for Deployment Schema Conflicts
 Handles schema conflicts during deployment by resolving duplicate indexes and table issues
 """
 
+import logging
 import os
 import sys
-import logging
+
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 

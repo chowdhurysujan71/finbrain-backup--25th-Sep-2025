@@ -4,15 +4,16 @@ Implements explicit 3-Day Challenge flow with policy-compliant automation
 """
 
 import logging
-from datetime import datetime, date, timedelta
-from typing import Dict, Any, Optional
+from datetime import date, timedelta
+from typing import Any, Dict, Optional
+
 from db_base import db
 from models import User
 from utils.structured import log_structured_event
 
 logger = logging.getLogger(__name__)
 
-def handle_challenge_start(user_id_hash: str) -> Dict[str, Any]:
+def handle_challenge_start(user_id_hash: str) -> dict[str, Any]:
     """
     Handle START 3D command with idempotent challenge creation
     
@@ -79,7 +80,7 @@ def handle_challenge_start(user_id_hash: str) -> Dict[str, Any]:
             'error': str(e)
         }
 
-def check_challenge_progress(user_id_hash: str, current_message: str) -> Optional[str]:
+def check_challenge_progress(user_id_hash: str, current_message: str) -> str | None:
     """
     Check challenge progress and return daily nudge if appropriate
     Policy-compliant: only called during user interactions
@@ -123,7 +124,7 @@ def check_challenge_progress(user_id_hash: str, current_message: str) -> Optiona
         logger.error(f"Challenge progress check error for user {user_id_hash[:8]}...: {e}")
         return None
 
-def _handle_challenge_completion(user: User, user_id_hash: str) -> Optional[str]:
+def _handle_challenge_completion(user: User, user_id_hash: str) -> str | None:
     """
     Handle challenge completion logic with auto-report generation
     
@@ -215,7 +216,7 @@ def _check_challenge_completion_criteria(user_id_hash: str, start_date: date, en
         logger.error(f"Challenge completion criteria check error: {e}")
         return False
 
-def _generate_challenge_completion_report(user_id_hash: str, completion_success: bool) -> Dict[str, Any]:
+def _generate_challenge_completion_report(user_id_hash: str, completion_success: bool) -> dict[str, Any]:
     """
     Auto-generate completion report for 3-Day Challenge
     
@@ -298,7 +299,7 @@ def _calculate_days_remaining(start_date: date, end_date: date) -> int:
     today = date.today()
     return max(0, (end_date - today).days)
 
-def _emit_challenge_event(event_type: str, user_id_hash: str, event_data: Dict[str, Any]):
+def _emit_challenge_event(event_type: str, user_id_hash: str, event_data: dict[str, Any]):
     """
     Emit challenge-related analytics events
     
@@ -323,7 +324,7 @@ def _emit_challenge_event(event_type: str, user_id_hash: str, event_data: Dict[s
     except Exception as e:
         logger.error(f"Challenge event emission error for {event_type}: {e}")
 
-def get_challenge_status(user_id_hash: str) -> Dict[str, Any]:
+def get_challenge_status(user_id_hash: str) -> dict[str, Any]:
     """
     Get current challenge status for a user
     

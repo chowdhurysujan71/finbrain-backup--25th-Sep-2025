@@ -7,7 +7,9 @@ Comprehensive validation from input to database storage
 import json
 import time
 from datetime import datetime
+
 from app import app
+
 
 def run_comprehensive_e2e_uat():
     """Execute comprehensive end-to-end UAT with detailed audit reporting"""
@@ -51,7 +53,7 @@ def run_comprehensive_e2e_uat():
         
         # Test money pattern detection
         try:
-            from nlp.money_patterns import has_money_mention, extract_money_amount
+            from nlp.money_patterns import extract_money_amount, has_money_mention
             test_cases = [
                 "চা ৫০ টাকা",
                 "coffee 75 taka", 
@@ -157,8 +159,7 @@ def run_comprehensive_e2e_uat():
         database_results = []
         
         try:
-            from utils.db import save_expense, get_user_expenses
-            from utils.identity import ensure_hashed
+            from utils.db import get_user_expenses, save_expense
             
             # Test expense storage
             test_user = f"uat_db_user_{int(time.time())}"
@@ -323,13 +324,13 @@ def run_comprehensive_e2e_uat():
             # Show failures
             failed_tests = [test for test in tests if not test.get("passed", False)]
             if failed_tests:
-                print(f"   ❌ Failed Tests:")
+                print("   ❌ Failed Tests:")
                 for failed in failed_tests:
                     error_msg = failed.get("error", "Test failed")
                     print(f"      - {failed.get('test', 'Unknown')}: {error_msg}")
         
         # Overall assessment
-        print(f"\n📈 OVERALL ASSESSMENT")
+        print("\n📈 OVERALL ASSESSMENT")
         print(f"   Total Tests: {passed_tests}/{total_tests}")
         print(f"   Success Rate: {success_rate:.1f}%")
         
@@ -347,7 +348,7 @@ def run_comprehensive_e2e_uat():
             deployment_status = "❌ NOT APPROVED FOR DEPLOYMENT"
             recommendation = "Critical failures detected - requires fixes"
         
-        print(f"\n🚀 DEPLOYMENT RECOMMENDATION")
+        print("\n🚀 DEPLOYMENT RECOMMENDATION")
         print(f"   Status: {deployment_status}")
         print(f"   Recommendation: {recommendation}")
         

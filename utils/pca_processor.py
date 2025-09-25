@@ -5,13 +5,14 @@ Phase 1: CC Snapshot Logging and Basic Processing
 
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from sqlalchemy.exc import IntegrityError
 
 logger = logging.getLogger("finbrain.pca_processor")
 
-def log_cc_snapshot(cc_dict: Dict[str, Any], processing_time_ms: Optional[int] = None, 
-                   applied: bool = False, error_message: Optional[str] = None) -> bool:
+def log_cc_snapshot(cc_dict: dict[str, Any], processing_time_ms: int | None = None, 
+                   applied: bool = False, error_message: str | None = None) -> bool:
     """
     Log Canonical Command snapshot to inference_snapshots table
     
@@ -25,8 +26,10 @@ def log_cc_snapshot(cc_dict: Dict[str, Any], processing_time_ms: Optional[int] =
         True if logged successfully, False otherwise
     """
     try:
-        from db_base import db
-        from db_base import app  # type: ignore[attr-defined]
+        from db_base import (
+            app,  # type: ignore[attr-defined]
+            db,
+        )
         from models_pca import InferenceSnapshot
         from utils.pca_flags import pca_flags
         
@@ -85,7 +88,7 @@ def log_cc_snapshot(cc_dict: Dict[str, Any], processing_time_ms: Optional[int] =
             pass
         return False
 
-def process_message_with_pca(user_id: str, message_text: str, message_id: str, timestamp: datetime) -> Dict[str, Any]:
+def process_message_with_pca(user_id: str, message_text: str, message_id: str, timestamp: datetime) -> dict[str, Any]:
     """
     Process message through PCA system based on current mode
     
@@ -99,8 +102,8 @@ def process_message_with_pca(user_id: str, message_text: str, message_id: str, t
         Dictionary containing processing results and metadata
     """
     try:
-        from utils.pca_flags import pca_flags, generate_cc_id, PCAMode
         from utils.canonical_command import CanonicalCommand, create_help_cc
+        from utils.pca_flags import PCAMode, generate_cc_id, pca_flags
         
         # PHASE 3: DRYRUN Mode - Process all users (no canary logic)
         # Note: Removed user-level enablement due to no gated releases
@@ -131,7 +134,12 @@ def process_message_with_pca(user_id: str, message_text: str, message_id: str, t
                 
                 if money_matches:
                     # Money event detected - create LOG_EXPENSE CC
-                    from utils.canonical_command import CCSlots, CCIntent, CCDecision, CanonicalCommand
+                    from utils.canonical_command import (
+                        CanonicalCommand,
+                        CCDecision,
+                        CCIntent,
+                        CCSlots,
+                    )
                     
                     amount = float(money_matches[0])
                     from utils.categories import normalize_category
@@ -211,7 +219,7 @@ def process_message_with_pca(user_id: str, message_text: str, message_id: str, t
         }
 
 def process_dryrun_mode(user_id: str, message_text: str, message_id: str, cc_id: str, 
-                       timestamp: datetime, pca_flags) -> Dict[str, Any]:
+                       timestamp: datetime, pca_flags) -> dict[str, Any]:
     """
     PHASE 3: Enhanced DRYRUN mode processing for all users
     
@@ -228,7 +236,13 @@ def process_dryrun_mode(user_id: str, message_text: str, message_id: str, cc_id:
     processing_start = time_module.time()
     
     try:
-        from utils.canonical_command import CanonicalCommand, create_help_cc, CCSlots, CCIntent, CCDecision
+        from utils.canonical_command import (
+            CanonicalCommand,
+            CCDecision,
+            CCIntent,
+            CCSlots,
+            create_help_cc,
+        )
         
         # Enhanced expense detection patterns
         expense_patterns = [
@@ -370,7 +384,7 @@ def process_dryrun_mode(user_id: str, message_text: str, message_id: str, cc_id:
         }
 
 def process_production_mode(user_id: str, message_text: str, message_id: str, cc_id: str, 
-                          timestamp: datetime, pca_flags) -> Dict[str, Any]:
+                          timestamp: datetime, pca_flags) -> dict[str, Any]:
     """
     PHASE 4: Production mode with actual transaction creation
     """
@@ -380,7 +394,13 @@ def process_production_mode(user_id: str, message_text: str, message_id: str, cc
     processing_start = time_module.time()
     
     try:
-        from utils.canonical_command import CanonicalCommand, create_help_cc, CCSlots, CCIntent, CCDecision
+        from utils.canonical_command import (
+            CanonicalCommand,
+            CCDecision,
+            CCIntent,
+            CCSlots,
+            create_help_cc,
+        )
         
         # Enhanced expense detection with confidence scoring
         expense_patterns = [
@@ -414,8 +434,8 @@ def process_production_mode(user_id: str, message_text: str, message_id: str, cc
         
         # Generate CC based on detection
         if expense_detected and amount_value and amount_value > 0:
-            from utils.categories import normalize_category
             from utils.canonical_command import CanonicalCommand
+            from utils.categories import normalize_category
             cc = CanonicalCommand(
                 cc_id=cc_id,
                 user_id=user_id,
@@ -470,7 +490,7 @@ def process_production_mode(user_id: str, message_text: str, message_id: str, cc
         logger.error(f"Phase 4 processing failed: {e}")
         
         from utils.canonical_command import create_help_cc
-        error_cc = create_help_cc(user_id, cc_id, message_text, f"Phase 4 error")
+        error_cc = create_help_cc(user_id, cc_id, message_text, "Phase 4 error")
         log_cc_snapshot(error_cc.to_dict(), processing_time_ms, applied=False, error_message=str(e))
         
         return {
@@ -484,10 +504,13 @@ def process_production_mode(user_id: str, message_text: str, message_id: str, cc
 def apply_cc_transaction(cc, user_id: str) -> bool:
     """Apply high-confidence CC by creating actual expense transaction"""
     try:
-        from db_base import db
-        from db_base import app  # type: ignore[attr-defined]
-        from models import Expense, User
         from datetime import datetime
+
+        from db_base import (
+            app,  # type: ignore[attr-defined]
+            db,
+        )
+        from models import Expense, User
         
         # Use app context for database operations
         with app.app_context():
@@ -518,11 +541,16 @@ def apply_cc_transaction(cc, user_id: str) -> bool:
         logger.error(f"Transaction creation failed: {e}")
         return False
 
-def get_pca_health_status() -> Dict[str, Any]:
+def get_pca_health_status() -> dict[str, Any]:
     """Get health status of PCA overlay tables and processing"""
     try:
         from db_base import db
-        from models_pca import TransactionEffective, UserCorrection, UserRule, InferenceSnapshot
+        from models_pca import (
+            InferenceSnapshot,
+            TransactionEffective,
+            UserCorrection,
+            UserRule,
+        )
         
         # Check table accessibility and basic counts
         tx_count = db.session.query(TransactionEffective).count()

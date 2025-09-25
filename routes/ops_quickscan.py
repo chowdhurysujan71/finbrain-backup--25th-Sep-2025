@@ -1,10 +1,10 @@
 """
 Diagnostic endpoint for tracing write/read path inconsistencies
 """
-from flask import Blueprint, request, jsonify
-from utils.identity import ensure_hashed
+from flask import Blueprint, request
+
 from models import Expense, User
-from db_base import db
+from utils.identity import ensure_hashed
 
 bp = Blueprint("quickscan", __name__)
 
@@ -12,8 +12,9 @@ bp = Blueprint("quickscan", __name__)
 def quickscan():
     """Diagnostic endpoint to check user data consistency - ADMIN ACCESS REQUIRED"""
     # Check authentication
-    from app import check_basic_auth
     from flask import jsonify
+
+    from app import check_basic_auth
     
     if not check_basic_auth():
         return jsonify({"error": "Authentication required"}), 401

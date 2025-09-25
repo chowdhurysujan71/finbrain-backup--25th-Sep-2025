@@ -2,10 +2,12 @@
 Asset management routes for FinBrain
 Provides secure file upload/download via Supabase Storage signed URLs
 """
-import os
 import json
+import os
 import time
-from flask import Blueprint, request, jsonify, g
+
+from flask import Blueprint, g, jsonify, request
+
 from utils.logger import structured_logger
 
 # Import storage client  
@@ -13,8 +15,8 @@ try:
     from app.storage_supabase import storage_client
 except ImportError:
     # Handle case where app is not a package
-    import sys
     import os
+    import sys
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
     from storage_supabase import storage_client
 
@@ -126,7 +128,7 @@ def upload_url():
         
         return jsonify(result), 200
         
-    except Exception as e:
+    except Exception:
         latency_ms = (time.time() - start_time) * 1000
         safe_user_id = user_id if 'user_id' in locals() and user_id else "unknown"
         safe_path = path if 'path' in locals() and path else "unknown"
@@ -163,7 +165,7 @@ def download_url():
         
         return jsonify(result), 200
         
-    except Exception as e:
+    except Exception:
         latency_ms = (time.time() - start_time) * 1000
         safe_user_id = user_id if 'user_id' in locals() and user_id else "unknown"
         safe_path = path if 'path' in locals() and path else "unknown"
@@ -203,7 +205,7 @@ def delete_asset():
         
         return jsonify({"success": True, "path": path}), 200
         
-    except Exception as e:
+    except Exception:
         latency_ms = (time.time() - start_time) * 1000
         safe_user_id = user_id if 'user_id' in locals() and user_id else "unknown"
         safe_path = path if 'path' in locals() and path else "unknown"

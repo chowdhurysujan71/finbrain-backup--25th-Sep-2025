@@ -4,13 +4,13 @@ E2E Pipeline Test Runner
 Comprehensive test runner for the complete end-to-end expense data pipeline.
 Executes all test modules in the correct order and provides detailed reporting.
 """
-import os
-import sys
-import subprocess
-import time
 import json
+import os
+import subprocess
+import sys
+import time
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 
 class E2EPipelineRunner:
@@ -32,7 +32,7 @@ class E2EPipelineRunner:
         self.start_time = None
         self.end_time = None
 
-    def run_all_tests(self, verbose: bool = True, stop_on_failure: bool = False) -> Dict[str, Any]:
+    def run_all_tests(self, verbose: bool = True, stop_on_failure: bool = False) -> dict[str, Any]:
         """Run all E2E pipeline tests"""
         self.start_time = datetime.now()
         
@@ -75,7 +75,7 @@ class E2EPipelineRunner:
             'end_time': self.end_time.isoformat() if self.end_time else ''
         }
 
-    def _run_test_module(self, module: str, verbose: bool) -> Dict[str, Any]:
+    def _run_test_module(self, module: str, verbose: bool) -> dict[str, Any]:
         """Run individual test module"""
         module_path = f"tests.e2e_pipeline.{module}"
         start_time = time.time()
@@ -106,7 +106,7 @@ class E2EPipelineRunner:
             
             if os.path.exists(report_file):
                 try:
-                    with open(report_file, 'r') as f:
+                    with open(report_file) as f:
                         report_data = json.load(f)
                         test_details = {
                             'tests_collected': report_data.get('summary', {}).get('collected', 0),
@@ -189,7 +189,7 @@ class E2EPipelineRunner:
             total_skipped += details.get('tests_skipped', 0)
         
         if total_tests > 0:
-            print(f"\n📋 Test Statistics:")
+            print("\n📋 Test Statistics:")
             print(f"  Total Tests: {total_tests}")
             print(f"  Passed: {total_passed}")
             print(f"  Failed: {total_failed}")
@@ -197,7 +197,7 @@ class E2EPipelineRunner:
             print(f"  Success Rate: {(total_passed / total_tests * 100):.1f}%")
         
         # Coverage summary
-        print(f"\n🎯 Coverage Summary:")
+        print("\n🎯 Coverage Summary:")
         coverage_areas = [
             ("Chat Path", "test_chat_path"),
             ("Form Path", "test_form_path"),
@@ -242,7 +242,7 @@ class E2EPipelineRunner:
         
         print("=" * 60)
 
-    def run_specific_modules(self, modules: List[str], verbose: bool = True) -> Dict[str, Any]:
+    def run_specific_modules(self, modules: list[str], verbose: bool = True) -> dict[str, Any]:
         """Run specific test modules"""
         if not modules:
             print("No modules specified")

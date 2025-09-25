@@ -1,8 +1,8 @@
 """
 Unified cryptographic utilities to eliminate hash inconsistencies
 """
-import hashlib
 import logging
+
 from utils.identity import ensure_hashed as identity_ensure_hashed
 
 logger = logging.getLogger(__name__)

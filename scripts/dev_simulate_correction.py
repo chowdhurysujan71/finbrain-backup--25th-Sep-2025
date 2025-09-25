@@ -4,20 +4,24 @@ SMART_CORRECTIONS Development Simulation Script
 End-to-end testing tool for correction system with realistic scenarios
 """
 
+import json
 import os
 import sys
-import json
 import time
-from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from datetime import datetime
+from typing import Any, Dict, List
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from parsers.expense import parse_expense, is_correction_message
 from finbrain.router import contains_money_with_correction_fallback
+from parsers.expense import is_correction_message, parse_expense
+from templates.replies import (
+    format_corrected_reply,
+    format_correction_no_candidate_reply,
+)
 from utils.feature_flags import is_smart_corrections_enabled
-from templates.replies import format_corrected_reply, format_correction_no_candidate_reply
+
 
 class CorrectionSimulator:
     """Simulates the complete correction flow for development testing"""
@@ -26,7 +30,7 @@ class CorrectionSimulator:
         self.test_user = "dev_test_user_hash_12345"
         self.scenarios = self._load_test_scenarios()
         
-    def _load_test_scenarios(self) -> List[Dict[str, Any]]:
+    def _load_test_scenarios(self) -> list[dict[str, Any]]:
         """Load comprehensive test scenarios"""
         return [
             {
@@ -80,7 +84,7 @@ class CorrectionSimulator:
             }
         ]
     
-    def test_correction_detection(self) -> Dict[str, Any]:
+    def test_correction_detection(self) -> dict[str, Any]:
         """Test correction message detection"""
         print("\n🔍 Testing Correction Detection...")
         results = {
@@ -112,7 +116,7 @@ class CorrectionSimulator:
         
         return results
     
-    def test_money_detection_fallback(self) -> Dict[str, Any]:
+    def test_money_detection_fallback(self) -> dict[str, Any]:
         """Test enhanced money detection with correction fallbacks"""
         print("\n💰 Testing Money Detection with Correction Fallbacks...")
         results = {
@@ -153,7 +157,7 @@ class CorrectionSimulator:
         
         return results
     
-    def test_correction_parsing(self) -> Dict[str, Any]:
+    def test_correction_parsing(self) -> dict[str, Any]:
         """Test correction-context parsing"""
         print("\n📝 Testing Correction Parsing...")
         results = {
@@ -214,7 +218,7 @@ class CorrectionSimulator:
         
         return results
     
-    def test_reply_formatting(self) -> Dict[str, Any]:
+    def test_reply_formatting(self) -> dict[str, Any]:
         """Test correction reply formatting"""
         print("\n💬 Testing Reply Formatting...")
         results = {
@@ -273,7 +277,7 @@ class CorrectionSimulator:
         
         return results
     
-    def test_feature_flags(self) -> Dict[str, Any]:
+    def test_feature_flags(self) -> dict[str, Any]:
         """Test feature flag system"""
         print("\n🚩 Testing Feature Flag System...")
         results = {
@@ -295,7 +299,7 @@ class CorrectionSimulator:
             
             if result['passed']:
                 results['passed'] += 1
-                print(f"✅ Feature flag: SMART_CORRECTIONS disabled by default")
+                print("✅ Feature flag: SMART_CORRECTIONS disabled by default")
             else:
                 results['failed'] += 1
                 print(f"❌ Feature flag: Expected disabled, got {corrections_enabled}")
@@ -308,7 +312,7 @@ class CorrectionSimulator:
         
         return results
     
-    def run_comprehensive_test(self) -> Dict[str, Any]:
+    def run_comprehensive_test(self) -> dict[str, Any]:
         """Run comprehensive test suite"""
         print("🧪 SMART_CORRECTIONS Development Simulation")
         print("=" * 50)

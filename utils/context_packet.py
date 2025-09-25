@@ -4,15 +4,18 @@ Builds user-specific spending snapshots and enforces numeric advice with guard l
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
+
 from sqlalchemy.orm import Session
-from models import Expense, User
+
+from models import Expense
+
 from .identity import psid_hash
 
 logger = logging.getLogger(__name__)
 
-def build_context(psid: str, db: Session) -> Dict[str, Any]:
+def build_context(psid: str, db: Session) -> dict[str, Any]:
     """
     Build structured context packet for AI with 30-day spending patterns, trends, and goals
     
@@ -87,7 +90,7 @@ def build_context(psid: str, db: Session) -> Dict[str, Any]:
             "context_quality": "thin"
         }
 
-def get_spend_by_category(db: Session, user_hash: str, days: int, days_end: int = 0) -> List[Tuple[str, float]]:
+def get_spend_by_category(db: Session, user_hash: str, days: int, days_end: int = 0) -> list[tuple[str, float]]:
     """Get spending by category for specified date range"""
     try:
         end_date = datetime.utcnow() - timedelta(days=days_end)
@@ -111,7 +114,7 @@ def get_spend_by_category(db: Session, user_hash: str, days: int, days_end: int 
         logger.error(f"Category spending query failed: {e}")
         return []
 
-def get_income(db: Session, user_hash: str, days: int) -> Optional[float]:
+def get_income(db: Session, user_hash: str, days: int) -> float | None:
     """Get income data for specified period (placeholder implementation)"""
     try:
         # TODO: Implement income tracking table
@@ -121,7 +124,7 @@ def get_income(db: Session, user_hash: str, days: int) -> Optional[float]:
         logger.error(f"Income query failed: {e}")
         return None
 
-def get_recurring_expenses(db: Session, user_hash: str) -> List[Tuple[str, float, int]]:
+def get_recurring_expenses(db: Session, user_hash: str) -> list[tuple[str, float, int]]:
     """Get recurring expenses (placeholder implementation)"""
     try:
         # TODO: Implement recurring expense detection/tracking
@@ -162,7 +165,7 @@ def get_recurring_expenses(db: Session, user_hash: str) -> List[Tuple[str, float
         logger.error(f"Recurring expenses query failed: {e}")
         return []
 
-def get_user_goals(db: Session, user_hash: str) -> List[Tuple[str, float, float]]:
+def get_user_goals(db: Session, user_hash: str) -> list[tuple[str, float, float]]:
     """Get user financial goals (placeholder implementation)"""
     try:
         # TODO: Implement goals tracking table
@@ -172,7 +175,7 @@ def get_user_goals(db: Session, user_hash: str) -> List[Tuple[str, float, float]
         logger.error(f"Goals query failed: {e}")
         return []
 
-def is_context_thin(context: Dict[str, Any]) -> bool:
+def is_context_thin(context: dict[str, Any]) -> bool:
     """
     Determine if context is too thin for personalized advice
     
@@ -188,7 +191,7 @@ def is_context_thin(context: Dict[str, Any]) -> bool:
         context.get("context_quality") == "thin"
     )
 
-def get_thin_context_reply() -> Tuple[str, List[Dict[str, str]]]:
+def get_thin_context_reply() -> tuple[str, list[dict[str, str]]]:
     """
     Get reply for when context is too thin for personalized advice
     
@@ -240,7 +243,7 @@ RESPONSE_SCHEMA = {
     "required": ["summary", "action", "question"]
 }
 
-def format_context_for_ai(context: Dict[str, Any]) -> str:
+def format_context_for_ai(context: dict[str, Any]) -> str:
     """
     Format context packet for AI consumption
     

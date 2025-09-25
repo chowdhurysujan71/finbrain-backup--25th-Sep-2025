@@ -1,5 +1,11 @@
 # prod_probe.py
-import os, hmac, hashlib, json, time, requests
+import hashlib
+import hmac
+import json
+import os
+import time
+
+import requests
 
 PROD_URL        = os.environ.get("PROD_URL", "https://<your-deploy-domain>/webhook/messenger")
 FB_APP_SECRET   = os.environ["FACEBOOK_APP_SECRET"]     # set in Replit Secrets

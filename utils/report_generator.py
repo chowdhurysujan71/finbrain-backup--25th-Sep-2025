@@ -1,9 +1,10 @@
 """Automated report generation for daily and weekly summaries"""
 import logging
 from datetime import date, timedelta
-from utils.db import get_monthly_summary
 
 from models import Expense
+from utils.db import get_monthly_summary
+from utils.identity import ensure_hashed
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +117,7 @@ def generate_weekly_report(user_identifier, platform):
                 elif trend < 0:
                     report += f"\n📉 Trend: ৳{trend:.2f} vs yesterday"
                 else:
-                    report += f"\n➡️ Trend: Same as yesterday"
+                    report += "\n➡️ Trend: Same as yesterday"
         
         return report
         

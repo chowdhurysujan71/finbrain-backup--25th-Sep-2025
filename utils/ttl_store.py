@@ -4,11 +4,11 @@ Lightweight TTL store with Redis preference and safe in-memory fallback
 Handles rate limiting, daily caps, and anti-repeat functionality
 """
 
-import os
-import time
-import threading
-from typing import Optional
 import logging
+import os
+import threading
+import time
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class InProcTTL:
         for k in drop:
             self._d.pop(k, None)
 
-    def incr(self, key: str, ttl_seconds: Optional[int] = None) -> int:
+    def incr(self, key: str, ttl_seconds: int | None = None) -> int:
         """Increment key by 1, optionally setting TTL"""
         with self._lock:
             self._purge()
@@ -38,7 +38,7 @@ class InProcTTL:
             self._d[key] = (val, exp)
             return val
 
-    def get(self, key: str) -> Optional[int]:
+    def get(self, key: str) -> int | None:
         """Get value for key"""
         with self._lock:
             self._purge()
@@ -64,7 +64,7 @@ class RedisTTL:
     def __init__(self, client):
         self.client = client
 
-    def incr(self, key: str, ttl_seconds: Optional[int] = None) -> int:
+    def incr(self, key: str, ttl_seconds: int | None = None) -> int:
         """Increment key by 1, optionally setting TTL"""
         p = self.client.pipeline()
         p.incr(key)
@@ -72,7 +72,7 @@ class RedisTTL:
             p.expire(key, ttl_seconds)
         return p.execute()[0]
 
-    def get(self, key: str) -> Optional[int]:
+    def get(self, key: str) -> int | None:
         """Get value for key"""
         v = self.client.get(key)
         return int(v) if v else None

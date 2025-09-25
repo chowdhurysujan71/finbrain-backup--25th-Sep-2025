@@ -3,10 +3,12 @@
 Endpoint Headers Test - Evidence-Driven Release Assurance
 Tests /api/recent endpoint for proper cache headers and data integrity
 """
-import requests
 import json
 import sys
 from pathlib import Path
+
+import requests
+
 
 def test_recent_endpoint_headers():
     """Test /api/recent endpoint for Cache-Control headers and data integrity"""
@@ -43,7 +45,7 @@ def test_recent_endpoint_headers():
         pragma = headers.get('Pragma', '')
         expires = headers.get('Expires', '')
         
-        print(f"\n📋 Cache Headers Analysis:")
+        print("\n📋 Cache Headers Analysis:")
         print(f"  Cache-Control: {cache_control}")
         print(f"  Pragma: {pragma}")
         print(f"  Expires: {expires}")
@@ -121,7 +123,7 @@ def test_recent_endpoint_headers():
         headers_pass = cache_score >= 2 and has_no_store  # At minimum need no-store + one more
         overall_pass = headers_pass and data_valid and response.status_code == 200
         
-        print(f"\n📊 Headers Test Summary:")
+        print("\n📊 Headers Test Summary:")
         print(f"  Cache Headers: {'PASS' if headers_pass else 'FAIL'} ({cache_score}/4 directives)")
         print(f"  Data Format: {'PASS' if data_valid else 'FAIL'}")
         print(f"  Overall: {'PASS ✅' if overall_pass else 'FAIL ❌'}")
@@ -137,13 +139,13 @@ def test_recent_endpoint_headers():
             f.write("Headers:\n")
             for key, value in headers.items():
                 f.write(f"  {key}: {value}\n")
-            f.write(f"\nCache Headers Analysis:\n")
+            f.write("\nCache Headers Analysis:\n")
             f.write(f"  no-store: {'✅' if has_no_store else '❌'}\n")
             f.write(f"  no-cache: {'✅' if has_no_cache else '❌'}\n")
             f.write(f"  must-revalidate: {'✅' if has_must_revalidate else '❌'}\n")
             f.write(f"  private: {'✅' if has_private else '❌'}\n")
             f.write(f"\nMissing directives: {', '.join(required_directives) if required_directives else 'None'}\n")
-            f.write(f"\nTest Results:\n")
+            f.write("\nTest Results:\n")
             f.write(f"  Headers: {'PASS' if headers_pass else 'FAIL'}\n")
             f.write(f"  Data: {'PASS' if data_valid else 'FAIL'}\n")
             f.write(f"  Overall: {'PASS' if overall_pass else 'FAIL'}\n")

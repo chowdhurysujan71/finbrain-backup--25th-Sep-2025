@@ -4,14 +4,15 @@ Handles D1/D3 activation tracking and report counting
 Silent data collection with no user-visible outputs
 """
 
-import os
-import logging
-from datetime import datetime
-from typing import Optional, Dict, Any
-from models import User
-from db_base import db
-from utils.timezone_helpers import is_same_local_day, is_within_hours
 import json
+import logging
+import os
+from datetime import datetime
+from typing import Any, Dict
+
+from db_base import db
+from models import User
+from utils.timezone_helpers import is_same_local_day, is_within_hours
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +183,7 @@ class AnalyticsEngine:
             logger.error(f"Signup source setting failed for user {user.user_id_hash[:8]}: {e}")
             return False
     
-    def get_analytics_summary(self, user: User) -> Dict[str, Any]:
+    def get_analytics_summary(self, user: User) -> dict[str, Any]:
         """
         Get current analytics state for user (for debugging/monitoring)
         
@@ -210,7 +211,7 @@ class AnalyticsEngine:
             logger.error(f"Analytics summary failed for user {user.user_id_hash[:8]}: {e}")
             return {"enabled": True, "error": str(e)}
     
-    def _emit_analytics_event(self, event_name: str, user_id_hash: str, data: Dict[str, Any]) -> None:
+    def _emit_analytics_event(self, event_name: str, user_id_hash: str, data: dict[str, Any]) -> None:
         """
         Emit analytics telemetry event
         
@@ -259,6 +260,6 @@ def set_user_signup_source(user: User, source: str) -> bool:
     """Set user signup source if available"""
     return analytics_engine.set_signup_source(user, source)
 
-def get_user_analytics(user: User) -> Dict[str, Any]:
+def get_user_analytics(user: User) -> dict[str, Any]:
     """Get analytics summary for user"""
     return analytics_engine.get_analytics_summary(user)

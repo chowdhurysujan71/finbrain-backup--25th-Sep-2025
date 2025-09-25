@@ -2,34 +2,29 @@
 Safe background execution with thread pool and AI adapter support
 Includes RL-2 graceful non-AI fallback system
 """
-import os
-import time
 import json
 import logging
-import threading
-import requests
-from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
-from queue import Queue, Empty
+import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Optional, Dict, Any, Tuple
+from datetime import datetime
+from queue import Queue
+from typing import Any, Dict, Optional, Tuple
 
-from .logger import log_webhook_success, get_request_id
-from .user_manager import resolve_user_id
-from .identity import psid_hash
-from .rate_limiter import check_rate_limit
-from .policy_guard import update_user_message_timestamp, is_within_24_hour_window
-from .facebook_handler import send_facebook_message
-from .ai_rate_limiter import ai_rate_limiter
-from .background_processor_rl2 import rl2_processor
 from utils.production_router import production_router
+
+from .facebook_handler import send_facebook_message
+from .identity import psid_hash
+from .logger import log_webhook_success
+from .policy_guard import is_within_24_hour_window, update_user_message_timestamp
+from .user_manager import resolve_user_id
 
 logger = logging.getLogger(__name__)
 
 # Phase C: Import job queue components
 try:
-    from .job_queue import job_queue
     from .job_processor import job_processor
+    from .job_queue import job_queue
     JOB_QUEUE_ENABLED = True
     logger.info("Job queue integration enabled")
 except ImportError as e:
@@ -153,8 +148,9 @@ class BackgroundProcessor:
                     # PHASE 2: PCA Integration - Process message through PCA system first
                     pca_result = None
                     try:
-                        from utils.pca_integration import integrate_pca_with_webhook
                         from datetime import datetime
+
+                        from utils.pca_integration import integrate_pca_with_webhook
                         
                         # Extract job fields based on job type
                         job_text = job.get("text") if isinstance(job, dict) else job.text
@@ -236,7 +232,10 @@ class BackgroundProcessor:
                     # Always attempt response even on processing errors
                     try:
                         # Clean AI error response
-                        from templates.replies_ai import format_ai_error_reply, clean_ai_reply
+                        from templates.replies_ai import (
+                            clean_ai_reply,
+                            format_ai_error_reply,
+                        )
                         clean_error = format_ai_error_reply("general")
                         response_sent = send_facebook_message(job.psid, clean_error)
                         logger.info(f"Request {job.rid}: Error response sent successfully (hash: {psid_hash[:8]}...)")
@@ -259,14 +258,14 @@ class BackgroundProcessor:
             if not response_sent and intent != "24h_policy_block":
                 logger.warning(f"Request {job.rid}: No response sent for message {job.mid}")
     
-    def _regex_fallback_with_disclaimer(self, text: str, psid: str, is_rate_limited: bool = False) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _regex_fallback_with_disclaimer(self, text: str, psid: str, is_rate_limited: bool = False) -> tuple[str, str, str | None, float | None]:
         """
         Regex-based message routing (non-rate-limited fallback)
         For rate-limited scenarios, use RL-2 processor instead
         """
-        from utils.parser import parse_expense
-        from utils.expense import process_expense_message
         from utils.categories import categorize_expense
+        from utils.expense import process_expense_message
+        from utils.parser import parse_expense
         
         # Use streamlined parser for expense detection
         parsed_expense = parse_expense(text)
@@ -301,9 +300,10 @@ class BackgroundProcessor:
     
     def _generate_simple_summary(self, psid: str) -> str:
         """Generate a simple summary without AI calls"""
+        from datetime import datetime, timedelta
+
         from db_base import db
         from models import Expense
-        from datetime import datetime, timedelta
         
         try:
             week_ago = datetime.utcnow() - timedelta(days=7)
@@ -366,7 +366,7 @@ class BackgroundProcessor:
             logger.error(f"Failed to send fallback reply: {str(e)}")
             return False
     
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get background processor statistics"""
         ai_status = self.ai_adapter.get_status() if hasattr(self.ai_adapter, 'get_status') else {"enabled": False}
         stats = {

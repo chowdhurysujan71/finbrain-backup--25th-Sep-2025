@@ -4,13 +4,17 @@ Wires together the ux_components with the existing FinBrain architecture
 """
 
 import logging
-from typing import Dict, Any, Optional
-from utils.ux_components import (
-    handle_enhanced_message, handle_payload, get_ux_metrics,
-    parse_expense, safe_send_text, send_picker, record_event
-)
-from utils.facebook_handler import send_message
+from typing import Any, Dict
+
 from limiter import can_use_ai
+from utils.facebook_handler import send_message
+from utils.ux_components import (
+    get_ux_metrics,
+    handle_enhanced_message,
+    handle_payload,
+    parse_expense,
+    record_event,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +64,7 @@ class EnhancedMessageHandler:
             if operation == "add_expense":
                 psid, category, amount = args
                 # Integrate with your existing expense logging
-                from models import Expense, User
+                from models import Expense
                 from utils.security import hash_psid
                 
                 user_hash = hash_psid(psid)
@@ -149,7 +153,7 @@ class EnhancedMessageHandler:
             self._send_message(psid, "I didn't understand that option. Please try again.")
             return True
     
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get UX metrics for observability"""
         return get_ux_metrics()
 

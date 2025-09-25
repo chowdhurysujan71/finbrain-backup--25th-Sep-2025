@@ -5,12 +5,17 @@ Enforces structured output and prevents generic advice when data is insufficient
 
 import json
 import logging
-from typing import Dict, Any, Optional, Tuple
+from typing import Any, Dict, Optional
+
 from utils.context_packet import (
-    build_context, is_context_thin, get_thin_context_reply,
-    format_context_for_ai, CONTEXT_SYSTEM_PROMPT, RESPONSE_SCHEMA
+    CONTEXT_SYSTEM_PROMPT,
+    RESPONSE_SCHEMA,
+    build_context,
+    format_context_for_ai,
+    get_thin_context_reply,
+    is_context_thin,
 )
-from utils.ux_components import format_coach_reply, safe_send_text, record_event
+from utils.ux_components import format_coach_reply, record_event, safe_send_text
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +26,7 @@ class ContextDrivenAI:
         self.ai_adapter = ai_adapter
         self.db = db_session
         
-    def process_with_context(self, psid: str, user_text: str) -> Dict[str, Any]:
+    def process_with_context(self, psid: str, user_text: str) -> dict[str, Any]:
         """
         Process user message with context packet and structured response
         
@@ -104,7 +109,7 @@ class ContextDrivenAI:
                 ]
             }
     
-    def _call_ai_with_schema(self, messages: list) -> Optional[Dict[str, str]]:
+    def _call_ai_with_schema(self, messages: list) -> dict[str, str] | None:
         """
         Call AI with JSON schema enforcement
         
@@ -151,7 +156,7 @@ class ContextDrivenAI:
             logger.error(f"AI schema call failed: {e}")
             return None
     
-    def _generate_fallback_response(self, context: Dict[str, Any], user_text: str) -> Dict[str, Any]:
+    def _generate_fallback_response(self, context: dict[str, Any], user_text: str) -> dict[str, Any]:
         """
         Generate structured fallback response using context data
         

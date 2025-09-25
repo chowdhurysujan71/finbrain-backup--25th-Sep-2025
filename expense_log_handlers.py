@@ -5,11 +5,11 @@ Implements PoR v1.1 expense logging and clarification flows
 
 import logging
 import time
-from typing import Dict, Any
+from typing import Any, Dict
 
 logger = logging.getLogger("finbrain.expense_log_handlers")
 
-def handle_expense_log_intent(user_id: str, text: str, signals: Dict[str, Any]) -> Dict[str, Any]:
+def handle_expense_log_intent(user_id: str, text: str, signals: dict[str, Any]) -> dict[str, Any]:
     """
     Handle EXPENSE_LOG intent - money + first-person past-tense verb detected
     
@@ -24,7 +24,6 @@ def handle_expense_log_intent(user_id: str, text: str, signals: Dict[str, Any]) 
     try:
         # Extract expense details using existing parsers
         from parsers.expense import parse_amount_currency_category
-        from utils.ai_adapter_v2 import production_ai_adapter
         
         # Parse expense using existing system
         parsed_expense = parse_amount_currency_category(text)
@@ -33,8 +32,6 @@ def handle_expense_log_intent(user_id: str, text: str, signals: Dict[str, Any]) 
             # Store expense using CANONICAL SINGLE WRITER (spec compliance)
             try:
                 import backend_assistant as ba
-                from datetime import datetime
-                import uuid
                 
                 # Generate proper metadata for unified function
                 source_message_id = f"chat_expense_{int(time.time() * 1000000)}"
@@ -96,7 +93,7 @@ def handle_expense_log_intent(user_id: str, text: str, signals: Dict[str, Any]) 
             "error": str(e)
         }
 
-def handle_clarify_expense_intent(user_id: str, text: str, signals: Dict[str, Any]) -> Dict[str, Any]:
+def handle_clarify_expense_intent(user_id: str, text: str, signals: dict[str, Any]) -> dict[str, Any]:
     """
     Handle CLARIFY_EXPENSE intent - money detected but no first-person verb
     
@@ -110,8 +107,8 @@ def handle_clarify_expense_intent(user_id: str, text: str, signals: Dict[str, An
     """
     try:
         # Extract money amount for clarification
-        from utils.bn_digits import to_en_digits
         from nlp.money_patterns import extract_money_mentions
+        from utils.bn_digits import to_en_digits
         
         # Normalize and extract money mentions
         normalized_text = to_en_digits(text)
@@ -215,7 +212,7 @@ def handle_clarify_expense_intent(user_id: str, text: str, signals: Dict[str, An
             "error": str(e)
         }
 
-def handle_clarification_response(user_id: str, response_text: str, original_context: Dict[str, Any]) -> Dict[str, Any]:
+def handle_clarification_response(user_id: str, response_text: str, original_context: dict[str, Any]) -> dict[str, Any]:
     """
     Handle user response to clarification prompt
     

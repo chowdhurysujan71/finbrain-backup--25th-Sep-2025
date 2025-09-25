@@ -5,11 +5,11 @@ Debug test to isolate deterministic routing issues
 
 from app import app
 
+
 def debug_deterministic_routing():
     """Debug the deterministic routing step by step"""
     
     with app.app_context():
-        from utils.routing_policy import DeterministicRouter, RoutingSignals
         from utils.routing_policy import deterministic_router
         
         print("🐛 DEBUGGING DETERMINISTIC ROUTING")
@@ -21,7 +21,7 @@ def debug_deterministic_routing():
         
         # Extract signals step by step
         signals = deterministic_router.extract_signals(test_input, "debug_user")
-        print(f"   Raw signals:")
+        print("   Raw signals:")
         print(f"   - has_money: {signals.has_money}")
         print(f"   - has_first_person_spent_verb: {signals.has_first_person_spent_verb}")
         print(f"   - has_explicit_analysis: {signals.has_explicit_analysis}")
@@ -42,7 +42,7 @@ def debug_deterministic_routing():
             print(f"   - Reason codes: {routing_result.reason_codes}")
             print(f"   - Matched patterns: {routing_result.matched_patterns}")
         else:
-            print(f"   ❌ Deterministic routing not activated!")
+            print("   ❌ Deterministic routing not activated!")
             
         # Test Case 2: Bengali clarification
         test_input2 = "চা ৫০ টাকা"
@@ -62,7 +62,7 @@ def debug_deterministic_routing():
             routing_result2 = deterministic_router.route_intent(test_input2, signals2)
             print(f"   - Routing result: {routing_result2.intent.value}")
         else:
-            print(f"   ❌ Deterministic routing not activated!")
+            print("   ❌ Deterministic routing not activated!")
             
         # Test Case 3: Analysis query
         test_input3 = "এই মাসের খরচের সারাংশ দাও"
@@ -82,10 +82,10 @@ def debug_deterministic_routing():
             routing_result3 = deterministic_router.route_intent(test_input3, signals3)
             print(f"   - Routing result: {routing_result3.intent.value}")
         else:
-            print(f"   ❌ Deterministic routing not activated!")
+            print("   ❌ Deterministic routing not activated!")
 
         # Check the configuration
-        print(f"\n🔧 CONFIGURATION CHECK")
+        print("\n🔧 CONFIGURATION CHECK")
         print(f"   - Router flags: {deterministic_router.flags}")
         print(f"   - Routing scope: {getattr(deterministic_router.flags, 'routing_scope', 'not_set')}")
 

@@ -4,9 +4,10 @@ FinBrain production server startup script
 Starts gunicorn without the --reload flag to prevent WINCH signal loops
 """
 import os
-import sys
-import subprocess
 import signal
+import subprocess
+import sys
+
 
 def signal_handler(sig, frame):
     """Handle shutdown signals gracefully"""

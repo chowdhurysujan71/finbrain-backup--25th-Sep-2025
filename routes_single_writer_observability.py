@@ -4,14 +4,16 @@ Single Writer Observability Routes
 Provides monitoring dashboards and API endpoints for tracking single writer enforcement.
 """
 
-from flask import Blueprint, jsonify, render_template_string, request
-import json
+import os
 import time
-from utils.single_writer_metrics import get_health_status, get_dashboard_data, single_writer_monitor
+
 # Simplified auth for observability - using basic auth check
 from functools import wraps
-from flask import request, jsonify
-import os
+
+from flask import Blueprint, jsonify, request
+
+from utils.single_writer_metrics import get_dashboard_data, get_health_status
+
 
 def require_basic_auth(f):
     @wraps(f)
@@ -68,28 +70,28 @@ def metrics_endpoint():
         
         # Generate Prometheus-style metrics
         metrics = [
-            f"# HELP single_writer_canonical_writes_total Total canonical writer operations",
-            f"# TYPE single_writer_canonical_writes_total counter",
+            "# HELP single_writer_canonical_writes_total Total canonical writer operations",
+            "# TYPE single_writer_canonical_writes_total counter",
             f"single_writer_canonical_writes_total {metrics_24h['canonical_writes_total']}",
             "",
-            f"# HELP single_writer_success_rate Success rate of canonical writer operations",
-            f"# TYPE single_writer_success_rate gauge", 
+            "# HELP single_writer_success_rate Success rate of canonical writer operations",
+            "# TYPE single_writer_success_rate gauge", 
             f"single_writer_success_rate {metrics_24h['canonical_writes_success_rate'] / 100}",
             "",
-            f"# HELP single_writer_avg_response_time_ms Average response time in milliseconds",
-            f"# TYPE single_writer_avg_response_time_ms gauge",
+            "# HELP single_writer_avg_response_time_ms Average response time in milliseconds",
+            "# TYPE single_writer_avg_response_time_ms gauge",
             f"single_writer_avg_response_time_ms {metrics_24h['avg_response_time_ms']}",
             "",
-            f"# HELP single_writer_violations_total Total violations detected",
-            f"# TYPE single_writer_violations_total counter",
+            "# HELP single_writer_violations_total Total violations detected",
+            "# TYPE single_writer_violations_total counter",
             f"single_writer_violations_total {metrics_24h['violations']}",
             "",
-            f"# HELP single_writer_protection_triggers_total Total protection triggers",
-            f"# TYPE single_writer_protection_triggers_total counter", 
+            "# HELP single_writer_protection_triggers_total Total protection triggers",
+            "# TYPE single_writer_protection_triggers_total counter", 
             f"single_writer_protection_triggers_total {metrics_24h['protection_triggers']}",
             "",
-            f"# HELP single_writer_sla_compliance SLA compliance indicators",
-            f"# TYPE single_writer_sla_compliance gauge",
+            "# HELP single_writer_sla_compliance SLA compliance indicators",
+            "# TYPE single_writer_sla_compliance gauge",
         ]
         
         for sla_name, compliant in sla_compliance.items():
@@ -98,20 +100,20 @@ def metrics_endpoint():
         # Add AI timeout metrics
         metrics.extend([
             "",
-            f"# HELP ai_requests_total Total AI requests made",
-            f"# TYPE ai_requests_total counter",
+            "# HELP ai_requests_total Total AI requests made",
+            "# TYPE ai_requests_total counter",
             f"ai_requests_total {ai_metrics['ai_requests_total']}",
             "",
-            f"# HELP ai_timeouts_total Total AI request timeouts",
-            f"# TYPE ai_timeouts_total counter", 
+            "# HELP ai_timeouts_total Total AI request timeouts",
+            "# TYPE ai_timeouts_total counter", 
             f"ai_timeouts_total {ai_metrics['ai_timeouts_total']}",
             "",
-            f"# HELP ai_timeout_rate AI timeout rate as percentage",
-            f"# TYPE ai_timeout_rate gauge",
+            "# HELP ai_timeout_rate AI timeout rate as percentage",
+            "# TYPE ai_timeout_rate gauge",
             f"ai_timeout_rate {ai_metrics['ai_timeout_rate']}",
             "",
-            f"# HELP ai_success_rate AI request success rate as percentage",
-            f"# TYPE ai_success_rate gauge",
+            "# HELP ai_success_rate AI request success rate as percentage",
+            "# TYPE ai_success_rate gauge",
             f"ai_success_rate {ai_metrics['ai_success_rate']}"
         ])
         

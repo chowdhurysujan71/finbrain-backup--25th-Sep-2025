@@ -2,8 +2,8 @@
 """
 Runtime import probe to detect circular dependencies and broken imports
 """
-import sys
 import traceback
+
 
 def test_import(module_path, expected_symbols=None):
     """Test if a module can be imported and has expected symbols"""

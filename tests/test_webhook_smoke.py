@@ -1,6 +1,8 @@
 import importlib
+
 import pytest
 from flask import Flask
+
 
 def import_webhook_bp():
     candidates = ["utils.production_router", "finbrain.router", "app"]

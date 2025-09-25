@@ -1,8 +1,8 @@
 """Token refresh reminder and monitoring system"""
 import logging
-import os
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List
+
 from .token_manager import token_manager
 
 logger = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ class TokenRefreshReminder:
             'notice': 30      # 30 days or less
         }
     
-    def check_all_tokens(self) -> Dict:
+    def check_all_tokens(self) -> dict:
         """Check all token status and generate appropriate reminders"""
         results = {
             'status': 'healthy',
@@ -131,7 +131,7 @@ class TokenRefreshReminder:
         
         return results
     
-    def get_refresh_instructions(self) -> List[str]:
+    def get_refresh_instructions(self) -> list[str]:
         """Get step-by-step token refresh instructions"""
         return [
             "📋 Facebook Page Access Token Refresh Instructions:",
@@ -168,7 +168,7 @@ class TokenRefreshReminder:
 # Global reminder instance
 token_refresh_reminder = TokenRefreshReminder()
 
-def get_token_refresh_status() -> Dict:
+def get_token_refresh_status() -> dict:
     """Get current token refresh status - convenience function"""
     return token_refresh_reminder.check_all_tokens()
 

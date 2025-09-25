@@ -2,8 +2,9 @@
 Rate limiting utility for FinBrain application
 Provides centralized limiter configuration for both app and PWA components
 """
-import os
 import logging
+import os
+
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 

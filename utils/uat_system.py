@@ -3,10 +3,9 @@ Live UAT (User Acceptance Testing) system for FinBrain
 Runs structured tests through actual Messenger interactions
 """
 import logging
-from typing import Dict, Any, Optional, List
 from datetime import datetime
-from db_base import db
-from models import User
+from typing import Any, Dict, Optional
+
 from utils.security import hash_psid
 
 logger = logging.getLogger(__name__)
@@ -49,7 +48,7 @@ class UATSystem:
         logger.info(f"Started UAT for {psid_hash[:10]}... tester: {tester_name}")
         return UAT_PROMPT_FLOW[0]
     
-    def get_next_uat_prompt(self, psid: str, user_message: str) -> Optional[str]:
+    def get_next_uat_prompt(self, psid: str, user_message: str) -> str | None:
         """Get next UAT prompt based on current step"""
         if psid not in self.uat_users:
             return None
@@ -142,7 +141,7 @@ Your FinBrain system is {'ready for production' if total_steps >= 7 else 'needs 
         if psid in self.uat_users:
             del self.uat_users[psid]
     
-    def get_uat_stats(self) -> Dict[str, Any]:
+    def get_uat_stats(self) -> dict[str, Any]:
         """Get current UAT statistics"""
         active_tests = len(self.uat_users)
         

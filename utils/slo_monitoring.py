@@ -9,15 +9,13 @@ This module implements comprehensive SLO tracking with:
 - System availability monitoring (Target: 99.95% uptime)
 """
 
-import time
-import json
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, asdict
-from enum import Enum
 import threading
 from collections import defaultdict, deque
+from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +46,8 @@ class SLOMeasurement:
     metric_type: SLOMetricType
     value: float
     success: bool
-    response_time_ms: Optional[float] = None
-    error_message: Optional[str] = None
+    response_time_ms: float | None = None
+    error_message: str | None = None
     operation: str = "unknown"
 
 @dataclass
@@ -59,7 +57,7 @@ class SLOStatusReport:
     status: SLOStatusLevel
     measurements_count: int
     error_budget_remaining: float
-    last_violation: Optional[datetime] = None
+    last_violation: datetime | None = None
     trend: str = "stable"  # improving, degrading, stable
 
 class SLOMonitor:
@@ -128,7 +126,7 @@ class SLOMonitor:
     
     def record_expense_save_attempt(self, success: bool, response_time_ms: float, 
                                   operation: str = "expense_save", 
-                                  error_message: Optional[str] = None,
+                                  error_message: str | None = None,
                                   single_writer_compliant: bool = True) -> None:
         """
         📝 RECORD EXPENSE SAVE ATTEMPT
@@ -196,7 +194,7 @@ class SLOMonitor:
                 operation="health_check"
             ))
     
-    def get_current_slo_status(self) -> Dict[str, Any]:
+    def get_current_slo_status(self) -> dict[str, Any]:
         """
         📊 GET CURRENT SLO STATUS
         Calculate current SLO status for all targets
@@ -234,7 +232,7 @@ class SLOMonitor:
             }
         }
     
-    def _calculate_slo_status(self, target_name: str, target: SLOTarget) -> Optional[SLOStatusReport]:
+    def _calculate_slo_status(self, target_name: str, target: SLOTarget) -> SLOStatusReport | None:
         """Calculate SLO status for a specific target"""
         measurements = self.measurements[target_name]
         if not measurements:
@@ -327,7 +325,7 @@ class SLOMonitor:
             last_violation=last_violation
         )
     
-    def get_slo_trends(self, hours: int = 24) -> Dict[str, Any]:
+    def get_slo_trends(self, hours: int = 24) -> dict[str, Any]:
         """
         📈 GET SLO TRENDS
         Analyze SLO trends over specified time period
@@ -399,7 +397,7 @@ class SLOMonitor:
         
         return trends
     
-    def get_slo_violations_summary(self, hours: int = 24) -> Dict[str, Any]:
+    def get_slo_violations_summary(self, hours: int = 24) -> dict[str, Any]:
         """
         🚨 GET SLO VIOLATIONS SUMMARY
         Summary of SLO violations in the specified time period
@@ -452,7 +450,7 @@ slo_monitor = SLOMonitor()
 def record_expense_operation(success: bool, response_time_ms: float, 
                            operation: str = "expense_save",
                            single_writer_compliant: bool = True,
-                           error_message: Optional[str] = None) -> None:
+                           error_message: str | None = None) -> None:
     """
     📊 GLOBAL ENTRY POINT
     Record an expense operation for SLO tracking
@@ -465,7 +463,7 @@ def record_expense_operation(success: bool, response_time_ms: float,
         single_writer_compliant=single_writer_compliant
     )
 
-def get_slo_dashboard() -> Dict[str, Any]:
+def get_slo_dashboard() -> dict[str, Any]:
     """
     📊 GET SLO DASHBOARD
     Get comprehensive SLO dashboard data

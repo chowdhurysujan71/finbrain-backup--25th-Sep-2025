@@ -3,24 +3,25 @@ Natural Language Integration for PWA UI
 Integrates the NL expense parser with the existing form-based expense system
 """
 
-import logging
 import hashlib
-from flask import request, jsonify, render_template, redirect, url_for
-from typing import Dict, Any, List, Optional
+import logging
+from typing import Any, Dict, List, Optional
 
-from utils.nl_expense_parser import parse_nl_expense, ExpenseParseResult
-from utils.expense_editor import edit_last_expense, expense_editor
+from flask import render_template
+
 import backend_assistant as ba
-from utils.identity import psid_hash
-from utils.categories import normalize_category
-from models import Expense
 from db_base import db
+from models import Expense
+from utils.categories import normalize_category
 from utils.db_guard import assert_single_db_instance
+from utils.expense_editor import edit_last_expense, expense_editor
+from utils.nl_expense_parser import parse_nl_expense
+
 assert_single_db_instance(db)
 
 logger = logging.getLogger(__name__)
 
-def handle_nl_expense_entry(text: str, user_id_hash: str) -> Dict[str, Any]:
+def handle_nl_expense_entry(text: str, user_id_hash: str) -> dict[str, Any]:
     """
     Handle natural language expense entry with clarification flow
     
@@ -109,10 +110,10 @@ def handle_nl_expense_entry(text: str, user_id_hash: str) -> Dict[str, Any]:
 def handle_clarification_response(
     original_text: str, 
     user_id_hash: str,
-    confirmed_amount: Optional[float] = None,
-    confirmed_category: Optional[str] = None,
-    confirmed_description: Optional[str] = None
-) -> Dict[str, Any]:
+    confirmed_amount: float | None = None,
+    confirmed_category: str | None = None,
+    confirmed_description: str | None = None
+) -> dict[str, Any]:
     """
     Handle user's clarification response and save the expense
     
@@ -187,11 +188,11 @@ def handle_clarification_response(
 
 def handle_edit_last_expense_request(
     user_id_hash: str,
-    new_amount: Optional[float] = None,
-    new_category: Optional[str] = None,
-    new_description: Optional[str] = None,
-    reason: Optional[str] = None
-) -> Dict[str, Any]:
+    new_amount: float | None = None,
+    new_category: str | None = None,
+    new_description: str | None = None,
+    reason: str | None = None
+) -> dict[str, Any]:
     """
     Handle "Edit Last Expense" functionality
     
@@ -223,7 +224,7 @@ def handle_edit_last_expense_request(
             "error": f"Edit failed: {str(e)}"
         }
 
-def get_expense_edit_history(user_id_hash: str, expense_id: int) -> List[Dict]:
+def get_expense_edit_history(user_id_hash: str, expense_id: int) -> list[dict]:
     """Get edit history for an expense"""
     try:
         return expense_editor.get_edit_history(expense_id, user_id_hash)
@@ -234,8 +235,8 @@ def get_expense_edit_history(user_id_hash: str, expense_id: int) -> List[Dict]:
 # Template rendering helpers
 def render_clarification_ui(
     original_text: str,
-    detected_amount: Optional[float] = None,
-    suggested_categories: Optional[List[Dict]] = None
+    detected_amount: float | None = None,
+    suggested_categories: list[dict] | None = None
 ) -> str:
     """Render the clarification UI for low-confidence parsing"""
     

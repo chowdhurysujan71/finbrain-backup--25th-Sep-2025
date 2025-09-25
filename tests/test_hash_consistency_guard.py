@@ -8,11 +8,14 @@ CRITICAL: This test MUST pass in CI/CD to prevent deployment of
 hash inconsistencies that break user data reconciliation.
 """
 
-import pytest
 import hashlib
 import os
-from utils.identity import ensure_hashed as identity_ensure_hashed, psid_hash
+
+import pytest
+
 from utils.crypto import ensure_hashed as crypto_ensure_hashed
+from utils.identity import ensure_hashed as identity_ensure_hashed
+from utils.identity import psid_hash
 
 
 class TestHashConsistencyGuard:

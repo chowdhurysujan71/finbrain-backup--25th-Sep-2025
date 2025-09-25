@@ -2,8 +2,8 @@
 Brand Normalization Utility for finbrain
 Ensures consistent lowercase branding in user-facing outputs without touching source code
 """
-import re
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 

@@ -2,11 +2,11 @@
 Gemini AI adapter with single process() entrypoint
 """
 
-import os
 import logging
-from typing import Dict, Any, Optional
+import os
+from typing import Any, Dict, Optional
 
-from .contracts import InboundMessage, AIContext, AIResult
+from .contracts import AIContext, AIResult, InboundMessage
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ class GeminiAdapter:
             "intents": ["log_expense"]
         }
     
-    def phrase_summary(self, summary: Dict[str, Any], message: Optional[InboundMessage] = None, context: Optional[AIContext] = None) -> AIResult:
+    def phrase_summary(self, summary: dict[str, Any], message: InboundMessage | None = None, context: AIContext | None = None) -> AIResult:
         """
         Shim for summary phrasing - maintains compatibility
         """

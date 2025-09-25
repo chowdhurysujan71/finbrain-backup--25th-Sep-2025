@@ -3,11 +3,11 @@ Data-Version Uniqueness Handler for PoR v1.1
 Implements truthful uniqueness messaging with micro-insights
 """
 
-import os
 import logging
-import hashlib
-from typing import Optional, Dict, Any, Tuple
-from datetime import datetime, timedelta
+import os
+from datetime import datetime
+from typing import Optional, Tuple
+
 from utils.routing_policy import DataVersionManager
 
 logger = logging.getLogger("finbrain.uniqueness")
@@ -20,7 +20,7 @@ class UniquenessHandler:
         self.data_mgr = DataVersionManager()
         self.uniqueness_mode = os.environ.get('UNIQUENESS_MODE', 'data_version')
         
-    def check_uniqueness(self, user_id: str, text: str, window_start: datetime, window_end: datetime) -> Tuple[bool, Optional[str]]:
+    def check_uniqueness(self, user_id: str, text: str, window_start: datetime, window_end: datetime) -> tuple[bool, str | None]:
         """
         Check if request is unique or should be suppressed
         
@@ -78,7 +78,7 @@ class UniquenessHandler:
         else:
             return base_en
     
-    def _generate_micro_insight(self, user_id: str, window_start: datetime, window_end: datetime) -> Optional[str]:
+    def _generate_micro_insight(self, user_id: str, window_start: datetime, window_end: datetime) -> str | None:
         """Generate deterministic micro-insight for unchanged data"""
         try:
             from db_base import db
@@ -124,13 +124,13 @@ class UniquenessHandler:
             logger.warning(f"[UNIQUENESS] Failed to generate micro-insight for {user_id[:8]}: {e}")
             return None
     
-    def _get_last_data_version(self, user_id: str) -> Optional[str]:
+    def _get_last_data_version(self, user_id: str) -> str | None:
         """Get last stored data version for user"""
         try:
             from utils.session import get_from_cache
             cache_key = f"data_version:{user_id}"
             return get_from_cache(cache_key)
-        except:
+        except Exception:
             return None
     
     def _store_data_version(self, user_id: str, data_version: str):

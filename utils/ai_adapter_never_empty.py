@@ -3,11 +3,11 @@ AI adapter with "never empty" contract
 Guarantees user-visible responses even during vendor failures
 """
 from __future__ import annotations
-import time
-import json
+
 import logging
-from typing import Dict, Any, Optional
+import time
 from dataclasses import dataclass
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 class AIContractResponse:
     """Guaranteed non-empty AI response with contract validation"""
     bullet_points: list[str]
-    flags: Dict[str, bool]
-    metadata: Dict[str, Any]
+    flags: dict[str, bool]
+    metadata: dict[str, Any]
     
     def validate(self) -> bool:
         """Validate response meets contract"""
@@ -35,7 +35,7 @@ class AIAdapterNeverEmpty:
         self.stub_mode = stub_mode
         self.fallback_cache = {}  # Simple in-memory stale cache
         
-    def generate_insights_for_user(self, user_id: str, window: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_insights_for_user(self, user_id: str, window: str, payload: dict[str, Any]) -> dict[str, Any]:
         """
         Generate insights with hard contract: never empty response
         
@@ -71,7 +71,7 @@ class AIAdapterNeverEmpty:
         logger.info(f"Using minimal safe response for user {user_id}")
         return minimal_response
     
-    def _generate_with_resilience(self, payload: Dict[str, Any], user_id: str, data_version: str) -> Dict[str, Any]:
+    def _generate_with_resilience(self, payload: dict[str, Any], user_id: str, data_version: str) -> dict[str, Any]:
         """Generate response with vendor AI or stub"""
         
         if self.stub_mode:
@@ -81,7 +81,7 @@ class AIAdapterNeverEmpty:
         # For now, return deterministic response based on payload
         return self._generate_deterministic_response(payload)
     
-    def _generate_stub_response(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _generate_stub_response(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Generate stub response for CI/testing"""
         totals = payload.get("totals", {})
         grand_total = totals.get("grand_total", 0)
@@ -103,7 +103,7 @@ class AIAdapterNeverEmpty:
             "metadata": {"source": "stub", "confidence": 1.0}
         }
     
-    def _generate_deterministic_response(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _generate_deterministic_response(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Generate deterministic response based on payload data"""
         totals = payload.get("totals", {})
         grand_total = totals.get("grand_total", 0)
@@ -147,7 +147,7 @@ class AIAdapterNeverEmpty:
             "metadata": {"source": "deterministic", "confidence": 0.85}
         }
     
-    def _generate_minimal_safe_response(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _generate_minimal_safe_response(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Last resort: minimal safe response that always works"""
         return {
             "bullet_points": ["Expense tracking is active and working properly."],
@@ -155,7 +155,7 @@ class AIAdapterNeverEmpty:
             "metadata": {"source": "minimal_safe", "confidence": 0.7}
         }
     
-    def _validate_response(self, response: Dict[str, Any]) -> bool:
+    def _validate_response(self, response: dict[str, Any]) -> bool:
         """Validate response meets the never-empty contract"""
         try:
             bullet_points = response.get("bullet_points", [])
@@ -180,12 +180,12 @@ class AIAdapterNeverEmpty:
             logger.error(f"Response validation error: {e}")
             return False
     
-    def _cache_response(self, user_id: str, response: Dict[str, Any]):
+    def _cache_response(self, user_id: str, response: dict[str, Any]):
         """Cache successful response for stale fallback"""
         # Simple in-memory cache (in production, use Redis)
         self.fallback_cache[user_id] = response.copy()
     
-    def get_health_status(self) -> Dict[str, Any]:
+    def get_health_status(self) -> dict[str, Any]:
         """Get adapter health status"""
         return {
             "mode": "stub" if self.stub_mode else "production",

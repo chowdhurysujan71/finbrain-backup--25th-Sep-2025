@@ -6,18 +6,17 @@ This module implements comprehensive test coverage requirements and automatic
 dead code detection to ensure no "silent" code paths exist in the system.
 """
 
-import os
 import ast
-import sys
-import subprocess
-import re
 import json
-import time
-from typing import Dict, List, Set, Tuple, Optional, Any
-from pathlib import Path
 import logging
+import os
+import re
+import subprocess
+import time
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +32,7 @@ class GhostDetection:
     ghost_type: GhostType
     file_path: str
     line_number: int
-    function_name: Optional[str]
+    function_name: str | None
     description: str
     confidence: float  # 0.0 - 1.0
     suggested_action: str
@@ -52,7 +51,7 @@ class GhostEliminator:
     
     def __init__(self, project_root: str = '.'):
         self.project_root = Path(project_root)
-        self.detected_ghosts: List[GhostDetection] = []
+        self.detected_ghosts: list[GhostDetection] = []
         self.coverage_threshold = 100.0  # Require 100% coverage
         self.expense_routing_files = [
             'backend_assistant.py',
@@ -61,7 +60,7 @@ class GhostEliminator:
             'routes_expense.py'
         ]
         
-    def run_comprehensive_ghost_elimination(self) -> Dict[str, Any]:
+    def run_comprehensive_ghost_elimination(self) -> dict[str, Any]:
         """
         🔍 RUN COMPLETE GHOST ELIMINATION
         Comprehensive analysis of all hidden code paths
@@ -97,7 +96,7 @@ class GhostEliminator:
             execution_time
         )
     
-    def _analyze_test_coverage(self) -> Dict[str, Any]:
+    def _analyze_test_coverage(self) -> dict[str, Any]:
         """
         📊 ANALYZE TEST COVERAGE
         Generate detailed coverage report for critical paths
@@ -111,7 +110,7 @@ class GhostEliminator:
             
             coverage_data = {}
             if os.path.exists('coverage.json'):
-                with open('coverage.json', 'r') as f:
+                with open('coverage.json') as f:
                     coverage_data = json.load(f)
             
             # Analyze coverage for critical expense routing files
@@ -131,7 +130,7 @@ class GhostEliminator:
                                 file_path=file_path,
                                 line_number=line_num,
                                 function_name=None,
-                                description=f"Untested line in critical expense routing file",
+                                description="Untested line in critical expense routing file",
                                 confidence=0.9,
                                 suggested_action=f"Add test coverage for line {line_num}"
                             ))
@@ -151,7 +150,7 @@ class GhostEliminator:
                 'error': str(e)
             }
     
-    def _get_file_coverage(self, file_path: str, coverage_data: Dict) -> Dict[str, Any]:
+    def _get_file_coverage(self, file_path: str, coverage_data: dict) -> dict[str, Any]:
         """Get coverage information for a specific file"""
         files_data = coverage_data.get('files', {})
         
@@ -173,7 +172,7 @@ class GhostEliminator:
             'covered_lines': 0
         }
     
-    def _detect_dead_code(self) -> Dict[str, Any]:
+    def _detect_dead_code(self) -> dict[str, Any]:
         """
         💀 DETECT DEAD CODE
         Find code that's never executed or referenced
@@ -202,7 +201,7 @@ class GhostEliminator:
                 continue
                 
             try:
-                with open(py_file, 'r', encoding='utf-8') as f:
+                with open(py_file, encoding='utf-8') as f:
                     content = f.read()
                     lines = content.split('\n')
                 
@@ -229,7 +228,7 @@ class GhostEliminator:
             'potential_dead_files': potential_dead_files
         }
     
-    def _detect_orphaned_functions(self) -> Dict[str, Any]:
+    def _detect_orphaned_functions(self) -> dict[str, Any]:
         """
         🏝️ DETECT ORPHANED FUNCTIONS
         Find functions that are defined but never called
@@ -243,7 +242,7 @@ class GhostEliminator:
                 continue
                 
             try:
-                with open(py_file, 'r', encoding='utf-8') as f:
+                with open(py_file, encoding='utf-8') as f:
                     content = f.read()
                 
                 # Parse AST to find function definitions
@@ -289,7 +288,7 @@ class GhostEliminator:
             'orphaned_count': len(orphaned_functions)
         }
     
-    def _analyze_unreachable_branches(self) -> Dict[str, Any]:
+    def _analyze_unreachable_branches(self) -> dict[str, Any]:
         """
         🌿 ANALYZE UNREACHABLE BRANCHES
         Find if/else branches that can never be reached
@@ -303,7 +302,7 @@ class GhostEliminator:
                 continue
                 
             try:
-                with open(py_file, 'r', encoding='utf-8') as f:
+                with open(py_file, encoding='utf-8') as f:
                     lines = f.readlines()
                 
                 for i, line in enumerate(lines, 1):
@@ -328,7 +327,7 @@ class GhostEliminator:
             'count': len(unreachable_branches)
         }
     
-    def _detect_legacy_remnants(self) -> Dict[str, Any]:
+    def _detect_legacy_remnants(self) -> dict[str, Any]:
         """
         🏚️ DETECT LEGACY REMNANTS
         Find old code patterns that should be cleaned up
@@ -359,7 +358,7 @@ class GhostEliminator:
                 continue
                 
             try:
-                with open(py_file, 'r', encoding='utf-8') as f:
+                with open(py_file, encoding='utf-8') as f:
                     content = f.read()
                     lines = content.split('\n')
                 
@@ -389,7 +388,7 @@ class GhostEliminator:
             'count': len(legacy_remnants)
         }
     
-    def _analyze_expense_routing_coverage(self) -> Dict[str, Any]:
+    def _analyze_expense_routing_coverage(self) -> dict[str, Any]:
         """
         💰 ANALYZE EXPENSE ROUTING COVERAGE
         Special focus on expense routing and save logic coverage
@@ -402,7 +401,7 @@ class GhostEliminator:
                 continue
                 
             try:
-                with open(full_path, 'r', encoding='utf-8') as f:
+                with open(full_path, encoding='utf-8') as f:
                     content = f.read()
                 
                 # Analyze expense routing functions
@@ -444,10 +443,10 @@ class GhostEliminator:
         file_str = str(file_path)
         return any(pattern in file_str for pattern in skip_patterns)
     
-    def _generate_ghost_elimination_report(self, coverage_report: Dict, dead_code_report: Dict,
-                                         orphaned_functions: Dict, unreachable_branches: Dict,
-                                         legacy_remnants: Dict, expense_routing_analysis: Dict,
-                                         execution_time: float) -> Dict[str, Any]:
+    def _generate_ghost_elimination_report(self, coverage_report: dict, dead_code_report: dict,
+                                         orphaned_functions: dict, unreachable_branches: dict,
+                                         legacy_remnants: dict, expense_routing_analysis: dict,
+                                         execution_time: float) -> dict[str, Any]:
         """Generate comprehensive ghost elimination report"""
         
         # Categorize ghosts by severity
@@ -495,7 +494,7 @@ class GhostEliminator:
             'recommendations': self._generate_recommendations(overall_health)
         }
     
-    def _generate_recommendations(self, overall_health: str) -> List[str]:
+    def _generate_recommendations(self, overall_health: str) -> list[str]:
         """Generate actionable recommendations based on findings"""
         recommendations = []
         
@@ -521,15 +520,14 @@ class GhostEliminator:
 # Global ghost eliminator instance
 ghost_eliminator = GhostEliminator()
 
-def run_ghost_elimination() -> Dict[str, Any]:
+def run_ghost_elimination() -> dict[str, Any]:
     """
     👻 GLOBAL ENTRY POINT
     Run comprehensive ghost elimination and return results
     """
-    import time  # Import here to avoid issues with module-level imports
     return ghost_eliminator.run_comprehensive_ghost_elimination()
 
-def get_ghost_elimination_summary() -> Dict[str, Any]:
+def get_ghost_elimination_summary() -> dict[str, Any]:
     """Get summary of detected ghosts"""
     return {
         'total_detected': len(ghost_eliminator.detected_ghosts),

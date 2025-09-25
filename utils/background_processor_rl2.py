@@ -2,15 +2,16 @@
 RL-2 Graceful non-AI fallback system with ASCII-safe disclaimers
 Clean implementation of rate-limited message processing
 """
-import time
 import json
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import Tuple, Optional
-from utils.security import hash_psid
-from utils.parser import parse_expense
+import time
+from datetime import UTC, datetime, timedelta, timezone
+from typing import Optional, Tuple
+
 from utils.categories import categorize_expense
 from utils.logger import get_request_id
+from utils.parser import parse_expense
+from utils.security import hash_psid
 from utils.textutil import get_rl2_disclaimer, get_rl2_summary_prefix, normalize
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ class RL2Processor:
     def __init__(self):
         self.ascii_disclaimer = get_rl2_disclaimer()
     
-    def process_rate_limited_message(self, text: str, psid: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def process_rate_limited_message(self, text: str, psid: str) -> tuple[str, str, str | None, float | None]:
         """
         RL-2: Handle message when AI is rate-limited
         Returns: (response_text, intent, category, amount)
@@ -69,7 +70,7 @@ class RL2Processor:
     
 
     
-    def _handle_rate_limited_summary(self, psid: str, psid_hash: str) -> Tuple[str, str, Optional[str], Optional[float]]:
+    def _handle_rate_limited_summary(self, psid: str, psid_hash: str) -> tuple[str, str, str | None, float | None]:
         """
         RL-2: Handle 'summary' command during rate limiting
         Always reply, always ack, never requeue - even on SQL errors
@@ -77,9 +78,9 @@ class RL2Processor:
         response = f"{get_rl2_summary_prefix()}\nNo expenses found."
         
         try:
-            from db_base import db
-            from models import Expense
             from sqlalchemy import text
+
+            from db_base import db
             
             # Robust SQL query with NULL safety and error handling
             user_hash = hash_psid(psid)
@@ -145,10 +146,11 @@ class RL2Processor:
         Never throws - constraint violations are logged but don't block UX
         """
         try:
+            import random
+            from datetime import datetime
+
             from db_base import db
             from models import Expense, User
-            from datetime import datetime
-            import random
             
             user_hash = hash_psid(psid)
             
@@ -209,7 +211,7 @@ class RL2Processor:
         """
         try:
             # Calculate window reset time (next minute boundary)
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             window_reset_at = (now + timedelta(seconds=60)).replace(second=0, microsecond=0)
             
             # RL-2 structured logging

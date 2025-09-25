@@ -3,9 +3,9 @@ Gap-Fix Feature Flags Management
 Safe feature flag system with fail-closed defaults and structured logging
 """
 
-import os
 import logging
-from typing import Dict, Any
+import os
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class GapFixFlags:
         """Check if enhanced observability should be used"""
         return self.enhanced_observability
     
-    def get_all_flags(self) -> Dict[str, Any]:
+    def get_all_flags(self) -> dict[str, Any]:
         """Get all flag states for debugging/admin interfaces"""
         return {
             'enable_clarifiers': self.enable_clarifiers,

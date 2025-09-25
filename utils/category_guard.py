@@ -3,8 +3,8 @@ Server-side category normalization guard
 Zero-risk protection against enum constraint violations
 """
 
-from typing import Optional
 import logging
+
 from utils.validators import ExpenseValidator
 
 logger = logging.getLogger(__name__)

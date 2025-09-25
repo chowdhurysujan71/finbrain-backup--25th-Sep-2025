@@ -6,6 +6,7 @@ Contract tests + Preflight probes for production readiness
 
 from app import app
 
+
 def run_contract_tests():
     """Run the 5 contract tests exactly as specified"""
     
@@ -74,10 +75,10 @@ def run_contract_tests():
             print(f"   Description: {test['description']}")
             
             if actual == test['expected']:
-                print(f"   ✅ PASS")
+                print("   ✅ PASS")
                 passed += 1
             else:
-                print(f"   ❌ FAIL")
+                print("   ❌ FAIL")
         
         print(f"\nContract Results: {passed}/{len(tests)}")
         return passed == len(tests)
@@ -138,10 +139,10 @@ def run_preflight_probes():
                 
                 # Basic validation - at least we got a response
                 if response and len(response) > 10:
-                    print(f"   ✅ PASS - Response generated")
+                    print("   ✅ PASS - Response generated")
                     passed += 1
                 else:
-                    print(f"   ❌ FAIL - No meaningful response")
+                    print("   ❌ FAIL - No meaningful response")
                     
             except Exception as e:
                 print(f"   ❌ FAIL - Exception: {e}")

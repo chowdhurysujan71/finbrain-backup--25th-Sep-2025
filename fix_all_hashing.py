@@ -2,13 +2,14 @@
 """
 One-shot script to fix all remaining hash function calls
 """
-import re
 import os
+import re
+
 
 def update_file_hashing(file_path, patterns_to_fix):
     """Update a file to use ensure_hashed instead of legacy hash functions"""
     try:
-        with open(file_path, 'r') as f:
+        with open(file_path) as f:
             content = f.read()
         
         original_content = content

@@ -3,9 +3,12 @@ FinBrain Growth Telemetry Routes
 /metrics endpoint and /admin/metrics dashboard
 """
 
-from flask import Blueprint, jsonify, render_template_string, request
-from utils.telemetry import GrowthMetrics
 import logging
+from datetime import UTC
+
+from flask import Blueprint, render_template_string
+
+from utils.telemetry import GrowthMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -276,7 +279,7 @@ def admin_metrics_dashboard():
             dau_7day=dau_7day,
             cohorts=cohorts,
             totals=totals,
-            generation_time=datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+            generation_time=datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')
         )
         
     except Exception as e:
@@ -286,7 +289,6 @@ def admin_metrics_dashboard():
 # Helper function to register telemetry routes
 def register_telemetry_routes(app):
     """Register telemetry routes with the Flask app"""
-    from flask import current_app
     # Import needed for blueprint registration
     telemetry_bp.app = app
     app.register_blueprint(telemetry_bp)

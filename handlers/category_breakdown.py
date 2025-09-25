@@ -3,14 +3,13 @@ Category Breakdown Handler
 Handles specific category expense queries like "How much did I spend on food this month?"
 """
 
-import re
-from datetime import datetime, timedelta, timezone
-from typing import Dict, Optional, Tuple
 import logging
+from datetime import UTC, datetime, timedelta, timezone
+from typing import Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
-def extract_category_from_query(text: str) -> Optional[str]:
+def extract_category_from_query(text: str) -> str | None:
     """Extract category name from user query"""
     text_lower = text.lower().strip()
     
@@ -72,9 +71,9 @@ def extract_timeframe_from_query(text: str) -> str:
         # Default to current month for category queries
         return "month"
 
-def get_timeframe_bounds(timeframe: str) -> Tuple[datetime, datetime]:
+def get_timeframe_bounds(timeframe: str) -> tuple[datetime, datetime]:
     """Get start and end datetime for the specified timeframe"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     
     if timeframe == "week":
         start = now - timedelta(days=7)
@@ -109,15 +108,16 @@ def get_timeframe_bounds(timeframe: str) -> Tuple[datetime, datetime]:
     
     return start, end
 
-def handle_category_breakdown(user_id: str, text: str) -> Dict[str, str]:
+def handle_category_breakdown(user_id: str, text: str) -> dict[str, str]:
     """
     Handle category-specific breakdown queries
     Returns dict with 'text' key containing the response
     """
     try:
-        from models import Expense
-        from app import app, db
         from sqlalchemy import func
+
+        from app import app, db
+        from models import Expense
         
         # Extract category and timeframe from query
         category = extract_category_from_query(text)
@@ -172,7 +172,7 @@ def handle_category_breakdown(user_id: str, text: str) -> Dict[str, str]:
         logger.error(f"Category breakdown failed: {e}")
         return {"text": "I had trouble getting that breakdown. Try asking for your regular summary instead!"}
 
-def generate_category_response(category: str, timeframe: str, amount: float, count: int) -> Dict[str, str]:
+def generate_category_response(category: str, timeframe: str, amount: float, count: int) -> dict[str, str]:
     """Generate natural, varied responses for category breakdowns"""
     import random
     

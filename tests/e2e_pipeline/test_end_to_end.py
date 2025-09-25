@@ -3,13 +3,14 @@ Final End-to-End UAT Script (pytest style)
 
 Here's a single script you can drop into tests/e2e_pipeline/test_end_to_end.py:
 """
-import pytest
 import json
 from datetime import datetime, timedelta
-from decimal import Decimal
+
+import pytest
+
 from app import app, db
-from models import Expense
 from utils.identity import psid_hash
+
 
 @pytest.fixture
 def client():

@@ -4,6 +4,7 @@ Single source of truth for user identification across the system
 """
 from utils.identity import psid_hash
 
+
 def resolve_user_id(psid: str) -> str:
     """
     Centralized user ID resolution using canonical identity

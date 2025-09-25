@@ -4,24 +4,21 @@ Base E2E Test Infrastructure
 Provides shared fixtures, authentication handlers, and database utilities
 for comprehensive end-to-end testing of the expense data pipeline.
 """
-import os
-import pytest
-import json
-import hmac
 import hashlib
-import uuid
+import hmac
+import os
 import time
-from datetime import datetime, date, timedelta
+import uuid
+from datetime import date, datetime, timedelta
 from decimal import Decimal
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 from unittest.mock import patch
 
-from flask import Flask
-from werkzeug.test import Client
+import pytest
 
 # Import the main app and database components
 from app import app, db
-from models import Expense, User, MonthlySummary
+from models import Expense, MonthlySummary, User
 from utils.identity import psid_hash
 
 
@@ -87,7 +84,7 @@ class E2ETestBase:
             with client.session_transaction() as session:
                 session['user_id'] = user_id
 
-    def setup_x_user_id_auth(self, user_id: str) -> Dict[str, str]:
+    def setup_x_user_id_auth(self, user_id: str) -> dict[str, str]:
         """Setup X-User-ID header authentication for form endpoints"""
         return {'X-User-ID': user_id}
 
@@ -100,7 +97,7 @@ class E2ETestBase:
         ).hexdigest()
         return f'sha256={signature}'
 
-    def create_facebook_webhook_payload(self, psid: str, message: str, mid: Optional[str] = None) -> Dict[str, Any]:
+    def create_facebook_webhook_payload(self, psid: str, message: str, mid: str | None = None) -> dict[str, Any]:
         """Create Facebook Messenger webhook payload"""
         if mid is None:
             mid = f"test_mid_{int(time.time())}_{uuid.uuid4().hex[:8]}"
@@ -127,7 +124,7 @@ class E2ETestBase:
         }
 
     def assert_expense_created(self, user_hash: str, expected_amount: float, expected_category: str, 
-                             platform: Optional[str] = None, correlation_id: Optional[str] = None) -> Expense:
+                             platform: str | None = None, correlation_id: str | None = None) -> Expense:
         """Assert that an expense was created and return the expense object"""
         with app.app_context():
             query = db.session.query(Expense).filter_by(user_id_hash=user_hash)
@@ -179,7 +176,7 @@ class E2ETestBase:
                 f"Monthly total {float(summary.total_amount)} less than expected {expected_increase}"
             )
 
-    def assert_no_duplicate_expenses(self, user_hash: str, correlation_id: Optional[str] = None, mid: Optional[str] = None):
+    def assert_no_duplicate_expenses(self, user_hash: str, correlation_id: str | None = None, mid: str | None = None):
         """Assert that no duplicate expenses were created"""
         with app.app_context():
             query = db.session.query(Expense).filter_by(user_id_hash=user_hash)
@@ -241,7 +238,7 @@ class E2ETestBase:
             for summary in user2_summaries:
                 assert summary.user_id_hash == user2_hash, "User 2 has summary from user 1"
 
-    def create_test_expenses_history(self, user_hash: str, count: int = 5) -> List[Expense]:
+    def create_test_expenses_history(self, user_hash: str, count: int = 5) -> list[Expense]:
         """Create test expense history for testing recent expenses and totals"""
         expenses = []
         

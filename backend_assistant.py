@@ -12,13 +12,17 @@ If you don't have the data, say: "Not available in DB."
 """
 
 from datetime import datetime, timedelta
+
 from db_base import db
 from utils.db_guard import assert_single_db_instance
+
 assert_single_db_instance(db)
-from models import Expense, User
-from sqlalchemy import text
-from typing import Dict, List, Union, Any
 import logging
+from typing import Any, Dict, List, Union
+
+from sqlalchemy import text
+
+from models import User
 from utils.identity import ensure_hashed
 from utils.single_writer_guard import canonical_writer_context
 from utils.single_writer_metrics import record_canonical_write
@@ -72,7 +76,7 @@ def normalize_category(raw_category: str) -> str:
     normalized = raw_category.lower().strip()
     return CATEGORY_MAPPING.get(normalized, 'uncategorized')
 
-def propose_expense(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
+def propose_expense(raw_text: str) -> dict[str, str | int | float | None]:
     """
     Input: raw text message.
     Output JSON:
@@ -215,7 +219,7 @@ def propose_expense(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
         # On error, return null fields - NEVER invent
         # Schema unification: Add raw_text and parsed_at_iso even for errors
         from datetime import datetime
-        logger.info(f"[ENHANCED_PARSING] confidence=0.0 bin=none signals=0/4 error=true")
+        logger.info("[ENHANCED_PARSING] confidence=0.0 bin=none signals=0/4 error=true")
         return {
             "amount_minor": None,
             "currency": "BDT",
@@ -226,7 +230,7 @@ def propose_expense(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
             "parsed_at_iso": datetime.utcnow().isoformat() + "Z"
         }
 
-def craft_clarify_question(parsed: Dict[str, Union[str, int, float, None]]) -> Dict[str, Any]:
+def craft_clarify_question(parsed: dict[str, str | int | float | None]) -> dict[str, Any]:
     """
     Generate targeted clarification questions for missing fields.
     Used when confidence==0.5 (exactly one field missing).
@@ -293,7 +297,7 @@ def sha256(s: str) -> str:
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
 
 def add_expense(user_id: str, amount_minor: int | None = None, currency: str | None = None, category: str | None = None, 
-                description: str | None = None, source: str | None = None, message_id: str | None = None) -> Dict[str, Union[str, int, None]]:
+                description: str | None = None, source: str | None = None, message_id: str | None = None) -> dict[str, str | int | None]:
     """
     CANONICAL SINGLE WRITER - All expense writes must flow through this function only.
     Absorbs logic from create_expense, save_expense, upsert_expense_idempotent.
@@ -316,14 +320,15 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
     Returns:
         dict: {expense_id, correlation_id, amount_minor, category, description}
     """
-    import uuid
     import hashlib
     import time
+    import uuid
     from datetime import datetime
     from decimal import Decimal
+
     from models import Expense, MonthlySummary
-    from utils.tracer import trace_event
     from utils.telemetry import TelemetryTracker
+    from utils.tracer import trace_event
     from utils.unbreakable_invariants import enforce_single_writer_invariant
     
     start_time = time.time()
@@ -553,7 +558,7 @@ def add_expense(user_id: str, amount_minor: int | None = None, currency: str | N
             amount_minor=amount_minor if 'amount_minor' in locals() else 0
         )
 
-def delete_expense(user_id: str, expense_id: int) -> Dict[str, Union[str, int, bool]]:
+def delete_expense(user_id: str, expense_id: int) -> dict[str, str | int | bool]:
     """
     Delete expense with proper authorization and audit trail.
     
@@ -564,8 +569,9 @@ def delete_expense(user_id: str, expense_id: int) -> Dict[str, Union[str, int, b
     Returns:
         dict: {success: bool, expense_id: int, deleted_at: timestamp}
     """
-    from models import Expense
     from datetime import datetime
+
+    from models import Expense
     
     try:
         # Validate inputs
@@ -607,7 +613,7 @@ def delete_expense(user_id: str, expense_id: int) -> Dict[str, Union[str, int, b
         logger.error(f"delete_expense failed: {e}")
         raise e
 
-def get_totals(user_id: str, period: str) -> Dict[str, Union[str, int, None]]:
+def get_totals(user_id: str, period: str) -> dict[str, str | int | None]:
     """
     Input: { "user_id": str, "period": "day|week|month" }
     Output JSON:
@@ -675,7 +681,7 @@ def get_totals(user_id: str, period: str) -> Dict[str, Union[str, int, None]]:
             "expenses_count": 0
         }
 
-def get_recent_expenses(user_id: str, limit: int = 10) -> List[Dict[str, Union[str, int, float]]]:
+def get_recent_expenses(user_id: str, limit: int = 10) -> list[dict[str, str | int | float]]:
     """
     Input: { "user_id": str, "limit": int }
     Output JSON array of last N rows from expenses table.
@@ -714,7 +720,7 @@ def get_recent_expenses(user_id: str, limit: int = 10) -> List[Dict[str, Union[s
         logger.error(f"get_recent_expenses failed: {e}")
         return []
 
-def run_uat_checklist() -> Dict[str, Union[bool, str, List[str]]]:
+def run_uat_checklist() -> dict[str, bool | str | list[str]]:
     """
     Execute UAT checklist as specified in the contract.
     Returns results with pass/fail status for each test.
@@ -778,7 +784,7 @@ def run_uat_checklist() -> Dict[str, Union[bool, str, List[str]]]:
     
     return results
 
-def get_sql_schemas() -> Dict[str, str]:
+def get_sql_schemas() -> dict[str, str]:
     """
     Return SQL CREATE statements for all required tables.
     """
@@ -844,7 +850,7 @@ def get_sql_schemas() -> Dict[str, str]:
     }
 
 # API endpoint wrapper functions  
-def process_message(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
+def process_message(raw_text: str) -> dict[str, str | int | float | None]:
     """
     Main entry point for message processing.
     Returns structured JSON or 'Not available in DB' for missing data.
@@ -855,7 +861,7 @@ def process_message(raw_text: str) -> Dict[str, Union[str, int, float, None]]:
     
     return propose_expense(raw_text.strip())
 
-def get_user_summary(user_id: str, period: str = "week") -> Dict[str, Union[str, int, None]]:
+def get_user_summary(user_id: str, period: str = "week") -> dict[str, str | int | None]:
     """
     Get user expense summary for specified period.
     Returns only data from database queries, never invented numbers.
@@ -865,7 +871,7 @@ def get_user_summary(user_id: str, period: str = "week") -> Dict[str, Union[str,
     
     return get_totals(user_id, period)
 
-def get_user_expenses(user_id: str, limit: int = 10) -> List[Dict[str, Union[str, int, float]]]:
+def get_user_expenses(user_id: str, limit: int = 10) -> list[dict[str, str | int | float]]:
     """
     Get recent expenses for user.
     Returns only data from database, never fabricated.

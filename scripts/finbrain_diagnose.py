@@ -1,5 +1,9 @@
 # finbrain_diagnose.py
-import os, time, json, requests
+import json
+import os
+import time
+
+import requests
 
 BASE = os.environ.get("BASE_URL", "http://127.0.0.1:5000").rstrip("/")
 PSID = os.environ.get("PSID", "TEST_PSID")

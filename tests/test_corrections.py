@@ -3,18 +3,24 @@ Comprehensive test suite for FinBrain expense corrections
 Tests SMART_CORRECTIONS feature with full coverage of correction scenarios
 """
 
-import pytest
-import time
 from datetime import datetime, timedelta
 from decimal import Decimal
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from db_base import db
-from models import Expense, User
 from handlers.expense import handle_correction
-from parsers.expense import is_correction_message, parse_correction_reason, similar_category, similar_merchant
+from models import Expense
+from parsers.expense import (
+    is_correction_message,
+    parse_correction_reason,
+    similar_category,
+    similar_merchant,
+)
 from utils.feature_flags import is_smart_corrections_enabled
 from utils.identity import psid_hash
+
 
 class TestCorrectionParsing:
     """Test correction message detection and parsing"""

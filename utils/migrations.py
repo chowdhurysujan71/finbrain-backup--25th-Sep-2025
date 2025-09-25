@@ -12,10 +12,12 @@ Key principles:
 """
 
 import logging
-from typing import List, Optional, Dict, Any
-from alembic import op
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy import text
-from sqlalchemy.exc import ProgrammingError, InternalError, OperationalError, DatabaseError
+from sqlalchemy.exc import DatabaseError, OperationalError, ProgrammingError
+
+from alembic import op
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +28,8 @@ class ConcurrentIndexError(Exception):
 def create_index_concurrently(
     index_name: str,
     table_name: str,
-    columns: List[str],
-    where_clause: Optional[str] = None,
+    columns: list[str],
+    where_clause: str | None = None,
     unique: bool = False,
     if_not_exists: bool = True,
     index_type: str = "btree"
@@ -153,8 +155,8 @@ def replace_index_concurrently(
     old_index_name: str,
     new_index_name: str,
     table_name: str,
-    columns: List[str],
-    where_clause: Optional[str] = None,
+    columns: list[str],
+    where_clause: str | None = None,
     unique: bool = False,
     index_type: str = "btree"
 ) -> bool:
@@ -195,9 +197,9 @@ def replace_index_concurrently(
     return True
 
 def batch_create_indexes_concurrently(
-    indexes: List[Dict[str, Any]],
+    indexes: list[dict[str, Any]],
     continue_on_error: bool = True
-) -> Dict[str, bool]:
+) -> dict[str, bool]:
     """
     Create multiple indexes concurrently with optional error tolerance.
     
@@ -286,7 +288,7 @@ def check_index_exists(index_name: str) -> bool:
         logger.error(f"Error checking if index {index_name} exists: {e}")
         return False
 
-def get_index_definition(index_name: str) -> Optional[str]:
+def get_index_definition(index_name: str) -> str | None:
     """
     Get the CREATE INDEX statement for an existing index.
     
@@ -389,7 +391,7 @@ def create_user_temporal_index(
     table_name: str,
     user_column: str = "user_id_hash",
     time_column: str = "created_at",
-    where_clause: Optional[str] = None
+    where_clause: str | None = None
 ) -> bool:
     """
     Create a common user+temporal index pattern.

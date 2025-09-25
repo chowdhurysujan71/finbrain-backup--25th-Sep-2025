@@ -3,10 +3,10 @@ Unified Feature Flags System - Phase 7 Consolidation
 Consolidates fragmented flag systems into a single, coherent API
 """
 
-import os
 import logging
-from typing import Optional, Dict, Any
+import os
 from enum import Enum
+from typing import Optional
 
 logger = logging.getLogger("finbrain.unified_flags")
 
@@ -83,7 +83,7 @@ class UnifiedFlags:
             mode_str = os.environ.get('PCA_MODE', 'ON').upper()
             return PCAMode(mode_str)
         except ValueError:
-            logger.warning(f"Invalid PCA_MODE, defaulting to ON")
+            logger.warning("Invalid PCA_MODE, defaulting to ON")
             return PCAMode.ON
     
     def _log_unified_flags(self):
@@ -136,15 +136,15 @@ class UnifiedFlags:
     
     # === COMPATIBILITY METHODS FOR EXISTING CODE ===
     
-    def is_smart_nlp_enabled(self, psid_hash: Optional[str] = None) -> bool:
+    def is_smart_nlp_enabled(self, psid_hash: str | None = None) -> bool:
         """Compatibility method for utils/feature_flags.py"""
         return self.smart_nlp_enabled
     
-    def is_smart_tone_enabled(self, psid_hash: Optional[str] = None) -> bool:
+    def is_smart_tone_enabled(self, psid_hash: str | None = None) -> bool:
         """Compatibility method for utils/feature_flags.py"""
         return self.smart_tone_enabled
     
-    def is_smart_corrections_enabled(self, psid_hash: Optional[str] = None) -> bool:
+    def is_smart_corrections_enabled(self, psid_hash: str | None = None) -> bool:
         """Compatibility method for utils/feature_flags.py"""
         return self.smart_corrections_enabled
     
@@ -165,15 +165,15 @@ unified_flags = UnifiedFlags()
 
 # === CONVENIENCE FUNCTIONS FOR BACKWARD COMPATIBILITY ===
 
-def is_smart_nlp_enabled(psid_hash: Optional[str] = None) -> bool:
+def is_smart_nlp_enabled(psid_hash: str | None = None) -> bool:
     """Global convenience function - maintains API compatibility"""
     return unified_flags.is_smart_nlp_enabled(psid_hash)
 
-def is_smart_tone_enabled(psid_hash: Optional[str] = None) -> bool:
+def is_smart_tone_enabled(psid_hash: str | None = None) -> bool:
     """Global convenience function - maintains API compatibility"""
     return unified_flags.is_smart_tone_enabled(psid_hash)
 
-def is_smart_corrections_enabled(psid_hash: Optional[str] = None) -> bool:
+def is_smart_corrections_enabled(psid_hash: str | None = None) -> bool:
     """Global convenience function - maintains API compatibility"""
     return unified_flags.is_smart_corrections_enabled(psid_hash)
 

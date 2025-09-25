@@ -5,7 +5,9 @@ Idempotent - safe to run multiple times
 """
 import os
 import sys
+
 import psycopg2
+
 
 def apply_indexes():
     """Apply performance indexes idempotently"""

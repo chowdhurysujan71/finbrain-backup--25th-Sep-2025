@@ -7,10 +7,13 @@ No excuses, no dismissing failures - real testing with real fixes
 import json
 import time
 import uuid
-from datetime import datetime, date
-from typing import Dict, List, Any, Optional
-from app import app, db
+from datetime import date, datetime
+from typing import Any, Dict
+
 from sqlalchemy import text
+
+from app import app, db
+
 
 class FixedComprehensiveAudit:
     """Actually working end-to-end audit with proper function calls"""
@@ -30,7 +33,7 @@ class FixedComprehensiveAudit:
             "final_assessment": {}
         }
         
-    def run_comprehensive_audit(self) -> Dict[str, Any]:
+    def run_comprehensive_audit(self) -> dict[str, Any]:
         """Execute proper end-to-end audit with real system testing"""
         
         print("🔧 FIXED COMPREHENSIVE END-TO-END AUDIT")
@@ -87,7 +90,7 @@ class FixedComprehensiveAudit:
         
         return self.results
     
-    def _test_data_handling_fixed(self) -> Dict[str, Any]:
+    def _test_data_handling_fixed(self) -> dict[str, Any]:
         """FIXED: Test data handling with proper signal attributes"""
         results = {"tests": [], "summary": {}}
         
@@ -154,7 +157,7 @@ class FixedComprehensiveAudit:
         
         return results
     
-    def _test_routing_validation(self) -> Dict[str, Any]:
+    def _test_routing_validation(self) -> dict[str, Any]:
         """Test routing decisions"""
         results = {"tests": [], "summary": {}}
         
@@ -208,7 +211,7 @@ class FixedComprehensiveAudit:
         
         return results
     
-    def _test_ai_processing_fixed(self) -> Dict[str, Any]:
+    def _test_ai_processing_fixed(self) -> dict[str, Any]:
         """FIXED: Test AI processing with actual available functions"""
         results = {"tests": [], "summary": {}}
         
@@ -279,7 +282,7 @@ class FixedComprehensiveAudit:
         
         return results
     
-    def _test_storage_fixed(self) -> Dict[str, Any]:
+    def _test_storage_fixed(self) -> dict[str, Any]:
         """FIXED: Test storage with proper database schema"""
         results = {"tests": [], "summary": {}}
         
@@ -401,7 +404,7 @@ class FixedComprehensiveAudit:
         
         return results
     
-    def _test_integrity_fixed(self) -> Dict[str, Any]:
+    def _test_integrity_fixed(self) -> dict[str, Any]:
         """FIXED: Test data integrity with proper validation"""
         results = {"checks": [], "summary": {}}
         
@@ -479,7 +482,7 @@ class FixedComprehensiveAudit:
         
         return results
     
-    def _test_security_fixed(self) -> Dict[str, Any]:
+    def _test_security_fixed(self) -> dict[str, Any]:
         """FIXED: Test security with available functions"""
         results = {"checks": [], "summary": {}}
         
@@ -535,7 +538,7 @@ class FixedComprehensiveAudit:
         
         return results
     
-    def _test_sql_injection(self) -> Dict[str, Any]:
+    def _test_sql_injection(self) -> dict[str, Any]:
         """Test SQL injection protection"""
         try:
             malicious_input = "'; DROP TABLE expenses; --"
@@ -551,7 +554,7 @@ class FixedComprehensiveAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_data_isolation(self) -> Dict[str, Any]:
+    def _test_data_isolation(self) -> dict[str, Any]:
         """Test user data isolation"""
         try:
             user_data = db.session.execute(text("""
@@ -574,7 +577,7 @@ class FixedComprehensiveAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_input_sanitization(self) -> Dict[str, Any]:
+    def _test_input_sanitization(self) -> dict[str, Any]:
         """Test input sanitization"""
         try:
             # Test with potentially problematic input
@@ -590,7 +593,7 @@ class FixedComprehensiveAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _print_results(self, phase_name: str, results: Dict[str, Any]):
+    def _print_results(self, phase_name: str, results: dict[str, Any]):
         """Print phase results"""
         summary = results.get("summary", {})
         success = summary.get("overall_success", False)
@@ -635,13 +638,13 @@ class FixedComprehensiveAudit:
         self._cleanup_test_data()
         
         # Print honest assessment
-        print(f"\n📊 HONEST COMPREHENSIVE AUDIT RESULTS")
+        print("\n📊 HONEST COMPREHENSIVE AUDIT RESULTS")
         print("=" * 60)
         print(f"Overall Success Rate: {overall_success_rate:.1f}%")
         print(f"Phases Passed: {phase_successes}/{total_phases}")
         print(f"Deployment Ready: {'✅ YES' if deployment_ready else '❌ NO'}")
         
-        print(f"\nDetailed Results:")
+        print("\nDetailed Results:")
         for name, phase in phases:
             summary = phase.get("summary", {})
             success = summary.get("overall_success", False)
@@ -649,17 +652,17 @@ class FixedComprehensiveAudit:
             print(f"  {name}: {'✅' if success else '❌'} {rate:.1f}%")
         
         if deployment_ready:
-            print(f"\n🎉 DEPLOYMENT APPROVED")
+            print("\n🎉 DEPLOYMENT APPROVED")
             print(f"   • {phase_successes}/{total_phases} critical systems validated")
-            print(f"   • Core routing and data handling working")
-            print(f"   • Ready for Phase 1 zero-risk rollout")
+            print("   • Core routing and data handling working")
+            print("   • Ready for Phase 1 zero-risk rollout")
             if critical_failures:
                 print(f"   ⚠️ Monitor: {', '.join(critical_failures)}")
         else:
-            print(f"\n🚫 DEPLOYMENT BLOCKED")
+            print("\n🚫 DEPLOYMENT BLOCKED")
             print(f"   • Critical failures: {', '.join(critical_failures)}")
-            print(f"   • Must achieve 5/6 phases passing")
-            print(f"   • Fix failures before deployment")
+            print("   • Must achieve 5/6 phases passing")
+            print("   • Fix failures before deployment")
     
     def _cleanup_test_data(self):
         """Clean up test data"""
@@ -669,7 +672,7 @@ class FixedComprehensiveAudit:
                 DELETE FROM expenses WHERE user_id = :user_id
             """), {"user_id": self.test_user_id})
             db.session.commit()
-            print(f"\n🧹 Test data cleaned up")
+            print("\n🧹 Test data cleaned up")
         except Exception as e:
             print(f"⚠️ Cleanup warning: {e}")
             db.session.rollback()

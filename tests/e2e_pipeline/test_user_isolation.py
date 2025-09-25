@@ -8,7 +8,6 @@ Tests comprehensive user isolation across all system components:
 - API endpoint security
 - Cross-user data leakage prevention
 """
-import pytest
 import json
 from datetime import datetime
 
@@ -430,7 +429,7 @@ class TestUserIsolationE2E(E2ETestBase):
                     if alice_current_month:
                         # Alice's summary should only reflect Alice's expenses
                         alice_total = float(alice_current_month.total_amount)
-                        assert alice_total >= 300.0, f"Alice's monthly total should include her 300 expense"
+                        assert alice_total >= 300.0, "Alice's monthly total should include her 300 expense"
                         assert alice_total < 700.0, f"Alice's total {alice_total} should not include Bob's 400 expense"
                 
                 if bob_summaries:
@@ -443,7 +442,7 @@ class TestUserIsolationE2E(E2ETestBase):
                     if bob_current_month:
                         # Bob's summary should only reflect Bob's expenses
                         bob_total = float(bob_current_month.total_amount)
-                        assert bob_total >= 400.0, f"Bob's monthly total should include his 400 expense"
+                        assert bob_total >= 400.0, "Bob's monthly total should include his 400 expense"
                         # Bob's total should not include Alice's expenses
 
     def test_api_endpoint_authorization_enforcement(self, client, test_users):

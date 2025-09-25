@@ -2,13 +2,14 @@
 Production AI adapter with strict constraints and failover handling
 Flag-gated, never writes DB, timeout-protected with structured responses
 """
-import os
 import json
-import time
 import logging
+import os
+import time
+from typing import Any, Dict
+
 import requests
-from typing import Dict, Any, Optional
-from datetime import datetime
+
 from .ai_contamination_monitor import ai_contamination_monitor
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,7 @@ AI_MAX_RETRIES = 1  # 1 retry only
 
 # Global AI timeout metrics
 import threading
+
 AI_TIMEOUT_COUNTER = 0
 AI_REQUEST_COUNTER = 0 
 AI_TIMEOUT_LOCK = threading.Lock()
@@ -76,7 +78,7 @@ class ProductionAIAdapter:
         """Compose system prompt with messaging guardrails prepended"""
         return f"{MESSAGING_GUARDRAIL_PROMPT}\n\n{base_prompt}"
     
-    def generate_insights(self, expenses_data: Dict[str, Any], user_id: str = "unknown") -> Dict[str, Any]:
+    def generate_insights(self, expenses_data: dict[str, Any], user_id: str = "unknown") -> dict[str, Any]:
         """
         Generate AI-powered spending insights and recommendations
         
@@ -101,7 +103,7 @@ class ProductionAIAdapter:
         else:
             return {"failover": True, "reason": "unsupported_provider"}
     
-    def _generate_insights_gemini(self, expenses_data: Dict[str, Any], user_id: str = "unknown") -> Dict[str, Any]:
+    def _generate_insights_gemini(self, expenses_data: dict[str, Any], user_id: str = "unknown") -> dict[str, Any]:
         """Generate insights using Gemini API with user isolation"""
         try:
             # Extract data for prompt
@@ -275,12 +277,12 @@ Make insights:
             logger.error(f"Gemini insights generation failed: {e}")
             return {"failover": True, "reason": f"exception: {str(e)[:50]}"}
     
-    def _generate_insights_openai(self, expenses_data: Dict[str, Any], user_id: str = "unknown") -> Dict[str, Any]:
+    def _generate_insights_openai(self, expenses_data: dict[str, Any], user_id: str = "unknown") -> dict[str, Any]:
         """Generate insights using OpenAI API (fallback)"""
         # Similar implementation for OpenAI if needed
         return {"failover": True, "reason": "openai_insights_not_implemented"}
     
-    def generate_structured_response(self, prompt: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_structured_response(self, prompt: str, context: dict[str, Any]) -> dict[str, Any]:
         """
         Generate structured AI response for insights and analysis
         
@@ -336,7 +338,7 @@ Make insights:
                 }
             }
 
-    def phrase_summary(self, summary: Dict[str, Any]) -> Dict[str, Any]:
+    def phrase_summary(self, summary: dict[str, Any]) -> dict[str, Any]:
         """
         Shim for summary phrasing - maintains compatibility with existing calls
         """
@@ -395,7 +397,7 @@ Make insights:
             logger.warning(f"get_completion() shim failed: {e}")
             return "I'm here to help with your expense tracking!"
 
-    def ai_parse(self, text: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    def ai_parse(self, text: str, context: dict[str, Any]) -> dict[str, Any]:
         """
         Parse text with AI and return structured response
         
@@ -425,7 +427,7 @@ Make insights:
         else:
             return {"failover": True, "reason": "unsupported_provider"}
     
-    def _parse_openai(self, text: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    def _parse_openai(self, text: str, context: dict[str, Any]) -> dict[str, Any]:
         """Parse using OpenAI API with strict constraints"""
         try:
             # Construct prompt (≤1200 chars total)
@@ -556,7 +558,7 @@ Multi-Currency: Recognize BDT (৳), $, €, £, ₹"""
             logger.error(f"AI parsing error: {e}")
             return {"failover": True, "reason": "parse_error"}
     
-    def _parse_gemini(self, text: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    def _parse_gemini(self, text: str, context: dict[str, Any]) -> dict[str, Any]:
         """Parse using Gemini API with strict constraints"""
         try:
             # Construct prompt
@@ -699,7 +701,7 @@ Guardrails:
             logger.error(f"Gemini parsing error: {e}")
             return {"failover": True, "reason": "parse_error"}
     
-    def _build_prompt(self, text: str, context: Dict[str, Any]) -> str:
+    def _build_prompt(self, text: str, context: dict[str, Any]) -> str:
         """Build CC prompt for confidence scoring & clarifier decisions"""
         # Import thresholds for decision logic
         from utils.pca_flags import pca_flags
@@ -776,10 +778,9 @@ ALWAYS: ui_note ≤140 chars, source_text verbatim, confidence 0.0-1.0"""
         
         return base_prompt
     
-    def _validate_ai_response(self, ai_response: Dict[str, Any], duration_ms: float) -> Dict[str, Any]:
+    def _validate_ai_response(self, ai_response: dict[str, Any], duration_ms: float) -> dict[str, Any]:
         """Validate and clean Canonical Command response"""
         try:
-            from utils.pca_flags import pca_flags
             
             # Check if this is legacy format vs CC format
             if "schema_version" not in ai_response:
@@ -874,7 +875,7 @@ ALWAYS: ui_note ≤140 chars, source_text verbatim, confidence 0.0-1.0"""
             logger.error(f"CC validation error: {e}")
             return {"failover": True, "reason": "cc_validation_error"}
     
-    def _convert_legacy_response(self, legacy_response: Dict[str, Any], duration_ms: float) -> Dict[str, Any]:
+    def _convert_legacy_response(self, legacy_response: dict[str, Any], duration_ms: float) -> dict[str, Any]:
         """Convert legacy response format to CC format for backward compatibility"""
         return {
             "schema_version": "legacy-compat",
@@ -899,7 +900,7 @@ ALWAYS: ui_note ≤140 chars, source_text verbatim, confidence 0.0-1.0"""
         # Can add more sophisticated routing later
         return True
     
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get AI adapter status for telemetry"""
         return {
             "enabled": self.enabled,

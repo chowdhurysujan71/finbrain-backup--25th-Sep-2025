@@ -5,6 +5,7 @@ Debug analysis terms detection
 
 from app import app
 
+
 def debug_analysis_terms():
     with app.app_context():
         from utils.routing_policy import BilingualPatterns

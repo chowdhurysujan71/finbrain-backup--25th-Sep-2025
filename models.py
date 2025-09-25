@@ -1,10 +1,17 @@
-from db_base import db
-from datetime import datetime, date, time
+from datetime import UTC, date, datetime
+
 from sqlalchemy import JSON
+
+from db_base import db
 
 # Import PCA overlay models
 try:
-    from models_pca import TransactionEffective, UserCorrection, UserRule, InferenceSnapshot
+    from models_pca import (
+        InferenceSnapshot,
+        TransactionEffective,
+        UserCorrection,
+        UserRule,
+    )
 except ImportError:
     # PCA models not available yet
     pass
@@ -300,7 +307,7 @@ class PendingExpense(db.Model):
     def cleanup_expired(cls):
         """Remove expired pending expenses"""
         from datetime import timezone
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expired_count = db.session.query(cls).filter(cls.expires_at < now).delete()
         if expired_count > 0:
             db.session.commit()
@@ -310,7 +317,7 @@ class PendingExpense(db.Model):
     def find_by_user(cls, user_id_hash: str):
         """Find active pending expense for user"""
         from datetime import timezone
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return db.session.query(cls).filter(
             cls.user_id_hash == user_id_hash,
             cls.expires_at > now

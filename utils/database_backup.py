@@ -4,12 +4,11 @@ Database Backup and Restore System
 Exports/imports in JSON format for maximum compatibility
 """
 
-import logging
 import json
+import logging
 import os
-from datetime import datetime, date
-from typing import Dict, Any, List, Optional
-from decimal import Decimal
+from datetime import datetime
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -26,14 +25,14 @@ class DatabaseBackup:
         except Exception as e:
             logger.warning(f"Could not create backup directory: {e}")
     
-    def create_full_backup(self) -> Dict[str, Any]:
+    def create_full_backup(self) -> dict[str, Any]:
         """Create complete database backup in JSON format"""
         if not self.enabled:
             return {'status': 'disabled', 'message': 'Backups disabled via ENABLE_BACKUPS=false'}
         
         try:
-            from models import User, Expense, MonthlySummary
-            from db_base import db, app
+            from db_base import app
+            from models import Expense, MonthlySummary, User
             
             # Ensure we have Flask application context
             with app.app_context():
@@ -161,13 +160,13 @@ class DatabaseBackup:
             logger.error(f"Database backup failed: {e}")
             return {'status': 'error', 'message': str(e)}
     
-    def verify_backup(self, backup_path: str) -> Dict[str, Any]:
+    def verify_backup(self, backup_path: str) -> dict[str, Any]:
         """Verify backup file integrity and structure"""
         try:
             if not os.path.exists(backup_path):
                 return {'status': 'error', 'message': 'Backup file not found'}
             
-            with open(backup_path, 'r') as f:
+            with open(backup_path) as f:
                 backup_data = json.load(f)
             
             # Verify structure
@@ -197,7 +196,7 @@ class DatabaseBackup:
         except Exception as e:
             return {'status': 'error', 'message': f'Backup verification failed: {e}'}
     
-    def list_backups(self) -> List[Dict[str, Any]]:
+    def list_backups(self) -> list[dict[str, Any]]:
         """List all available backup files"""
         try:
             if not os.path.exists(self.backup_dir):
@@ -224,7 +223,7 @@ class DatabaseBackup:
             logger.error(f"Failed to list backups: {e}")
             return []
     
-    def get_backup_status(self) -> Dict[str, Any]:
+    def get_backup_status(self) -> dict[str, Any]:
         """Get overall backup system status"""
         try:
             backups = self.list_backups()
@@ -242,7 +241,7 @@ class DatabaseBackup:
         except Exception as e:
             return {'status': 'error', 'message': str(e)}
     
-    def _get_disk_space(self) -> Dict[str, int]:
+    def _get_disk_space(self) -> dict[str, int]:
         """Get available disk space for backups"""
         try:
             statvfs = os.statvfs(self.backup_dir)
@@ -261,24 +260,24 @@ class DatabaseBackup:
 database_backup = DatabaseBackup()
 
 # Convenient functions for easy integration
-def create_backup() -> Dict[str, Any]:
+def create_backup() -> dict[str, Any]:
     """Create a full database backup"""
     return database_backup.create_full_backup()
 
-def verify_backup_file(backup_path: str) -> Dict[str, Any]:
+def verify_backup_file(backup_path: str) -> dict[str, Any]:
     """Verify a specific backup file"""
     return database_backup.verify_backup(backup_path)
 
-def list_available_backups() -> List[Dict[str, Any]]:
+def list_available_backups() -> list[dict[str, Any]]:
     """List all available backup files"""
     return database_backup.list_backups()
 
-def get_backup_system_status() -> Dict[str, Any]:
+def get_backup_system_status() -> dict[str, Any]:
     """Get backup system status"""
     return database_backup.get_backup_status()
 
 # Health check for monitoring
-def backup_health_check() -> Dict[str, Any]:
+def backup_health_check() -> dict[str, Any]:
     """Health check for backup system"""
     try:
         status = get_backup_system_status()

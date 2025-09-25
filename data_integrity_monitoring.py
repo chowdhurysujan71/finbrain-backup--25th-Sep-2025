@@ -5,11 +5,13 @@ Ongoing monitoring to prevent future data integrity issues
 """
 
 import sys
+
 sys.path.append('/home/runner/workspace')
 
-from app import app, db
 from sqlalchemy import text
-from datetime import datetime, timezone
+
+from app import app, db
+
 
 def create_integrity_checks():
     """Create database constraints and checks to prevent future issues"""
@@ -101,14 +103,14 @@ def run_integrity_report():
                 (SELECT COUNT(*) FROM users WHERE LENGTH(user_id_hash) = 64 AND user_id_hash ~ '^[0-9a-f]+$') as valid_users
         """)).first()
         
-        print(f"📈 SYSTEM STATISTICS:")
+        print("📈 SYSTEM STATISTICS:")
         print(f"   Total users: {stats.total_users}")
         print(f"   Total expenses: {stats.total_expenses}")
         print(f"   Users with expenses: {stats.users_with_expenses}")
         print(f"   Valid user hashes: {stats.valid_users}")
         
         # Integrity status
-        print(f"\n🛡️ INTEGRITY STATUS:")
+        print("\n🛡️ INTEGRITY STATUS:")
         integrity_status = db.session.execute(text("SELECT * FROM data_integrity_status")).fetchall()
         
         all_clean = True
@@ -119,7 +121,7 @@ def run_integrity_report():
             print(f"   {status_icon} {check_type}: {issue_count} issues")
         
         # User isolation verification
-        print(f"\n🔒 USER ISOLATION VERIFICATION:")
+        print("\n🔒 USER ISOLATION VERIFICATION:")
         
         # Sample test for cross-contamination
         test_users = db.session.execute(text("""
@@ -143,7 +145,7 @@ def run_integrity_report():
                 print(f"   ✅ User {user_id[:16]}... properly isolated ({expense_count} expenses)")
         
         # Final assessment
-        print(f"\n🎯 FINAL ASSESSMENT:")
+        print("\n🎯 FINAL ASSESSMENT:")
         if all_clean and isolation_verified:
             print("   ✅ DATA INTEGRITY EXCELLENT")
             print("   ✅ USER ISOLATION VERIFIED") 

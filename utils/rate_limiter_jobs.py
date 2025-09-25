@@ -1,10 +1,10 @@
 """
 Rate limiter for job enqueue operations
 """
-import time
 import logging
-from typing import Dict, Any, Optional
+import time
 from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ class RateLimitResult:
     allowed: bool
     remaining: int
     reset_time: float
-    reason: Optional[str] = None
+    reason: str | None = None
 
 class JobRateLimiter:
     """Rate limiter for job enqueue operations per user"""
@@ -28,7 +28,7 @@ class JobRateLimiter:
         
         logger.info(f"Job rate limiter initialized: {self.default_limit} jobs per hour")
     
-    def check_rate_limit(self, user_id: str, limit: Optional[int] = None) -> RateLimitResult:
+    def check_rate_limit(self, user_id: str, limit: int | None = None) -> RateLimitResult:
         """
         Check if user is within rate limit for job enqueue
         
@@ -131,7 +131,7 @@ class JobRateLimiter:
             reset_time=current_time + self.window_seconds
         )
     
-    def get_user_stats(self, user_id: str) -> Dict[str, Any]:
+    def get_user_stats(self, user_id: str) -> dict[str, Any]:
         """Get rate limit stats for user"""
         current_time = time.time()
         window_start = current_time - self.window_seconds

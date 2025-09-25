@@ -5,16 +5,13 @@ Handles reminder consent, user-initiated reminder requests, and cancellations
 
 import logging
 import re
-from typing import Dict, Any, Optional
-from datetime import datetime
+from typing import Any, Dict, Optional
 
-from db_base import db
-from models import User
-from utils.smart_reminders import schedule_reminder, cancel_reminders
+from utils.smart_reminders import cancel_reminders, schedule_reminder
 
 logger = logging.getLogger("handlers.reminders")
 
-def handle_reminder_consent(psid_hash_val: str, text: str) -> Optional[Dict[str, Any]]:
+def handle_reminder_consent(psid_hash_val: str, text: str) -> dict[str, Any] | None:
     """
     Handle user consent to reminder prompts.
     
@@ -75,7 +72,7 @@ def handle_reminder_consent(psid_hash_val: str, text: str) -> Optional[Dict[str,
     
     return None
 
-def handle_reminder_request(psid_hash_val: str, text: str) -> Optional[Dict[str, Any]]:
+def handle_reminder_request(psid_hash_val: str, text: str) -> dict[str, Any] | None:
     """
     Handle user-initiated reminder requests.
     
@@ -120,7 +117,7 @@ def handle_reminder_request(psid_hash_val: str, text: str) -> Optional[Dict[str,
     
     return None
 
-def handle_reminder_cancellation(psid_hash_val: str, text: str) -> Optional[Dict[str, Any]]:
+def handle_reminder_cancellation(psid_hash_val: str, text: str) -> dict[str, Any] | None:
     """
     Handle reminder cancellation requests.
     
@@ -167,7 +164,7 @@ def handle_reminder_cancellation(psid_hash_val: str, text: str) -> Optional[Dict
     
     return None
 
-def detect_reminder_intent(psid_hash_val: str, text: str) -> Optional[Dict[str, Any]]:
+def detect_reminder_intent(psid_hash_val: str, text: str) -> dict[str, Any] | None:
     """
     Main function to detect and handle all reminder-related intents.
     

@@ -3,9 +3,10 @@ Multi-item expense parsing support
 Converts multi-item messages into multiple Canonical Commands
 """
 
-import re
 import logging
-from typing import List, Dict, Any
+import re
+from typing import Any, Dict, List
+
 from utils.canonical_command import CanonicalCommand, CCSlots
 
 logger = logging.getLogger("finbrain.multi_item")
@@ -40,7 +41,7 @@ class MultiItemParser:
                 
         return False
     
-    def parse_items(self, text: str) -> List[Dict[str, Any]]:
+    def parse_items(self, text: str) -> list[dict[str, Any]]:
         """
         Parse multi-item message into separate items
         Returns list of item dictionaries
@@ -113,7 +114,7 @@ class MultiItemParser:
                     
         return 'unknown'
     
-    def split_into_commands(self, base_cc: CanonicalCommand, items: List[Dict]) -> List[CanonicalCommand]:
+    def split_into_commands(self, base_cc: CanonicalCommand, items: list[dict]) -> list[CanonicalCommand]:
         """
         Split multi-item CC into multiple single-item CCs
         

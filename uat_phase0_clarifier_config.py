@@ -5,16 +5,15 @@ Validates that configuration changes have zero behavioral impact
 """
 
 import sys
-import os
-import requests
-import json
-import time
 from datetime import datetime
+
+import requests
 
 # Add project root to path
 sys.path.append('/home/runner/workspace')
 
 from utils.pca_flags import pca_flags
+
 
 class Phase0UAT:
     def __init__(self):
@@ -228,7 +227,7 @@ class Phase0UAT:
         
         print()
         print("=" * 60)
-        print(f"PHASE 0 UAT RESULTS:")
+        print("PHASE 0 UAT RESULTS:")
         print(f"✅ Passed: {passed_tests}/{total_tests} ({pass_rate:.1f}%)")
         print(f"⏱️  Duration: {duration:.2f}s")
         print(f"🎯 Exit Gate: {'PASS' if pass_rate == 100 else 'FAIL'}")

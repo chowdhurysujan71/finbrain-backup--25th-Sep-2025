@@ -1,7 +1,9 @@
+import uuid
+
+from utils.background_processor import background_processor
 from utils.identity import user_hash_from_session_user_id
 from utils.production_router import production_router
-from utils.background_processor import background_processor
-import uuid
+
 
 def route_web_text(session_user_id: str, text: str, rid: str | None = None, mode: str = "sync"):
     user_hash = user_hash_from_session_user_id(session_user_id)

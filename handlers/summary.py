@@ -1,13 +1,13 @@
 """
 Summary handler: Provides expense summaries without AI
 """
-from datetime import datetime, timezone, timedelta
-from typing import Dict, Tuple
 import logging
+from datetime import UTC, datetime, timedelta, timezone
+from typing import Dict, Tuple
 
 logger = logging.getLogger(__name__)
 
-def month_bounds(now=None, tz=timezone.utc) -> Tuple[datetime, datetime]:
+def month_bounds(now=None, tz=UTC) -> tuple[datetime, datetime]:
     """Get start and end of current month"""
     now = now or datetime.now(tz)
     start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -17,7 +17,7 @@ def month_bounds(now=None, tz=timezone.utc) -> Tuple[datetime, datetime]:
         end = start.replace(month=start.month+1)
     return start, end
 
-def week_bounds(now=None, tz=timezone.utc) -> Tuple[datetime, datetime]:
+def week_bounds(now=None, tz=UTC) -> tuple[datetime, datetime]:
     """Get start and end of current week"""
     now = now or datetime.now(tz)
     start = now - timedelta(days=7)
@@ -45,9 +45,9 @@ def _range_this_month_and_prev(now: datetime):
 
 def _totals_by_category(user_id: str, start: datetime, end: datetime):
     """Get category totals for a date range - UNIFIED READ PATH (expenses table only)"""
-    from app import app, db
     from sqlalchemy import text
-    from datetime import timedelta
+
+    from app import db
     
     # Use direct SQL query instead of prepared statement (fixed compatibility issue)
     try:
@@ -69,7 +69,7 @@ def _totals_by_category(user_id: str, start: datetime, end: datetime):
             category_map = {top_category: float(total_minor / 100)} if total_minor > 0 else {}
             total = float(total_minor / 100)
             return category_map, total
-    except Exception as e:
+    except Exception:
         # Continue to fallback query if this fails
         pass
     
@@ -93,13 +93,12 @@ def _pct_change(cur: float, prev: float) -> float:
         return 100.0 if cur > 0 else 0.0
     return round(abs((cur - prev) / prev) * 100.0, 1)
 
-def handle_summary(user_id: str, text: str = "", timeframe: str = "week") -> Dict[str, str]:
+def handle_summary(user_id: str, text: str = "", timeframe: str = "week") -> dict[str, str]:
     """
     Generate expense summary for user with intelligent timeframe detection
     Returns dict with 'text' key containing the summary message
     """
     try:
-        from models import Expense
         from app import app, db
         
         # Ensure we're running within Flask application context
@@ -133,8 +132,8 @@ def handle_summary(user_id: str, text: str = "", timeframe: str = "week") -> Dic
             
             # BLOCK 4 ANALYTICS: Track report request (fail-safe)
             try:
-                from utils.analytics_engine import track_report_request
                 from models import User
+                from utils.analytics_engine import track_report_request
                 user = db.session.query(User).filter_by(user_id_hash=user_id).first()
                 if user:
                     track_report_request(user, "summary_command")
@@ -159,9 +158,14 @@ def handle_summary(user_id: str, text: str = "", timeframe: str = "week") -> Dic
             base_msg = format_ai_summary_reply(period, total_amount, total_entries, categories)
             
             # Add budget comparison if possible
-            from utils.ux_copy import BUDGET_WEEK_COMPARISON, BUDGET_MONTH_COMPARISON, BUDGET_TOP_CHANGE, BUDGET_NO_DATA
+            from utils.ux_copy import (
+                BUDGET_MONTH_COMPARISON,
+                BUDGET_NO_DATA,
+                BUDGET_TOP_CHANGE,
+                BUDGET_WEEK_COMPARISON,
+            )
             
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             mode = "week" if timeframe == "week" else "month"
             
             try:

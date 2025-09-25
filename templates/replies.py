@@ -6,6 +6,7 @@ Coach-style, natural, and helpful response formatting
 from decimal import Decimal
 from typing import Optional
 
+
 def format_correction_no_candidate_reply(amount: Decimal, currency: str, category: str) -> str:
     """
     Format reply when no correction candidate is found.
@@ -30,7 +31,7 @@ def format_correction_no_candidate_reply(amount: Decimal, currency: str, categor
             f"{currency_symbol}{amount} for {category} as a new expense. 📝")
 
 def format_corrected_reply(old_amount: float, old_currency: str, new_amount: Decimal, 
-                          new_currency: str, category: str, merchant: Optional[str] = None) -> str:
+                          new_currency: str, category: str, merchant: str | None = None) -> str:
     """
     Format successful correction confirmation.
     

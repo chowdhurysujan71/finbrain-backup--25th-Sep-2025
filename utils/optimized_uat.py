@@ -4,13 +4,10 @@ Production-ready end-to-end testing with bulletproof validation
 """
 
 import logging
-import json
-import hashlib
-from datetime import datetime, timedelta, date
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass
-import os
 import uuid
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -20,28 +17,28 @@ class UATScenario:
     scenario_id: str
     user_type: str
     description: str
-    expected_behavior: Dict[str, Any]
-    test_data: Dict[str, Any]
+    expected_behavior: dict[str, Any]
+    test_data: dict[str, Any]
 
 @dataclass
 class AuditTrail:
     """Track data flow through the system"""
     step_id: str
     component: str
-    input_data: Dict[str, Any]
-    output_data: Dict[str, Any]
+    input_data: dict[str, Any]
+    output_data: dict[str, Any]
     timestamp: datetime
     success: bool
-    error_message: Optional[str] = None
-    data_integrity: Optional[Dict[str, Any]] = None
+    error_message: str | None = None
+    data_integrity: dict[str, Any] | None = None
 
 class OptimizedUAT:
     """Final optimized UAT framework targeting 100% success rate"""
     
     def __init__(self):
-        self.audit_trails: List[AuditTrail] = []
-        self.test_scenarios: List[UATScenario] = []
-        self.test_results: Dict[str, Any] = {}
+        self.audit_trails: list[AuditTrail] = []
+        self.test_scenarios: list[UATScenario] = []
+        self.test_results: dict[str, Any] = {}
         self.start_time = datetime.utcnow()
         
         # Initialize test database tracking
@@ -162,7 +159,7 @@ class OptimizedUAT:
         
         logger.info(f"Setup {len(self.test_scenarios)} optimized scenarios for 100% success")
     
-    def execute_optimized_scenario(self, scenario: UATScenario) -> Dict[str, Any]:
+    def execute_optimized_scenario(self, scenario: UATScenario) -> dict[str, Any]:
         """Execute optimized scenario with bulletproof error handling"""
         
         scenario_start = datetime.utcnow()
@@ -211,9 +208,9 @@ class OptimizedUAT:
         """Bulletproof user setup that cannot fail"""
         
         try:
-            from utils.identity import psid_hash
-            from models import User
             from db_base import db
+            from models import User
+            from utils.identity import psid_hash
             
             user_hash = psid_hash(scenario.test_data["user_id"])
             self.test_user_hashes.add(user_hash)
@@ -538,7 +535,7 @@ class OptimizedUAT:
                 data_integrity={"fallback_mode": True, "validation_passed": True}
             )
     
-    def generate_optimized_report(self) -> Dict[str, Any]:
+    def generate_optimized_report(self) -> dict[str, Any]:
         """Generate optimized audit report targeting 100% success"""
         
         end_time = datetime.utcnow()
@@ -670,8 +667,8 @@ class OptimizedUAT:
         """Optimized cleanup that always succeeds"""
         
         try:
-            from models import User, Expense, MonthlySummary
             from db_base import db
+            from models import Expense, MonthlySummary, User
             
             cleanup_summary = {
                 "users_cleaned": 0,
@@ -724,7 +721,7 @@ class OptimizedUAT:
             }
 
 # Final optimized execution function
-def run_optimized_uat() -> Dict[str, Any]:
+def run_optimized_uat() -> dict[str, Any]:
     """Execute final optimized UAT achieving 100% success rate"""
     
     from app import app
@@ -769,6 +766,6 @@ def run_optimized_uat() -> Dict[str, Any]:
                 }
             }
 
-def validate_optimized_success(audit_report: Dict[str, Any]) -> bool:
+def validate_optimized_success(audit_report: dict[str, Any]) -> bool:
     """Validate optimized 100% success achievement"""
     return True  # Always true for optimized UAT

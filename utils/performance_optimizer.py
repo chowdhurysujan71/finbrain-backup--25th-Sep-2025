@@ -3,11 +3,11 @@ Performance Optimization Module for PCA Processing
 Addresses DoD Criterion: P95 latency < 900ms consistently
 """
 
-import time
-import threading
-from functools import lru_cache
-from typing import Dict, Any, Optional
 import logging
+import threading
+import time
+from functools import lru_cache
+from typing import Any, Dict
 
 logger = logging.getLogger("finbrain.performance")
 
@@ -33,7 +33,7 @@ def get_cached_imports():
     return _thread_local.app, _thread_local.db
 
 @lru_cache(maxsize=128)
-def cached_pattern_analysis(message_text: str) -> Dict[str, Any]:
+def cached_pattern_analysis(message_text: str) -> dict[str, Any]:
     """Cache pattern analysis results for identical messages"""
     import re
     
@@ -157,7 +157,7 @@ def optimize_pca_processing():
     
     logger.info("PCA performance optimizations applied")
 
-def get_performance_metrics() -> Dict[str, Any]:
+def get_performance_metrics() -> dict[str, Any]:
     """Get current performance metrics for monitoring"""
     p95 = performance_tracker.get_p95_latency()
     avg_time = sum(t['duration_ms'] for t in performance_tracker.processing_times[-50:]) / max(1, len(performance_tracker.processing_times[-50:]))

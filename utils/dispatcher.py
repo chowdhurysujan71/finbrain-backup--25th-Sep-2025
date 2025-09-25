@@ -2,16 +2,17 @@
 Message dispatcher: Routes messages to appropriate handlers based on intent
 """
 import logging
-from typing import Dict, Tuple, Optional
-from utils.intent_router import detect_intent
-from handlers.summary import handle_summary
+from typing import Optional, Tuple
+
 from handlers.insight import handle_insight
 from handlers.logger import handle_log
 from handlers.report import handle_report
+from handlers.summary import handle_summary
+from utils.intent_router import detect_intent
 
 logger = logging.getLogger(__name__)
 
-def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
+def handle_message_dispatch(user_id: str, text: str) -> tuple[str, str]:
     """
     Dispatch message to appropriate handler based on intent
     Returns (response_text, intent) tuple
@@ -144,8 +145,8 @@ def handle_message_dispatch(user_id: str, text: str) -> Tuple[str, str]:
 def handle_undo(user_id: str) -> str:
     """Simple undo handler - removes last expense"""
     try:
-        from models import Expense
         from db_base import db
+        from models import Expense
         
         # Get last expense
         last_expense = db.session.query(Expense).filter_by(
@@ -165,7 +166,7 @@ def handle_undo(user_id: str) -> str:
         logger.error(f"Undo error: {e}")
         return "Unable to undo. Please try again."
 
-def _check_and_append_challenge_progress(user_id_hash: str, current_message: str) -> Optional[str]:
+def _check_and_append_challenge_progress(user_id_hash: str, current_message: str) -> str | None:
     """
     Check challenge progress during user interaction and return nudge if appropriate
     Policy-compliant: only called during user interactions, never scheduled

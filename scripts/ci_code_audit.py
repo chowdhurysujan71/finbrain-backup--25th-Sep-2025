@@ -3,11 +3,10 @@
 Code References Audit - Evidence-Driven Release Assurance
 Scans for banned references that would cause runtime failures
 """
-import os
-import re
-import sys
 import subprocess
+import sys
 from pathlib import Path
+
 
 def scan_banned_references():
     """Scan for banned code references that would cause runtime failures"""
@@ -62,12 +61,12 @@ def scan_banned_references():
                 results.extend([f"  {match}" for match in matches if match.strip()])
                 results.append("")
             else:
-                print(f"  ✅ CLEAN: No violations found")
+                print("  ✅ CLEAN: No violations found")
                 results.append(f"CLEAN: {description}")
                 results.append("")
                 
         except FileNotFoundError:
-            print(f"  ⚠️  ripgrep not found, falling back to grep")
+            print("  ⚠️  ripgrep not found, falling back to grep")
             # Fallback to basic grep
             try:
                 result = subprocess.run(
@@ -80,7 +79,7 @@ def scan_banned_references():
                     total_violations += violation_count
                     print(f"  ❌ FOUND: {violation_count} violations (grep fallback)")
                 else:
-                    print(f"  ✅ CLEAN: No violations found (grep fallback)")
+                    print("  ✅ CLEAN: No violations found (grep fallback)")
             except Exception as e:
                 print(f"  💥 ERROR: Could not scan for {description}: {e}")
     
@@ -93,7 +92,7 @@ def scan_banned_references():
         f.write("\n".join(results))
     
     # Generate summary
-    print(f"\n📊 Code Audit Summary")
+    print("\n📊 Code Audit Summary")
     print("=" * 25)
     print(f"Total Violations: {total_violations}")
     

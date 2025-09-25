@@ -4,13 +4,16 @@ Implements structured messaging with button-like interactions for better UX
 """
 
 import logging
-from typing import List, Dict
+import os
 import sys
-import os
+from typing import Dict, List
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.facebook_handler import send_message
-import requests
 import os
+
+import requests
+
+from utils.facebook_handler import send_message
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +23,7 @@ class QuickReplySystem:
     def __init__(self):
         self.access_token = os.environ.get('FACEBOOK_PAGE_ACCESS_TOKEN')
         
-    def send_quick_replies(self, psid: str, text: str, replies: List[Dict[str, str]]) -> bool:
+    def send_quick_replies(self, psid: str, text: str, replies: list[dict[str, str]]) -> bool:
         """
         Send message with quick reply buttons
         
@@ -184,7 +187,7 @@ def send_quick_reply_message(psid: str, text: str, reply_set: str) -> bool:
     replies = COMMON_QUICK_REPLIES.get(reply_set, COMMON_QUICK_REPLIES["main_menu"])
     return quick_reply_system.send_quick_replies(psid, text, replies)
 
-def send_custom_quick_replies(psid: str, text: str, replies: List[Dict[str, str]]) -> bool:
+def send_custom_quick_replies(psid: str, text: str, replies: list[dict[str, str]]) -> bool:
     """Send message with custom quick replies"""
     return quick_reply_system.send_quick_replies(psid, text, replies)
 

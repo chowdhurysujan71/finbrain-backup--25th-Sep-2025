@@ -3,17 +3,12 @@ PCA Comprehensive UAT Test Suite
 Complete validation for production deployment readiness
 """
 
-import pytest
-import os
-import json
-import time
-import threading
-from datetime import datetime, timedelta
-from unittest.mock import patch, MagicMock
-from concurrent.futures import ThreadPoolExecutor
 import hashlib
+import os
 import random
-import requests
+import time
+from datetime import datetime, timedelta
+from unittest.mock import MagicMock, patch
 
 # Set test environment for comprehensive testing
 os.environ['PCA_OVERLAY_ENABLED'] = 'true'
@@ -22,12 +17,13 @@ os.environ['SHOW_AUDIT_UI'] = 'true'
 os.environ['ENABLE_RULES'] = 'true'
 os.environ['USE_PRECEDENCE'] = 'true'
 
-from app import app, db
-from utils.precedence_engine import precedence_engine
+import hashlib
+
+from app import app
 from utils.canonical_command import CanonicalCommand, CCSlots
 from utils.pca_feature_flags import pca_feature_flags
-from utils.multi_item_parser import multi_item_parser
-import hashlib
+from utils.precedence_engine import precedence_engine
+
 
 def ensure_hashed(input_str):
     """Simple hash function for testing"""

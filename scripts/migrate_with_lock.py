@@ -4,12 +4,13 @@ Migration script with PostgreSQL advisory lock to prevent race conditions.
 Ensures only one process can run migrations at a time during concurrent startup.
 """
 
-import os
-import sys
 import logging
-import time
+import os
 import subprocess
+import sys
+import time
 from typing import Optional
+
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
@@ -26,9 +27,9 @@ logger = logging.getLogger(__name__)
 # Import shared migration configuration
 try:
     from utils.migration_config import (
-        get_migration_lock_id, 
+        MIGRATION_LOCK_TIMEOUT,
+        get_migration_lock_id,
         get_safe_database_info,
-        MIGRATION_LOCK_TIMEOUT
     )
     MIGRATION_LOCK_ID = get_migration_lock_id()
 except ImportError:
@@ -56,7 +57,7 @@ class AdvisoryLockManager:
     
     def __init__(self, database_url: str):
         self.database_url = database_url
-        self.connection: Optional[psycopg2.extensions.connection] = None
+        self.connection: psycopg2.extensions.connection | None = None
         self.lock_acquired = False
     
     def connect(self) -> None:

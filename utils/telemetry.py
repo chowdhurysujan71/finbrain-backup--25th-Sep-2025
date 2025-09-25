@@ -3,11 +3,12 @@ FinBrain Growth Telemetry System
 Tracks user engagement events and calculates growth metrics
 """
 
-import json
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Dict, Any, Optional, List
-from sqlalchemy import text, func
+from datetime import UTC, datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import func, text
+
 from db_base import db
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ class TelemetryTracker:
     """Central telemetry tracking system for growth metrics"""
     
     @staticmethod
-    def track_event(event_type: str, user_id_hash: str, event_data: Dict[str, Any] = None) -> bool:
+    def track_event(event_type: str, user_id_hash: str, event_data: dict[str, Any] = None) -> bool:
         """
         Track a telemetry event
         
@@ -35,7 +36,7 @@ class TelemetryTracker:
                 event_type=event_type,
                 user_id_hash=user_id_hash,
                 event_data=event_data or {},
-                timestamp=datetime.now(timezone.utc)
+                timestamp=datetime.now(UTC)
             )
             
             db.session.add(event)
@@ -53,7 +54,7 @@ class TelemetryTracker:
             return False
     
     @staticmethod
-    def track_expense_logged(user_id_hash: str, amount: float, category: str, source: str = "form", expense_id: Optional[int] = None) -> bool:
+    def track_expense_logged(user_id_hash: str, amount: float, category: str, source: str = "form", expense_id: int | None = None) -> bool:
         """Track when user successfully logs an expense"""
         if expense_id is None:
             logger.warning("track_expense_logged called without expense_id - telemetry validation requires valid expense_id")
@@ -106,7 +107,7 @@ class TelemetryTracker:
                 counter = GrowthCounter.query.filter_by(counter_name=counter_name).first()
                 if counter:
                     counter.counter_value += 1
-                    counter.last_updated = datetime.now(timezone.utc)
+                    counter.last_updated = datetime.now(UTC)
                     db.session.commit()
                 
         except Exception as e:
@@ -119,7 +120,7 @@ class GrowthMetrics:
     def get_dau_today() -> int:
         """Get Daily Active Users for today (UTC)"""
         try:
-            today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+            today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
             today_end = today_start + timedelta(days=1)
             
             from models import TelemetryEvent
@@ -142,7 +143,7 @@ class GrowthMetrics:
     def get_dau_7day() -> int:
         """Get 7-day Active Users"""
         try:
-            seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+            seven_days_ago = datetime.now(UTC) - timedelta(days=7)
             
             from models import TelemetryEvent
             
@@ -160,7 +161,7 @@ class GrowthMetrics:
             return 0
     
     @staticmethod
-    def get_retention_cohorts(days: int = 7) -> List[Dict[str, Any]]:
+    def get_retention_cohorts(days: int = 7) -> list[dict[str, Any]]:
         """
         Get D1/D3 retention for the last N cohorts
         
@@ -176,8 +177,8 @@ class GrowthMetrics:
             cohorts = []
             
             for day_offset in range(days):
-                cohort_date = datetime.now(timezone.utc).date() - timedelta(days=day_offset)
-                cohort_start = datetime.combine(cohort_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+                cohort_date = datetime.now(UTC).date() - timedelta(days=day_offset)
+                cohort_start = datetime.combine(cohort_date, datetime.min.time()).replace(tzinfo=UTC)
                 cohort_end = cohort_start + timedelta(days=1)
                 
                 # Get new users in this cohort (first expense_logged event)
@@ -247,7 +248,7 @@ class GrowthMetrics:
             return []
     
     @staticmethod
-    def get_running_totals() -> Dict[str, int]:
+    def get_running_totals() -> dict[str, int]:
         """Get all running counter totals"""
         try:
             from models import GrowthCounter
@@ -288,7 +289,7 @@ class GrowthMetrics:
             report_lines = [
                 "FinBrain Growth Metrics",
                 "======================",
-                f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC",
+                f"Generated: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')} UTC",
                 "",
                 "Daily Active Users (DAU)",
                 f"- Today: {dau_today:,} users",

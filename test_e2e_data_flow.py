@@ -4,15 +4,13 @@ Tests the complete data flow from user input to database storage
 Tracks: Input → Processing → Routing → Storage → Verification
 """
 
-import pytest
-import json
-import time
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List
+
 
 class DataFlowVerificationResult:
     """Represents the result of a complete data flow verification"""
     def __init__(self, test_id: str, input_data: str, success: bool, 
-                 flow_stages: Dict[str, Any], final_verification: Dict[str, Any]):
+                 flow_stages: dict[str, Any], final_verification: dict[str, Any]):
         self.test_id = test_id
         self.input_data = input_data
         self.success = success
@@ -27,9 +25,9 @@ class E2EDataFlowTester:
     """End-to-end data flow testing system"""
     
     def __init__(self):
-        self.results: List[DataFlowVerificationResult] = []
+        self.results: list[DataFlowVerificationResult] = []
         
-    def test_expense_data_flow_table(self) -> List[DataFlowVerificationResult]:
+    def test_expense_data_flow_table(self) -> list[DataFlowVerificationResult]:
         """
         Test complete expense data flow table with multiple scenarios
         Each test case verifies: Input → Processing → Routing → Storage
@@ -100,7 +98,7 @@ class E2EDataFlowTester:
         self._print_data_flow_summary()
         return self.results
     
-    def _test_single_data_flow(self, test_case: Dict[str, Any]) -> DataFlowVerificationResult:
+    def _test_single_data_flow(self, test_case: dict[str, Any]) -> DataFlowVerificationResult:
         """Test a single complete data flow scenario"""
         
         flow_stages = {
@@ -129,7 +127,7 @@ class E2EDataFlowTester:
             # Stage 2: Expense Detection (simulate processing pipeline)
             import sys
             sys.path.append('/home/runner/workspace')
-            from utils.expense_repair import looks_like_expense, extract_amount_minor, normalize_category
+            from utils.expense_repair import extract_amount_minor, looks_like_expense
             
             detected_as_expense = looks_like_expense(input_text)
             flow_stages["expense_detection"] = True

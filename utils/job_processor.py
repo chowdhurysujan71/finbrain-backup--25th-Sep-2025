@@ -1,16 +1,15 @@
 """
 Job processor for handling queued jobs with circuit breaker integration
 """
-import os
 import json
-import time
 import logging
-from typing import Dict, Any, Optional
+import os
+import time
 from datetime import datetime
+from typing import Any, Dict, Optional
 
-from .job_queue import job_queue, Job
 from .circuit_breaker import circuit_breaker
-from .logger import structured_logger
+from .job_queue import Job, job_queue
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +114,7 @@ class JobProcessor:
             
             return False
     
-    def _process_by_type(self, job: Job, request_id: str) -> tuple[bool, Optional[str], Optional[str]]:
+    def _process_by_type(self, job: Job, request_id: str) -> tuple[bool, str | None, str | None]:
         """
         Process job based on its type
         
@@ -127,7 +126,7 @@ class JobProcessor:
         else:
             return False, None, f"Unknown job type: {job.type}"
     
-    def _process_analysis_job(self, job: Job, request_id: str) -> tuple[bool, Optional[str], Optional[str]]:
+    def _process_analysis_job(self, job: Job, request_id: str) -> tuple[bool, str | None, str | None]:
         """
         Process analysis job using AI
         
@@ -213,7 +212,7 @@ class JobProcessor:
         return any(indicator in error_lower for indicator in ai_error_indicators)
     
     def _log_job_event(self, event_type: str, job: Job, request_id: str, latency_ms: float,
-                       result_path: Optional[str] = None, error: Optional[str] = None) -> None:
+                       result_path: str | None = None, error: str | None = None) -> None:
         """Log structured job processing event"""
         log_data = {
             "event": event_type,
@@ -233,7 +232,7 @@ class JobProcessor:
         
         logger.info(json.dumps(log_data))
     
-    def _add_sentry_breadcrumb(self, action: str, job: Job, extra: Dict[str, Any] = None) -> None:
+    def _add_sentry_breadcrumb(self, action: str, job: Job, extra: dict[str, Any] = None) -> None:
         """Add Sentry breadcrumb for job processing"""
         if not self.sentry_enabled:
             return

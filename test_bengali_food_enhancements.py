@@ -19,8 +19,8 @@ Usage:
     python test_bengali_food_enhancements.py
 """
 
-import sys
 import os
+import sys
 from datetime import datetime
 from decimal import Decimal
 
@@ -28,7 +28,7 @@ from decimal import Decimal
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
-    from parsers.expense import parse_expense, extract_all_expenses
+    from parsers.expense import extract_all_expenses, parse_expense
     print("✓ Successfully imported expense parser functions")
 except ImportError as e:
     print(f"✗ Failed to import expense parser: {e}")
@@ -453,7 +453,7 @@ class BengaliFoodEnhancementTester:
         print(f"Success Rate: {success_rate:.1f}%")
         
         # Show all test results
-        print(f"\nDETAILED TEST RESULTS:")
+        print("\nDETAILED TEST RESULTS:")
         print("-" * 70)
         for result in self.test_results:
             print(result)
@@ -468,10 +468,10 @@ class BengaliFoodEnhancementTester:
                 if result.notes:
                     print(f"  Notes: {result.notes}")
         else:
-            print(f"\n🎉 ALL TESTS PASSED! Bengali food alias enhancements are working correctly.")
+            print("\n🎉 ALL TESTS PASSED! Bengali food alias enhancements are working correctly.")
         
         # Critical enhancements status
-        print(f"\nCRITICAL ENHANCEMENTS STATUS:")
+        print("\nCRITICAL ENHANCEMENTS STATUS:")
         print("-" * 70)
         critical_tests = {
             "Vague token override": ["Coffee with vague 'general'", "Biryani with vague 'misc'"],

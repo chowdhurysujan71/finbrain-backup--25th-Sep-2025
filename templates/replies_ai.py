@@ -6,7 +6,7 @@ Natural, coach-style responses that sound conversational and helpful
 import logging
 import random
 from decimal import Decimal
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("templates.replies_ai")
 
@@ -61,7 +61,7 @@ def format_ai_single_expense_reply(amount: float, category: str, currency: str =
     
     return f"{base_response}{closing}"
 
-def format_ai_multi_expense_reply(expenses: List[Dict[str, Any]], total_amount: float) -> str:
+def format_ai_multi_expense_reply(expenses: list[dict[str, Any]], total_amount: float) -> str:
     """AI-style reply for multiple expense logging with natural variation"""
     import random
     
@@ -95,7 +95,7 @@ def format_ai_multi_expense_reply(expenses: List[Dict[str, Any]], total_amount: 
 
 # AI Summary Templates  
 def format_ai_summary_reply(period: str, total_amount: float, total_entries: int, 
-                           categories: Optional[List[str]] = None) -> str:
+                           categories: list[str] | None = None) -> str:
     """AI-style summary with coaching tone and natural variation"""
     import random
     
@@ -181,7 +181,7 @@ def format_ai_summary_reply(period: str, total_amount: float, total_entries: int
     return summary
 
 # AI Insight Templates
-def format_ai_insight_reply(insights: List[str], total_amount: Optional[float] = None, timeframe: str = "this month") -> str:
+def format_ai_insight_reply(insights: list[str], total_amount: float | None = None, timeframe: str = "this month") -> str:
     """AI-style insights with personalized coaching and user acknowledgment"""
     
     # Make timeframe explicit in insights
@@ -231,7 +231,7 @@ def format_ai_insight_reply(insights: List[str], total_amount: Optional[float] =
 
 # AI Correction Templates  
 def format_ai_corrected_reply(old_amount: float, old_currency: str, new_amount: Decimal, 
-                             new_currency: str, category: str, merchant: Optional[str] = None) -> str:
+                             new_currency: str, category: str, merchant: str | None = None) -> str:
     """AI-style correction confirmation"""
     old_symbol = {'BDT': '৳', 'USD': '$', 'EUR': '€', 'GBP': '£', 'INR': '₹'}.get(old_currency, old_currency)
     new_symbol = {'BDT': '৳', 'USD': '$', 'EUR': '€', 'GBP': '£', 'INR': '₹'}.get(new_currency, new_currency)
@@ -320,7 +320,7 @@ def clean_ai_reply(text: str) -> str:
     return '\n'.join(clean_lines).strip()
 
 # Coaching Flow Templates
-def coach_focus(topic_suggestions: List[str]) -> Dict[str, Any]:
+def coach_focus(topic_suggestions: list[str]) -> dict[str, Any]:
     """Generate focus question for coaching flow"""
     suggestions_text = ", ".join(topic_suggestions[:-1]) + f" or {topic_suggestions[-1]}" if len(topic_suggestions) > 1 else topic_suggestions[0]
     
@@ -337,7 +337,7 @@ def coach_focus(topic_suggestions: List[str]) -> Dict[str, Any]:
         'quick_replies': quick_replies
     }
 
-def coach_commit(topic: str, action_options: List[str]) -> Dict[str, Any]:
+def coach_commit(topic: str, action_options: list[str]) -> dict[str, Any]:
     """Generate commitment question for coaching flow"""
     options_text = " or ".join(action_options)
     
@@ -357,7 +357,7 @@ def coach_commit(topic: str, action_options: List[str]) -> Dict[str, Any]:
         'quick_replies': quick_replies
     }
 
-def coach_done(action: str) -> Dict[str, Any]:
+def coach_done(action: str) -> dict[str, Any]:
     """Generate completion message for coaching flow"""
     variations = [
         f"💪 Perfect! I'll check back in a few days to see how {action} is going.",

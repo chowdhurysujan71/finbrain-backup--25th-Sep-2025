@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-import os, sys
-import requests
+import os
+import sys
 from datetime import datetime, timedelta
+
+import requests
 
 # ----------------------------
 # CONFIG (override via ENV)

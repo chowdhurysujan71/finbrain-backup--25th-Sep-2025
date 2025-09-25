@@ -3,30 +3,26 @@ Comprehensive Tests for SMART_CORRECTIONS System
 Tests correction detection, parsing, candidate matching, and supersede logic
 """
 
-import pytest
 import unittest
-from unittest.mock import patch, MagicMock
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
+from unittest.mock import MagicMock, patch
 
-from parsers.expense import (
-    is_correction_message, 
-    parse_correction_reason,
-    similar_category, 
-    similar_merchant, 
-    parse_expense
-)
-from finbrain.router import (
-    contains_money_with_correction_fallback, 
-    is_correction_message as router_is_correction
-)
-from utils.feature_flags import is_smart_corrections_enabled
+from finbrain.router import contains_money_with_correction_fallback
 from handlers.expense import handle_correction
+from parsers.expense import (
+    is_correction_message,
+    parse_correction_reason,
+    parse_expense,
+    similar_category,
+    similar_merchant,
+)
 from templates.replies import (
     format_corrected_reply,
+    format_correction_duplicate_reply,
     format_correction_no_candidate_reply,
-    format_correction_duplicate_reply
 )
+
 
 class TestCorrectionDetection(unittest.TestCase):
     """Test correction pattern detection"""

@@ -118,7 +118,7 @@ _NORMALIZE_RE = re.compile(r"[^a-z0-9\s]")
 def normalize(text: str) -> str:
     return _NORMALIZE_RE.sub("", text.lower().strip())
 
-def match_faq_or_smalltalk(user_text: str) -> Optional[str]:
+def match_faq_or_smalltalk(user_text: str) -> str | None:
     norm = normalize(user_text)
     # Use word boundary matching to avoid false positives like "hi" in "this"
     words = norm.split()

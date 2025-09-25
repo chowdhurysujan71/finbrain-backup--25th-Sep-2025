@@ -3,13 +3,14 @@ Milestone Coaching Handler - Detects and fires achievement milestones
 """
 
 import logging
-from typing import Optional, Tuple
-from datetime import datetime, timedelta, timezone, date
+from datetime import UTC, date, datetime, timedelta, timezone
+from typing import Optional
+
 from utils.structured import log_structured_event
 
 logger = logging.getLogger(__name__)
 
-def check_milestones_after_log(user_id_hash: str) -> Optional[str]:
+def check_milestones_after_log(user_id_hash: str) -> str | None:
     """
     Check for milestone achievements after successful expense logging
     Returns milestone message if one should be fired, None otherwise
@@ -21,8 +22,8 @@ def check_milestones_after_log(user_id_hash: str) -> Optional[str]:
         Milestone message string or None
     """
     try:
-        from models import UserMilestone, Expense
         from db_base import db
+        from models import UserMilestone
         
         # Check daily milestone cap (max 1 per day)
         today = date.today()
@@ -51,11 +52,11 @@ def check_milestones_after_log(user_id_hash: str) -> Optional[str]:
         logger.error(f"Milestone check error: {e}")
         return None
 
-def _check_streak_milestone(user_id_hash: str) -> Optional[str]:
+def _check_streak_milestone(user_id_hash: str) -> str | None:
     """Check if user has achieved 3-day logging streak"""
     try:
-        from models import UserMilestone, Expense
         from db_base import db
+        from models import UserMilestone
         
         # Check if already fired
         existing = db.session.query(UserMilestone).filter(
@@ -92,11 +93,11 @@ def _check_streak_milestone(user_id_hash: str) -> Optional[str]:
         logger.error(f"Streak milestone check error: {e}")
         return None
 
-def _check_logs_milestone(user_id_hash: str) -> Optional[str]:
+def _check_logs_milestone(user_id_hash: str) -> str | None:
     """Check if user has reached 10 total logs"""
     try:
-        from models import UserMilestone, Expense
         from db_base import db
+        from models import Expense, UserMilestone
         
         # Check if already fired
         existing = db.session.query(UserMilestone).filter(
@@ -141,11 +142,11 @@ def _calculate_streak_days(user_id_hash: str) -> int:
     Reuses logic from handlers/report.py
     """
     try:
-        from models import Expense
         from db_base import db
+        from models import Expense
         
         # Calculate consecutive logging days
-        today = datetime.now(timezone.utc).date()
+        today = datetime.now(UTC).date()
         streak_days = 0
         check_date = today
         
@@ -168,7 +169,7 @@ def _calculate_streak_days(user_id_hash: str) -> int:
         return 0
 
 def _log_milestone_telemetry(milestone_type: str, user_id_hash: str, 
-                           category: Optional[str], delta_pct: Optional[float]):
+                           category: str | None, delta_pct: float | None):
     """Log milestone telemetry event"""
     try:
         event_data = {
@@ -185,7 +186,7 @@ def _log_milestone_telemetry(milestone_type: str, user_id_hash: str,
         logger.debug(f"Milestone telemetry failed: {e}")
 
 # Roadmap items - not implemented in demo
-def _check_category_spike_milestone(user_id_hash: str) -> Optional[str]:
+def _check_category_spike_milestone(user_id_hash: str) -> str | None:
     """
     ROADMAP: Check for category spending spikes ≥25%
     Requires scheduled job system for end-of-day processing
@@ -193,7 +194,7 @@ def _check_category_spike_milestone(user_id_hash: str) -> Optional[str]:
     # TODO: Implement when scheduled job system is available
     return None
 
-def _check_small_win_milestone(user_id_hash: str) -> Optional[str]:
+def _check_small_win_milestone(user_id_hash: str) -> str | None:
     """
     ROADMAP: Check for category spending reductions ≥10%
     Requires scheduled job system for end-of-day processing  

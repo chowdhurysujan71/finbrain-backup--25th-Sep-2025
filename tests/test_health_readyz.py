@@ -1,12 +1,13 @@
 """
 Tests for /health and /readyz endpoints
 """
-import pytest
 import os
-from unittest.mock import patch, MagicMock
-import psycopg
+from unittest.mock import MagicMock, patch
 
-from app import app, db
+import psycopg
+import pytest
+
+from app import app
 
 
 @pytest.fixture

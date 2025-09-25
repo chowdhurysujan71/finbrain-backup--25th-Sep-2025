@@ -9,11 +9,8 @@ Tests the complete form-based expense creation flow including:
 - User totals updates
 - Error handling and validation
 """
-import pytest
-import json
 import uuid
 from decimal import Decimal
-from datetime import datetime
 
 from tests.e2e_pipeline.test_base import E2ETestBase
 

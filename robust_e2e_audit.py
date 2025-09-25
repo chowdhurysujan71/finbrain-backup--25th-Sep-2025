@@ -7,10 +7,13 @@ Handles database transactions properly with detailed integrity validation
 import json
 import time
 import uuid
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
-from app import app, db
+from datetime import datetime
+from typing import Any, Dict
+
 from sqlalchemy import text
+
+from app import app, db
+
 
 class RobustE2EAudit:
     """Production-ready end-to-end audit with transaction safety"""
@@ -31,7 +34,7 @@ class RobustE2EAudit:
             "deployment_assessment": {}
         }
         
-    def run_comprehensive_audit(self) -> Dict[str, Any]:
+    def run_comprehensive_audit(self) -> dict[str, Any]:
         """Execute comprehensive end-to-end audit with proper error handling"""
         
         print("🔍 ROBUST END-TO-END UAT AUDIT")
@@ -93,8 +96,8 @@ class RobustE2EAudit:
     def _collect_system_info(self):
         """Collect system configuration and status"""
         try:
-            from utils.contract_tests import run_all_contract_tests
             from test_routing_integration import test_routing_in_app_context
+            from utils.contract_tests import run_all_contract_tests
             
             # Contract test baseline
             contract_results = run_all_contract_tests()
@@ -116,7 +119,7 @@ class RobustE2EAudit:
                 "timestamp": datetime.utcnow().isoformat()
             }
             
-            print(f"System baseline established:")
+            print("System baseline established:")
             print(f"  Contract Tests: {contract_results['passed']}/{contract_results['total']} ({contract_results['success_rate']}%)")
             print(f"  Integration Tests: {integration_status['passed']}/{integration_status['total']} ({integration_status['success_rate']}%)")
             print(f"  Database: {'✅ Connected' if db_status['connected'] else '❌ Failed'}")
@@ -124,7 +127,7 @@ class RobustE2EAudit:
         except Exception as e:
             print(f"⚠️ System info collection error: {e}")
     
-    def _validate_data_handling(self) -> Dict[str, Any]:
+    def _validate_data_handling(self) -> dict[str, Any]:
         """Validate data ingestion and parsing"""
         results = {"tests": [], "summary": {}}
         
@@ -153,7 +156,7 @@ class RobustE2EAudit:
         
         for case in test_cases:
             try:
-                from utils.routing_policy import deterministic_router, BilingualPatterns
+                from utils.routing_policy import BilingualPatterns, deterministic_router
                 
                 patterns = BilingualPatterns()
                 signals = deterministic_router.extract_signals(case["input"], self.test_user_id)
@@ -211,7 +214,7 @@ class RobustE2EAudit:
         
         return results
     
-    def _validate_routing_system(self) -> Dict[str, Any]:
+    def _validate_routing_system(self) -> dict[str, Any]:
         """Validate message routing decisions"""
         results = {"tests": [], "summary": {}}
         
@@ -275,7 +278,7 @@ class RobustE2EAudit:
         
         return results
     
-    def _validate_processing_system(self) -> Dict[str, Any]:
+    def _validate_processing_system(self) -> dict[str, Any]:
         """Validate AI processing capabilities"""
         results = {"tests": [], "summary": {}}
         
@@ -336,7 +339,7 @@ class RobustE2EAudit:
         
         return results
     
-    def _validate_storage_system(self) -> Dict[str, Any]:
+    def _validate_storage_system(self) -> dict[str, Any]:
         """Validate database storage with proper transaction handling"""
         results = {"tests": [], "summary": {}}
         
@@ -396,7 +399,7 @@ class RobustE2EAudit:
                     "success": retrieval_result is not None,
                     "retrieved_amount": retrieval_result.amount if retrieval_result else None
                 })
-                print(f"  ✅ Data retrieval: Found record")
+                print("  ✅ Data retrieval: Found record")
                 
             except Exception as e:
                 results["tests"].append({
@@ -450,7 +453,7 @@ class RobustE2EAudit:
         
         return results
     
-    def _validate_data_integrity(self) -> Dict[str, Any]:
+    def _validate_data_integrity(self) -> dict[str, Any]:
         """Validate data integrity and consistency"""
         results = {"checks": [], "summary": {}}
         
@@ -531,7 +534,7 @@ class RobustE2EAudit:
         
         return results
     
-    def _validate_security(self) -> Dict[str, Any]:
+    def _validate_security(self) -> dict[str, Any]:
         """Validate security measures"""
         results = {"checks": [], "summary": {}}
         
@@ -588,7 +591,7 @@ class RobustE2EAudit:
         
         return results
     
-    def _test_user_id_hashing(self) -> Dict[str, Any]:
+    def _test_user_id_hashing(self) -> dict[str, Any]:
         """Test user ID hashing functionality"""
         try:
             from utils.security import ensure_hashed
@@ -602,7 +605,7 @@ class RobustE2EAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_sql_injection_protection(self) -> Dict[str, Any]:
+    def _test_sql_injection_protection(self) -> dict[str, Any]:
         """Test SQL injection protection"""
         try:
             malicious_input = "'; DROP TABLE expenses; --"
@@ -618,7 +621,7 @@ class RobustE2EAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_data_isolation(self) -> Dict[str, Any]:
+    def _test_data_isolation(self) -> dict[str, Any]:
         """Test user data isolation"""
         try:
             # Check that test user data is isolated
@@ -642,7 +645,7 @@ class RobustE2EAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _check_database_status(self) -> Dict[str, Any]:
+    def _check_database_status(self) -> dict[str, Any]:
         """Check database connectivity and basic operations"""
         try:
             # Test basic connectivity
@@ -664,7 +667,7 @@ class RobustE2EAudit:
         except Exception as e:
             return {"connected": False, "error": str(e)}
     
-    def _print_phase_results(self, phase_name: str, results: Dict[str, Any]):
+    def _print_phase_results(self, phase_name: str, results: dict[str, Any]):
         """Print formatted phase results"""
         summary = results.get("summary", {})
         success = summary.get("overall_success", False)
@@ -718,14 +721,14 @@ class RobustE2EAudit:
         self._cleanup_test_data()
         
         # Print final assessment
-        print(f"\n📊 COMPREHENSIVE AUDIT SUMMARY")
+        print("\n📊 COMPREHENSIVE AUDIT SUMMARY")
         print("=" * 60)
         print(f"Audit Session: {self.audit_session_id}")
         print(f"Overall Success Rate: {overall_success_rate:.1f}%")
         print(f"Deployment Readiness: {'✅ READY' if deployment_ready else '❌ NOT READY'}")
         print(f"Recommendation: {self.results['deployment_assessment']['recommendation']}")
         
-        print(f"\nPhase Results:")
+        print("\nPhase Results:")
         for phase_name, phase_data in phases:
             summary = phase_data.get("summary", {})
             status = "✅ PASS" if summary.get("overall_success", False) else "❌ FAIL"
@@ -739,7 +742,7 @@ class RobustE2EAudit:
             print("   • Security measures verified")
             print("   • Ready for Phase 1 rollout")
         else:
-            print(f"\n⚠️  DEPLOYMENT BLOCKED")
+            print("\n⚠️  DEPLOYMENT BLOCKED")
             print(f"   Critical failures in: {', '.join(critical_failures)}")
             print("   • Fix failing systems before deployment")
     
@@ -751,7 +754,7 @@ class RobustE2EAudit:
                 DELETE FROM expenses WHERE user_id = :user_id
             """), {"user_id": self.test_user_id})
             db.session.commit()
-            print(f"\n🧹 Test data cleanup completed")
+            print("\n🧹 Test data cleanup completed")
         except Exception as e:
             print(f"⚠️  Cleanup warning: {e}")
             db.session.rollback()

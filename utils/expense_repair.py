@@ -3,8 +3,8 @@ Expense Repair Utilities with Circuit Breaker Pattern
 Provides safe expense detection and repair for AI misclassifications
 """
 
-import re
 import logging
+import re
 from typing import Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ def looks_like_expense(text: str) -> bool:
     
     return bool(EXPENSE_HINTS.search(text) and AMOUNT_RE.search(text))
 
-def extract_amount_minor(text: str) -> Optional[int]:
+def extract_amount_minor(text: str) -> int | None:
     """
     Extract amount in minor units (paisa/cents) from text
     
@@ -133,7 +133,7 @@ def normalize_category(raw_category: str) -> str:
     from backend_assistant import normalize_category as canonical_normalize_category
     return canonical_normalize_category(raw_category)
 
-def safe_normalize_category(raw_category: Optional[str]) -> str:
+def safe_normalize_category(raw_category: str | None) -> str:
     """
     Type-safe wrapper for normalize_category that handles None inputs
     
@@ -150,9 +150,9 @@ def safe_normalize_category(raw_category: Optional[str]) -> str:
 def repair_expense_with_fallback(
     text: str, 
     original_intent: str, 
-    original_amount: Optional[int], 
-    original_category: Optional[str]
-) -> Tuple[str, Optional[int], str]:
+    original_amount: int | None, 
+    original_category: str | None
+) -> tuple[str, int | None, str]:
     """
     Circuit-breaker: safely repair expense misclassification
     

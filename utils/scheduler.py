@@ -1,12 +1,12 @@
 """Task scheduling for automated reports and security cleanup"""
-import os
 import logging
-from datetime import datetime
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
-from utils.report_generator import send_daily_reports, send_weekly_reports
+
 from utils.pending_expenses_cleanup import run_pending_expenses_cleanup
+from utils.report_generator import send_daily_reports, send_weekly_reports
 
 logger = logging.getLogger(__name__)
 
@@ -136,8 +136,8 @@ def trigger_pending_expenses_cleanup_now():
 def get_pending_expenses_cleanup_stats():
     """Get current pending expenses statistics"""
     try:
-        from utils.pending_expenses_cleanup import pending_expenses_cleanup
         from app import app
+        from utils.pending_expenses_cleanup import pending_expenses_cleanup
         
         with app.app_context():
             return pending_expenses_cleanup.get_pending_expenses_stats()

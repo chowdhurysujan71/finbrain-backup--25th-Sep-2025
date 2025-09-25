@@ -5,13 +5,12 @@ These tests ensure that our single writer protections work correctly
 in a deployment scenario and provide confidence that the system is secure.
 """
 
-import pytest
-import sys
 import os
-import tempfile
 import subprocess
-import json
-from unittest.mock import patch, MagicMock
+import sys
+from unittest.mock import MagicMock
+
+import pytest
 
 # Add the parent directory to sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -22,7 +21,10 @@ class TestDeploymentConfidence:
     def test_single_writer_guard_prevents_direct_writes(self):
         """Test that the single writer guard prevents unauthorized database writes"""
         try:
-            from utils.single_writer_guard import canonical_writer_context, enable_single_writer_protection
+            from utils.single_writer_guard import (
+                canonical_writer_context,
+                enable_single_writer_protection,
+            )
             
             # Test that the guard functions exist and are callable
             assert callable(canonical_writer_context), "Canonical writer context should be callable"
@@ -39,7 +41,7 @@ class TestDeploymentConfidence:
                 enable_single_writer_protection(mock_db)
                 # If no exception is raised, the guard is working
                 assert True, "Single writer protection initializes successfully"
-            except Exception as e:
+            except Exception:
                 # Even if it fails, we can test the import worked
                 assert True, "Single writer guard components are accessible"
                 
@@ -49,8 +51,9 @@ class TestDeploymentConfidence:
     def test_canonical_writer_context_flag_management(self):
         """Test that canonical writer context properly manages protection flags"""
         try:
-            from utils.single_writer_guard import canonical_writer_context
             import contextvars
+
+            from utils.single_writer_guard import canonical_writer_context
             
             # Test that context manager properly sets and clears flags
             with canonical_writer_context():
@@ -79,7 +82,7 @@ class TestDeploymentConfidence:
                 
                 for migration_file in migration_files:
                     migration_path = os.path.join(alembic_versions_dir, migration_file)
-                    with open(migration_path, 'r') as f:
+                    with open(migration_path) as f:
                         content = f.read()
                         if 'expense' in content.lower() and ('constraint' in content.lower() or 'trigger' in content.lower()):
                             constraint_found = True
@@ -136,8 +139,9 @@ class TestDeploymentConfidence:
     def test_runtime_protection_blocks_unauthorized_access(self):
         """Test that runtime protections block unauthorized database access"""
         try:
-            from utils.single_writer_guard import _check_expense_insert_permission
             import contextvars
+
+            from utils.single_writer_guard import _check_expense_insert_permission
             
             # Test without canonical writer context - should be blocked
             try:
@@ -154,10 +158,10 @@ class TestDeploymentConfidence:
     def test_backend_assistant_canonical_writer_integration(self):
         """Test that backend_assistant.add_expense is properly integrated with protections"""
         try:
-            from backend_assistant import add_expense
-            
             # Test that the function is decorated or wrapped with canonical writer context
             import inspect
+
+            from backend_assistant import add_expense
             source = inspect.getsource(add_expense)
             
             # Should use canonical writer context
@@ -193,8 +197,8 @@ class TestDeploymentConfidence:
         """Test that existing expense data integrity is maintained with new protections"""
         try:
             # Test that we can still query expenses (read operations should work)
-            from models import Expense
             from db_base import db
+            from models import Expense
             
             # This should work - reading is allowed
             # We're not actually executing the query, just testing that the model is accessible
@@ -219,7 +223,7 @@ class TestContractCompliance:
         
         for file_path in route_files:
             if os.path.exists(file_path):
-                with open(file_path, 'r') as f:
+                with open(file_path) as f:
                     content = f.read()
                 
                 # Should import and use the canonical writer
@@ -238,7 +242,7 @@ class TestContractCompliance:
         
         for file_path in route_files:
             if os.path.exists(file_path):
-                with open(file_path, 'r') as f:
+                with open(file_path) as f:
                     content = f.read()
                 
                 # Should not directly create Expense objects

@@ -4,13 +4,14 @@ CI: Automated Database Unification Regression Checks
 Blocks any build that violates the unified single-path architecture
 """
 
-import os
-import sys
-import subprocess
-import psycopg2
-import re
 import glob
-from urllib.parse import urlparse
+import os
+import re
+import subprocess
+import sys
+
+import psycopg2
+
 
 def run_command(cmd, description):
     """Run shell command and return output"""
@@ -101,7 +102,7 @@ def check_hardcoded_sources():
             continue
             
         try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(file_path, encoding='utf-8', errors='ignore') as f:
                 content = f.read()
                 
             for pattern in forbidden_patterns:
@@ -142,7 +143,7 @@ def main():
     )
     
     if stdout.strip():
-        print(f"❌ FAIL: Found forbidden inference_snapshots reads:")
+        print("❌ FAIL: Found forbidden inference_snapshots reads:")
         print(stdout)
         all_passed = False
     else:
@@ -155,7 +156,7 @@ def main():
     )
     
     if stdout.strip():
-        print(f"❌ FAIL: Found forbidden monthly_summaries reads:")
+        print("❌ FAIL: Found forbidden monthly_summaries reads:")
         print(stdout)
         all_passed = False
     else:
@@ -171,7 +172,7 @@ def main():
     )
     
     if stdout.strip():
-        print(f"❌ FAIL: Found direct database access in UI components (must use API endpoints only):")
+        print("❌ FAIL: Found direct database access in UI components (must use API endpoints only):")
         print(stdout)
         all_passed = False
     else:
@@ -184,7 +185,7 @@ def main():
     )
     
     if stdout.strip():
-        print(f"❌ FAIL: Found prepared statement calls outside backend layer:")
+        print("❌ FAIL: Found prepared statement calls outside backend layer:")
         print(stdout)
         all_passed = False
     else:
@@ -221,11 +222,11 @@ def main():
     )
     
     if stdout.strip():
-        print(f"❌ FAIL: Found direct expense table inserts (violates single writer principle):")
+        print("❌ FAIL: Found direct expense table inserts (violates single writer principle):")
         print(stdout)
         all_passed = False
     else:
-        print(f"✅ PASS: No direct expense table inserts detected")
+        print("✅ PASS: No direct expense table inserts detected")
     
     # Check for non-canonical expense writers
     code, stdout, stderr = run_command(
@@ -234,11 +235,11 @@ def main():
     )
     
     if stdout.strip():
-        print(f"❌ FAIL: Found add_expense calls not imported from backend_assistant:")
+        print("❌ FAIL: Found add_expense calls not imported from backend_assistant:")
         print(stdout)
         all_passed = False
     else:
-        print(f"✅ PASS: All add_expense calls use canonical backend_assistant import")
+        print("✅ PASS: All add_expense calls use canonical backend_assistant import")
     
     # B) Check for orphan snapshots (adapted to actual schema)
     print("\n🗃️  B) Database State Checks")
@@ -290,7 +291,7 @@ def main():
     )
     
     if ui_code != 0:
-        print(f"❌ FAIL: UI guardrails validation failed")
+        print("❌ FAIL: UI guardrails validation failed")
         print(ui_stdout)
         all_passed = False
     else:
@@ -311,7 +312,7 @@ def main():
         cur.close()
         conn.close()
         
-        print(f"🔍 Verifying expenses table is accessible (unified read path)")
+        print("🔍 Verifying expenses table is accessible (unified read path)")
         print(f"   Result: {expense_count} expenses found")
         
         if expense_count > 0:

@@ -2,9 +2,10 @@
 Centralized authentication helpers for single-source-of-truth user context
 Includes subdomain-based authentication for finbrain.app
 """
-from flask import session, g, request
-from urllib.parse import urlparse
 import logging
+from urllib.parse import urlparse
+
+from flask import g, request, session
 
 logger = logging.getLogger(__name__)
 

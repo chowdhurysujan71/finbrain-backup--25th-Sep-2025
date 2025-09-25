@@ -5,10 +5,12 @@ Ensures Messenger delivery fixes are working for all users
 
 import logging
 import time
-from datetime import datetime, timedelta
-from typing import Dict, List, Tuple, Optional
-from db_base import db
+from datetime import datetime
+from typing import Dict, List
+
 from sqlalchemy import text
+
+from db_base import db
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +21,7 @@ class DeploymentMonitor:
         self.success_threshold = 95.0  # Minimum success rate
         self.sample_size = 10  # Users to test per check
         
-    def check_platform_health(self) -> Dict:
+    def check_platform_health(self) -> dict:
         """Comprehensive platform health check"""
         try:
             # Get platform statistics
@@ -64,7 +66,7 @@ class DeploymentMonitor:
                 'action_required': True
             }
     
-    def _get_platform_stats(self) -> Dict:
+    def _get_platform_stats(self) -> dict:
         """Get current platform usage statistics"""
         stats_query = text('''
             SELECT 
@@ -84,7 +86,7 @@ class DeploymentMonitor:
             'last_24h_expenses': result.last_24h_expenses
         }
     
-    def _test_sample_users(self) -> Dict:
+    def _test_sample_users(self) -> dict:
         """Test random sample of existing users"""
         # Get sample of users with varying expense counts
         sample_query = text(f'''
@@ -115,7 +117,7 @@ class DeploymentMonitor:
             'test_details': test_results
         }
     
-    def _test_user_message_delivery(self, user_hash: str, expense_count: int) -> Dict:
+    def _test_user_message_delivery(self, user_hash: str, expense_count: int) -> dict:
         """Test message delivery for a specific user"""
         try:
             from utils.production_router import production_router
@@ -158,7 +160,7 @@ class DeploymentMonitor:
                 'error': str(e)
             }
     
-    def _test_new_user_compatibility(self) -> Dict:
+    def _test_new_user_compatibility(self) -> dict:
         """Test new user PSID format compatibility"""
         test_psids = [
             '1234567890123456',      # Standard 16-digit
@@ -185,7 +187,7 @@ class DeploymentMonitor:
             'format_details': test_results
         }
     
-    def _test_psid_format(self, psid: str) -> Dict:
+    def _test_psid_format(self, psid: str) -> dict:
         """Test specific PSID format compatibility"""
         try:
             from utils.production_router import production_router
@@ -216,7 +218,7 @@ class DeploymentMonitor:
                 'error': str(e)
             }
     
-    def _detect_issues(self, user_results: Dict, new_user_results: Dict) -> List[str]:
+    def _detect_issues(self, user_results: dict, new_user_results: dict) -> list[str]:
         """Detect deployment issues requiring attention"""
         issues = []
         
@@ -246,7 +248,7 @@ class DeploymentMonitor:
 # Global monitor instance
 deployment_monitor = DeploymentMonitor()
 
-def run_health_check() -> Dict:
+def run_health_check() -> dict:
     """Run comprehensive platform health check"""
     return deployment_monitor.check_platform_health()
 

@@ -193,7 +193,7 @@ def _has_spending_increase_intent(text_lower: str) -> bool:
     return any(pattern in text_lower for pattern in increase_patterns)
 
 
-def is_followup_after_summary_or_log(text: str, previous_intent: Optional[str] = None) -> bool:
+def is_followup_after_summary_or_log(text: str, previous_intent: str | None = None) -> bool:
     """
     Check if current text is INSIGHT request following SUMMARY or LOG response
     Args:

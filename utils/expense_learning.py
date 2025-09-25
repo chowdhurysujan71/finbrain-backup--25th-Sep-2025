@@ -4,9 +4,8 @@ Stores and retrieves user-specific category preferences and patterns
 """
 
 import logging
-import json
-from typing import Dict, List, Optional, Any
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from db_base import db
 from models import User
@@ -20,7 +19,7 @@ class UserLearningSystem:
         self.logger = logging.getLogger(f"{__name__}.UserLearningSystem")
     
     def learn_user_preference(self, user_hash: str, item: str, chosen_category: str, 
-                            context: Dict[str, Any] = None) -> bool:
+                            context: dict[str, Any] = None) -> bool:
         """
         Store a user's category preference for a specific item
         
@@ -71,7 +70,7 @@ class UserLearningSystem:
             db.session.rollback()
             return False
     
-    def get_user_preference(self, user_hash: str, item: str) -> Optional[Dict[str, Any]]:
+    def get_user_preference(self, user_hash: str, item: str) -> dict[str, Any] | None:
         """
         Get user's preference for a specific item
         
@@ -98,7 +97,7 @@ class UserLearningSystem:
             self.logger.error(f"Failed to get user preference: {e}")
             return None
     
-    def get_user_patterns(self, user_hash: str) -> Dict[str, Any]:
+    def get_user_patterns(self, user_hash: str) -> dict[str, Any]:
         """
         Get user's spending patterns to help with categorization
         
@@ -153,7 +152,7 @@ class UserLearningSystem:
             self.logger.error(f"Failed to get user patterns: {e}")
             return {'is_new_user': True, 'patterns': {}}
     
-    def suggest_category_based_on_history(self, user_hash: str, item: str, amount: float) -> Optional[str]:
+    def suggest_category_based_on_history(self, user_hash: str, item: str, amount: float) -> str | None:
         """
         Suggest a category based on user's historical patterns
         
@@ -191,7 +190,7 @@ class UserLearningSystem:
         return best_match
     
     def record_clarification_interaction(self, user_hash: str, item: str, 
-                                       options_shown: List[str], choice_made: str) -> None:
+                                       options_shown: list[str], choice_made: str) -> None:
         """
         Record a clarification interaction for analytics and improvement
         

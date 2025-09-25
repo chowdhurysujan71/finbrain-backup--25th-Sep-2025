@@ -5,17 +5,17 @@ Based on UAT specification requirements
 Requires 100% pass rate for GO decision
 """
 
+import hashlib
+import json
 import os
+import statistics
 import sys
 import time
-import json
-import hashlib
-import requests
-import threading
-import statistics
-from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, List, Tuple, Any
+from datetime import datetime
+from typing import Dict, Tuple
+
+import requests
 
 # Test configuration
 BASE_URL = "http://localhost:5000"
@@ -30,7 +30,7 @@ class UATResults:
         self.tests = []
         self.start_time = datetime.now()
         
-    def add_test(self, name: str, passed: bool, details: str = "", metrics: Dict = None):
+    def add_test(self, name: str, passed: bool, details: str = "", metrics: dict = None):
         self.tests.append({
             'name': name,
             'passed': passed,
@@ -76,7 +76,7 @@ def get_ledger_checksum() -> str:
     except Exception as e:
         return f"ERROR: {str(e)}"
 
-def test_api_response_time(endpoint: str, params: Dict = None) -> float:
+def test_api_response_time(endpoint: str, params: dict = None) -> float:
     """Measure API response time"""
     start = time.time()
     try:
@@ -85,7 +85,7 @@ def test_api_response_time(endpoint: str, params: Dict = None) -> float:
     except:
         return float('inf')
 
-def simulate_user_message(message: str, user_id: str = "test_user") -> Tuple[bool, Dict]:
+def simulate_user_message(message: str, user_id: str = "test_user") -> tuple[bool, dict]:
     """Simulate a user message and measure performance"""
     start = time.time()
     
@@ -485,7 +485,7 @@ def generate_test_report(results: UATResults):
     print("📋 COMPREHENSIVE UAT REPORT")
     print("=" * 70)
     
-    print(f"\n📊 Summary:")
+    print("\n📊 Summary:")
     print(f"Total Tests: {summary['total_tests']}")
     print(f"Passed: {summary['passed']}")
     print(f"Failed: {summary['failed']}")
@@ -500,11 +500,11 @@ def generate_test_report(results: UATResults):
         'show_audit_ui': os.environ.get('SHOW_AUDIT_UI', 'false')
     }
     
-    print(f"\n🏗️ Build Info:")
+    print("\n🏗️ Build Info:")
     for key, value in build_info.items():
         print(f"{key}: {value}")
     
-    print(f"\n📋 Test Results:")
+    print("\n📋 Test Results:")
     for test in results.tests:
         status = "✅ PASS" if test['passed'] else "❌ FAIL"
         print(f"{status} {test['name']}")

@@ -4,8 +4,11 @@ UI Guardrails Validation - Ensure UX can only see SSOT through API endpoints
 """
 
 import os
+
 import requests
+
 from app import app
+
 
 def test_ui_guardrails():
     """Test that UI components enforce API-only access"""
@@ -80,7 +83,7 @@ def test_ui_guardrails():
     for file_path in ui_files:
         if os.path.exists(file_path):
             print(f"   Checking {file_path}...")
-            with open(file_path, 'r') as f:
+            with open(file_path) as f:
                 content = f.read()
                 
             for pattern, description in forbidden_patterns:

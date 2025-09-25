@@ -1,10 +1,10 @@
 """
 PWA UI Blueprint - Modern, installable expense tracking interface
 """
-from flask import Blueprint, render_template, request, jsonify, g, current_app
 import logging
 import time
-import os
+
+from flask import Blueprint, current_app, g, jsonify, render_template, request
 
 # Import rate limiter from centralized utility
 from utils.rate_limiting import limiter
@@ -15,11 +15,7 @@ pwa_ui = Blueprint('pwa_ui', __name__)
 
 def require_auth():
     """Helper function to ensure user is authenticated via session with DB retry logic"""
-    from models import User
-    from flask import session, abort
-    from sqlalchemy.exc import OperationalError, DisconnectionError
-    from db_base import db
-    import time
+    from flask import abort, session
     
     # Check if user is logged in via session
     user_id_hash = session.get('user_id')
@@ -28,11 +24,13 @@ def require_auth():
 
 def require_auth_or_redirect():
     """Helper function to redirect to login if user is not authenticated"""
-    from models import User
-    from flask import session, redirect, url_for, request
-    from sqlalchemy.exc import OperationalError, DisconnectionError
-    from db_base import db
     import time
+
+    from flask import redirect, request, session
+    from sqlalchemy.exc import DisconnectionError, OperationalError
+
+    from db_base import db
+    from models import User
     
     # Check if user is logged in via session
     user_id_hash = session.get('user_id')
@@ -149,7 +147,6 @@ def handle_with_fallback_ai(user_id_hash, user_message, conversational_ai=None):
                     
                     # Save expense using CANONICAL SINGLE WRITER (spec compliance)
                     import backend_assistant as ba
-                    import uuid
                     
                     logger.info(f"Attempting to save expense: {amount} taka for {category}")
                     result = ba.add_expense(
@@ -295,6 +292,7 @@ def login():
     Login page for user registration system with returnTo support
     """
     from flask import request
+
     from auth_helpers import validate_return_to_url
     
     # Get and validate returnTo parameter
@@ -318,12 +316,12 @@ def auth_login():
     """
     Process user login with CAPTCHA protection and returnTo redirect support
     """
-    from models import User
-    from db_base import db
+    from flask import jsonify, redirect, request, session
     from werkzeug.security import check_password_hash
-    from flask import session, request, jsonify, redirect
-    from utils.captcha import verify_session_captcha
+
     from auth_helpers import validate_return_to_url
+    from models import User
+    from utils.captcha import verify_session_captcha
     
     try:
         data = request.get_json(silent=True) or {}
@@ -405,8 +403,9 @@ def auth_me():
     Check current user session and return user info or 401
     Cheap and reliable endpoint for frontend auth state checking
     """
+    from flask import jsonify, session
+
     from models import User
-    from flask import session, jsonify
     
     try:
         # Check if user is logged in via session
@@ -440,14 +439,16 @@ def auth_register():
     """
     Process user registration with CAPTCHA protection and comprehensive validation
     """
-    from models import User
-    from db_base import db
-    from werkzeug.security import generate_password_hash
-    from flask import session, request, jsonify
-    from utils.identity import psid_hash
-    from utils.captcha import verify_session_captcha
-    import uuid
     import time
+    import uuid
+
+    from flask import jsonify, request, session
+    from werkzeug.security import generate_password_hash
+
+    from db_base import db
+    from models import User
+    from utils.captcha import verify_session_captcha
+    from utils.identity import psid_hash
     
     try:
         data = request.get_json(silent=True) or {}
@@ -510,7 +511,7 @@ def auth_register():
             "data": {"user_id": user_hash}
         }), 200
         
-    except Exception as e:
+    except Exception:
         db.session.rollback()
         return jsonify({"error": "Registration failed. Please try again."}), 500
 
@@ -521,8 +522,9 @@ def generate_captcha():
     Generate CAPTCHA for authentication endpoints
     Returns a math question for the user to solve
     """
-    from utils.captcha import generate_session_captcha
     from flask import jsonify
+
+    from utils.captcha import generate_session_captcha
     
     try:
         captcha_data = generate_session_captcha()
@@ -544,7 +546,7 @@ def auth_logout():
     """
     Process user logout with cross-subdomain cookie clearing
     """
-    from flask import session, make_response, jsonify
+    from flask import jsonify, make_response, session
     
     # Clear the session
     session.clear()
@@ -589,8 +591,9 @@ def generate_guest_token():
     Generate a secure link token for a guest ID
     Called by PWA when creating guest sessions
     """
+    from flask import jsonify, request
+
     from utils.guest_tokens import generate_guest_token as create_token
-    from flask import request, jsonify
     
     try:
         data = request.get_json(silent=True) or {}
@@ -626,11 +629,16 @@ def link_guest_data():
     Requires valid guest ID and cryptographic link token to prevent unauthorized access
     Transfers all guest expenses to the authenticated user's account
     """
-    from models import Expense
+    from flask import jsonify, request
+
     from db_base import db
-    from flask import request, jsonify
+    from models import Expense
+    from utils.guest_tokens import (
+        is_token_recently_used,
+        mark_token_as_used,
+        verify_guest_token,
+    )
     from utils.identity import psid_hash
-    from utils.guest_tokens import verify_guest_token, mark_token_as_used, is_token_recently_used
     
     try:
         # Ensure user is authenticated
@@ -763,7 +771,6 @@ def entries_partial():
     MUST use session-authenticated API endpoints only
     """
     from flask import session
-    import time
     
     try:
         # SECURITY: Only session-authenticated users can see entries
@@ -833,9 +840,6 @@ def finbrain_route(text, user_id):
 def ai_chat():
     """AI chat endpoint - requires authentication to track expenses"""
     from flask import session
-    from finbrain.structured import logger as structured_logger
-    import json
-    import os
     
     # Get request_id from middleware
     request_id = getattr(g, 'request_id', 'unknown')
@@ -893,8 +897,11 @@ def ai_chat():
         reply, intent, category, amount = finbrain_route(text, db_user_id)
         
         # [EXPENSE REPAIR] Apply surgical repair for misclassifications
+        from utils.expense_repair import (
+            repair_expense_with_fallback,
+            safe_normalize_category,
+        )
         from utils.feature_flags import expense_repair_enabled
-        from utils.expense_repair import repair_expense_with_fallback, normalize_category, safe_normalize_category
         
         repaired_intent = intent
         repaired_amount = amount
@@ -933,9 +940,10 @@ def ai_chat():
         if intent in expense_intents and amount is not None:
             # FIX: Get the expense_id by looking up the most recent expense for this user
             try:
-                from models import Expense
-                from db_base import db
                 from datetime import datetime, timedelta
+
+                from db_base import db
+                from models import Expense
                 
                 # Look for the most recent expense created within the last 5 seconds
                 recent_cutoff = datetime.utcnow() - timedelta(seconds=5)

@@ -12,31 +12,27 @@ Coverage Areas:
 """
 
 import sys
-import os
-import json
 import time
-import uuid
-import hashlib
 import traceback
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional, Tuple
+import uuid
+from datetime import datetime
 from decimal import Decimal
+from typing import Optional
 
 # Add project root to path
 sys.path.append('/home/runner/workspace')
 
 # Import core system components
+from sqlalchemy import func, text
+
 from app import app, db
-from models import Expense, User, MonthlySummary
-from parsers.expense import extract_all_expenses, parse_expense
-from utils.routing_policy import RoutingPolicyFlags, IntentType
+from handlers import insight as insight_handler
+from models import Expense, MonthlySummary, User
+from parsers.expense import extract_all_expenses
+from utils.expense_learning import user_learning_system
 from utils.production_router import ProductionRouter
 from utils.security import hash_psid, sanitize_input
-from utils.expense_learning import user_learning_system
-from handlers import expense as expense_handler
-from handlers import insight as insight_handler
-from handlers import summary as summary_handler
-from sqlalchemy import text, func
+
 
 class ComprehensiveE2EUAT:
     """
@@ -65,7 +61,7 @@ class ComprehensiveE2EUAT:
         print("=" * 80)
         
     def log_result(self, test_name: str, passed: bool, details: str = "", 
-                   severity: str = "normal", performance_ms: Optional[float] = None):
+                   severity: str = "normal", performance_ms: float | None = None):
         """Log test result with enhanced metadata"""
         result = {
             'test': test_name,
@@ -265,7 +261,7 @@ class ComprehensiveE2EUAT:
                     actual_category = expenses[0].get('category')
                     print(f"     User learning test: expected=food, actual={actual_category}, match={actual_category == 'food'}")
                 else:
-                    print(f"     User learning test: no expenses parsed")
+                    print("     User learning test: no expenses parsed")
             
             performance_ms = (time.time() - start_time) * 1000
             
@@ -979,24 +975,24 @@ class ComprehensiveE2EUAT:
         print("🔍 COMPREHENSIVE E2E UAT AUDIT REPORT")
         print("="*80)
         
-        print(f"\n📋 EXECUTIVE SUMMARY")
+        print("\n📋 EXECUTIVE SUMMARY")
         print(f"   Test Duration: {duration.total_seconds():.1f} seconds")
         print(f"   Total Tests: {total_tests}")
         print(f"   Passed: {passed_tests} ({passed_tests/total_tests*100:.1f}%)")
         print(f"   Failed: {failed_tests} ({failed_tests/total_tests*100:.1f}%)")
         print(f"   Average Performance: {avg_performance:.1f}ms")
         
-        print(f"\n🔒 SECURITY & CRITICAL TESTS")
+        print("\n🔒 SECURITY & CRITICAL TESTS")
         print(f"   Critical Tests: {len(critical_tests)} (Passed: {critical_passed}, Failed: {critical_failed})")
         print(f"   Security Tests: {len(security_tests)} (Passed: {security_passed}, Failed: {security_failed})")
         
-        print(f"\n📊 RESULTS BY CATEGORY")
+        print("\n📊 RESULTS BY CATEGORY")
         for category, results in results_by_category.items():
             passed = sum(1 for r in results if r['status'] == 'PASS')
             total = len(results)
             print(f"   {category.replace('_', ' ').title()}: {passed}/{total} ({passed/total*100:.1f}%)")
         
-        print(f"\n❌ FAILED TESTS DETAIL")
+        print("\n❌ FAILED TESTS DETAIL")
         failed_results = [r for r in self.test_results if r['status'] == 'FAIL']
         if failed_results:
             for result in failed_results:
@@ -1006,7 +1002,7 @@ class ComprehensiveE2EUAT:
         else:
             print("   No failed tests! 🎉")
         
-        print(f"\n⚡ PERFORMANCE ANALYSIS")
+        print("\n⚡ PERFORMANCE ANALYSIS")
         if perf_results:
             sorted_perf = sorted(perf_results, key=lambda x: x['performance_ms'], reverse=True)
             print(f"   Fastest: {sorted_perf[-1]['test']} ({sorted_perf[-1]['performance_ms']:.1f}ms)")
@@ -1023,19 +1019,19 @@ class ComprehensiveE2EUAT:
             security_pass_rate == 100     # 100% security test pass rate
         )
         
-        print(f"\n🎯 DEPLOYMENT READINESS ASSESSMENT")
+        print("\n🎯 DEPLOYMENT READINESS ASSESSMENT")
         print(f"   Overall Pass Rate: {overall_pass_rate:.1f}% (Required: ≥90%)")
         print(f"   Critical Pass Rate: {critical_pass_rate:.1f}% (Required: ≥95%)")
         print(f"   Security Pass Rate: {security_pass_rate:.1f}% (Required: 100%)")
         
         if deployment_ready:
-            print(f"\n✅ RECOMMENDATION: DEPLOY")
-            print(f"   System meets all quality thresholds for production deployment.")
-            print(f"   All critical systems functioning correctly with high reliability.")
+            print("\n✅ RECOMMENDATION: DEPLOY")
+            print("   System meets all quality thresholds for production deployment.")
+            print("   All critical systems functioning correctly with high reliability.")
         else:
-            print(f"\n❌ RECOMMENDATION: DO NOT DEPLOY")
-            print(f"   System does not meet required quality thresholds.")
-            print(f"   Address failed tests before considering deployment.")
+            print("\n❌ RECOMMENDATION: DO NOT DEPLOY")
+            print("   System does not meet required quality thresholds.")
+            print("   Address failed tests before considering deployment.")
         
         print("="*80)
         
@@ -1045,7 +1041,7 @@ if __name__ == "__main__":
     uat = ComprehensiveE2EUAT()
     deployment_ready = uat.run_comprehensive_uat()
     
-    print(f"\n🏁 UAT COMPLETED")
+    print("\n🏁 UAT COMPLETED")
     print(f"Deployment Ready: {'YES' if deployment_ready else 'NO'}")
     
     sys.exit(0 if deployment_ready else 1)

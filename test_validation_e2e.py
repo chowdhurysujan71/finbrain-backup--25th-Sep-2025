@@ -10,21 +10,27 @@ Coverage:
 - Complete error flow testing
 """
 
-import pytest
 import json
 import time
-from unittest.mock import patch, Mock
+
+import pytest
 
 from app import app
 from utils.error_responses import (
-    ErrorCodes, standardized_error_response, validation_error_response, 
-    missing_fields_error, unauthorized_error, internal_error, success_response
+    ErrorCodes,
+    internal_error,
+    missing_fields_error,
+    success_response,
+    unauthorized_error,
+    validation_error_response,
 )
 from utils.validators import (
-    ExpenseValidator, AuthValidator, APIValidator, ValidationResult,
-    validate_expense, validate_login, validate_registration
+    APIValidator,
+    ValidationResult,
+    validate_expense,
+    validate_login,
+    validate_registration,
 )
-
 
 # ============================================================================
 # Test Fixtures

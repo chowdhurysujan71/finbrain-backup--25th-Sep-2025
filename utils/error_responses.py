@@ -5,9 +5,9 @@ Provides consistent error formatting, security-safe messaging, and structured re
 
 import logging
 import uuid
-from typing import Dict, Any, Optional, List
-from flask import request, g
-from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from flask import g, request
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +46,10 @@ def get_trace_id() -> str:
 def standardized_error_response(
     code: str, 
     message: str, 
-    field_errors: Optional[Dict[str, str]] = None,
+    field_errors: dict[str, str] | None = None,
     status_code: int = 400,
     log_error: bool = True,
-    context: Optional[Dict[str, Any]] = None
+    context: dict[str, Any] | None = None
 ) -> tuple:
     """
     Create standardized error response with consistent format
@@ -103,7 +103,7 @@ def standardized_error_response(
     
     return response, status_code
 
-def validation_error_response(field_errors: Dict[str, str]) -> tuple:
+def validation_error_response(field_errors: dict[str, str]) -> tuple:
     """Convenience method for validation errors with field-specific messages"""
     message = "Please fix the highlighted fields." if len(field_errors) > 1 else "Please fix the highlighted field."
     
@@ -115,9 +115,9 @@ def validation_error_response(field_errors: Dict[str, str]) -> tuple:
         log_error=False  # Validation errors are expected, don't log as warnings
     )
 
-def missing_fields_error(missing_fields: List[str]) -> tuple:
+def missing_fields_error(missing_fields: list[str]) -> tuple:
     """Convenience method for missing required fields"""
-    field_errors = {field: "This field is required" for field in missing_fields}
+    field_errors = dict.fromkeys(missing_fields, "This field is required")
     
     return standardized_error_response(
         code=ErrorCodes.MISSING_FIELDS,

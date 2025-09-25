@@ -4,10 +4,10 @@ MILESTONE COACHING SYSTEM - FOCUSED AUDIT
 Direct validation of milestone functionality for deployment readiness
 """
 
+import json
 import sys
 import time
-import json
-from datetime import datetime, timedelta, timezone, date
+from datetime import UTC, date, datetime, timedelta, timezone
 
 # Setup path
 sys.path.append('/home/runner/workspace')
@@ -32,8 +32,11 @@ def focused_milestone_audit():
     
     try:
         from app import app, db
+        from handlers.milestones import (
+            _calculate_streak_days,
+            check_milestones_after_log,
+        )
         from models import Expense, UserMilestone
-        from handlers.milestones import check_milestones_after_log, _calculate_streak_days
         
         with app.app_context():
             
@@ -61,7 +64,7 @@ def focused_milestone_audit():
                 expense.description = f'Test expense day {days_back}'
                 expense.original_message = f'Test expense day {days_back}'
                 
-                target_date = datetime.now(timezone.utc) - timedelta(days=days_back)
+                target_date = datetime.now(UTC) - timedelta(days=days_back)
                 expense.created_at = target_date
                 expense.date = target_date.date()
                 expense.time = target_date.time()
@@ -134,10 +137,10 @@ def focused_milestone_audit():
                 expense.category = 'test'
                 expense.description = f'Log number {i+1}'
                 expense.original_message = f'Log number {i+1}'
-                expense.created_at = datetime.now(timezone.utc) - timedelta(minutes=i)
-                expense.date = datetime.now(timezone.utc).date()
-                expense.time = datetime.now(timezone.utc).time()
-                expense.month = datetime.now(timezone.utc).strftime('%Y-%m')
+                expense.created_at = datetime.now(UTC) - timedelta(minutes=i)
+                expense.date = datetime.now(UTC).date()
+                expense.time = datetime.now(UTC).time()
+                expense.month = datetime.now(UTC).strftime('%Y-%m')
                 expense.platform = 'messenger'
                 expense.unique_id = f'logs_test_{i}'
                 expense.mid = f'logs_test_{i}_{int(time.time())}'
@@ -200,7 +203,7 @@ def focused_milestone_audit():
                 expense.description = f'Setup day {days_back}'
                 expense.original_message = f'Setup day {days_back}'
                 
-                target_date = datetime.now(timezone.utc) - timedelta(days=days_back)
+                target_date = datetime.now(UTC) - timedelta(days=days_back)
                 expense.created_at = target_date
                 expense.date = target_date.date()
                 expense.time = target_date.time()
@@ -350,12 +353,12 @@ def print_focused_audit_report(results):
     
     summary = results.get("summary", {})
     
-    print(f"\n📊 EXECUTIVE SUMMARY")
+    print("\n📊 EXECUTIVE SUMMARY")
     print(f"Overall Status: {summary.get('overall_status', 'UNKNOWN')}")
     print(f"Pass Rate: {summary.get('pass_rate', 0):.1f}% ({summary.get('passed_tests', 0)}/{summary.get('total_tests', 0)} tests)")
     print(f"Deployment Ready: {'✅ YES' if summary.get('deployment_ready', False) else '❌ NO'}")
     
-    print(f"\n🔍 DETAILED RESULTS")
+    print("\n🔍 DETAILED RESULTS")
     print("-" * 30)
     
     tests = results.get("tests", {})
@@ -366,11 +369,11 @@ def print_focused_audit_report(results):
     
     # Critical error handling
     if "critical_error" in results:
-        print(f"\n🚨 CRITICAL ERROR")
+        print("\n🚨 CRITICAL ERROR")
         print(f"Error: {results['critical_error']['error']}")
     
     # Deployment recommendation
-    print(f"\n💡 DEPLOYMENT RECOMMENDATION")
+    print("\n💡 DEPLOYMENT RECOMMENDATION")
     print("-" * 35)
     
     if summary.get("deployment_ready", False):
@@ -398,7 +401,7 @@ if __name__ == "__main__":
     with open('milestone_focused_audit.json', 'w') as f:
         json.dump(results, f, indent=2, default=str)
     
-    print(f"\n💾 Audit results saved to: milestone_focused_audit.json")
+    print("\n💾 Audit results saved to: milestone_focused_audit.json")
     
     # Exit with appropriate code
     if results.get("summary", {}).get("deployment_ready", False):

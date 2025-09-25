@@ -5,8 +5,10 @@ Phase 2 Impact Audit: Verify Security improvement while preserving Phase 1 gains
 
 import json
 import time
-from typing import Dict, List, Any
+from typing import Any, Dict
+
 from app import app
+
 
 class Phase2ImpactAudit:
     """Test Phase 2 security improvements without affecting routing or data handling"""
@@ -23,7 +25,7 @@ class Phase2ImpactAudit:
             "integration_verification": {}
         }
     
-    def run_audit(self) -> Dict[str, Any]:
+    def run_audit(self) -> dict[str, Any]:
         print("🔍 PHASE 2 IMPACT AUDIT")
         print("=" * 50)
         print("Testing: New security layer + Phase 1 preservation")
@@ -63,7 +65,7 @@ class Phase2ImpactAudit:
         
         return self.results
     
-    def _test_new_security_system(self) -> Dict[str, Any]:
+    def _test_new_security_system(self) -> dict[str, Any]:
         """Test the new input sanitization system"""
         from utils.input_sanitizer import InputSanitizer
         
@@ -168,7 +170,7 @@ class Phase2ImpactAudit:
             "improvement": "66% → 95%+" if success_rate >= 95.0 else f"66% → {success_rate:.1f}%"
         }
     
-    def _test_data_handling_preservation(self) -> Dict[str, Any]:
+    def _test_data_handling_preservation(self) -> dict[str, Any]:
         """Ensure Phase 1 data handling gains are preserved"""
         from nlp.signals_extractor import extract_signals
         
@@ -226,7 +228,7 @@ class Phase2ImpactAudit:
             "status": "PRESERVED" if success_rate >= 95.0 else "DEGRADED"
         }
     
-    def _test_routing_preservation(self) -> Dict[str, Any]:
+    def _test_routing_preservation(self) -> dict[str, Any]:
         """Ensure routing system remains 100% functional"""
         
         routing_cases = [
@@ -282,7 +284,7 @@ class Phase2ImpactAudit:
             "status": "PRESERVED" if success_rate == 100.0 else "COMPROMISED"
         }
     
-    def _test_integration_safety(self) -> Dict[str, Any]:
+    def _test_integration_safety(self) -> dict[str, Any]:
         """Test that Phase 2 changes integrate safely"""
         
         safety_checks = [
@@ -333,7 +335,7 @@ class Phase2ImpactAudit:
             "overall_success": success_rate == 100.0
         }
     
-    def _test_security_imports(self) -> Dict[str, Any]:
+    def _test_security_imports(self) -> dict[str, Any]:
         """Test security module imports and basic functionality"""
         try:
             from utils.input_sanitizer import InputSanitizer
@@ -354,10 +356,9 @@ class Phase2ImpactAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_phase_compatibility(self) -> Dict[str, Any]:
+    def _test_phase_compatibility(self) -> dict[str, Any]:
         """Test that Phase 1 and Phase 2 work together"""
         try:
-            from utils.text_normalizer import normalize_for_processing
             from nlp.signals_extractor import extract_signals
             from utils.input_sanitizer import InputSanitizer
             
@@ -382,10 +383,11 @@ class Phase2ImpactAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_performance_impact(self) -> Dict[str, Any]:
+    def _test_performance_impact(self) -> dict[str, Any]:
         """Test that security doesn't significantly impact performance"""
         try:
             import time
+
             from utils.input_sanitizer import InputSanitizer
             
             test_inputs = [
@@ -414,7 +416,7 @@ class Phase2ImpactAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _print_results(self, phase_name: str, results: Dict[str, Any]):
+    def _print_results(self, phase_name: str, results: dict[str, Any]):
         """Print formatted results"""
         summary = results
         success = summary.get("overall_success", False)
@@ -451,7 +453,7 @@ class Phase2ImpactAudit:
             }
         }
         
-        print(f"\n📊 PHASE 2 IMPACT ASSESSMENT")
+        print("\n📊 PHASE 2 IMPACT ASSESSMENT")
         print("=" * 50)
         print(f"Security System: {self.results['security_after'].get('improvement', 'Unknown')}")
         print(f"Data Handling: {self.results['data_handling_preservation'].get('status', 'Unknown')}")

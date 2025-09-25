@@ -11,25 +11,21 @@ The test specifically catches the bug where:
 This inconsistency breaks reconciliation when different parts of the system use different methods.
 """
 
-import pytest
 import json
-import time
 import logging
-import hashlib
-import os
-from datetime import datetime, timedelta
+import time
+from datetime import datetime
 from decimal import Decimal
-from unittest.mock import patch, MagicMock
-from typing import Dict, Any, List, Optional
-
-# Import test infrastructure
-from tests.e2e_pipeline.test_base import E2ETestBase
+from unittest.mock import patch
 
 # Import app and database components
 from app import app, db
-from models import Expense, User, MonthlySummary
-from utils.identity import psid_hash, ensure_hashed as identity_ensure_hashed
+from models import Expense
+
+# Import test infrastructure
+from tests.e2e_pipeline.test_base import E2ETestBase
 from utils.crypto import ensure_hashed as crypto_ensure_hashed
+from utils.identity import psid_hash
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +44,7 @@ class TestRestartReconciliation(E2ETestBase):
         crypto_hash = crypto_ensure_hashed(test_psid)
         
         # These should be different - this is the bug!
-        print(f"\n=== HASH INCONSISTENCY DETECTION ===")
+        print("\n=== HASH INCONSISTENCY DETECTION ===")
         print(f"Test PSID: {test_psid}")
         print(f"utils/identity.py hash: {identity_hash}")
         print(f"utils/crypto.py hash:    {crypto_hash}")
@@ -71,14 +67,14 @@ class TestRestartReconciliation(E2ETestBase):
     def test_restart_reconciliation_with_old_hash_method(self, client, test_users):
         """Test that demonstrates reconciliation failure with inconsistent hashing"""
         with self.mock_environment_secrets():
-            print(f"\n=== TESTING OLD HASH METHOD (SHOULD FAIL) ===")
+            print("\n=== TESTING OLD HASH METHOD (SHOULD FAIL) ===")
             
             user = test_users['alice']
             test_expense_amount = 500.0
             test_expense_description = "I spent 500 taka on food"
             
             # Step 1: Log expense using one hash method (utils/identity.py)
-            print(f"Step 1: Logging expense using identity.psid_hash()")
+            print("Step 1: Logging expense using identity.psid_hash()")
             user_hash_identity = psid_hash(user['psid'])
             
             # Setup session auth
@@ -103,7 +99,7 @@ class TestRestartReconciliation(E2ETestBase):
             print(f"✅ Expense created: ID {expense_result.get('data', {}).get('expense_id')}")
             
             # Step 2: Capture initial totals
-            print(f"Step 2: Capturing initial totals")
+            print("Step 2: Capturing initial totals")
             totals_response = client.post('/api/backend/get_totals',
                                         data=json.dumps({"period": "month"}),
                                         content_type='application/json')
@@ -114,7 +110,7 @@ class TestRestartReconciliation(E2ETestBase):
             print(f"✅ Initial total: ৳{initial_amount}")
             
             # Step 3: Simulate app restart by switching to different hash method
-            print(f"Step 3: Simulating restart with different hash method (utils/crypto.py)")
+            print("Step 3: Simulating restart with different hash method (utils/crypto.py)")
             user_hash_crypto = crypto_ensure_hashed(user['psid'])
             
             print(f"Identity hash: {user_hash_identity}")
@@ -122,7 +118,7 @@ class TestRestartReconciliation(E2ETestBase):
             print(f"Hash mismatch:  {user_hash_identity != user_hash_crypto}")
             
             # Step 4: Try to reconcile with different hash - this should fail!
-            print(f"Step 4: Attempting reconciliation with different hash method")
+            print("Step 4: Attempting reconciliation with different hash method")
             
             # Mock the system to use crypto hash method 
             with patch('utils.identity.psid_hash', return_value=user_hash_crypto):
@@ -140,29 +136,29 @@ class TestRestartReconciliation(E2ETestBase):
                     
                     # This demonstrates the bug - totals don't match after restart!
                     if abs(initial_amount - post_restart_amount) > 0.01:
-                        print(f"❌ RECONCILIATION FAILURE DETECTED!")
+                        print("❌ RECONCILIATION FAILURE DETECTED!")
                         print(f"   Before restart: ৳{initial_amount}")
                         print(f"   After restart:  ৳{post_restart_amount}")
                         print(f"   Difference:     ৳{abs(initial_amount - post_restart_amount)}")
-                        print(f"   This is the exact bug that breaks user data after deploys!")
+                        print("   This is the exact bug that breaks user data after deploys!")
                         
                         # For this test, we expect failure (demonstrating the bug)
                         return True  # Bug detected successfully
                     else:
-                        print(f"✅ Totals remained consistent (unexpected - bug might be fixed)")
+                        print("✅ Totals remained consistent (unexpected - bug might be fixed)")
                         return False
 
     def test_restart_reconciliation_with_fixed_hash_method(self, client, test_users):
         """Test that demonstrates reconciliation success with consistent hashing"""
         with self.mock_environment_secrets():
-            print(f"\n=== TESTING FIXED HASH METHOD (SHOULD PASS) ===")
+            print("\n=== TESTING FIXED HASH METHOD (SHOULD PASS) ===")
             
             user = test_users['bob']  # Use different user to avoid interference
             test_expense_amount = 750.0
             test_expense_description = "I spent 750 taka on transport"
             
             # Step 1: Log expense using consistent hash method
-            print(f"Step 1: Logging expense using consistent hashing")
+            print("Step 1: Logging expense using consistent hashing")
             
             # Setup session auth
             self.setup_session_auth(client, user['session_user_id'])
@@ -186,7 +182,7 @@ class TestRestartReconciliation(E2ETestBase):
             print(f"✅ Expense created: ID {expense_result.get('data', {}).get('expense_id')}")
             
             # Step 2: Capture initial totals
-            print(f"Step 2: Capturing initial totals")
+            print("Step 2: Capturing initial totals")
             totals_response = client.post('/api/backend/get_totals',
                                         data=json.dumps({"period": "month"}),
                                         content_type='application/json')
@@ -197,7 +193,7 @@ class TestRestartReconciliation(E2ETestBase):
             print(f"✅ Initial total: ৳{initial_amount}")
             
             # Step 3: Simulate app restart with SAME hash method (fixed implementation)
-            print(f"Step 3: Simulating restart with consistent hash method")
+            print("Step 3: Simulating restart with consistent hash method")
             
             # Use the same hash method both times - this is what the fix should do
             with patch('utils.identity.psid_hash') as mock_psid_hash:
@@ -213,7 +209,7 @@ class TestRestartReconciliation(E2ETestBase):
                         print(f"Using consistent hash: {consistent_hash}")
                         
                         # Step 4: Try to reconcile - should succeed with consistent hashing
-                        print(f"Step 4: Attempting reconciliation with consistent hash method")
+                        print("Step 4: Attempting reconciliation with consistent hash method")
                         
                         post_restart_response = client.post('/api/backend/get_totals',
                                                           data=json.dumps({"period": "month"}),
@@ -227,27 +223,27 @@ class TestRestartReconciliation(E2ETestBase):
                         
                         # With consistent hashing, totals should match
                         if abs(initial_amount - post_restart_amount) < 0.01:
-                            print(f"✅ RECONCILIATION SUCCESS!")
+                            print("✅ RECONCILIATION SUCCESS!")
                             print(f"   Before restart: ৳{initial_amount}")
                             print(f"   After restart:  ৳{post_restart_amount}")
                             print(f"   Difference:     ৳{abs(initial_amount - post_restart_amount)}")
-                            print(f"   Consistent hashing maintains data integrity!")
+                            print("   Consistent hashing maintains data integrity!")
                             return True
                         else:
-                            print(f"❌ Reconciliation failed even with consistent hashing")
-                            print(f"   This indicates a different bug or test setup issue")
+                            print("❌ Reconciliation failed even with consistent hashing")
+                            print("   This indicates a different bug or test setup issue")
                             return False
 
     def test_comprehensive_restart_reconciliation_flow(self, client, test_users):
         """Comprehensive test of the full restart reconciliation flow"""
         with self.mock_environment_secrets():
-            print(f"\n=== COMPREHENSIVE RESTART RECONCILIATION TEST ===")
+            print("\n=== COMPREHENSIVE RESTART RECONCILIATION TEST ===")
             
             # Test both failure and success scenarios
             old_hash_result = self.test_restart_reconciliation_with_old_hash_method(client, test_users)
             fixed_hash_result = self.test_restart_reconciliation_with_fixed_hash_method(client, test_users)
             
-            print(f"\n=== FINAL TEST RESULTS ===")
+            print("\n=== FINAL TEST RESULTS ===")
             print(f"Old hash method (should fail):  {'✅ Bug detected' if old_hash_result else '❌ Bug not detected'}")
             print(f"Fixed hash method (should pass): {'✅ Fix works' if fixed_hash_result else '❌ Fix failed'}")
             
@@ -255,14 +251,14 @@ class TestRestartReconciliation(E2ETestBase):
             overall_success = old_hash_result and fixed_hash_result
             
             if overall_success:
-                print(f"✅ OVERALL RESULT: Test successfully catches hash breakage bug")
-                print(f"   This test will prevent future reconciliation failures in CI/CD")
+                print("✅ OVERALL RESULT: Test successfully catches hash breakage bug")
+                print("   This test will prevent future reconciliation failures in CI/CD")
             else:
-                print(f"❌ OVERALL RESULT: Test did not work as expected")
+                print("❌ OVERALL RESULT: Test did not work as expected")
                 if not old_hash_result:
-                    print(f"   - Failed to detect the hash inconsistency bug")
+                    print("   - Failed to detect the hash inconsistency bug")
                 if not fixed_hash_result:
-                    print(f"   - Fixed method did not work properly")
+                    print("   - Fixed method did not work properly")
             
             # Return success - this test is meant to demonstrate/catch the bug
             return overall_success
@@ -270,7 +266,7 @@ class TestRestartReconciliation(E2ETestBase):
     def test_database_query_with_different_hashes(self, test_users):
         """Direct database test showing hash inconsistency affects queries"""
         with self.mock_environment_secrets():
-            print(f"\n=== DATABASE QUERY HASH CONSISTENCY TEST ===")
+            print("\n=== DATABASE QUERY HASH CONSISTENCY TEST ===")
             
             user = test_users['alice']
             test_psid = user['psid']
@@ -315,12 +311,12 @@ class TestRestartReconciliation(E2ETestBase):
                 print(f"Expenses found with crypto hash:   {found_with_crypto}")
                 
                 if found_with_identity > 0 and found_with_crypto == 0:
-                    print(f"❌ HASH INCONSISTENCY CONFIRMED!")
-                    print(f"   Same user, different hash = different query results")
-                    print(f"   This breaks reconciliation when hash method changes")
+                    print("❌ HASH INCONSISTENCY CONFIRMED!")
+                    print("   Same user, different hash = different query results")
+                    print("   This breaks reconciliation when hash method changes")
                     inconsistency_detected = True
                 else:
-                    print(f"✅ No hash inconsistency detected (unexpected)")
+                    print("✅ No hash inconsistency detected (unexpected)")
                     inconsistency_detected = False
                 
                 # Cleanup
@@ -332,7 +328,7 @@ class TestRestartReconciliation(E2ETestBase):
 
     def test_api_endpoint_availability(self, client):
         """Test that required API endpoints are available for reconciliation testing"""
-        print(f"\n=== API ENDPOINT AVAILABILITY TEST ===")
+        print("\n=== API ENDPOINT AVAILABILITY TEST ===")
         
         endpoints_to_test = [
             ('/api/backend/add_expense', 'POST'),

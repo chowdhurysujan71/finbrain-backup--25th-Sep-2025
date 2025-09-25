@@ -1,8 +1,9 @@
 """Core expense parsing and processing logic"""
-import re
 import logging
-from datetime import datetime
+import re
+
 from utils.categories import categorize_expense
+
 # REMOVED: save_expense import - using backend_assistant.add_expense (canonical writer)
 
 logger = logging.getLogger(__name__)

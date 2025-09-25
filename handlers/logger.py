@@ -1,21 +1,22 @@
 """
 Expense logger handler: Logs expenses to database
 """
-from typing import Dict, List
 import logging
 import time
 from datetime import datetime
-import backend_assistant as ba
+from typing import Dict
+
 from utils.security import hash_psid
 
 logger = logging.getLogger(__name__)
 
-def handle_log(user_id: str, text: str) -> Dict[str, str]:
+def handle_log(user_id: str, text: str) -> dict[str, str]:
     """
     Log expense(s) from user message using unified create_expense function
     Returns dict with 'text' key containing confirmation
     """
     import uuid
+
     import backend_assistant as ba
     
     try:

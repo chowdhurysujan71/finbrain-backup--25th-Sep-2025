@@ -5,13 +5,14 @@ One brain, two doors - handles all user messages and returns clean text reply + 
 
 import logging
 import time
-from typing import Dict, Any
+from typing import Any, Dict
+
 from utils.identity import psid_hash
 from utils.timebox import call_with_timeout_fallback
 
 logger = logging.getLogger(__name__)
 
-def process_user_message(uid: str, text: str) -> Dict[str, Any]:
+def process_user_message(uid: str, text: str) -> dict[str, Any]:
     """
     Unified message processing brain - handles user messages and returns consistent response format
     
@@ -90,7 +91,7 @@ def process_user_message(uid: str, text: str) -> Dict[str, Any]:
         })
         return out
 
-def _use_production_router(user_hash: str, text: str) -> Dict[str, Any]:
+def _use_production_router(user_hash: str, text: str) -> dict[str, Any]:
     """Use the production router system (primary brain)"""
     try:
         from utils.production_router import production_router
@@ -158,7 +159,7 @@ def _use_production_router(user_hash: str, text: str) -> Dict[str, Any]:
         logger.warning(f"Production router failed: {e}")
         return None
 
-def _use_fallback_ai(user_hash: str, text: str) -> Dict[str, Any]:
+def _use_fallback_ai(user_hash: str, text: str) -> dict[str, Any]:
     """Fallback AI processing when production router unavailable"""
     try:
         # Try AI adapter
@@ -210,7 +211,7 @@ def _use_fallback_ai(user_hash: str, text: str) -> Dict[str, Any]:
         return None
 
 # Expense-specific processing for natural language expense entry
-def process_expense_message(uid: str, text: str) -> Dict[str, Any]:
+def process_expense_message(uid: str, text: str) -> dict[str, Any]:
     """
     Process natural language expense messages and extract structured expense data
     

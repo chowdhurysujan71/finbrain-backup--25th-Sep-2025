@@ -5,8 +5,10 @@ Phase 3 Impact Audit: Verify AI resilience while preserving all previous gains
 
 import json
 import time
-from typing import Dict, List, Any
+from typing import Any, Dict
+
 from app import app
+
 
 class Phase3ImpactAudit:
     """Test Phase 3 AI improvements while preserving Phase 1+2 gains"""
@@ -24,7 +26,7 @@ class Phase3ImpactAudit:
             "cumulative_assessment": {}
         }
     
-    def run_audit(self) -> Dict[str, Any]:
+    def run_audit(self) -> dict[str, Any]:
         print("🔍 PHASE 3 IMPACT AUDIT")
         print("=" * 50)
         print("Testing: New AI resilience + Phase 1+2 preservation")
@@ -64,9 +66,8 @@ class Phase3ImpactAudit:
         
         return self.results
     
-    def _test_new_ai_system(self) -> Dict[str, Any]:
+    def _test_new_ai_system(self) -> dict[str, Any]:
         """Test the new AI resilience system"""
-        from utils.ai_resilience import ResilientAIAdapter, AIMode, AIProvider
         
         ai_test_cases = [
             {
@@ -135,10 +136,10 @@ class Phase3ImpactAudit:
             "improvement": "0% → 80%+" if success_rate >= 80.0 else f"0% → {success_rate:.1f}%"
         }
     
-    def _test_stub_mode_reliability(self) -> Dict[str, Any]:
+    def _test_stub_mode_reliability(self) -> dict[str, Any]:
         """Test stub mode provides reliable responses"""
         try:
-            from utils.ai_resilience import ResilientAIAdapter, AIMode
+            from utils.ai_resilience import AIMode, ResilientAIAdapter
             
             adapter = ResilientAIAdapter(stub_mode=True)
             
@@ -168,10 +169,10 @@ class Phase3ImpactAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_local_fallback_quality(self) -> Dict[str, Any]:
+    def _test_local_fallback_quality(self) -> dict[str, Any]:
         """Test local fallback provides quality responses"""
         try:
-            from utils.ai_resilience import ResilientAIAdapter, AIMode
+            from utils.ai_resilience import AIMode, ResilientAIAdapter
             
             adapter = ResilientAIAdapter(fallback_enabled=True)
             adapter.circuit_breaker["is_open"] = True  # Force fallback
@@ -203,7 +204,7 @@ class Phase3ImpactAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_circuit_breaker(self) -> Dict[str, Any]:
+    def _test_circuit_breaker(self) -> dict[str, Any]:
         """Test circuit breaker functionality"""
         try:
             from utils.ai_resilience import ResilientAIAdapter
@@ -231,11 +232,12 @@ class Phase3ImpactAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_categorization_accuracy(self) -> Dict[str, Any]:
+    def _test_categorization_accuracy(self) -> dict[str, Any]:
         """Test AI categorization accuracy"""
         try:
-            from utils.ai_resilience import ResilientAIAdapter
             import json
+
+            from utils.ai_resilience import ResilientAIAdapter
             
             adapter = ResilientAIAdapter(stub_mode=True)
             
@@ -267,7 +269,7 @@ class Phase3ImpactAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_performance_standards(self) -> Dict[str, Any]:
+    def _test_performance_standards(self) -> dict[str, Any]:
         """Test AI performance meets standards"""
         try:
             from utils.ai_resilience import ResilientAIAdapter
@@ -291,7 +293,7 @@ class Phase3ImpactAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_error_handling(self) -> Dict[str, Any]:
+    def _test_error_handling(self) -> dict[str, Any]:
         """Test error handling resilience"""
         try:
             from utils.ai_resilience import ResilientAIAdapter
@@ -324,11 +326,12 @@ class Phase3ImpactAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_bilingual_ai_support(self) -> Dict[str, Any]:
+    def _test_bilingual_ai_support(self) -> dict[str, Any]:
         """Test AI supports bilingual content"""
         try:
-            from utils.ai_resilience import ResilientAIAdapter
             import json
+
+            from utils.ai_resilience import ResilientAIAdapter
             
             adapter = ResilientAIAdapter(stub_mode=True)
             
@@ -350,7 +353,7 @@ class Phase3ImpactAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_health_monitoring(self) -> Dict[str, Any]:
+    def _test_health_monitoring(self) -> dict[str, Any]:
         """Test health monitoring functionality"""
         try:
             from utils.ai_resilience import ResilientAIAdapter
@@ -372,7 +375,7 @@ class Phase3ImpactAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_security_preservation(self) -> Dict[str, Any]:
+    def _test_security_preservation(self) -> dict[str, Any]:
         """Ensure Phase 2 security gains are preserved"""
         from utils.input_sanitizer import InputSanitizer
         
@@ -421,7 +424,7 @@ class Phase3ImpactAudit:
             "status": "PRESERVED" if success_rate >= 95.0 else "DEGRADED"
         }
     
-    def _test_data_handling_preservation(self) -> Dict[str, Any]:
+    def _test_data_handling_preservation(self) -> dict[str, Any]:
         """Ensure Phase 1 data handling gains are preserved"""
         from nlp.signals_extractor import extract_signals
         
@@ -467,7 +470,7 @@ class Phase3ImpactAudit:
             "status": "PRESERVED" if success_rate >= 95.0 else "DEGRADED"
         }
     
-    def _test_routing_preservation(self) -> Dict[str, Any]:
+    def _test_routing_preservation(self) -> dict[str, Any]:
         """Ensure core routing system remains 100% functional"""
         
         routing_cases = [
@@ -523,7 +526,7 @@ class Phase3ImpactAudit:
             "status": "PRESERVED" if success_rate == 100.0 else "COMPROMISED"
         }
     
-    def _print_results(self, phase_name: str, results: Dict[str, Any]):
+    def _print_results(self, phase_name: str, results: dict[str, Any]):
         """Print formatted results"""
         summary = results
         success = summary.get("overall_success", False)
@@ -572,7 +575,7 @@ class Phase3ImpactAudit:
             }
         }
         
-        print(f"\n📊 PHASE 3 CUMULATIVE ASSESSMENT")
+        print("\n📊 PHASE 3 CUMULATIVE ASSESSMENT")
         print("=" * 50)
         print(f"AI Processing: {self.results['ai_processing_after'].get('improvement', 'Unknown')}")
         print(f"Security: {self.results['security_preservation'].get('status', 'Unknown')}")

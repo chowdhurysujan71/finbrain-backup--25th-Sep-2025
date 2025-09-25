@@ -6,17 +6,17 @@ This module implements automated smoke tests that run continuously in production
 to validate that the core expense functionality is working correctly.
 """
 
+import hashlib
 import logging
+import os
 import time
 import uuid
-import hashlib
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple, Union
-import psycopg2
-import os
-import threading
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional, Union
+
+import psycopg2
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +31,9 @@ class SmokeTestResult:
     test_name: str
     status: SmokeTestStatus
     execution_time_ms: float
-    error_message: Optional[str] = None
-    details: Optional[Dict[str, Any]] = None
-    timestamp: Optional[datetime] = None
+    error_message: str | None = None
+    details: dict[str, Any] | None = None
+    timestamp: datetime | None = None
     
     def __post_init__(self):
         if self.timestamp is None:
@@ -52,12 +52,12 @@ class ProductionSmokeTestSuite:
     """
     
     def __init__(self):
-        self.test_results: List[SmokeTestResult] = []
+        self.test_results: list[SmokeTestResult] = []
         self.smoke_test_user_id = "smoke_test_user_" + hashlib.sha256(b"smoke_test_finbrain").hexdigest()[:16]
         self.failure_threshold = 2  # Number of consecutive failures before alerting
         self.timeout_seconds = 30  # Per-test timeout
         
-    def run_comprehensive_smoke_test(self) -> Dict[str, Any]:
+    def run_comprehensive_smoke_test(self) -> dict[str, Any]:
         """
         🔍 RUN ALL SMOKE TESTS
         Executes complete production validation suite
@@ -111,7 +111,7 @@ class ProductionSmokeTestSuite:
         total_time = (time.time() - start_time) * 1000
         return self._generate_smoke_test_report(total_time)
     
-    def _test_expense_creation_e2e(self) -> Union[bool, str]:
+    def _test_expense_creation_e2e(self) -> bool | str:
         """
         🎯 TEST: EXPENSE CREATION END-TO-END
         Tests the complete expense creation flow through backend_assistant
@@ -156,7 +156,7 @@ class ProductionSmokeTestSuite:
             logger.error(f"Expense creation smoke test failed: {e}")
             return str(e)
     
-    def _test_expense_retrieval(self) -> Union[bool, str]:
+    def _test_expense_retrieval(self) -> bool | str:
         """
         🎯 TEST: EXPENSE RETRIEVAL
         Verifies that created expenses are properly retrievable
@@ -188,7 +188,7 @@ class ProductionSmokeTestSuite:
         except Exception as e:
             return f"Expense retrieval test failed: {e}"
     
-    def _test_single_writer_enforcement(self) -> Union[bool, str]:
+    def _test_single_writer_enforcement(self) -> bool | str:
         """
         🎯 TEST: SINGLE WRITER INVARIANT ENFORCEMENT
         Validates that single writer protections are active
@@ -225,7 +225,7 @@ class ProductionSmokeTestSuite:
         except Exception as e:
             return f"Single writer enforcement test failed: {e}"
     
-    def _test_database_connectivity(self) -> Union[bool, str]:
+    def _test_database_connectivity(self) -> bool | str:
         """
         🎯 TEST: DATABASE CONNECTIVITY
         Validates database connection and basic operations
@@ -257,7 +257,7 @@ class ProductionSmokeTestSuite:
         except Exception as e:
             return f"Database connectivity test failed: {e}"
     
-    def _test_authentication_endpoints(self) -> Union[bool, str]:
+    def _test_authentication_endpoints(self) -> bool | str:
         """
         🎯 TEST: AUTHENTICATION SYSTEM
         Validates that authentication endpoints are responding
@@ -289,7 +289,7 @@ class ProductionSmokeTestSuite:
         except Exception as e:
             return f"Authentication test failed: {e}"
     
-    def _test_monitoring_endpoints(self) -> Union[bool, str]:
+    def _test_monitoring_endpoints(self) -> bool | str:
         """
         🎯 TEST: MONITORING ENDPOINTS
         Validates that monitoring and operational endpoints are working
@@ -315,7 +315,7 @@ class ProductionSmokeTestSuite:
         except Exception as e:
             return f"Monitoring endpoints test failed: {e}"
     
-    def _test_data_consistency(self) -> Union[bool, str]:
+    def _test_data_consistency(self) -> bool | str:
         """
         🎯 TEST: DATA CONSISTENCY
         Validates that data integrity rules are being enforced
@@ -366,7 +366,7 @@ class ProductionSmokeTestSuite:
         except Exception as e:
             return f"Data consistency test failed: {e}"
     
-    def _generate_smoke_test_report(self, total_execution_time: float) -> Dict[str, Any]:
+    def _generate_smoke_test_report(self, total_execution_time: float) -> dict[str, Any]:
         """Generate comprehensive smoke test report"""
         passed_tests = [r for r in self.test_results if r.status == SmokeTestStatus.PASS]
         failed_tests = [r for r in self.test_results if r.status != SmokeTestStatus.PASS]
@@ -405,7 +405,7 @@ class ProductionSmokeTestSuite:
         
         return report
     
-    def _generate_rollback_recommendation(self, overall_status: str, failed_tests: List[SmokeTestResult]) -> Dict[str, Any]:
+    def _generate_rollback_recommendation(self, overall_status: str, failed_tests: list[SmokeTestResult]) -> dict[str, Any]:
         """
         🚨 GENERATE ROLLBACK RECOMMENDATION
         Provides intelligent rollback guidance based on failure patterns
@@ -450,14 +450,14 @@ class ProductionSmokeTestSuite:
 # Global smoke test instance
 production_smoke_tester = ProductionSmokeTestSuite()
 
-def run_production_smoke_test() -> Dict[str, Any]:
+def run_production_smoke_test() -> dict[str, Any]:
     """
     🎯 GLOBAL ENTRY POINT
     Run production smoke tests and return comprehensive results
     """
     return production_smoke_tester.run_comprehensive_smoke_test()
 
-def get_smoke_test_history() -> List[Dict[str, Any]]:
+def get_smoke_test_history() -> list[dict[str, Any]]:
     """Get recent smoke test execution history"""
     # This would integrate with persistent storage for history
     # For now, return current results

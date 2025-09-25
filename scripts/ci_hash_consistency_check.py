@@ -11,10 +11,10 @@ Exit codes:
 - 2: Script execution error
 """
 
-import os
-import sys
 import hashlib
 import logging
+import os
+import sys
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')

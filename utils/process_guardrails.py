@@ -10,16 +10,15 @@ This module implements people and process guardrails to ensure:
 - Team structure and expertise distribution
 """
 
-import os
 import json
-import time
 import logging
-from typing import Dict, List, Any, Optional, Set
-from dataclasses import dataclass, asdict
+import os
+import re
+import time
+from dataclasses import asdict, dataclass
 from enum import Enum
 from pathlib import Path
-import re
-import subprocess
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -46,13 +45,13 @@ class ApprovalRequirement(Enum):
 @dataclass
 class CodeOwnership:
     component: str
-    primary_owners: List[str]
-    secondary_owners: List[str]
-    reviewers: List[str]
+    primary_owners: list[str]
+    secondary_owners: list[str]
+    reviewers: list[str]
     description: str
     risk_level: ChangeRisk
-    approval_requirements: List[ApprovalRequirement]
-    files_patterns: List[str]
+    approval_requirements: list[ApprovalRequirement]
+    files_patterns: list[str]
     last_updated: str
 
 @dataclass
@@ -72,11 +71,11 @@ class ChangeReview:
     component: str
     risk_level: ChangeRisk
     submitter: str
-    reviewers_required: List[str]
-    reviewers_approved: List[str]
+    reviewers_required: list[str]
+    reviewers_approved: list[str]
     status: str  # "pending", "approved", "rejected", "blocked"
     created_at: str
-    files_changed: List[str]
+    files_changed: list[str]
 
 class ProcessGuardrails:
     """
@@ -92,9 +91,9 @@ class ProcessGuardrails:
     
     def __init__(self, config_path: str = "process_guardrails_config.json"):
         self.config_path = config_path
-        self.ownerships: Dict[str, CodeOwnership] = {}
-        self.architecture_rules: Dict[str, ArchitectureRule] = {}
-        self.pending_reviews: Dict[str, ChangeReview] = {}
+        self.ownerships: dict[str, CodeOwnership] = {}
+        self.architecture_rules: dict[str, ArchitectureRule] = {}
+        self.pending_reviews: dict[str, ChangeReview] = {}
         
         # Initialize with default configuration
         self._initialize_default_configuration()
@@ -270,7 +269,7 @@ class ProcessGuardrails:
         """Load configuration from file if it exists"""
         if os.path.exists(self.config_path):
             try:
-                with open(self.config_path, 'r') as f:
+                with open(self.config_path) as f:
                     config = json.load(f)
                     
                 # Load ownerships
@@ -305,7 +304,7 @@ class ProcessGuardrails:
         except Exception as e:
             logger.error(f"Failed to save configuration: {e}")
     
-    def get_file_owners(self, file_path: str) -> Dict[str, Any]:
+    def get_file_owners(self, file_path: str) -> dict[str, Any]:
         """
         🏠 GET FILE OWNERS
         Determine ownership for a specific file
@@ -339,7 +338,7 @@ class ProcessGuardrails:
         
         return file_ownership
     
-    def validate_architecture_rules(self, directory: str = '.') -> Dict[str, Any]:
+    def validate_architecture_rules(self, directory: str = '.') -> dict[str, Any]:
         """
         🏗️ VALIDATE ARCHITECTURE RULES
         Check codebase against architecture preservation rules
@@ -363,7 +362,7 @@ class ProcessGuardrails:
             'rules_checked': len([r for r in self.architecture_rules.values() if r.enforced_by in ['automated', 'both']])
         }
     
-    def _check_architecture_rule(self, rule: ArchitectureRule, directory: str) -> List[Dict[str, Any]]:
+    def _check_architecture_rule(self, rule: ArchitectureRule, directory: str) -> list[dict[str, Any]]:
         """Check a single architecture rule against the codebase"""
         violations = []
         
@@ -372,7 +371,7 @@ class ProcessGuardrails:
                 if self._should_skip_file(py_file):
                     continue
                 
-                with open(py_file, 'r', encoding='utf-8') as f:
+                with open(py_file, encoding='utf-8') as f:
                     content = f.read()
                     lines = content.split('\n')
                 
@@ -408,7 +407,7 @@ class ProcessGuardrails:
         return any(pattern in file_str for pattern in skip_patterns)
     
     def create_change_review(self, component: str, submitter: str, 
-                           files_changed: List[str]) -> str:
+                           files_changed: list[str]) -> str:
         """
         📝 CREATE CHANGE REVIEW
         Initiate a change review process for modifications
@@ -460,7 +459,7 @@ class ProcessGuardrails:
         logger.info(f"Created change review {change_id} for {component}")
         return change_id
     
-    def get_governance_dashboard(self) -> Dict[str, Any]:
+    def get_governance_dashboard(self) -> dict[str, Any]:
         """
         📊 GET GOVERNANCE DASHBOARD
         Comprehensive governance and process dashboard
@@ -515,7 +514,7 @@ class ProcessGuardrails:
             'governance_health': 'HEALTHY' if violations_report['total_violations'] == 0 else 'NEEDS_ATTENTION'
         }
     
-    def get_reliability_governance_report(self) -> Dict[str, Any]:
+    def get_reliability_governance_report(self) -> dict[str, Any]:
         """
         🎯 GET RELIABILITY GOVERNANCE REPORT
         Specialized report for 100% reliability framework governance
@@ -563,28 +562,28 @@ class ProcessGuardrails:
 # Global process guardrails instance
 process_guardrails = ProcessGuardrails()
 
-def get_file_ownership(file_path: str) -> Dict[str, Any]:
+def get_file_ownership(file_path: str) -> dict[str, Any]:
     """
     🏠 GLOBAL ENTRY POINT
     Get ownership information for a specific file
     """
     return process_guardrails.get_file_owners(file_path)
 
-def validate_architecture() -> Dict[str, Any]:
+def validate_architecture() -> dict[str, Any]:
     """
     🏗️ GLOBAL ENTRY POINT
     Validate architecture rules across the codebase
     """
     return process_guardrails.validate_architecture_rules()
 
-def get_governance_summary() -> Dict[str, Any]:
+def get_governance_summary() -> dict[str, Any]:
     """
     📊 GLOBAL ENTRY POINT
     Get comprehensive governance dashboard
     """
     return process_guardrails.get_governance_dashboard()
 
-def get_reliability_governance() -> Dict[str, Any]:
+def get_reliability_governance() -> dict[str, Any]:
     """
     🎯 GLOBAL ENTRY POINT
     Get reliability-focused governance report

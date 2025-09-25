@@ -3,7 +3,9 @@ Phase 2 UAT: Input sanitization and security hardening
 Tests security features without affecting routing system
 """
 import pytest
+
 from utils.input_sanitizer import InputSanitizer
+
 
 class TestInputSanitization:
     """Test input sanitization functionality"""
@@ -158,8 +160,8 @@ class TestSecurityIntegration:
 
 def run_phase2_uat():
     """Run Phase 2 UAT and return results"""
-    import sys
     import subprocess
+    import sys
     
     # Run the tests
     result = subprocess.run([

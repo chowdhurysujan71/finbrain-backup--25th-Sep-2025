@@ -5,20 +5,16 @@ Validates that CC decision routing works correctly while clarifiers remain disab
 """
 
 import sys
-import os
-import json
-import time
-import requests
 from datetime import datetime
-from typing import Dict, Any
 
 # Add project root to path
 sys.path.append('/home/runner/workspace')
 
 # Import Flask app for context
 from app import app
-from utils.production_router import ProductionRouter
 from utils.pca_flags import pca_flags
+from utils.production_router import ProductionRouter
+
 
 class Phase2UAT:
     def __init__(self):
@@ -319,7 +315,7 @@ class Phase2UAT:
         
         print()
         print("=" * 60)
-        print(f"PHASE 2 UAT RESULTS:")
+        print("PHASE 2 UAT RESULTS:")
         print(f"✅ Passed: {passed_tests}/{total_tests} ({pass_rate:.1f}%)")
         print(f"⏱️  Duration: {duration:.2f}s")
         print(f"🎯 Exit Gate: {'PASS' if pass_rate == 100 else 'FAIL'}")

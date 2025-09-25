@@ -5,8 +5,10 @@ Phase 1 Impact Audit: Verify Data Handling improvement while preserving core rou
 
 import json
 import time
-from typing import Dict, List, Any
+from typing import Any, Dict
+
 from app import app
+
 
 class Phase1ImpactAudit:
     """Test Phase 1 improvements without touching existing routing system"""
@@ -22,7 +24,7 @@ class Phase1ImpactAudit:
             "integration_safety": {}
         }
     
-    def run_audit(self) -> Dict[str, Any]:
+    def run_audit(self) -> dict[str, Any]:
         print("🔍 PHASE 1 IMPACT AUDIT")
         print("=" * 50)
         print("Testing: New signal extraction vs existing routing")
@@ -55,7 +57,7 @@ class Phase1ImpactAudit:
         
         return self.results
     
-    def _test_new_data_handling(self) -> Dict[str, Any]:
+    def _test_new_data_handling(self) -> dict[str, Any]:
         """Test the new signal extraction system"""
         from nlp.signals_extractor import extract_signals
         
@@ -154,7 +156,7 @@ class Phase1ImpactAudit:
             "improvement": "0% → 95%+" if success_rate >= 95.0 else f"0% → {success_rate:.1f}%"
         }
     
-    def _test_routing_preservation(self) -> Dict[str, Any]:
+    def _test_routing_preservation(self) -> dict[str, Any]:
         """Ensure existing routing system remains 100% functional"""
         
         # Test the existing routing system we know works 100%
@@ -212,7 +214,7 @@ class Phase1ImpactAudit:
             "status": "PRESERVED" if success_rate == 100.0 else "COMPROMISED"
         }
     
-    def _test_integration_safety(self) -> Dict[str, Any]:
+    def _test_integration_safety(self) -> dict[str, Any]:
         """Test that Phase 1 changes don't break anything"""
         
         safety_checks = [
@@ -263,11 +265,11 @@ class Phase1ImpactAudit:
             "overall_success": success_rate == 100.0
         }
     
-    def _test_imports(self) -> Dict[str, Any]:
+    def _test_imports(self) -> dict[str, Any]:
         """Test that new modules import correctly"""
         try:
-            from utils.text_normalizer import normalize_for_processing
             from nlp.signals_extractor import extract_signals, parse_time_window
+            from utils.text_normalizer import normalize_for_processing
             
             # Test basic functionality
             normalized = normalize_for_processing("Test TEXT")
@@ -285,14 +287,13 @@ class Phase1ImpactAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_no_conflicts(self) -> Dict[str, Any]:
+    def _test_no_conflicts(self) -> dict[str, Any]:
         """Test that new functions don't conflict with existing ones"""
         try:
             # Test that existing routing still works
-            from utils.routing_policy import deterministic_router
-            
             # Test that new signal extraction works
             from nlp.signals_extractor import extract_signals
+            from utils.routing_policy import deterministic_router
             
             # They should coexist without conflicts
             old_signals = deterministic_router.extract_signals("test", "user")
@@ -309,7 +310,7 @@ class Phase1ImpactAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _test_existing_functions(self) -> Dict[str, Any]:
+    def _test_existing_functions(self) -> dict[str, Any]:
         """Test that existing functions still work"""
         try:
             from utils.routing_policy import deterministic_router
@@ -329,7 +330,7 @@ class Phase1ImpactAudit:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _print_results(self, phase_name: str, results: Dict[str, Any]):
+    def _print_results(self, phase_name: str, results: dict[str, Any]):
         """Print formatted results"""
         summary = results
         success = summary.get("overall_success", False)
@@ -365,7 +366,7 @@ class Phase1ImpactAudit:
             "risk_level": "ZERO RISK" if routing_preserved else "HIGH RISK"
         }
         
-        print(f"\n📊 PHASE 1 IMPACT ASSESSMENT")
+        print("\n📊 PHASE 1 IMPACT ASSESSMENT")
         print("=" * 50)
         print(f"Data Handling: {data_handling.get('improvement', 'Unknown')}")
         print(f"Routing System: {routing_preservation.get('status', 'Unknown')}")

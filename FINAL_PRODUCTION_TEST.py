@@ -4,6 +4,7 @@ Final production test with the exact user scenario
 """
 
 import sys
+
 sys.path.insert(0, '.')
 
 def final_production_test():

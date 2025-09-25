@@ -2,15 +2,15 @@
 Performance monitoring with ring buffer and P95 calculation
 """
 
-import time
-from typing import Optional, List
+from typing import List, Optional
+
 
 class LatencyMonitor:
     """Ring buffer for tracking request latencies with P95 calculation"""
     
     def __init__(self, size: int = 500):
         self.size = size
-        self.buffer: List[float] = []
+        self.buffer: list[float] = []
         self.index = 0
         self.full = False
     
@@ -28,7 +28,7 @@ class LatencyMonitor:
         """Get number of recorded samples"""
         return len(self.buffer)
     
-    def p95(self) -> Optional[float]:
+    def p95(self) -> float | None:
         """Calculate P95 using nearest rank method"""
         if not self.buffer:
             return None
@@ -61,7 +61,7 @@ def count() -> int:
     """Get number of recorded samples"""
     return _monitor.count()
 
-def p95() -> Optional[float]:
+def p95() -> float | None:
     """Get P95 latency"""
     return _monitor.p95()
 

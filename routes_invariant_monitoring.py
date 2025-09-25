@@ -3,10 +3,15 @@
 Real-time monitoring and health checks for single writer invariants
 """
 
-from flask import Blueprint, jsonify, request
-from utils.unbreakable_invariants import get_invariant_status, run_invariant_health_check
-from utils.ci_invariant_enforcement import run_ci_invariant_check
 import logging
+
+from flask import Blueprint, jsonify
+
+from utils.ci_invariant_enforcement import run_ci_invariant_check
+from utils.unbreakable_invariants import (
+    get_invariant_status,
+    run_invariant_health_check,
+)
 
 logger = logging.getLogger(__name__)
 

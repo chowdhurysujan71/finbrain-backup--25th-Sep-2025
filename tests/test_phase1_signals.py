@@ -3,8 +3,10 @@ Phase 1 UAT: Text normalization and signal extraction
 Tests the core data handling functionality without touching existing routing
 """
 import pytest
+
 from nlp.signals_extractor import extract_signals, parse_time_window
 from utils.text_normalizer import normalize_for_processing
+
 
 class TestTextNormalization:
     """Test text normalization functionality"""
@@ -161,8 +163,8 @@ class TestIntegrationScenarios:
 
 def run_phase1_uat():
     """Run Phase 1 UAT and return results"""
-    import sys
     import subprocess
+    import sys
     
     # Run the tests
     result = subprocess.run([

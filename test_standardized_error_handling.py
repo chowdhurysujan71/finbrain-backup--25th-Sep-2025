@@ -5,15 +5,22 @@ Tests validation, error responses, and logging functionality
 
 import json
 import unittest
+
 from utils.error_responses import (
-    standardized_error_response, validation_error_response, missing_fields_error,
-    unauthorized_error, internal_error, success_response, ErrorCodes
-)
-from utils.validators import (
-    ExpenseValidator, AuthValidator, APIValidator, 
-    validate_expense, validate_login, validate_registration
+    ErrorCodes,
+    missing_fields_error,
+    success_response,
+    unauthorized_error,
+    validation_error_response,
 )
 from utils.structured_logger import StructuredLogger
+from utils.validators import (
+    APIValidator,
+    validate_expense,
+    validate_login,
+    validate_registration,
+)
+
 
 class TestStandardizedErrorResponses(unittest.TestCase):
     """Test standardized error response formats"""
@@ -371,7 +378,7 @@ if __name__ == "__main__":
     demo_field_validation_errors()
     
     # Summary
-    print(f"\n📊 TEST RESULTS SUMMARY:")
+    print("\n📊 TEST RESULTS SUMMARY:")
     print(f"Tests run: {test_result.testsRun}")
     print(f"Failures: {len(test_result.failures)}")
     print(f"Errors: {len(test_result.errors)}")

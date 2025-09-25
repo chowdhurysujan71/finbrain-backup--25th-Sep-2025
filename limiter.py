@@ -5,7 +5,8 @@ Single source of truth for AI rate limiting with configurable limits
 
 import time
 from collections import deque
-from config import AI_RL_USER_LIMIT, AI_RL_WINDOW_SEC, AI_RL_GLOBAL_LIMIT
+
+from config import AI_RL_GLOBAL_LIMIT, AI_RL_USER_LIMIT, AI_RL_WINDOW_SEC
 
 
 class SlidingWindowLimiter:

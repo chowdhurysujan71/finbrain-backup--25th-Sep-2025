@@ -3,9 +3,10 @@ Input sanitization utilities for security hardening
 Handles control characters, length limits, and XSS prevention
 """
 from __future__ import annotations
-import re
+
 import html
-from typing import Dict, Any
+import re
+from typing import Any, Dict
 
 # Control character patterns (C0 and C1 control blocks)
 _CONTROL_CHARS = re.compile(r"[\x00-\x1F\x7F-\x9F]")
@@ -18,7 +19,7 @@ class InputSanitizer:
     """Secure input sanitization with dual-view approach"""
     
     @staticmethod
-    def sanitize_user_input(raw_input: str) -> Dict[str, Any]:
+    def sanitize_user_input(raw_input: str) -> dict[str, Any]:
         """
         Sanitize user input while preserving original for audit
         
@@ -76,7 +77,7 @@ class InputSanitizer:
         }
     
     @staticmethod
-    def sanitize_field(value: str, field_name: str) -> Dict[str, Any]:
+    def sanitize_field(value: str, field_name: str) -> dict[str, Any]:
         """
         Sanitize individual field values (shorter than messages)
         
@@ -120,7 +121,7 @@ class InputSanitizer:
         }
     
     @staticmethod
-    def is_safe_for_processing(sanitized_data: Dict[str, Any]) -> bool:
+    def is_safe_for_processing(sanitized_data: dict[str, Any]) -> bool:
         """
         Check if sanitized data is safe for further processing
         

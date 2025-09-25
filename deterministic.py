@@ -1,8 +1,9 @@
 """
 Deterministic reply system - fast, reliable fallback
 """
-from utils.parser import parse_expense
 from utils.categories import categorize_expense
+from utils.parser import parse_expense
+
 
 def deterministic_reply(message: str) -> str:
     """Generate deterministic response for any message"""
