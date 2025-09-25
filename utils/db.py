@@ -44,24 +44,8 @@ def get_or_create_user(user_identifier, platform, db_session=None):
 
 # REMOVED: save_expense() - DEPRECATED ghost code eliminated 2025-09-20
 # Use backend_assistant.add_expense() instead (canonical single writer)
-    from models import Expense, MonthlySummary, User
-    from utils.telemetry import TelemetryTracker
-    from utils.tracer import trace_event
-    
-    if db_session is None:
-        from db_base import db
-        db_session = db
-    
-    try:
-        # User identifier is already hashed when passed from production_router
-        user_hash = user_identifier
-        
-        # Validate amount to prevent database overflow
-        # Database field is Numeric(10, 2) so max is 99,999,999.99
-        MAX_AMOUNT = 99999999.99
-        MIN_AMOUNT = 0.01
-        
-        amount_float = float(amount)
+
+def get_monthly_summary(user_identifier, month=None):
         if amount_float > MAX_AMOUNT:
             raise ValueError(f"Amount {amount_float} exceeds maximum allowed value of ৳{MAX_AMOUNT:,.2f}")
         if amount_float < MIN_AMOUNT:

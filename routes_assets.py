@@ -176,7 +176,7 @@ def download_url():
 @assets_bp.route('/', methods=['DELETE'])
 def delete_asset():
     """Delete asset (feature-flagged)"""
-    if not ASSETS_ALLOW_DELETE:
+    if not is_delete_enabled():
         return jsonify({"error": "Asset deletion not enabled"}), 403
         
     start_time = time.time()

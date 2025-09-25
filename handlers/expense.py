@@ -263,7 +263,7 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: dict[str,
         'text': response,
         'intent': 'log_single',
         'category': expense_data['category'],
-        'amount': amount
+        'amount': expense_data['amount']
     }
 
 def _create_expense_from_data(psid_hash_val: str, unique_id: str, expense_data: dict[str, Any], original_text: str, now: datetime, mid: str | None = None) -> Expense:
@@ -485,7 +485,7 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
         
         # Log successful correction
         log_correction_applied(
-            psid_hash_val, mid, best_candidate.id, new_expense.id, 
+            psid_hash_val, mid, best_candidate.id, new_expense_result.get('expense_id'), 
             {"old_amount": old_amount, "new_amount": new_amount}
         )
         
