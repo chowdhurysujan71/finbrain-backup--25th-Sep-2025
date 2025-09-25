@@ -178,13 +178,13 @@ def contains_money_with_correction_fallback(text: str, psid_hash: str) -> bool:
     # Pattern 1: Bare numbers (2-7 digits) with optional decimals
     bare_number_pattern = re.compile(r'\b\d{1,7}(?:[.,]\d{1,2})?\b')
     if bare_number_pattern.search(normalized_text):
-        logger.debug(f"Correction fallback: bare number detected in '{text[:50]}...'")
+        log.debug(f"Correction fallback: bare number detected in '{text[:50]}...'")
         return True
     
     # Pattern 2: k shorthand (1.2k, 500k, etc.)
     k_shorthand_pattern = re.compile(r'\b\d+(?:\.\d+)?k\b', re.IGNORECASE)
     if k_shorthand_pattern.search(normalized_text):
-        logger.debug(f"Correction fallback: k shorthand detected in '{text[:50]}...'")
+        log.debug(f"Correction fallback: k shorthand detected in '{text[:50]}...'")
         return True
     
     return False
