@@ -3,10 +3,9 @@ PCA (Precision Capture & Audit) Message Processor
 Phase 1: CC Snapshot Logging and Basic Processing
 """
 
-import json
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional
 from sqlalchemy.exc import IntegrityError
 
 logger = logging.getLogger("finbrain.pca_processor")
@@ -67,11 +66,11 @@ def log_cc_snapshot(cc_dict: Dict[str, Any], processing_time_ms: Optional[int] =
         logger.debug(f"CC snapshot logged: {cc_id} intent={intent} conf={confidence:.2f} applied={applied}")
         return True
         
-    except IntegrityError as e:
+    except IntegrityError:
         logger.warning(f"CC snapshot already exists: {cc_dict.get('cc_id', 'unknown')}")
         try:
             db.session.rollback()
-        except:
+        except Exception:
             pass
         return False
         
@@ -79,7 +78,7 @@ def log_cc_snapshot(cc_dict: Dict[str, Any], processing_time_ms: Optional[int] =
         logger.error(f"Failed to log CC snapshot {cc_dict.get('cc_id', 'unknown')}: {e}")
         try:
             db.session.rollback()
-        except:
+        except Exception:
             pass
         return False
 
@@ -98,8 +97,7 @@ def process_message_with_pca(user_id: str, message_text: str, message_id: str, t
     """
     try:
         from utils.pca_flags import pca_flags, generate_cc_id, PCAMode
-        from utils.canonical_command import CanonicalCommand, create_help_cc, create_fallback_cc
-        from utils.production_router import production_router
+        from utils.canonical_command import CanonicalCommand, create_help_cc
         
         # PHASE 3: DRYRUN Mode - Process all users (no canary logic)
         # Note: Removed user-level enablement due to no gated releases
@@ -130,14 +128,14 @@ def process_message_with_pca(user_id: str, message_text: str, message_id: str, t
                 
                 if money_matches:
                     # Money event detected - create LOG_EXPENSE CC
-                    from utils.canonical_command import CCSlots, CCIntent, CCDecision
+                    from utils.canonical_command import CCSlots, CCIntent, CCDecision, CanonicalCommand
                     
                     amount = float(money_matches[0])
                     from utils.categories import normalize_category
                     slots = CCSlots(
                         amount=amount,
                         currency='BDT',
-                        category=normalize_category(None),
+                        category=normalize_category("general"),
                         merchant_text='',
                         note=message_text[:100]
                     )
@@ -227,7 +225,7 @@ def process_dryrun_mode(user_id: str, message_text: str, message_id: str, cc_id:
     processing_start = time_module.time()
     
     try:
-        from utils.canonical_command import CanonicalCommand, create_help_cc, create_fallback_cc, CCSlots, CCIntent, CCDecision
+        from utils.canonical_command import CanonicalCommand, create_help_cc, CCSlots, CCIntent, CCDecision
         
         # Enhanced expense detection patterns
         expense_patterns = [
@@ -241,13 +239,11 @@ def process_dryrun_mode(user_id: str, message_text: str, message_id: str, cc_id:
         # Check for expense patterns
         expense_detected = False
         amount_value = None
-        amount_match = None
         
         for pattern in expense_patterns:
             match = re.search(pattern, message_text, re.IGNORECASE)
             if match:
                 expense_detected = True
-                amount_match = match
                 try:
                     # Extract numeric amount
                     amount_text = match.group(1) if match.group(1) else match.group(2) if len(match.groups()) > 1 else match.group(0)
@@ -267,7 +263,7 @@ def process_dryrun_mode(user_id: str, message_text: str, message_id: str, cc_id:
                 slots=CCSlots(
                     amount=amount_value,
                     currency='BDT',
-                    category=normalize_category(None),  # Could be enhanced with AI categorization
+                    category=normalize_category("general"),  # Could be enhanced with AI categorization
                     merchant_text=message_text[:100],
                     note=f"Auto-detected expense: ৳{amount_value}" if amount_value else "Expense pattern detected"
                 ),
@@ -358,7 +354,7 @@ def process_dryrun_mode(user_id: str, message_text: str, message_id: str, cc_id:
             from utils.canonical_command import create_help_cc
             error_cc = create_help_cc(user_id, cc_id, message_text, f"DRYRUN processing error: {str(e)}")
             log_cc_snapshot(error_cc.to_dict(), processing_time_ms=processing_time_ms, error_message=str(e))
-        except:
+        except Exception:
             pass
         
         return {
@@ -416,6 +412,7 @@ def process_production_mode(user_id: str, message_text: str, message_id: str, cc
         # Generate CC based on detection
         if expense_detected and amount_value and amount_value > 0:
             from utils.categories import normalize_category
+            from utils.canonical_command import CanonicalCommand
             cc = CanonicalCommand(
                 cc_id=cc_id,
                 user_id=user_id,
@@ -423,7 +420,7 @@ def process_production_mode(user_id: str, message_text: str, message_id: str, cc
                 slots=CCSlots(
                     amount=amount_value,
                     currency='BDT',
-                    category=normalize_category(None),
+                    category=normalize_category("general"),
                     merchant_text=message_text[:100],
                     note=f"Auto-expense: ৳{amount_value}"
                 ),
@@ -481,7 +478,7 @@ def process_production_mode(user_id: str, message_text: str, message_id: str, cc
             'processing_time_ms': processing_time_ms
         }
 
-def apply_cc_transaction(cc: 'CanonicalCommand', user_id: str) -> bool:
+def apply_cc_transaction(cc, user_id: str) -> bool:
     """Apply high-confidence CC by creating actual expense transaction"""
     try:
         from db_base import db, app
@@ -498,15 +495,14 @@ def apply_cc_transaction(cc: 'CanonicalCommand', user_id: str) -> bool:
             
             # Create expense from CC
             from utils.categories import normalize_category
-            expense = Expense(
-                user_id=user.id,
-                amount=cc.slots.amount,
-                category=normalize_category(cc.slots.category),
-                description=cc.slots.note or cc.source_text[:100],
-                date=datetime.utcnow().date(),
-                created_at=datetime.utcnow(),
-                source='pca_phase4'
-            )
+            expense = Expense()
+            expense.user_id_hash = user_id
+            expense.amount = cc.slots.amount
+            expense.category = normalize_category(cc.slots.category)
+            expense.description = cc.slots.note or cc.source_text[:100]
+            expense.date = datetime.utcnow().date()
+            expense.created_at = datetime.utcnow()
+            expense.source = 'pca_phase4'
             
             db.session.add(expense)
             db.session.commit()

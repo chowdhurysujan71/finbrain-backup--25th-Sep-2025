@@ -18766,139 +18766,15 @@ E722 Do not use bare `except`
 79 |             pass
    |
 
-F401 [*] `json` imported but unused
- --> utils/pca_processor.py:6:8
-  |
-4 | """
-5 |
-6 | import json
-  |        ^^^^
-7 | import logging
-8 | from datetime import datetime
-  |
-help: Remove unused import: `json`
-
-F401 [*] `typing.Tuple` imported but unused
-  --> utils/pca_processor.py:9:41
-   |
- 7 | import logging
- 8 | from datetime import datetime
- 9 | from typing import Dict, Any, Optional, Tuple
-   |                                         ^^^^^
-10 | from sqlalchemy.exc import IntegrityError
-   |
-help: Remove unused import: `typing.Tuple`
-
-F841 [*] Local variable `e` is assigned to but never used
-  --> utils/pca_processor.py:70:30
-   |
-68 |         return True
-69 |         
-70 |     except IntegrityError as e:
-   |                              ^
-71 |         logger.warning(f"CC snapshot already exists: {cc_dict.get('cc_id', 'unknown')}")
-72 |         try:
-   |
-help: Remove assignment to unused variable `e`
-
-E722 Do not use bare `except`
-  --> utils/pca_processor.py:74:9
-   |
-72 |         try:
-73 |             db.session.rollback()
-74 |         except:
-   |         ^^^^^^
-75 |             pass
-76 |         return False
-   |
-
-E722 Do not use bare `except`
-  --> utils/pca_processor.py:82:9
-   |
-80 |         try:
-81 |             db.session.rollback()
-82 |         except:
-   |         ^^^^^^
-83 |             pass
-84 |         return False
-   |
-
-F401 [*] `utils.canonical_command.create_fallback_cc` imported but unused
-   --> utils/pca_processor.py:101:79
-    |
- 99 |     try:
-100 |         from utils.pca_flags import pca_flags, generate_cc_id, PCAMode
-101 |         from utils.canonical_command import CanonicalCommand, create_help_cc, create_fallback_cc
-    |                                                                               ^^^^^^^^^^^^^^^^^^
-102 |         from utils.production_router import production_router
-    |
-help: Remove unused import: `utils.canonical_command.create_fallback_cc`
-
-F401 [*] `utils.production_router.production_router` imported but unused
-   --> utils/pca_processor.py:102:45
-    |
-100 |         from utils.pca_flags import pca_flags, generate_cc_id, PCAMode
-101 |         from utils.canonical_command import CanonicalCommand, create_help_cc, create_fallback_cc
-102 |         from utils.production_router import production_router
-    |                                             ^^^^^^^^^^^^^^^^^
-103 |         
-104 |         # PHASE 3: DRYRUN Mode - Process all users (no canary logic)
-    |
-help: Remove unused import: `utils.production_router.production_router`
-
-F401 [*] `utils.canonical_command.create_fallback_cc` imported but unused
-   --> utils/pca_processor.py:230:79
-    |
-229 |     try:
-230 |         from utils.canonical_command import CanonicalCommand, create_help_cc, create_fallback_cc, CCSlots, CCIntent, CCDecision
-    |                                                                               ^^^^^^^^^^^^^^^^^^
-231 |         
-232 |         # Enhanced expense detection patterns
-    |
-help: Remove unused import: `utils.canonical_command.create_fallback_cc`
-
-F841 Local variable `amount_match` is assigned to but never used
-   --> utils/pca_processor.py:250:17
-    |
-248 |             if match:
-249 |                 expense_detected = True
-250 |                 amount_match = match
-    |                 ^^^^^^^^^^^^
-251 |                 try:
-252 |                     # Extract numeric amount
-    |
-help: Remove assignment to unused variable `amount_match`
-
-E722 Do not use bare `except`
-   --> utils/pca_processor.py:361:9
-    |
-359 |             error_cc = create_help_cc(user_id, cc_id, message_text, f"DRYRUN processing error: {str(e)}")
-360 |             log_cc_snapshot(error_cc.to_dict(), processing_time_ms=processing_time_ms, error_message=str(e))
-361 |         except:
-    |         ^^^^^^
-362 |             pass
-    |
-
 F541 [*] f-string without any placeholders
-   --> utils/pca_processor.py:473:65
+   --> utils/pca_processor.py:470:65
     |
-472 |         from utils.canonical_command import create_help_cc
-473 |         error_cc = create_help_cc(user_id, cc_id, message_text, f"Phase 4 error")
+469 |         from utils.canonical_command import create_help_cc
+470 |         error_cc = create_help_cc(user_id, cc_id, message_text, f"Phase 4 error")
     |                                                                 ^^^^^^^^^^^^^^^^
-474 |         log_cc_snapshot(error_cc.to_dict(), processing_time_ms, applied=False, error_message=str(e))
+471 |         log_cc_snapshot(error_cc.to_dict(), processing_time_ms, applied=False, error_message=str(e))
     |
 help: Remove extraneous `f` prefix
-
-F821 Undefined name `CanonicalCommand`
-   --> utils/pca_processor.py:484:31
-    |
-482 |         }
-483 |
-484 | def apply_cc_transaction(cc: 'CanonicalCommand', user_id: str) -> bool:
-    |                               ^^^^^^^^^^^^^^^^
-485 |     """Apply high-confidence CC by creating actual expense transaction"""
-486 |     try:
-    |
 
 F401 [*] `datetime.datetime` imported but unused
  --> utils/pending_expenses_cleanup.py:7:22
@@ -20368,5 +20244,5 @@ F841 Local variable `user_hash` is assigned to but never used
    |
 help: Remove assignment to unused variable `user_hash`
 
-Found 1767 errors.
-[*] 1285 fixable with the `--fix` option (305 hidden fixes can be enabled with the `--unsafe-fixes` option).
+Found 1756 errors.
+[*] 1279 fixable with the `--fix` option (304 hidden fixes can be enabled with the `--unsafe-fixes` option).

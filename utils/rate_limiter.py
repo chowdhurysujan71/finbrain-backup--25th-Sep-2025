@@ -27,14 +27,13 @@ def check_rate_limit(user_identifier, platform):
         ).first()
         
         if not rate_limit:
-            rate_limit = RateLimit(
-                user_id_hash=user_hash,
-                platform=platform,
-                daily_count=0,
-                hourly_count=0,
-                last_daily_reset=current_date,
-                last_hourly_reset=current_hour
-            )
+            rate_limit = RateLimit()
+            rate_limit.user_id_hash = user_hash
+            rate_limit.platform = platform
+            rate_limit.daily_count = 0
+            rate_limit.hourly_count = 0
+            rate_limit.last_daily_reset = current_date
+            rate_limit.last_hourly_reset = current_hour
             db.session.add(rate_limit)
         
         # Reset daily counter if needed
