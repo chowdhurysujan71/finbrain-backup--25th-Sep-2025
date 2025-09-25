@@ -135,7 +135,8 @@ class BasicAlertsSystem:
                 "timestamp": timestamp,
                 "severity": "error"
             })
-        except:
+        except Exception as log_error:
+            logger.debug(f"Structured logging failed: {log_error}")
             pass  # Don't break if structured logging fails
     
     def get_status(self) -> dict:

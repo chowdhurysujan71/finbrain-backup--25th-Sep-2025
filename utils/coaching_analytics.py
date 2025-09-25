@@ -294,7 +294,8 @@ class CoachingAnalytics:
         try:
             recent_times = list(self.metrics['response_times'])[-50:]  # Last 50 operations
             self.health_metrics['avg_response_time_ms'] = sum(recent_times) / len(recent_times)
-        except:
+        except (ZeroDivisionError, IndexError) as calc_error:
+            logger.debug(f"Response time health calculation failed: {calc_error}")
             pass
     
     def _update_error_rate_health(self):

@@ -659,8 +659,9 @@ Guardrails:
                                     ai_response = json.loads(fixed_content)
                                 else:
                                     raise json_error
-                            except:
+                            except Exception as repair_error:
                                 # If all repair attempts fail, create minimal valid response
+                                logger.warning(f"JSON repair attempts failed: {repair_error}")
                                 ai_response = {
                                     "intent": "help",
                                     "tips": ["Try logging expenses with: log [amount] [description]"]

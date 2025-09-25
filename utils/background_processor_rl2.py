@@ -193,7 +193,8 @@ class RL2Processor:
                 # Database constraint violation - rollback and log but don't throw
                 try:
                     db.session.rollback()
-                except:
+                except Exception as rollback_error:
+                    logger.debug(f"Rollback failed during constraint violation: {rollback_error}")
                     pass
                 
                 logger.warning(f"RL-2 DB constraint violation (non-blocking): {str(db_error)}")
