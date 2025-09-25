@@ -19,14 +19,16 @@ def start_production_server():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
-    # Gunicorn command without --reload to prevent WINCH signal loops
+    # Gunicorn command with production-ready worker configuration
+    workers = os.environ.get('WEB_CONCURRENCY', '4')  # Default to 4 workers for MVP capacity
     cmd = [
         "gunicorn",
         "--bind", "0.0.0.0:5000",
         "--reuse-port",
-        "--workers", "1",  # Single worker for development
-        "--timeout", "120",  # 2 minute timeout
-        "--keep-alive", "5",  # Keep connections alive
+        "--workers", workers,  # Use WEB_CONCURRENCY environment variable
+        "--worker-class", "sync",  # Sync workers for stability
+        "--timeout", "30",  # Production timeout (30s)
+        "--keep-alive", "2",  # Keep connections alive  
         "--log-level", "info",
         "main:app"
     ]

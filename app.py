@@ -47,13 +47,16 @@ def validate_required_environment():
 # Validate environment before any Flask initialization
 validate_required_environment()
 
-# Sentry enforcement for production
+# Sentry enforcement for production - support both 'prod' and 'production'
 env = os.environ.get('ENV', 'development')
-if env == 'prod':
+is_production = env in ['prod', 'production']
+
+if is_production:
     sentry_dsn = os.environ.get('SENTRY_DSN')
     if not sentry_dsn:
-        logger.critical("BOOT FAILURE: SENTRY_DSN required when ENV=prod")
+        logger.critical("BOOT FAILURE: SENTRY_DSN required when ENV=production")
         logger.critical("Set SENTRY_DSN environment variable for production deployment")
+        logger.critical("Example: export SENTRY_DSN=https://your-sentry-dsn@sentry.io/project")
         sys.exit(1)
     
     # Initialize Sentry for production
@@ -94,7 +97,7 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True       # JS cannot read cookie
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"      # Required for subdomain redirects
 
 # SECURITY FIX: Conditional session cookie settings - environment-based
-if env == 'production' or env == 'prod':
+if is_production:
     app.config["SESSION_COOKIE_SECURE"] = True         # HTTPS only in production
     app.config["SESSION_COOKIE_DOMAIN"] = ".finbrain.app"  # Share cookies across finbrain.app subdomains in production
     logger.info("✓ Session cookies configured for finbrain.app subdomains (production, secure)")
@@ -302,7 +305,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "echo": False,  # Disable SQL echoing for performance
     "connect_args": {
         "connect_timeout": 30,  # PostgreSQL connection timeout
-        "sslmode": "prefer",  # Use SSL if available, fallback to non-SSL
+        "sslmode": "require" if is_production else "prefer",  # Enforce SSL in production
         "application_name": "finbrain_app",  # Help identify app in database logs
         # PostgreSQL-specific SSL retry settings
         "keepalives_idle": 600,  # TCP keepalive idle time (10 minutes)
