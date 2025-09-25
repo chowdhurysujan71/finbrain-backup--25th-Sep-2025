@@ -120,16 +120,70 @@ def handle_clarify_expense_intent(user_id: str, text: str, signals: Dict[str, An
         if money_mentions:
             money_amount = money_mentions[0]  # Use first money mention
             
+            # CRITICAL FIX: Detect actual category instead of hardcoded "Tea"
+            detected_category = None
+            detected_item = None
+            
+            try:
+                # Use existing category detection logic
+                from parsers.expense import parse_amount_currency_category
+                parsed_data = parse_amount_currency_category(text)
+                if parsed_data and parsed_data.get('category'):
+                    detected_category = parsed_data['category']
+                    detected_item = parsed_data.get('note', detected_category)
+            except Exception as category_error:
+                logger.debug(f"Category detection failed: {category_error}")
+            
+            # Fallback category detection using simple keyword matching
+            if not detected_category:
+                text_lower = text.lower()
+                if any(word in text_lower for word in ['coffee', 'tea', 'চা']):
+                    detected_category = 'food'
+                    detected_item = 'tea/coffee'
+                elif any(word in text_lower for word in ['burger', 'food', 'lunch', 'dinner', 'খাবার']):
+                    detected_category = 'food'
+                    detected_item = 'food'
+                elif any(word in text_lower for word in ['auto', 'rickshaw', 'taxi', 'uber', 'bus', 'রিকশা']):
+                    detected_category = 'transport'
+                    detected_item = 'transport'
+                elif any(word in text_lower for word in ['grocery', 'groceries', 'market', 'বাজার']):
+                    detected_category = 'grocery'
+                    detected_item = 'groceries'
+                else:
+                    detected_category = 'expense'
+                    detected_item = 'this'
+            
             # Detect if user is likely Bengali speaker based on text
             is_bengali = any(char in text for char in 'আইউএওঅকখগঘচছজঝটঠডঢতথদধনপফবভমযরলশষসহ')
             
+            # Generate clarification text with detected category
+            amount_clean = money_amount.replace('৳', '').strip()
+            
             if is_bengali:
-                # Bengali clarification template
-                clarify_text = f"Tea হিসেবে ৳{money_amount.replace('৳', '').strip()} আজ লগ করতে চান?"
+                # Bengali clarification template with detected category
+                if detected_item == 'tea/coffee':
+                    clarify_text = f"চা/কফির জন্য ৳{amount_clean} আজ লগ করতে চান?"
+                elif detected_item == 'food':
+                    clarify_text = f"খাবারের জন্য ৳{amount_clean} আজ লগ করতে চান?"
+                elif detected_item == 'transport':
+                    clarify_text = f"যাতায়াতের জন্য ৳{amount_clean} আজ লগ করতে চান?"
+                elif detected_item == 'groceries':
+                    clarify_text = f"বাজারের জন্য ৳{amount_clean} আজ লগ করতে চান?"
+                else:
+                    clarify_text = f"{detected_category} হিসেবে ৳{amount_clean} আজ লগ করতে চান?"
                 options = ["হ্যাঁ, লগ করুন", "না", "বরং সারাংশ দেখান"]
             else:
-                # English clarification template
-                clarify_text = f"Log ৳{money_amount.replace('৳', '').strip()} for Tea today?"
+                # English clarification template with detected category
+                if detected_item == 'tea/coffee':
+                    clarify_text = f"Log ৳{amount_clean} for tea/coffee today?"
+                elif detected_item == 'food':
+                    clarify_text = f"Log ৳{amount_clean} for food today?"
+                elif detected_item == 'transport':
+                    clarify_text = f"Log ৳{amount_clean} for transport today?"
+                elif detected_item == 'groceries':
+                    clarify_text = f"Log ৳{amount_clean} for groceries today?"
+                else:
+                    clarify_text = f"Log ৳{amount_clean} for {detected_category} today?"
                 options = ["Yes, log it", "No", "Show summary instead"]
             
             return {
@@ -138,6 +192,8 @@ def handle_clarify_expense_intent(user_id: str, text: str, signals: Dict[str, An
                 "response": clarify_text,
                 "options": options,
                 "money_amount": money_amount,
+                "detected_category": detected_category,
+                "detected_item": detected_item,
                 "original_text": text,
                 "language": "bengali" if is_bengali else "english"
             }

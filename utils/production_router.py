@@ -54,6 +54,43 @@ def normalize_text_money(text: str) -> str:
     
     return normalized.strip()
 
+# TYPE NORMALIZATION SYSTEM - Fixes 70 LSP errors by ensuring type safety
+def safe_dict_get(obj: Any, key: str, default: Any = None) -> Any:
+    """Safely get a value from an object that might be a dict"""
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return default
+
+def normalize_amount(amount: Any) -> Optional[int]:
+    """Convert amount to int (minor units) with proper type checking"""
+    if amount is None:
+        return None
+    
+    if isinstance(amount, (int, float)):
+        return int(amount)
+    
+    if isinstance(amount, str):
+        try:
+            return int(float(amount))
+        except (ValueError, TypeError):
+            return None
+    
+    return None
+
+def normalize_string(value: Any, default: str = "") -> str:
+    """Convert any value to string with safe fallback"""
+    if value is None:
+        return default
+    if isinstance(value, str):
+        return value
+    return str(value)
+
+def normalize_dict_response(result: Any) -> Dict[str, Any]:
+    """Ensure response is a proper dict with safe access"""
+    if isinstance(result, dict):
+        return result
+    return {"failover": True, "reason": "invalid_response_type"}
+
 def contains_money(text: str) -> bool:
     """
     Enhanced money detection with comprehensive pattern matching.
@@ -451,36 +488,44 @@ class ProductionRouter:
             # Use enhanced backend assistant with confidence scoring and clarifier support
             expense_result = ba.propose_expense(text)
             
-            # Extract confidence and clarifier data
+            # Extract confidence and clarifier data with type safety
+            expense_result = normalize_dict_response(expense_result)
             confidence = expense_result.get('confidence', 0.0)
             clarify_data = expense_result.get('clarify')
             status = expense_result.get('status')
             
-            # Log clarifier decision for observability 
-            logger.info(f"[CLARIFY] rid={rid} missing={clarify_data.get('missing') if clarify_data else None} conf={confidence:.2f}")
+            # Log clarifier decision for observability with safe access
+            missing_field = safe_dict_get(clarify_data, 'missing', None)
+            logger.info(f"[CLARIFY] rid={rid} missing={missing_field} conf={confidence:.2f}")
             
             # Handle confidence==0.5 cases with clarifier (if enabled)
-            if confidence == 0.5 and clarify_data and clarify_data.get('question'):
+            clarify_question = safe_dict_get(clarify_data, 'question', None)
+            if confidence == 0.5 and clarify_data and clarify_question:
                 # Feature flag check using centralized gap-fix flags
                 from utils.gap_fix_flags import gap_fix_flags
                 enable_clarifiers = gap_fix_flags.is_clarifier_enabled()
                 
                 if enable_clarifiers:
-                    # Return clarification response with structured data for web UI
+                    # Return clarification response with structured data for web UI using safe access
+                    clarify_question = safe_dict_get(clarify_data, 'question', '')
+                    clarify_chips = safe_dict_get(clarify_data, 'chips', [])
+                    clarify_missing = safe_dict_get(clarify_data, 'missing', None)
+                    clarify_draft = safe_dict_get(clarify_data, 'draft', None)
+                    
                     clarify_response = {
                         "type": "clarify",
-                        "question": clarify_data['question'],
-                        "chips": clarify_data.get('chips', []),
-                        "missing": clarify_data.get('missing'),
-                        "draft": clarify_data.get('draft')
+                        "question": clarify_question,
+                        "chips": clarify_chips,
+                        "missing": clarify_missing,
+                        "draft": clarify_draft
                     }
                     
                     # For non-web channels, return text-only clarification 
-                    response_text = clarify_data['question']
-                    if clarify_data.get('chips'):
-                        response_text += f" (Options: {', '.join(clarify_data['chips'])})"
+                    response_text = clarify_question
+                    if clarify_chips:
+                        response_text += f" (Options: {', '.join(clarify_chips)})"
                         
-                    self._log_routing_decision(rid, psid_hash, "clarification_needed", f"missing_{clarify_data.get('missing')}")
+                    self._log_routing_decision(rid, psid_hash, "clarification_needed", f"missing_{clarify_missing}")
                     return normalize(response_text), "clarify", None, None
             
             # Handle confidence < 0.7 (needs review)
@@ -497,16 +542,22 @@ class ProductionRouter:
                     return normalize(response), "needs_review", None, None
             
             # High confidence (>= 0.7) - proceed with logging
-            amount_minor = expense_result.get('amount_minor')
-            category = expense_result.get('category', 'uncategorized')
-            currency = expense_result.get('currency', 'BDT')
-            description = expense_result.get('description', text.strip())
+            amount_minor_raw = expense_result.get('amount_minor')
+            category_raw = expense_result.get('category', 'uncategorized')
+            currency_raw = expense_result.get('currency', 'BDT')
+            description_raw = expense_result.get('description', text.strip())
+            
+            # Apply type normalization for safety
+            amount_minor = normalize_amount(amount_minor_raw)
+            category = normalize_string(category_raw, 'uncategorized')
+            currency = normalize_string(currency_raw, 'BDT')
+            description = normalize_string(description_raw, text.strip())
             
             if amount_minor is None:
                 response = "I couldn't detect the amount. Try: 'spent 200 on groceries'"
                 return normalize(response), "parse_failed", None, None
             
-            # Save expense using CANONICAL SINGLE WRITER (spec compliance)
+            # Save expense using CANONICAL SINGLE WRITER with correct parameter names
             ba.add_expense(
                 user_id=psid_hash,
                 amount_minor=amount_minor,
@@ -517,7 +568,7 @@ class ProductionRouter:
                 message_id=rid
             )
             
-            amount = amount_minor / 100.0  # Convert back to display units
+            amount = float(amount_minor) / 100.0  # Convert back to display units with type safety
             response = f"✅ Logged: ৳{amount:.0f} for {category}"
             self._log_routing_decision(rid, psid_hash, "expense_logged", f"logged_{amount}_{category}_conf_{confidence}")
             return normalize(response), "expense_logged", category, amount
@@ -1062,15 +1113,16 @@ class ProductionRouter:
                         original_expense = clarification_result['original_expense']
                         final_category = clarification_result['category']
                         
-                        # Save the expense with the clarified category
+                        # Save the expense with the clarified category using correct parameter names
                         from backend_assistant import add_expense
                         add_expense(
-                            user_id_hash=user_hash,
-                            original_text=original_expense["original_text"],
-                            amount=original_expense["amount"],
-                            category=final_category,
+                            user_id=user_hash,
+                            amount_minor=normalize_amount(original_expense["amount"]),
+                            currency="BDT",
+                            category=normalize_string(final_category),
+                            description=normalize_string(original_expense.get("original_text", ""), "clarification"),
                             source="chat",
-                            idempotency_key=f"clarification:{rid}"
+                            message_id=f"clarification:{rid}"
                         )
                         
                         response = normalize(clarification_result['message'])
@@ -1393,15 +1445,16 @@ class ProductionRouter:
                 response = normalize(clarification_message)
                 return response, "clarification_needed", None, None
             
-            # Save expense to database
+            # Save expense to database with correct parameter names
             from backend_assistant import add_expense
             add_expense(
-                user_id_hash=psid_hash,
-                original_text=text,
-                amount=expense["amount"],
-                category=expense["category"],
+                user_id=psid_hash,
+                amount_minor=normalize_amount(expense.get("amount", 0) * 100),
+                currency="BDT",
+                category=normalize_string(expense.get("category"), "other"),
+                description=normalize_string(text, "AI expense"),
                 source="chat",
-                idempotency_key=f"api:{rid}"
+                message_id=f"api:{rid}"
             )
             
             reply = f"✅ Logged: ৳{expense['amount']:.0f} for {expense['category'].lower()}"
@@ -1417,12 +1470,13 @@ class ProductionRouter:
                 try:
                     from backend_assistant import add_expense
                     add_expense(
-                        user_id_hash=psid_hash,
-                        original_text=text,
-                        amount=expense["amount"],
-                        category=expense["category"],
+                        user_id=psid_hash,
+                        amount_minor=normalize_amount(expense.get("amount", 0) * 100),
+                        currency="BDT",
+                        category=normalize_string(expense.get("category"), "other"),
+                        description=normalize_string(text, "regex expense"),
                         source="chat",
-                        idempotency_key=f"api:{rid}"
+                        message_id=f"api:{rid}"
                     )
                     reply = f"✅ Logged: ৳{expense['amount']:.0f} for {expense['category'].lower()}"
                     mode = "STD"
@@ -2056,14 +2110,15 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
                 description = expense_data["description"]
                 category = expense_data["category"]
                 
-                # Log the expense  
+                # Log the expense with correct parameter names
                 result = add_expense(
-                    user_id_hash=psid_hash,  # Use the already computed hash
-                    original_text=parse_result["original_text"],
-                    amount=amount,
-                    category=category,
+                    user_id=psid_hash,
+                    amount_minor=normalize_amount(amount * 100),
+                    currency="BDT",
+                    category=normalize_string(category, "other"),
+                    description=normalize_string(description, "multi expense"),
                     source="chat",
-                    idempotency_key=f"multi:{psid}:{amount}:{description[:10]}"
+                    message_id=f"multi:{psid}:{amount}:{description[:10]}"
                 )
                 success = result.get('success', False)
                 
@@ -2523,15 +2578,16 @@ Do NOT try to parse this as an expense. Just have a natural conversation."""
             category = parsed_data['category']
             note = parsed_data['note']
             
-            # Store expense with idempotency protection using Facebook message ID (rid)
+            # Store expense with idempotency protection using correct parameter names
             from backend_assistant import add_expense
             result = add_expense(
-                user_id_hash=psid_hash,
-                original_text=text,
-                amount=float(amount),
-                category=category,
+                user_id=psid_hash,
+                amount_minor=normalize_amount(float(amount) * 100),
+                currency=normalize_string(currency, "BDT"),
+                category=normalize_string(category, "other"),
+                description=normalize_string(note, text),
                 source="chat",
-                idempotency_key=f"api:{rid}"  # Use Facebook message ID for idempotency
+                message_id=f"api:{rid}"
             )
             
             if result.get('duplicate'):
