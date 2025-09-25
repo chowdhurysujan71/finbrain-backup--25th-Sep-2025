@@ -1,0 +1,14 @@
+F401 [*] `datetime.datetime` imported but unused
+ --> utils/db.py:3:28
+  |
+1 | """Database operations and connection utilities"""
+2 | import logging
+3 | from datetime import date, datetime
+  |                            ^^^^^^^^
+4 |
+5 | from sqlalchemy.exc import SQLAlchemyError
+  |
+help: Remove unused import: `datetime.datetime`
+
+Found 1 error.
+[*] 1 fixable with the `--fix` option.

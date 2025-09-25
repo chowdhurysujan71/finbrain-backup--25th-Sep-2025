@@ -1,6 +1,6 @@
 """Database operations and connection utilities"""
 import logging
-from datetime import date, datetime
+from datetime import date
 
 from sqlalchemy.exc import SQLAlchemyError
 
