@@ -46,20 +46,45 @@ def get_or_create_user(user_identifier, platform, db_session=None):
 # Use backend_assistant.add_expense() instead (canonical single writer)
 
 def get_monthly_summary(user_identifier, month=None):
-        if amount_float > MAX_AMOUNT:
-            raise ValueError(f"Amount {amount_float} exceeds maximum allowed value of ৳{MAX_AMOUNT:,.2f}")
-        if amount_float < MIN_AMOUNT:
-            raise ValueError(f"Amount {amount_float} below minimum allowed value of ৳{MIN_AMOUNT}")
+    """Get monthly summary for a user"""
+    from models import MonthlySummary
+    
+    try:
+        user_hash = psid_hash(user_identifier) if len(user_identifier) < 64 else user_identifier
         
-        # Strict validation in debug mode
-        import os
-        if os.environ.get('STRICT_IDS', 'false').lower() == 'true':
-            from utils.crypto import is_sha256_hex
-            assert is_sha256_hex(user_hash), f"Invalid user_id for DB write: {user_hash}"
+        if not month:
+            month = date.today().strftime('%Y-%m')
         
-        # Trace the write operation
-        trace_event("record_expense", user_id=user_hash, amount=amount, category=category, path="write")
-        current_date = date.today()
+        summary = MonthlySummary.query.filter_by(
+            user_id_hash=user_hash,
+            month=month
+        ).first()
+        
+        if summary:
+            return {
+                'total_amount': float(summary.total_amount),
+                'expense_count': summary.expense_count,
+                'categories': summary.categories or {},
+                'month': summary.month
+            }
+        
+        return {
+            'total_amount': 0,
+            'expense_count': 0,
+            'categories': {},
+            'month': month
+        }
+        
+    except SQLAlchemyError as e:
+        logger.error(f"Database error getting monthly summary: {str(e)}")
+        return {
+            'total_amount': 0,
+            'expense_count': 0,
+            'categories': {},
+            'month': month or date.today().strftime('%Y-%m')
+        }
+
+def get_user_expenses(user_identifier, limit=10):
         current_time = datetime.now().time()
         current_month = current_date.strftime('%Y-%m')
         
