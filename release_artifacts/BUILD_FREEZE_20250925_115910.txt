@@ -1,0 +1,25 @@
+Build SHA: 303b97b07a34c40a923ee3eb0eefb6be3bd154ff
+Build timestamp: 2025-09-25T11:59:10Z
+Build environment: b15145580611
+
+=== A1-A5 Artifact Files ===
+release_artifacts/A1_lint_blockers.txt
+release_artifacts/A1_lint_fixed_corrected.txt
+release_artifacts/A1_lint_fixed.txt
+release_artifacts/A1_type_check.txt
+release_artifacts/A2_core_flows_fixed.txt
+release_artifacts/A2_core_flows.txt
+release_artifacts/A3_router_complete.txt
+release_artifacts/A3_router_logs.txt
+release_artifacts/A4_code_audit.txt
+release_artifacts/A4_scope_clean.txt
+release_artifacts/A5_cache_headers.txt
+release_artifacts/BUILD_FREEZE_20250925_115910.txt
+release_artifacts/current_status.txt
+release_artifacts/FINAL_A1_A5_PASS_CORRECTED.txt
+release_artifacts/FINAL_A1_A5_PASS.txt
+release_artifacts/final_status_corrected.txt
+release_artifacts/final_status.txt
+release_artifacts/final_verdict.txt
+release_artifacts/lint_summary.txt
+release_artifacts/progress_check.txt
