@@ -1451,42 +1451,40 @@ class ProductionRouter:
             from ai.expense_parse import parse_expense
             expense = parse_expense(text, user_hash=psid_hash, check_ambiguity=True)
             
-            # Handle clarification if needed
+            # PHASE 5 ARCHITECT FIX: Single source of truth for clarification ID generation
             if expense.get('needs_clarification'):
-                clarification_info = expense.get('clarification_info', {})
-                clarification_message = clarification_info.get('message', 'I need clarification about this expense.')
-                
-                # PHASE 5 FIX: Store pending expense ID in session for correction flow
                 try:
                     from flask import session
-                    # Generate clarification ID using the same format as the expense clarification system
-                    import time
-                    clarification_id = f"{psid_hash}_{rid}_{int(time.time())}"
-                    
-                    # Store clarification ID in session for user to reference later
-                    session['PENDING_EXPENSE_ID'] = clarification_id
-                    
-                    # Also store in clarification system for proper handoff
                     from utils.expense_clarification import expense_clarification_handler
-                    expense_clarification_handler.store_clarification_data(clarification_id, {
-                        'user_hash': psid_hash,
-                        'original_text': text,
-                        'amount': expense.get('amount', 0),
-                        'item': expense.get('item', text),
-                        'mid': rid,
-                        'options': expense.get('clarification_info', {}).get('options', []),
-                        'suggested_category': expense.get('category')
-                    })
                     
-                    logger.info(f"[CORRECTION] Stored pending expense {clarification_id} in session for user {psid_hash[:8]}...")
+                    # Use the clarification handler to properly initiate clarification
+                    # This ensures consistent ID generation and proper storage
+                    clarification_result = expense_clarification_handler.handle_expense_clarification(
+                        user_hash=psid_hash,
+                        original_text=text,
+                        amount=expense.get('amount', 0),
+                        item=expense.get('item', text),
+                        mid=rid
+                    )
+                    
+                    # Store the proper clarification ID in session
+                    if clarification_result.get('clarification_id'):
+                        session['PENDING_EXPENSE_ID'] = clarification_result['clarification_id']
+                        logger.info(f"[CORRECTION] Stored clarification {clarification_result['clarification_id']} in session")
+                    
+                    # Get the clarification message
+                    clarification_message = clarification_result.get('message', 'I need clarification about this expense.')
+                    
+                    self._log_routing_decision(rid, psid_hash, "ai_clarification", "pending_user_response")
+                    response = normalize(clarification_message)
+                    return response, "clarification_needed", None, None
                     
                 except Exception as session_error:
-                    logger.warning(f"Failed to store pending expense in session: {session_error}")
-                
-                self._log_routing_decision(rid, psid_hash, "ai_clarification", "pending_user_response")
-                
-                response = normalize(clarification_message)
-                return response, "clarification_needed", None, None
+                    logger.warning(f"Failed to initiate proper clarification: {session_error}")
+                    # Fallback to original message
+                    clarification_message = expense.get('clarification_info', {}).get('message', 'I need clarification about this expense.')
+                    response = normalize(clarification_message)
+                    return response, "clarification_needed", None, None
             
             # Save expense to database with correct parameter names
             from backend_assistant import add_expense
