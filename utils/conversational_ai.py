@@ -7,6 +7,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Tuple
 
+from ai_adapter_gemini import generate_with_schema
 from utils.identity import psid_hash
 
 logger = logging.getLogger(__name__)

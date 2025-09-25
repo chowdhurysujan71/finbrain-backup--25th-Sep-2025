@@ -8,6 +8,7 @@ from typing import Any, Dict
 
 from sqlalchemy.orm import Session
 
+from ai_adapter_gemini import generate_with_schema
 from db_base import db
 from limiter import can_use_ai
 from utils.context_packet import (
