@@ -29,8 +29,6 @@ Safety features:
 from typing import Sequence, Union
 import logging
 
-from alembic import op
-import sqlalchemy as sa
 from utils.migrations import (
     create_index_concurrently,
     replace_index_concurrently, 

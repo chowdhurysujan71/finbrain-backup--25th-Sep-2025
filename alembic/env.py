@@ -3,7 +3,7 @@ import sys
 import logging
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, MetaData
+from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
@@ -32,8 +32,8 @@ target_metadata = Base.metadata
 # Import models to register them with SQLAlchemy - but do this after setting target_metadata
 # to avoid full app initialization
 try:
-    import models  # Import models to register them with SQLAlchemy
-    import models_pca  # Import PCA models too
+    # Models are registered elsewhere during app initialization
+    pass
 except ImportError as e:
     print(f"Warning: Could not import models: {e}")
     pass

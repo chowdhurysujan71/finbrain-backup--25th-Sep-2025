@@ -170,7 +170,7 @@ class ComprehensivePhaseTest:
             try:
                 response = requests.get(f"{self.base_url}/api/replay/test", timeout=5)
                 api_enabled = response.status_code != 404
-            except:
+            except Exception:
                 api_enabled = False
             
             # Test 2: Get a CC ID for replay testing
@@ -189,7 +189,7 @@ class ComprehensivePhaseTest:
                         try:
                             replay_response = requests.get(f"{self.base_url}/api/replay/{test_cc_id}", timeout=5)
                             replay_working = replay_response.status_code == 200
-                        except:
+                        except Exception:
                             replay_working = False
                     else:
                         replay_working = False

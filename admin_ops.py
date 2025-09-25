@@ -5,10 +5,8 @@ Real-time AI toggle and system monitoring
 from flask import Blueprint, request, jsonify
 from functools import wraps
 import os
-import time
 
 from flags import FLAGS, toggle_ai
-from utils.production_router import production_router
 from utils.ai_adapter_v2 import production_ai_adapter
 
 admin_ops = Blueprint('admin_ops', __name__)
@@ -47,7 +45,7 @@ def toggle_ai_endpoint():
 @require_admin  
 def ai_status():
     """Get AI system status"""
-    from utils.production_router import production_router as router, get_ai_stats
+    from utils.production_router import production_router as router
     return jsonify({
         "ai_enabled": FLAGS.ai_enabled,
         "ai_adapter": production_ai_adapter.get_stats() if hasattr(production_ai_adapter, 'get_stats') else {"status": "active"},

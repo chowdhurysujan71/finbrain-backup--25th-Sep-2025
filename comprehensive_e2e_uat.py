@@ -278,7 +278,6 @@ class ComprehensiveUATFramework:
             
             # Test user creation and expense storage
             test_user = "uat_test_user"
-            test_user_hash = ensure_hashed(test_user)
             
             # Test expense storage
             test_expense = {

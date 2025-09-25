@@ -7,7 +7,6 @@ import logging
 import time
 from datetime import datetime
 from typing import Dict, Any
-import uuid
 
 logger = logging.getLogger(__name__)
 

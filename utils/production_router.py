@@ -10,7 +10,7 @@ import logging
 import pathlib
 import hashlib
 from typing import Tuple, Optional, Dict, Any, List
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 log = logging.getLogger(__name__)
 

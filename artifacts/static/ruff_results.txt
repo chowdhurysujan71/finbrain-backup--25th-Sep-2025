@@ -1,15 +1,3 @@
-F401 [*] `datetime.datetime` imported but unused
-  --> FINAL_VALIDATION_TEST.py:9:22
-   |
- 7 | import requests
- 8 | import json
- 9 | from datetime import datetime
-   |                      ^^^^^^^^
-10 |
-11 | sys.path.append('/home/runner/workspace')
-   |
-help: Remove unused import: `datetime.datetime`
-
 F401 [*] `typing.Tuple` imported but unused
   --> _quarantine/archive_deep_quarantine/finbrain_router_deprecated.py:11:20
    |
@@ -3059,86 +3047,6 @@ F401 [*] `os` imported but unused
   |
 help: Remove unused import: `os`
 
-F401 [*] `time` imported but unused
-  --> admin_ops.py:8:8
-   |
- 6 | from functools import wraps
- 7 | import os
- 8 | import time
-   |        ^^^^
- 9 |
-10 | from flags import FLAGS, toggle_ai
-   |
-help: Remove unused import: `time`
-
-F401 [*] `utils.production_router.production_router` imported but unused
-  --> admin_ops.py:11:37
-   |
-10 | from flags import FLAGS, toggle_ai
-11 | from utils.production_router import production_router
-   |                                     ^^^^^^^^^^^^^^^^^
-12 | from utils.ai_adapter_v2 import production_ai_adapter
-   |
-help: Remove unused import: `utils.production_router.production_router`
-
-F401 [*] `utils.production_router.get_ai_stats` imported but unused
-  --> admin_ops.py:50:70
-   |
-48 | def ai_status():
-49 |     """Get AI system status"""
-50 |     from utils.production_router import production_router as router, get_ai_stats
-   |                                                                      ^^^^^^^^^^^^
-51 |     return jsonify({
-52 |         "ai_enabled": FLAGS.ai_enabled,
-   |
-help: Remove unused import: `utils.production_router.get_ai_stats`
-
-F401 [*] `typing.Dict` imported but unused
-  --> ai/ai_reply_optimized.py:8:20
-   |
- 6 | import json
- 7 | import logging
- 8 | from typing import Dict, Any
-   |                    ^^^^
- 9 | from utils.context_packet import build_context
-10 | from ai_adapter_gemini import generate_with_schema
-   |
-help: Remove unused import
-
-F401 [*] `typing.Any` imported but unused
-  --> ai/ai_reply_optimized.py:8:26
-   |
- 6 | import json
- 7 | import logging
- 8 | from typing import Dict, Any
-   |                          ^^^
- 9 | from utils.context_packet import build_context
-10 | from ai_adapter_gemini import generate_with_schema
-   |
-help: Remove unused import
-
-F401 [*] `typing.Dict` imported but unused
- --> ai/expense_parse.py:7:20
-  |
-6 | import logging
-7 | from typing import Dict, Any, Optional
-  |                    ^^^^
-8 |
-9 | logger = logging.getLogger(__name__)
-  |
-help: Remove unused import
-
-F401 [*] `typing.Any` imported but unused
- --> ai/expense_parse.py:7:26
-  |
-6 | import logging
-7 | from typing import Dict, Any, Optional
-  |                          ^^^
-8 |
-9 | logger = logging.getLogger(__name__)
-  |
-help: Remove unused import
-
 E701 Multiple statements on one line (colon)
   --> ai/expense_parse.py:37:21
    |
@@ -3170,310 +3078,120 @@ E701 Multiple statements on one line (colon)
 41 |     # Strict validation
    |
 
-F401 [*] `typing.Optional` imported but unused
- --> ai/payloads/insight_payload.py:6:37
-  |
-4 | """
-5 |
-6 | from typing import Dict, Any, List, Optional
-  |                                     ^^^^^^^^
-7 | from decimal import Decimal
-8 | import hashlib
-  |
-help: Remove unused import: `typing.Optional`
-
-F401 [*] `decimal.Decimal` imported but unused
- --> ai/payloads/insight_payload.py:7:21
-  |
-6 | from typing import Dict, Any, List, Optional
-7 | from decimal import Decimal
-  |                     ^^^^^^^
-8 | import hashlib
-9 | from datetime import datetime
-  |
-help: Remove unused import: `decimal.Decimal`
-
-F401 [*] `sqlalchemy.MetaData` imported but unused
- --> alembic/env.py:6:44
-  |
-4 | from logging.config import fileConfig
-5 |
-6 | from sqlalchemy import engine_from_config, MetaData
-  |                                            ^^^^^^^^
-7 | from sqlalchemy import pool
-  |
-help: Remove unused import: `sqlalchemy.MetaData`
-
-F401 `models` imported but unused; consider using `importlib.util.find_spec` to test for availability
-  --> alembic/env.py:35:12
+E402 Module level import not at top of file
+  --> app.py:79:1
    |
-33 | # to avoid full app initialization
-34 | try:
-35 |     import models  # Import models to register them with SQLAlchemy
-   |            ^^^^^^
-36 |     import models_pca  # Import PCA models too
-37 | except ImportError as e:
+78 | # Import shared db and Base from lightweight module
+79 | from db_base import db
+   | ^^^^^^^^^^^^^^^^^^^^^^
+80 |
+81 | # Create the app
    |
-help: Remove unused import: `models`
-
-F401 `models_pca` imported but unused; consider using `importlib.util.find_spec` to test for availability
-  --> alembic/env.py:36:12
-   |
-34 | try:
-35 |     import models  # Import models to register them with SQLAlchemy
-36 |     import models_pca  # Import PCA models too
-   |            ^^^^^^^^^^
-37 | except ImportError as e:
-38 |     print(f"Warning: Could not import models: {e}")
-   |
-help: Remove unused import: `models_pca`
-
-F401 [*] `sqlalchemy` imported but unused
-  --> alembic/versions/42e1ad027c33_add_expense_constraints_and_trigger.py:11:22
-   |
-10 | from alembic import op
-11 | import sqlalchemy as sa
-   |                      ^^
-   |
-help: Remove unused import: `sqlalchemy`
-
-F401 [*] `alembic.op` imported but unused
-  --> alembic/versions/5b555895a514_baseline_migration.py:10:21
-   |
- 8 | from typing import Sequence, Union
- 9 |
-10 | from alembic import op
-   |                     ^^
-11 | import sqlalchemy as sa
-   |
-help: Remove unused import: `alembic.op`
-
-F401 [*] `sqlalchemy` imported but unused
-  --> alembic/versions/5b555895a514_baseline_migration.py:11:22
-   |
-10 | from alembic import op
-11 | import sqlalchemy as sa
-   |                      ^^
-   |
-help: Remove unused import: `sqlalchemy`
-
-F401 [*] `alembic.op` imported but unused
-  --> alembic/versions/cf6afe03b206_sample_concurrent_indexes.py:32:21
-   |
-30 | import logging
-31 |
-32 | from alembic import op
-   |                     ^^
-33 | import sqlalchemy as sa
-34 | from utils.migrations import (
-   |
-help: Remove unused import: `alembic.op`
-
-F401 [*] `sqlalchemy` imported but unused
-  --> alembic/versions/cf6afe03b206_sample_concurrent_indexes.py:33:22
-   |
-32 | from alembic import op
-33 | import sqlalchemy as sa
-   |                      ^^
-34 | from utils.migrations import (
-35 |     create_index_concurrently,
-   |
-help: Remove unused import: `sqlalchemy`
-
-F401 [*] `flask_limiter.Limiter` imported but unused
-  --> app.py:9:27
-   |
- 7 | from werkzeug.middleware.proxy_fix import ProxyFix
- 8 | from flask_cors import CORS
- 9 | from flask_limiter import Limiter
-   |                           ^^^^^^^
-10 | from flask_limiter.util import get_remote_address
-11 | from functools import wraps
-   |
-help: Remove unused import: `flask_limiter.Limiter`
-
-F401 [*] `flask_limiter.util.get_remote_address` imported but unused
-  --> app.py:10:32
-   |
- 8 | from flask_cors import CORS
- 9 | from flask_limiter import Limiter
-10 | from flask_limiter.util import get_remote_address
-   |                                ^^^^^^^^^^^^^^^^^^
-11 | from functools import wraps
-12 | import json
-   |
-help: Remove unused import: `flask_limiter.util.get_remote_address`
-
-F401 [*] `base64` imported but unused
-  --> app.py:13:8
-   |
-11 | from functools import wraps
-12 | import json
-13 | import base64
-   |        ^^^^^^
-14 | from datetime import datetime, timedelta, timezone
-   |
-help: Remove unused import: `base64`
 
 E402 Module level import not at top of file
-  --> app.py:82:1
-   |
-81 | # Import shared db and Base from lightweight module
-82 | from db_base import db, Base
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-83 |
-84 | # Create the app
-   |
-
-F401 [*] `db_base.Base` imported but unused
-  --> app.py:82:25
-   |
-81 | # Import shared db and Base from lightweight module
-82 | from db_base import db, Base
-   |                         ^^^^
-83 |
-84 | # Create the app
-   |
-help: Remove unused import: `db_base.Base`
-
-E402 Module level import not at top of file
-   --> app.py:142:1
+   --> app.py:139:1
     |
-140 |     # Removed global r"/*" route for security
-141 | })
-142 | from utils.rate_limiting import limiter
+137 |     # Removed global r"/*" route for security
+138 | })
+139 | from utils.rate_limiting import limiter
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-143 | limiter.init_app(app)
+140 | limiter.init_app(app)
     |
 
 E402 Module level import not at top of file
-   --> app.py:146:1
+   --> app.py:143:1
     |
-145 | # Request logging middleware using existing structured logger
-146 | from utils.logger import structured_logger
+142 | # Request logging middleware using existing structured logger
+143 | from utils.logger import structured_logger
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-147 |
-148 | @app.before_request
+144 |
+145 | @app.before_request
     |
 
 F401 [*] `flask.url_for` imported but unused
-   --> app.py:152:71
+   --> app.py:149:71
     |
-150 |     """Capture request start time, generate request_id, set user context, and enforce subdomain auth"""
-151 |     import os
-152 |     from flask import request, jsonify, after_this_request, redirect, url_for
+147 |     """Capture request start time, generate request_id, set user context, and enforce subdomain auth"""
+148 |     import os
+149 |     from flask import request, jsonify, after_this_request, redirect, url_for
     |                                                                       ^^^^^^^
-153 |     from auth_helpers import get_user_id_from_session, get_subdomain, is_protected_subdomain, validate_return_to_url
-154 |     from urllib.parse import quote
+150 |     from auth_helpers import get_user_id_from_session, get_subdomain, is_protected_subdomain, validate_return_to_url
+151 |     from urllib.parse import quote
     |
 help: Remove unused import: `flask.url_for`
 
 F401 [*] `auth_helpers.validate_return_to_url` imported but unused
-   --> app.py:153:95
+   --> app.py:150:95
     |
-151 |     import os
-152 |     from flask import request, jsonify, after_this_request, redirect, url_for
-153 |     from auth_helpers import get_user_id_from_session, get_subdomain, is_protected_subdomain, validate_return_to_url
+148 |     import os
+149 |     from flask import request, jsonify, after_this_request, redirect, url_for
+150 |     from auth_helpers import get_user_id_from_session, get_subdomain, is_protected_subdomain, validate_return_to_url
     |                                                                                               ^^^^^^^^^^^^^^^^^^^^^^
-154 |     from urllib.parse import quote
+151 |     from urllib.parse import quote
     |
 help: Remove unused import: `auth_helpers.validate_return_to_url`
 
-E722 Do not use bare `except`
-   --> app.py:771:9
-    |
-769 |             else:
-770 |                 _git_commit_cache = "unknown"
-771 |         except:
-    |         ^^^^^^
-772 |             _git_commit_cache = "unknown"
-773 |     return _git_commit_cache
-    |
-
-E722 Do not use bare `except`
-   --> app.py:850:5
-    |
-848 |             parsed = urlparse(db_url)
-849 |             return parsed.hostname or "localhost"
-850 |     except:
-    |     ^^^^^^
-851 |         pass
-852 |     return "unknown"
-    |
-
 E402 Module level import not at top of file
-   --> app.py:956:1
+   --> app.py:953:1
     |
-955 | # Import admin authentication from admin_ops
-956 | from admin_ops import require_admin
+952 | # Import admin authentication from admin_ops
+953 | from admin_ops import require_admin
     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-957 |
-958 | # Diagnostic helper functions
+954 |
+955 | # Diagnostic helper functions
     |
 
 F401 [*] `datetime.timedelta` imported but unused
-    --> app.py:1433:40
+    --> app.py:1430:40
      |
-1431 |     try:
-1432 |         from models import User, Expense
-1433 |         from datetime import datetime, timedelta
+1428 |     try:
+1429 |         from models import User, Expense
+1430 |         from datetime import datetime, timedelta
      |                                        ^^^^^^^^^
-1434 |         
-1435 |         # Find user by PSID hash
+1431 |         
+1432 |         # Find user by PSID hash
      |
 help: Remove unused import: `datetime.timedelta`
 
 F541 [*] f-string without any placeholders
-    --> app.py:1669:16
+    --> app.py:1666:16
      |
-1667 |       except Exception as e:
-1668 |           logger.error(f"User insights error: {str(e)}")
-1669 |           return f"""
+1664 |       except Exception as e:
+1665 |           logger.error(f"User insights error: {str(e)}")
+1666 |           return f"""
      |  ________________^
-1670 | |         <!DOCTYPE html>
-1671 | |         <html lang="en" data-bs-theme="dark">
-1672 | |         <head>
-1673 | |             <meta charset="UTF-8">
-1674 | |             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-1675 | |             <title>Insights Error - finbrain Admin</title>
-1676 | |             <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
-1677 | |         </head>
-1678 | |         <body>
-1679 | |             <div class="container mt-4">
-1680 | |                 <div class="alert alert-danger">
-1681 | |                     <h4>Error Loading Insights</h4>
-1682 | |                     <p>An error occurred while generating user insights. Please try again later.</p>
-1683 | |                     <a href="/admin" class="btn btn-primary">Back to Admin Dashboard</a>
-1684 | |                 </div>
-1685 | |             </div>
-1686 | |         </body>
-1687 | |         </html>
-1688 | |         """, 500
+1667 | |         <!DOCTYPE html>
+1668 | |         <html lang="en" data-bs-theme="dark">
+1669 | |         <head>
+1670 | |             <meta charset="UTF-8">
+1671 | |             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+1672 | |             <title>Insights Error - finbrain Admin</title>
+1673 | |             <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+1674 | |         </head>
+1675 | |         <body>
+1676 | |             <div class="container mt-4">
+1677 | |                 <div class="alert alert-danger">
+1678 | |                     <h4>Error Loading Insights</h4>
+1679 | |                     <p>An error occurred while generating user insights. Please try again later.</p>
+1680 | |                     <a href="/admin" class="btn btn-primary">Back to Admin Dashboard</a>
+1681 | |                 </div>
+1682 | |             </div>
+1683 | |         </body>
+1684 | |         </html>
+1685 | |         """, 500
      | |___________^
-1689 |
-1690 |   @app.route("/ops/pca/status")
+1686 |
+1687 |   @app.route("/ops/pca/status")
      |
 help: Remove extraneous `f` prefix
 
-F841 [*] Local variable `e` is assigned to but never used
-    --> app.py:1966:25
-     |
-1964 |         return response
-1965 |         
-1966 |     except Exception as e:
-     |                         ^
-1967 |         # Even errors should be cacheable for marketing endpoint
-1968 |         error_response = make_response(jsonify({"error": "preview_unavailable"}), 500)
-     |
-help: Remove assignment to unused variable `e`
-
 E402 Module level import not at top of file
-    --> app.py:2135:1
+    --> app.py:2132:1
      |
-2134 | # Register streamlined admin operations
-2135 | from admin_ops import admin_ops
+2131 | # Register streamlined admin operations
+2132 | from admin_ops import admin_ops
      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-2136 | app.register_blueprint(admin_ops)
+2133 | app.register_blueprint(admin_ops)
      |
 
 F401 [*] `os` imported but unused
@@ -3866,49 +3584,38 @@ F401 [*] `app.db` imported but unused
    |
 help: Remove unused import: `app.db`
 
-F841 Local variable `test_user_data` is assigned to but never used
-   --> comprehensive_e2e_audit.py:207:13
-    |
-206 |             # Simulate database storage (for E2E testing)
-207 |             test_user_data = {
-    |             ^^^^^^^^^^^^^^
-208 |                 "psid_hash": user_id_hash,
-209 |                 "first_name": "Bengali Test User",
-    |
-help: Remove assignment to unused variable `test_user_data`
-
 F401 [*] `utils.input_sanitizer.InputSanitizer` imported but unused
-   --> comprehensive_e2e_audit.py:883:47
+   --> comprehensive_e2e_audit.py:878:47
     |
-882 |             from nlp.signals_extractor import extract_signals
-883 |             from utils.input_sanitizer import InputSanitizer
+877 |             from nlp.signals_extractor import extract_signals
+878 |             from utils.input_sanitizer import InputSanitizer
     |                                               ^^^^^^^^^^^^^^
-884 |             from utils.ai_adapter_never_empty import AIAdapterNeverEmpty
-885 |             from utils.routing_policy import deterministic_router
+879 |             from utils.ai_adapter_never_empty import AIAdapterNeverEmpty
+880 |             from utils.routing_policy import deterministic_router
     |
 help: Remove unused import: `utils.input_sanitizer.InputSanitizer`
 
 F401 [*] `utils.routing_policy.deterministic_router` imported but unused
-   --> comprehensive_e2e_audit.py:885:46
+   --> comprehensive_e2e_audit.py:880:46
     |
-883 |             from utils.input_sanitizer import InputSanitizer
-884 |             from utils.ai_adapter_never_empty import AIAdapterNeverEmpty
-885 |             from utils.routing_policy import deterministic_router
+878 |             from utils.input_sanitizer import InputSanitizer
+879 |             from utils.ai_adapter_never_empty import AIAdapterNeverEmpty
+880 |             from utils.routing_policy import deterministic_router
     |                                              ^^^^^^^^^^^^^^^^^^^^
-886 |             
-887 |             import_time = time.time() - start_time
+881 |             
+882 |             import_time = time.time() - start_time
     |
 help: Remove unused import: `utils.routing_policy.deterministic_router`
 
 F541 [*] f-string without any placeholders
-    --> comprehensive_e2e_audit.py:1088:15
+    --> comprehensive_e2e_audit.py:1083:15
      |
-1086 | …     }
-1087 | …     
-1088 | …     print(f"\n🎯 COMPREHENSIVE END-TO-END ASSESSMENT")
+1081 | …     }
+1082 | …     
+1083 | …     print(f"\n🎯 COMPREHENSIVE END-TO-END ASSESSMENT")
      |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-1089 | …     print("=" * 65)
-1090 | …     print(f"Bengali Expense Workflow: {'✅ PASS' if scenario_results.get('bengali_expense_workflow', {}).get('success', False) else…
+1084 | …     print("=" * 65)
+1085 | …     print(f"Bengali Expense Workflow: {'✅ PASS' if scenario_results.get('bengali_expense_workflow', {}).get('success', False) else…
      |
 help: Remove extraneous `f` prefix
 
@@ -3947,50 +3654,50 @@ E712 Avoid equality comparisons to `True`; use `clarify_result.get("success"):` 
     |
 help: Replace with `clarify_result.get("success")`
 
-F841 Local variable `test_user_hash` is assigned to but never used
-   --> comprehensive_e2e_uat.py:281:13
+F401 `utils.identity.ensure_hashed` imported but unused; consider using `importlib.util.find_spec` to test for availability
+   --> comprehensive_e2e_uat.py:277:40
     |
+275 |         try:
+276 |             from utils.db import save_expense, get_user_expenses
+277 |             from utils.identity import ensure_hashed
+    |                                        ^^^^^^^^^^^^^
+278 |             
 279 |             # Test user creation and expense storage
-280 |             test_user = "uat_test_user"
-281 |             test_user_hash = ensure_hashed(test_user)
-    |             ^^^^^^^^^^^^^^
-282 |             
-283 |             # Test expense storage
     |
-help: Remove assignment to unused variable `test_user_hash`
+help: Remove unused import: `utils.identity.ensure_hashed`
 
 F541 [*] f-string without any placeholders
-   --> comprehensive_e2e_uat.py:474:23
+   --> comprehensive_e2e_uat.py:473:23
     |
-472 |             failed_tests = [test for test in data["tests"] if not test["passed"]]
-473 |             if failed_tests:
-474 |                 print(f"   ❌ Failed Tests:")
+471 |             failed_tests = [test for test in data["tests"] if not test["passed"]]
+472 |             if failed_tests:
+473 |                 print(f"   ❌ Failed Tests:")
     |                       ^^^^^^^^^^^^^^^^^^^^^^
-475 |                 for failed in failed_tests:
-476 |                     print(f"      - {failed['name']}: {failed['details']}")
+474 |                 for failed in failed_tests:
+475 |                     print(f"      - {failed['name']}: {failed['details']}")
     |
 help: Remove extraneous `f` prefix
 
 F541 [*] f-string without any placeholders
-   --> comprehensive_e2e_uat.py:487:15
+   --> comprehensive_e2e_uat.py:486:15
     |
-485 |         }
-486 |         
-487 |         print(f"\n📈 OVERALL RESULTS")
+484 |         }
+485 |         
+486 |         print(f"\n📈 OVERALL RESULTS")
     |               ^^^^^^^^^^^^^^^^^^^^^^^
-488 |         print(f"   Total Tests: {total_passed}/{total_tests}")
-489 |         print(f"   Success Rate: {overall_success_rate:.1f}%")
+487 |         print(f"   Total Tests: {total_passed}/{total_tests}")
+488 |         print(f"   Success Rate: {overall_success_rate:.1f}%")
     |
 help: Remove extraneous `f` prefix
 
 F541 [*] f-string without any placeholders
-   --> comprehensive_e2e_uat.py:505:15
+   --> comprehensive_e2e_uat.py:504:15
     |
-503 |             self.results["recommendations"].append("Critical issues must be resolved")
-504 |         
-505 |         print(f"\n🚀 DEPLOYMENT RECOMMENDATION")
+502 |             self.results["recommendations"].append("Critical issues must be resolved")
+503 |         
+504 |         print(f"\n🚀 DEPLOYMENT RECOMMENDATION")
     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-506 |         print(f"   Status: {deployment_status}")
+505 |         print(f"   Status: {deployment_status}")
     |
 help: Remove extraneous `f` prefix
 
@@ -4130,27 +3837,6 @@ F401 [*] `typing.List` imported but unused
 15 | # Add project root to path
    |
 help: Remove unused import: `typing.List`
-
-E722 Do not use bare `except`
-   --> comprehensive_phase_test.py:173:13
-    |
-171 |                 response = requests.get(f"{self.base_url}/api/replay/test", timeout=5)
-172 |                 api_enabled = response.status_code != 404
-173 |             except:
-    |             ^^^^^^
-174 |                 api_enabled = False
-    |
-
-E722 Do not use bare `except`
-   --> comprehensive_phase_test.py:192:25
-    |
-190 |                             replay_response = requests.get(f"{self.base_url}/api/replay/{test_cc_id}", timeout=5)
-191 |                             replay_working = replay_response.status_code == 200
-192 |                         except:
-    |                         ^^^^^^
-193 |                             replay_working = False
-194 |                     else:
-    |
 
 E722 Do not use bare `except`
    --> comprehensive_phase_test.py:234:13
@@ -15368,143 +15054,118 @@ F401 [*] `json` imported but unused
    |
 help: Remove unused import: `json`
 
-F401 [*] `uuid` imported but unused
-  --> utils/absolute_final_validator.py:10:8
-   |
- 8 | from datetime import datetime
- 9 | from typing import Dict, Any
-10 | import uuid
-   |        ^^^^
-11 |
-12 | logger = logging.getLogger(__name__)
-   |
-help: Remove unused import: `uuid`
-
 F541 [*] f-string without any placeholders
-  --> utils/absolute_final_validator.py:49:19
+  --> utils/absolute_final_validator.py:48:19
    |
-47 |             db.session.commit()
-48 |             
-49 |             print(f"   📝 Created test user with reports_requested: 0")
+46 |             db.session.commit()
+47 |             
+48 |             print(f"   📝 Created test user with reports_requested: 0")
    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-50 |             
-51 |             # Test 1: Summary handler
+49 |             
+50 |             # Test 1: Summary handler
    |
 help: Remove extraneous `f` prefix
 
 F541 [*] f-string without any placeholders
-  --> utils/absolute_final_validator.py:52:19
+  --> utils/absolute_final_validator.py:51:19
    |
-51 |             # Test 1: Summary handler
-52 |             print(f"   🔄 Testing summary handler...")
+50 |             # Test 1: Summary handler
+51 |             print(f"   🔄 Testing summary handler...")
    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-53 |             try:
-54 |                 from handlers.summary import handle_summary
+52 |             try:
+53 |                 from handlers.summary import handle_summary
    |
 help: Remove extraneous `f` prefix
 
 F541 [*] f-string without any placeholders
-  --> utils/absolute_final_validator.py:70:19
+  --> utils/absolute_final_validator.py:69:19
    |
-69 |             # Test 2: Insight handler
-70 |             print(f"   🔄 Testing insight handler...")
+68 |             # Test 2: Insight handler
+69 |             print(f"   🔄 Testing insight handler...")
    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-71 |             try:
-72 |                 from handlers.insight import handle_insight
+70 |             try:
+71 |                 from handlers.insight import handle_insight
    |
 help: Remove extraneous `f` prefix
 
 F541 [*] f-string without any placeholders
-  --> utils/absolute_final_validator.py:92:19
+  --> utils/absolute_final_validator.py:91:19
    |
-91 |             # Test 3: Direct analytics engine test for confirmation
-92 |             print(f"   🔄 Testing analytics engine directly...")
+90 |             # Test 3: Direct analytics engine test for confirmation
+91 |             print(f"   🔄 Testing analytics engine directly...")
    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-93 |             try:
-94 |                 from utils.analytics_engine import track_report_request
+92 |             try:
+93 |                 from utils.analytics_engine import track_report_request
    |
 help: Remove extraneous `f` prefix
 
 F541 [*] f-string without any placeholders
-   --> utils/absolute_final_validator.py:124:19
+   --> utils/absolute_final_validator.py:123:19
     |
-122 |             system_working = handlers_work and analytics_engine_works
-123 |             
-124 |             print(f"\n   📊 FINAL ASSESSMENT:")
+121 |             system_working = handlers_work and analytics_engine_works
+122 |             
+123 |             print(f"\n   📊 FINAL ASSESSMENT:")
     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-125 |             print(f"   ✅ Summary handler works: {summary_success}")
-126 |             print(f"   ✅ Insight handler works: {insight_success}")
+124 |             print(f"   ✅ Summary handler works: {summary_success}")
+125 |             print(f"   ✅ Insight handler works: {insight_success}")
     |
 help: Remove extraneous `f` prefix
-
-F401 [*] `json` imported but unused
- --> utils/acceptance_criteria_validation.py:7:8
-  |
-6 | import logging
-7 | import json
-  |        ^^^^
-8 | from datetime import datetime, timedelta, date
-9 | from typing import Dict, List, Any, Optional, Tuple
-  |
-help: Remove unused import: `json`
 
 F401 [*] `datetime.timedelta` imported but unused
-  --> utils/acceptance_criteria_validation.py:8:32
-   |
- 6 | import logging
- 7 | import json
- 8 | from datetime import datetime, timedelta, date
-   |                                ^^^^^^^^^
- 9 | from typing import Dict, List, Any, Optional, Tuple
-10 | from dataclasses import dataclass
-   |
+ --> utils/acceptance_criteria_validation.py:7:32
+  |
+6 | import logging
+7 | from datetime import datetime, timedelta, date
+  |                                ^^^^^^^^^
+8 | from typing import Dict, List, Any, Optional, Tuple
+9 | from dataclasses import dataclass
+  |
 help: Remove unused import
 
 F401 [*] `datetime.date` imported but unused
-  --> utils/acceptance_criteria_validation.py:8:43
-   |
- 6 | import logging
- 7 | import json
- 8 | from datetime import datetime, timedelta, date
-   |                                           ^^^^
- 9 | from typing import Dict, List, Any, Optional, Tuple
-10 | from dataclasses import dataclass
-   |
+ --> utils/acceptance_criteria_validation.py:7:43
+  |
+6 | import logging
+7 | from datetime import datetime, timedelta, date
+  |                                           ^^^^
+8 | from typing import Dict, List, Any, Optional, Tuple
+9 | from dataclasses import dataclass
+  |
 help: Remove unused import
 
 F401 [*] `typing.Optional` imported but unused
-  --> utils/acceptance_criteria_validation.py:9:37
+  --> utils/acceptance_criteria_validation.py:8:37
    |
- 7 | import json
- 8 | from datetime import datetime, timedelta, date
- 9 | from typing import Dict, List, Any, Optional, Tuple
+ 6 | import logging
+ 7 | from datetime import datetime, timedelta, date
+ 8 | from typing import Dict, List, Any, Optional, Tuple
    |                                     ^^^^^^^^
-10 | from dataclasses import dataclass
-11 | import uuid
+ 9 | from dataclasses import dataclass
+10 | import uuid
    |
 help: Remove unused import
 
 F401 [*] `typing.Tuple` imported but unused
-  --> utils/acceptance_criteria_validation.py:9:47
+  --> utils/acceptance_criteria_validation.py:8:47
    |
- 7 | import json
- 8 | from datetime import datetime, timedelta, date
- 9 | from typing import Dict, List, Any, Optional, Tuple
+ 6 | import logging
+ 7 | from datetime import datetime, timedelta, date
+ 8 | from typing import Dict, List, Any, Optional, Tuple
    |                                               ^^^^^
-10 | from dataclasses import dataclass
-11 | import uuid
+ 9 | from dataclasses import dataclass
+10 | import uuid
    |
 help: Remove unused import
 
 F401 [*] `utils.timezone_helpers.today_local` imported but unused
-   --> utils/acceptance_criteria_validation.py:145:48
+   --> utils/acceptance_criteria_validation.py:144:48
     |
-143 |             from models import User
-144 |             from db_base import db
-145 |             from utils.timezone_helpers import today_local
+142 |             from models import User
+143 |             from db_base import db
+144 |             from utils.timezone_helpers import today_local
     |                                                ^^^^^^^^^^^
-146 |             
-147 |             # Test D1 logging on same day
+145 |             
+146 |             # Test D1 logging on same day
     |
 help: Remove unused import: `utils.timezone_helpers.today_local`
 
@@ -18767,12 +18428,12 @@ E722 Do not use bare `except`
    |
 
 F541 [*] f-string without any placeholders
-   --> utils/pca_processor.py:470:65
+   --> utils/pca_processor.py:473:65
     |
-469 |         from utils.canonical_command import create_help_cc
-470 |         error_cc = create_help_cc(user_id, cc_id, message_text, f"Phase 4 error")
+472 |         from utils.canonical_command import create_help_cc
+473 |         error_cc = create_help_cc(user_id, cc_id, message_text, f"Phase 4 error")
     |                                                                 ^^^^^^^^^^^^^^^^
-471 |         log_cc_snapshot(error_cc.to_dict(), processing_time_ms, applied=False, error_message=str(e))
+474 |         log_cc_snapshot(error_cc.to_dict(), processing_time_ms, applied=False, error_message=str(e))
     |
 help: Remove extraneous `f` prefix
 
@@ -18937,18 +18598,6 @@ F401 [*] `subprocess` imported but unused
 24 | logger = logging.getLogger(__name__)
    |
 help: Remove unused import: `subprocess`
-
-F401 [*] `datetime.timedelta` imported but unused
-  --> utils/production_router.py:13:42
-   |
-11 | import hashlib
-12 | from typing import Tuple, Optional, Dict, Any, List
-13 | from datetime import datetime, timezone, timedelta
-   |                                          ^^^^^^^^^
-14 |
-15 | log = logging.getLogger(__name__)
-   |
-help: Remove unused import: `datetime.timedelta`
 
 E402 Module level import not at top of file
   --> utils/production_router.py:20:1
@@ -20244,5 +19893,5 @@ F841 Local variable `user_hash` is assigned to but never used
    |
 help: Remove assignment to unused variable `user_hash`
 
-Found 1756 errors.
-[*] 1279 fixable with the `--fix` option (304 hidden fixes can be enabled with the `--unsafe-fixes` option).
+Found 1725 errors.
+[*] 1255 fixable with the `--fix` option (302 hidden fixes can be enabled with the `--unsafe-fixes` option).

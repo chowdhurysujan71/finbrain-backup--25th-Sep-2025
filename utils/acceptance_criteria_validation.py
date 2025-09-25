@@ -4,7 +4,6 @@ Comprehensive validation against the provided acceptance criteria document
 """
 
 import logging
-import json
 from datetime import datetime, timedelta, date
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass

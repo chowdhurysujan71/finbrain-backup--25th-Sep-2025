@@ -4,7 +4,7 @@ Fixes "function has no len()" errors through type safety
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 

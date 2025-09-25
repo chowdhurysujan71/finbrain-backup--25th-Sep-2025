@@ -204,11 +204,6 @@ class ComprehensiveE2EAudit:
             print("  💾 Step 5: Database storage simulation")
             
             # Simulate database storage (for E2E testing)
-            test_user_data = {
-                "psid_hash": user_id_hash,
-                "first_name": "Bengali Test User",
-                "created_at": datetime.utcnow().isoformat()
-            }
             
             test_expense_data = {
                 "user_id": user_id_hash,

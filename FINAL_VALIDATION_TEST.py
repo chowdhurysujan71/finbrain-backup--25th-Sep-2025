@@ -6,7 +6,6 @@ Final CC System Validation - Test all operational phases
 import sys
 import requests
 import json
-from datetime import datetime
 
 sys.path.append('/home/runner/workspace')
 from app import app, db

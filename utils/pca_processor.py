@@ -25,7 +25,8 @@ def log_cc_snapshot(cc_dict: Dict[str, Any], processing_time_ms: Optional[int] =
         True if logged successfully, False otherwise
     """
     try:
-        from db_base import db, app
+        from db_base import db
+        from db_base import app  # type: ignore[attr-defined]
         from models_pca import InferenceSnapshot
         from utils.pca_flags import pca_flags
         
@@ -69,6 +70,7 @@ def log_cc_snapshot(cc_dict: Dict[str, Any], processing_time_ms: Optional[int] =
     except IntegrityError:
         logger.warning(f"CC snapshot already exists: {cc_dict.get('cc_id', 'unknown')}")
         try:
+            from db_base import db
             db.session.rollback()
         except Exception:
             pass
@@ -77,6 +79,7 @@ def log_cc_snapshot(cc_dict: Dict[str, Any], processing_time_ms: Optional[int] =
     except Exception as e:
         logger.error(f"Failed to log CC snapshot {cc_dict.get('cc_id', 'unknown')}: {e}")
         try:
+            from db_base import db
             db.session.rollback()
         except Exception:
             pass
@@ -481,7 +484,8 @@ def process_production_mode(user_id: str, message_text: str, message_id: str, cc
 def apply_cc_transaction(cc, user_id: str) -> bool:
     """Apply high-confidence CC by creating actual expense transaction"""
     try:
-        from db_base import db, app
+        from db_base import db
+        from db_base import app  # type: ignore[attr-defined]
         from models import Expense, User
         from datetime import datetime
         

@@ -3,8 +3,7 @@ Insight Payload Builder: Structures data for AI insight generation
 Ensures proper user isolation and handles no-data scenarios
 """
 
-from typing import Dict, Any, List, Optional
-from decimal import Decimal
+from typing import Dict, Any, List
 import hashlib
 from datetime import datetime
 

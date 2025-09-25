@@ -6,11 +6,8 @@ import uuid
 import time
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_cors import CORS
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from functools import wraps
 import json
-import base64
 from datetime import datetime, timedelta, timezone
 
 # Configure logging - production mode removes debug and reload
@@ -79,7 +76,7 @@ if is_production:
         sys.exit(1)
 
 # Import shared db and Base from lightweight module
-from db_base import db, Base
+from db_base import db
 
 # Create the app
 app = Flask(__name__, static_folder='static', static_url_path='/static')
@@ -768,7 +765,7 @@ def get_git_commit():
                 _git_commit_cache = result.stdout.strip()[:8]  # First 8 chars
             else:
                 _git_commit_cache = "unknown"
-        except:
+        except Exception:
             _git_commit_cache = "unknown"
     return _git_commit_cache
 
@@ -847,7 +844,7 @@ def get_database_host():
         if db_url:
             parsed = urlparse(db_url)
             return parsed.hostname or "localhost"
-    except:
+    except Exception:
         pass
     return "unknown"
 
@@ -1963,7 +1960,7 @@ def preview_report():
         
         return response
         
-    except Exception as e:
+    except Exception:
         # Even errors should be cacheable for marketing endpoint
         error_response = make_response(jsonify({"error": "preview_unavailable"}), 500)
         error_response.headers['Cache-Control'] = 'public, max-age=300'  # 5 min cache for errors
