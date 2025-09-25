@@ -156,7 +156,7 @@ class UserJourneyTester:
                         else:
                             self.log_result("AI Adapter v2", "PARTIAL", "AI endpoints not found, but system stable")
                             return True
-                    except:
+                    except Exception as e:  # narrowed from bare except (lint A1)
                         self.log_result("AI Adapter v2", "PARTIAL", "System stable, AI adapter status unknown")
                         return True
                 else:

@@ -148,7 +148,7 @@ class Phase1UAT:
                     try:
                         if slots_json:
                             json.loads(json.dumps(slots_json))  # Validate JSON
-                    except:
+                    except Exception as e:  # narrowed from bare except (lint A1)
                         compliance_issues.append("invalid slots_json format")
                     
                     # Check source_text exists

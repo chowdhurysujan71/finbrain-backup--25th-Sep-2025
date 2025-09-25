@@ -49,7 +49,7 @@ def test_coaching_endpoints():
                     print(f"  ✅ {response.status_code} ({results[endpoint]['response_time_ms']:.1f}ms)")
                     if 'timestamp' in data:
                         print(f"     Latest data: {data['timestamp']}")
-                except:
+                except Exception as e:  # narrowed from bare except (lint A1)
                     print(f"  ✅ {response.status_code} (non-JSON response)")
             else:
                 print(f"  ❌ {response.status_code} - {response.text[:100]}")

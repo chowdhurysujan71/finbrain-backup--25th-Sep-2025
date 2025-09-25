@@ -82,7 +82,7 @@ def test_api_response_time(endpoint: str, params: dict = None) -> float:
     try:
         response = requests.get(f"{BASE_URL}{endpoint}", params=params, timeout=5)
         return (time.time() - start) * 1000  # Convert to ms
-    except:
+    except requests.RequestException as e:  # narrowed from bare except (lint A1)
         return float('inf')
 
 def simulate_user_message(message: str, user_id: str = "test_user") -> tuple[bool, dict]:
@@ -383,7 +383,7 @@ def run_load_tests(results: UATResults):
                     response = future.result()
                     if response.status_code == 200:
                         success_count += 1
-                except:
+                except requests.RequestException as e:  # narrowed from bare except (lint A1)
                     pass
         
         success_rate = (success_count / total_requests) * 100
@@ -413,7 +413,7 @@ def run_load_tests(results: UATResults):
                 if response.status_code == 200:
                     success_count += 1
                 time.sleep(0.1)  # Brief pause
-            except:
+            except requests.RequestException as e:  # narrowed from bare except (lint A1)
                 pass
         
         success_rate = (success_count / total_requests) * 100

@@ -88,7 +88,7 @@ class SecurityAudit:
                         if 'AIzaSy' in content and 'example' not in content.lower():
                             hardcoded_found = True
                             break
-                except:
+                except Exception as e:  # narrowed from bare except (lint A1)
                     continue
             
             if hardcoded_found:

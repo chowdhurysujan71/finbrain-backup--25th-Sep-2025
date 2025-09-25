@@ -208,7 +208,7 @@ class DeploymentValidator:
                         self.log_result("AI Response", "PASS", f"Reply: {data['reply'][:50]}...")
                     else:
                         self.log_result("AI Response", "WARN", "Empty reply")
-                except:
+                except Exception as e:  # narrowed from bare except (lint A1)
                     self.log_result("AI Response", "WARN", "Non-JSON response")
             else:
                 self.log_result("AI Chat Expense", "FAIL", f"Status: {resp.status_code}")

@@ -841,7 +841,7 @@ class ComprehensiveE2EUAT:
                     db.session.execute(text("SELECT 1/0"))  # Division by zero
                     db.session.commit()
                     
-                except:
+                except Exception as e:  # narrowed from bare except (lint A1)
                     # Rollback should occur automatically
                     db.session.rollback()
                 
@@ -867,7 +867,7 @@ class ComprehensiveE2EUAT:
                     db.session.commit()
                     self.test_expense_ids.append(large_amount_expense.id)
                     constraint_tests.append(True)  # Should succeed
-                except:
+                except Exception as e:  # narrowed from bare except (lint A1)
                     constraint_tests.append(False)
                 
                 all_corruption_tests_passed = rollback_successful and all(constraint_tests)

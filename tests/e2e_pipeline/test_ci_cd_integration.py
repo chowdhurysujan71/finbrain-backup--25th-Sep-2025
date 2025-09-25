@@ -113,7 +113,7 @@ class TestCICDIntegrationE2E(E2ETestBase):
                     if config_data:
                         # Verify configuration structure
                         assert isinstance(config_data, dict), "Configuration should return dict"
-            except:
+            except Exception as e:  # narrowed from bare except (lint A1)
                 # Configuration endpoint might be protected or unavailable in test
                 pass
 
@@ -310,7 +310,7 @@ class TestCICDIntegrationE2E(E2ETestBase):
                     monitoring_data = monitoring_response.get_json()
                     if monitoring_data:
                         assert isinstance(monitoring_data, dict), "Monitoring data should be structured"
-            except:
+            except Exception as e:  # narrowed from bare except (lint A1)
                 # Monitoring endpoints might be protected
                 pass
 

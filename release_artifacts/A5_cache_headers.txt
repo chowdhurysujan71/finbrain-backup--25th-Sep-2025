@@ -1,8 +1,10 @@
-=== Testing main route ===
+=== A5.1: Main Route Cache Headers ===
 Cache-Control: no-store
-=== Testing health route ===
-Cache-Control: no-store, no-cache, must-revalidate, private
-Pragma: no-cache
-=== Testing API route ===
+
+=== A5.2: API Route Cache Headers ===
 Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate
+Pragma: no-cache
+
+=== A5.3: Health Route Cache Headers ===
+Cache-Control: no-store, no-cache, must-revalidate, private
 Pragma: no-cache

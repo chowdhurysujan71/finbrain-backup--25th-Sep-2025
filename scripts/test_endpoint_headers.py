@@ -163,7 +163,7 @@ def test_recent_endpoint_headers():
                     json.dump(data, f, indent=2)
                 else:
                     f.write(response.text)
-            except:
+            except Exception as e:  # narrowed from bare except (lint A1)
                 f.write(response.text)
         
         print(f"\n📁 Results saved to: {results_file}")

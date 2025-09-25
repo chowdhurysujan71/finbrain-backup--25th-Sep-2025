@@ -1,14 +1,12 @@
-=== A3.1: Request IDs with Router SHA ===
-{"ts": 1758800288652, "level": "info", "request_id": "0e6bb562c855", "method": "GET", "path": "/health", "status": 200, "latency_ms": 787.4}
-2025-09-25 11:38:08,652 - finbrain.structured - INFO - {"ts": 1758800288652, "level": "info", "request_id": "0e6bb562c855", "method": "GET", "path": "/health", "status": 200, "latency_ms": 787.4}
-{"ts": 1758800373400, "level": "info", "request_id": "d4fbbe85be59", "method": "GET", "path": "/health", "status": 200, "latency_ms": 4309.18}
-2025-09-25 11:39:33,400 - finbrain.structured - INFO - {"ts": 1758800373400, "level": "info", "request_id": "d4fbbe85be59", "method": "GET", "path": "/health", "status": 200, "latency_ms": 4309.18}
-{"ts": 1758800497992, "level": "info", "request_id": "523cb9cc7109", "method": "GET", "path": "/health", "status": 200, "latency_ms": 4434.88}
-2025-09-25 11:41:37,992 - finbrain.structured - INFO - {"ts": 1758800497992, "level": "info", "request_id": "523cb9cc7109", "method": "GET", "path": "/health", "status": 200, "latency_ms": 4434.88}
+=== A3.1: Recent Request IDs with Router SHA ===
+{"ts": 1758800894607, "level": "info", "request_id": "e59bbe058883", "method": "GET", "path": "/", "status": 200, "latency_ms": 813.19}
+2025-09-25 11:48:14,607 - finbrain.structured - INFO - {"ts": 1758800894607, "level": "info", "request_id": "e59bbe058883", "method": "GET", "path": "/", "status": 200, "latency_ms": 813.19}
+{"ts": 1758800894952, "level": "info", "request_id": "d6d108aa953d", "method": "GET", "path": "/deploy/status", "status": 404, "latency_ms": 0.69}
+2025-09-25 11:48:14,952 - finbrain.structured - INFO - {"ts": 1758800894952, "level": "info", "request_id": "d6d108aa953d", "method": "GET", "path": "/deploy/status", "status": 404, "latency_ms": 0.69}
 
-=== A3.2: Router Branch Mapping from Logs ===
+=== A3.2: Production Router Information ===
 
-=== A3.3: Recent Request Processing ===
-2025-09-25 11:39:29,091 - app - INFO - [d4fbbe85be59] → GET /health user=anon subdomain=localhost
-2025-09-25 11:41:33,444 - app - INFO - [ffafbab51463] → GET /api/backend/version user=anon subdomain=localhost
-2025-09-25 11:41:33,558 - app - INFO - [523cb9cc7109] → GET /health user=anon subdomain=localhost
+=== A3.3: Request Processing Mapping ===
+2025-09-25 11:48:13,794 - app - INFO - [e59bbe058883] → GET / user=anon subdomain=localhost
+2025-09-25 11:48:14,906 - app - INFO - [20a50bd88435] → GET /api/backend/version user=anon subdomain=localhost
+2025-09-25 11:48:14,952 - app - INFO - [d6d108aa953d] → GET /deploy/status user=anon subdomain=localhost

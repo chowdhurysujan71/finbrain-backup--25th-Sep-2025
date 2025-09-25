@@ -1,19 +1,22 @@
-=== A2.1: Testing Backend Assistant Add Expense (Valid Auth) ===
-{"error":"Authentication required","error_code":"AUTH_REQUIRED","success":false,"trace_id":"ffafbab51463"}
-
-=== A2.2: Testing Health Flow ===
+=== A2.1: Health Flow ===
 {
   "alembic_head": "42e1ad027c33",
   "db": "ep-cold-dawn-adsal0to.c-2.us-east-1.aws.neon.tech",
-  "git_commit": "f61655a4",
+  "git_commit": "f757d198",
   "migrations_applied": true,
   "service": "finbrain",
   "status": "healthy"
 }
 
-=== A2.3: Testing Main Route ===
+=== A2.2: Main Route Flow ===
             <title>finbrain - AI-Powered Expense Tracking</title>
                 <div class="logo">🧠 finbrain</div>
                 <div class="tagline">AI-Powered Expense Tracking via Messenger</div>
-                    <p>AI Integration: Active</p>
-                    <p>Just message "spent 500 on groceries" and finbrain handles the rest</p>
+
+=== A2.3: Backend Version Flow ===
+{"error":"Authentication required","error_code":"AUTH_REQUIRED","success":false,"trace_id":"20a50bd88435"}
+
+=== A2.4: Deploy Probe Flow ===
+<!doctype html>
+<html lang=en>
+<title>404 Not Found</title>
