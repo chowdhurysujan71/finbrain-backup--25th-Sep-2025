@@ -1,0 +1,10 @@
+=== A3.1: Recent Request IDs from Application Logs ===
+2025-09-25 11:33:58,001 - main - INFO - ✓ Users table auth columns found: ['email', 'name', 'password_hash']
+2025-09-25 11:33:58,569 - app - INFO - [eb724e2adc1d] → GET / user=anon subdomain=localhost
+{"ts": 1758800039275, "level": "info", "request_id": "eb724e2adc1d", "method": "GET", "path": "/", "status": 200, "latency_ms": 705.82}
+2025-09-25 11:33:59,275 - finbrain.structured - INFO - {"ts": 1758800039275, "level": "info", "request_id": "eb724e2adc1d", "method": "GET", "path": "/", "status": 200, "latency_ms": 705.82}
+2025-09-25 11:36:23,604 - app - INFO - [02a94648bce8] → HEAD /api/backend/version user=anon subdomain=localhost
+
+=== A3.2: Router Branch Decisions ===
+
+=== A3.3: Production Router SHA ===

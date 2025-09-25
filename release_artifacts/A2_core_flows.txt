@@ -1,0 +1,60 @@
+=== A2.1: Single Expense Flow Test ===
+{"error":"Authentication required","error_code":"AUTH_REQUIRED","success":false,"trace_id":"196abf12ece1"}
+
+=== A2.2: Health Check Flow ===
+{"alembic_head":"42e1ad027c33","db":"ep-cold-dawn-adsal0to.c-2.us-east-1.aws.neon.tech","git_commit":"799f536b","migrations_applied":true,"service":"finbrain","status":"healthy"}
+
+=== A2.3: Router Branch Test ===
+
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>finbrain - AI-Powered Expense Tracking</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+                .container { max-width: 800px; margin: 0 auto; padding: 50px 20px; text-align: center; }
+                .logo { font-size: 3em; font-weight: bold; margin-bottom: 20px; }
+                .tagline { font-size: 1.5em; margin-bottom: 30px; opacity: 0.9; }
+                .stats { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 30px 0; }
+                .feature { margin: 20px 0; }
+                .cta { background: #ff6b6b; padding: 15px 30px; border-radius: 25px; text-decoration: none; color: white; font-weight: bold; }
+                .admin-link { margin-top: 40px; }
+                .admin-link a { color: rgba(255,255,255,0.7); text-decoration: none; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="logo">🧠 finbrain</div>
+                <div class="tagline">AI-Powered Expense Tracking via Messenger</div>
+                
+                <div class="stats">
+                    <h3>System Status: ✅ Operational</h3>
+                    <p>Total Transactions Processed: 767</p>
+                    <p>AI Integration: Active</p>
+                    <p>Security: Enhanced</p>
+                </div>
+                
+                <div class="feature">
+                    <h3>💬 Natural Language Processing</h3>
+                    <p>Just message "spent 500 on groceries" and finbrain handles the rest</p>
+                </div>
+                
+                <div class="feature">
+                    <h3>🤖 Intelligent Categorization</h3>
+                    <p>AI automatically categorizes expenses and provides insights</p>
+                </div>
+                
+                <div class="feature">
+                    <h3>📊 Smart Summaries</h3>
+                    <p>Get personalized spending analysis and financial advice</p>
+                </div>
+                
+                <div class="admin-link">
+                    <a href="/admin">Admin Dashboard</a>
+                </div>
+            </div>
+        </body>
+        </html>
+        

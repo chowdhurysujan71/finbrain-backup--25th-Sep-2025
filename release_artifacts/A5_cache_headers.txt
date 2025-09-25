@@ -1,0 +1,8 @@
+=== Testing main route ===
+Cache-Control: no-store
+=== Testing health route ===
+Cache-Control: no-store, no-cache, must-revalidate, private
+Pragma: no-cache
+=== Testing API route ===
+Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate
+Pragma: no-cache

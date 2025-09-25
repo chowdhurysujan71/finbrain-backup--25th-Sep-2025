@@ -1,0 +1,20 @@
+=== Scanning for legacy method calls ===
+./utils/block5_comprehensive_uat.py:            # Add historical expenses using the proper save_expense function
+./utils/block5_comprehensive_uat.py:            from utils.db import save_expense
+./utils/block5_comprehensive_uat.py:                save_expense(
+./utils/comprehensive_uat.py:            from utils.db import save_expense
+./utils/comprehensive_uat.py:            result = save_expense(
+./utils/comprehensive_uat.py:            from utils.db import save_expense
+./utils/comprehensive_uat.py:                result = save_expense(
+./utils/enhanced_uat.py:            from utils.db import save_expense
+./utils/enhanced_uat.py:            result = save_expense(
+./utils/enhanced_uat.py:            from utils.db import save_expense
+=== Exit code: 0 ===
+
+=== Scanning for hardcoded secrets ===
+./.cache/uv/archive-v0/Eou2r8tJ1FxYNH7_3CSHr/packaging/licenses/_spdx.py:    'asterisk-exception': {'id': 'Asterisk-exception', 'deprecated': False},
+./.cache/uv/archive-v0/Eou2r8tJ1FxYNH7_3CSHr/packaging/licenses/_spdx.py:    'asterisk-linking-protocols-exception': {'id': 'Asterisk-linking-protocols-exception', 'deprecated': False},
+./.cache/uv/archive-v0/Cmz3ZaarbmAktptwM34uI/flask_sqlalchemy/__init__.py:            " Flask-SQLAlchemy 3.2. Use feature detection or"
+./.cache/uv/archive-v0/Cmz3ZaarbmAktptwM34uI/flask_sqlalchemy/__init__.py:            " 'importlib.metadata.version(\"flask-sqlalchemy\")' instead.",
+./.cache/uv/archive-v0/Cmz3ZaarbmAktptwM34uI/flask_sqlalchemy/__init__.py:        return importlib.metadata.version("flask-sqlalchemy")
+=== Exit code: 0 ===

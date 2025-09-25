@@ -1,0 +1,203 @@
+E722 Do not use bare `except`
+   --> comprehensive_phase_test.py:236:13
+    |
+234 |                 health_working = health_response.status_code == 200
+235 |                 health_data = health_response.json() if health_working else {}
+236 |             except:
+    |             ^^^^^^
+237 |                 health_working = False
+238 |                 health_data = {}
+    |
+
+E722 Do not use bare `except`
+   --> comprehensive_phase_test.py:252:13
+    |
+250 |                 metrics_working = metrics_response.status_code == 200
+251 |                 metrics_data = metrics_response.json() if metrics_working else {}
+252 |             except:
+    |             ^^^^^^
+253 |                 metrics_working = False
+254 |                 metrics_data = {}
+    |
+
+E722 Do not use bare `except`
+   --> comprehensive_phase_test.py:267:13
+    |
+265 |                 dashboard_response = requests.get(f"{self.base_url}/api/monitoring/dashboard", timeout=5)
+266 |                 dashboard_working = dashboard_response.status_code == 200
+267 |             except:
+    |             ^^^^^^
+268 |                 dashboard_working = False
+    |
+
+E722 Do not use bare `except`
+   --> comprehensive_phase_test.py:305:13
+    |
+303 |                 status_working = status_response.status_code == 200
+304 |                 status_data = status_response.json() if status_working else {}
+305 |             except:
+    |             ^^^^^^
+306 |                 status_working = False
+307 |                 status_data = {}
+    |
+
+E722 Do not use bare `except`
+  --> comprehensive_uat_audit_transparency.py:85:5
+   |
+83 |         response = requests.get(f"{BASE_URL}{endpoint}", params=params, timeout=5)
+84 |         return (time.time() - start) * 1000  # Convert to ms
+85 |     except:
+   |     ^^^^^^
+86 |         return float('inf')
+   |
+
+E722 Do not use bare `except`
+   --> comprehensive_uat_audit_transparency.py:386:17
+    |
+384 |                     if response.status_code == 200:
+385 |                         success_count += 1
+386 |                 except:
+    |                 ^^^^^^
+387 |                     pass
+    |
+
+E722 Do not use bare `except`
+   --> comprehensive_uat_audit_transparency.py:416:13
+    |
+414 |                     success_count += 1
+415 |                 time.sleep(0.1)  # Brief pause
+416 |             except:
+    |             ^^^^^^
+417 |                 pass
+    |
+
+F821 Undefined name `text_clean`
+   --> parsers/expense_broken.py:593:46
+    |
+591 |     # Look for word after "on" or "for"
+592 |     category_pattern = re.compile(r'(?i)\b(?:on|for)\s+(\w+)')
+593 |     category_match = category_pattern.search(text_clean)
+    |                                              ^^^^^^^^^^
+594 |     
+595 |     if category_match:
+    |
+
+F821 Undefined name `text_clean`
+   --> parsers/expense_broken.py:604:22
+    |
+602 |     else:
+603 |         # Try to find category keywords anywhere in text
+604 |         text_lower = text_clean.lower()
+    |                      ^^^^^^^^^^
+605 |         for keyword, category in CATEGORY_ALIASES.items():
+606 |             if keyword in text_lower:
+    |
+
+E722 Do not use bare `except`
+   --> scripts/deployment_confidence.py:211:17
+    |
+209 |                     else:
+210 |                         self.log_result("AI Response", "WARN", "Empty reply")
+211 |                 except:
+    |                 ^^^^^^
+212 |                     self.log_result("AI Response", "WARN", "Non-JSON response")
+213 |             else:
+    |
+
+E722 Do not use bare `except`
+  --> scripts/security_audit.py:91:17
+   |
+89 |                             hardcoded_found = True
+90 |                             break
+91 |                 except:
+   |                 ^^^^^^
+92 |                     continue
+   |
+
+E722 Do not use bare `except`
+  --> scripts/test_coaching_hardening.py:52:17
+   |
+50 |                     if 'timestamp' in data:
+51 |                         print(f"     Latest data: {data['timestamp']}")
+52 |                 except:
+   |                 ^^^^^^
+53 |                     print(f"  ✅ {response.status_code} (non-JSON response)")
+54 |             else:
+   |
+
+E722 Do not use bare `except`
+   --> scripts/test_endpoint_headers.py:166:13
+    |
+164 |                 else:
+165 |                     f.write(response.text)
+166 |             except:
+    |             ^^^^^^
+167 |                 f.write(response.text)
+    |
+
+E722 Do not use bare `except`
+   --> scripts/test_user_journeys.py:159:21
+    |
+157 |                             self.log_result("AI Adapter v2", "PARTIAL", "AI endpoints not found, but system stable")
+158 |                             return True
+159 |                     except:
+    |                     ^^^^^^
+160 |                         self.log_result("AI Adapter v2", "PARTIAL", "System stable, AI adapter status unknown")
+161 |                         return True
+    |
+
+E722 Do not use bare `except`
+   --> tests/e2e_pipeline/test_ci_cd_integration.py:116:13
+    |
+114 |                         # Verify configuration structure
+115 |                         assert isinstance(config_data, dict), "Configuration should return dict"
+116 |             except:
+    |             ^^^^^^
+117 |                 # Configuration endpoint might be protected or unavailable in test
+118 |                 pass
+    |
+
+E722 Do not use bare `except`
+   --> tests/e2e_pipeline/test_ci_cd_integration.py:313:13
+    |
+311 |                     if monitoring_data:
+312 |                         assert isinstance(monitoring_data, dict), "Monitoring data should be structured"
+313 |             except:
+    |             ^^^^^^
+314 |                 # Monitoring endpoints might be protected
+315 |                 pass
+    |
+
+E722 Do not use bare `except`
+   --> uat_comprehensive_e2e.py:844:17
+    |
+842 |                     db.session.commit()
+843 |                     
+844 |                 except:
+    |                 ^^^^^^
+845 |                     # Rollback should occur automatically
+846 |                     db.session.rollback()
+    |
+
+E722 Do not use bare `except`
+   --> uat_comprehensive_e2e.py:870:17
+    |
+868 |                     self.test_expense_ids.append(large_amount_expense.id)
+869 |                     constraint_tests.append(True)  # Should succeed
+870 |                 except:
+    |                 ^^^^^^
+871 |                     constraint_tests.append(False)
+    |
+
+E722 Do not use bare `except`
+   --> uat_phase1_cc_persistence.py:151:21
+    |
+149 |                         if slots_json:
+150 |                             json.loads(json.dumps(slots_json))  # Validate JSON
+151 |                     except:
+    |                     ^^^^^^
+152 |                         compliance_issues.append("invalid slots_json format")
+    |
+
+Found 19 errors.
+Exit code: 1

@@ -1,0 +1,26 @@
+F821 count:
+23
+E722 count:
+180
+
+=== E722 ISSUES BREAKDOWN ===
+E722 Do not use bare `except`
+   --> comprehensive_phase_test.py:236:13
+    |
+234 |                 health_working = health_response.status_code == 200
+235 |                 health_data = health_response.json() if health_working else {}
+236 |             except:
+    |             ^^^^^^
+237 |                 health_working = False
+238 |                 health_data = {}
+    |
+
+E722 Do not use bare `except`
+   --> comprehensive_phase_test.py:252:13
+    |
+250 |                 metrics_working = metrics_response.status_code == 200
+251 |                 metrics_data = metrics_response.json() if metrics_working else {}
+252 |             except:
+    |             ^^^^^^
+253 |                 metrics_working = False
+254 |                 metrics_data = {}
