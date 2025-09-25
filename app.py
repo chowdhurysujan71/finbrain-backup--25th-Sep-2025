@@ -1153,7 +1153,7 @@ def deployment_readiness_check():
         
         # Check route registration
         try:
-            essential_routes = ['/health', '/webhook/messenger', '/health/deployment']
+            essential_routes = ['/health', '/health/deployment']
             registered_routes = [str(rule) for rule in app.url_map.iter_rules()]
             missing_routes = [route for route in essential_routes if route not in registered_routes]
             if not missing_routes:
@@ -1213,23 +1213,7 @@ def deployment_readiness_check():
             "recommendation": "Contact support - deployment readiness system is not functioning"
         }), 500
 
-@app.route("/webhook/messenger", methods=["GET", "POST"])  # type: ignore[misc]
-def webhook_messenger():
-    """DEPRECATED: Facebook Messenger webhook - service discontinued"""
-    
-    # Log deprecation attempts for monitoring
-    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
-    user_agent = request.headers.get('User-Agent', 'unknown')[:100]
-    logger.warning(f"Deprecated Messenger webhook accessed from {client_ip} - User-Agent: {user_agent}")
-    
-    # Return 410 Gone for all requests - service completely discontinued
-    return jsonify({
-        "error": "Messenger integration discontinued. Please use the web app for expense tracking.",
-        "status": "service_permanently_discontinued", 
-        "alternative": "Visit the web application to continue tracking expenses",
-        "timestamp": datetime.utcnow().isoformat(),
-        "deprecation_notice": "This endpoint has been permanently retired. Web-only architecture active."
-    }), 410
+# No webhook endpoints needed - web-only chat application
 
 @app.route('/diagnose/router', methods=['GET'])
 @require_basic_auth
@@ -2273,24 +2257,7 @@ def supabase_smoke():
     except Exception as e:
         return {"connected": False, "error": f"Unexpected error: {str(e)}"}, 503
 
-# Legacy webhook endpoint for consistent deprecation (returns 410 like /webhook/messenger)
-@app.route("/webhook", methods=["POST"])  # type: ignore[misc]
-def webhook_legacy():
-    """DEPRECATED: Legacy webhook endpoint - redirects to deprecation notice"""
-    
-    # Log deprecation attempts for monitoring
-    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
-    user_agent = request.headers.get('User-Agent', 'unknown')[:100]
-    logger.warning(f"Deprecated legacy webhook accessed from {client_ip} - User-Agent: {user_agent}")
-    
-    # Return 410 Gone for consistency with /webhook/messenger
-    return jsonify({
-        "error": "Legacy webhook endpoint discontinued. Please use the web app for expense tracking.",
-        "status": "service_permanently_discontinued", 
-        "alternative": "Visit the web application to continue tracking expenses",
-        "timestamp": datetime.utcnow().isoformat(),
-        "deprecation_notice": "This endpoint has been permanently retired. Web-only architecture active."
-    }), 410
+# No legacy webhook endpoints needed - web-only chat application
 
 # REMOVED: /webhook/test endpoint - test endpoints removed for production security
 

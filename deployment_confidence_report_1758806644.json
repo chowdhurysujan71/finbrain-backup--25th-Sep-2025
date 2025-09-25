@@ -1,0 +1,74 @@
+{
+  "timestamp": "2025-09-25T13:24:04.198807",
+  "base_url": "http://localhost:5000",
+  "verdict": "\u2705 DEPLOYMENT READY",
+  "summary": {
+    "total_tests": 10,
+    "passed": 9,
+    "failed": 0,
+    "warnings": 1,
+    "success_rate": 90.0
+  },
+  "detailed_results": [
+    {
+      "test": "Health Endpoint",
+      "status": "PASS",
+      "details": "Service healthy, response time: 4.48s",
+      "timestamp": "2025-09-25T13:24:00.343012"
+    },
+    {
+      "test": "Readiness Endpoint",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-09-25T13:24:02.670693"
+    },
+    {
+      "test": "Main Application Page",
+      "status": "PASS",
+      "details": "finbrain web interface accessible",
+      "timestamp": "2025-09-25T13:24:03.642774"
+    },
+    {
+      "test": "Backend API",
+      "status": "PASS",
+      "details": "API secured with auth requirement",
+      "timestamp": "2025-09-25T13:24:03.647446"
+    },
+    {
+      "test": "Chat Interface",
+      "status": "PASS",
+      "details": "Web chat interface accessible",
+      "timestamp": "2025-09-25T13:24:03.820327"
+    },
+    {
+      "test": "Report Dashboard",
+      "status": "PASS",
+      "details": "Expense reports accessible",
+      "timestamp": "2025-09-25T13:24:03.967304"
+    },
+    {
+      "test": "Login Page",
+      "status": "PASS",
+      "details": "Login interface accessible",
+      "timestamp": "2025-09-25T13:24:04.040340"
+    },
+    {
+      "test": "AI Chat Security",
+      "status": "PASS",
+      "details": "Properly protected with authentication",
+      "timestamp": "2025-09-25T13:24:04.117967"
+    },
+    {
+      "test": "CORS Configuration",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-09-25T13:24:04.125005"
+    },
+    {
+      "test": "Content-Type Validation",
+      "status": "WARN",
+      "details": "Expected 400/415, got 401",
+      "timestamp": "2025-09-25T13:24:04.198327"
+    }
+  ]
+}

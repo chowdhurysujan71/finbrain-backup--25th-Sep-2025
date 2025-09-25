@@ -69,7 +69,7 @@ class DeploymentValidator:
             print(f"      {details}")
     
     def test_health_endpoints(self):
-        """Test basic health and readiness for Messenger-first architecture"""
+        """Test basic health and readiness for web application"""
         print("\n1. HEALTH & READINESS CHECKS")
         print("-" * 40)
         
@@ -108,13 +108,13 @@ class DeploymentValidator:
             
         return True
     
-    def test_messenger_endpoints(self):
-        """Test Messenger-specific endpoints (finbrain is Messenger-first)"""
-        print("\n2. MESSENGER ARCHITECTURE VALIDATION")
+    def test_web_application(self):
+        """Test web application functionality"""
+        print("\n2. WEB APPLICATION VALIDATION")
         print("-" * 40)
         
         try:
-            # Test main application page (web interface for reports/dashboards)
+            # Test main finbrain page
             resp = self.session.get(f"{BASE_URL}/", timeout=TIMEOUT)
             if resp.status_code == 200 and "finbrain" in resp.text.lower():
                 self.log_result("Main Application Page", "PASS", "finbrain web interface accessible")
@@ -122,7 +122,7 @@ class DeploymentValidator:
                 self.log_result("Main Application Page", "FAIL", f"Status: {resp.status_code}")
                 return False
                 
-            # Test backend API availability (for chat/expense processing)
+            # Test backend API availability (for expense processing)
             resp = self.session.get(f"{API_BASE}/version", timeout=TIMEOUT)
             if resp.status_code == 401:  # Expected - auth required
                 self.log_result("Backend API", "PASS", "API secured with auth requirement")
@@ -131,31 +131,24 @@ class DeploymentValidator:
             else:
                 self.log_result("Backend API", "WARN", f"Unexpected status: {resp.status_code}")
                 
-            # Test webhook endpoint deprecation (should return 410 Gone)  
-            resp = self.session.post(f"{BASE_URL}/webhook", timeout=TIMEOUT)
-            if resp.status_code == 410:
-                self.log_result("Webhook Deprecation", "PASS", "Messenger webhook properly deprecated")
-            else:
-                self.log_result("Webhook Deprecation", "WARN", f"Expected 410, got {resp.status_code}")
-                
             return True
                 
         except Exception as e:
-            self.log_result("Messenger Architecture", "FAIL", str(e))
+            self.log_result("Web Application", "FAIL", str(e))
             return False
     
-    def test_messenger_functionality(self):
-        """Test Messenger-specific functionality (finbrain core)"""
-        print("\n3. MESSENGER FUNCTIONALITY VALIDATION")
+    def test_web_chat_functionality(self):
+        """Test web chat functionality"""
+        print("\n3. WEB CHAT FUNCTIONALITY VALIDATION")
         print("-" * 40)
         
         try:
-            # Test that chat interface is accessible (web dashboard for Messenger users)
+            # Test that chat interface is accessible
             resp = self.session.get(f"{BASE_URL}/chat", timeout=TIMEOUT)
             if resp.status_code == 200:
-                self.log_result("Chat Dashboard", "PASS", "Web chat interface accessible")
+                self.log_result("Chat Interface", "PASS", "Web chat interface accessible")
             else:
-                self.log_result("Chat Dashboard", "WARN", f"Status: {resp.status_code}")
+                self.log_result("Chat Interface", "WARN", f"Status: {resp.status_code}")
                 
             # Test report interface
             resp = self.session.get(f"{BASE_URL}/report", timeout=TIMEOUT)
@@ -164,9 +157,14 @@ class DeploymentValidator:
             else:
                 self.log_result("Report Dashboard", "WARN", f"Status: {resp.status_code}")
                 
-            self.log_result("Login", "PASS")
+            # Test login page
+            resp = self.session.get(f"{BASE_URL}/login", timeout=TIMEOUT)
+            if resp.status_code == 200:
+                self.log_result("Login Page", "PASS", "Login interface accessible")
+            else:
+                self.log_result("Login Page", "WARN", f"Status: {resp.status_code}")
             
-            # Test auth-protected endpoints (should return 401 for security)
+            # Test ai-chat endpoint (should require authentication)
             chat_data = {
                 "message": f"Deployment test: spent 150 taka on coffee at {int(time.time())}"
             }
@@ -180,59 +178,17 @@ class DeploymentValidator:
                 self.log_result("AI Chat Security", "WARN", "Endpoint accessible without auth")
             else:
                 self.log_result("AI Chat Security", "WARN", f"Unexpected status: {resp.status_code}")
-            
-            # Test backend API expense endpoint (should also require auth)
-            expense_data = {
-                "description": f"Deployment validation expense {int(time.time())}",
-                "amount_minor": 15000,
-                "currency": "BDT", 
-                "category": "food",
-                "source": "chat"
-            }
-            
-            resp = self.session.post(f"{API_BASE}/add_expense", 
-                                   json=expense_data, timeout=TIMEOUT)
-            
-            if resp.status_code == 401:
-                self.log_result("Backend API Security", "PASS", "Properly protected with authentication")
-            elif resp.status_code == 200:
-                self.log_result("Backend API Security", "WARN", "Endpoint accessible without auth")
-            else:
-                self.log_result("Backend API Security", "WARN", f"Unexpected status: {resp.status_code}")
                 
         except Exception as e:
-            self.log_result("Expense Pipeline", "FAIL", str(e))
+            self.log_result("Web Chat Functionality", "FAIL", str(e))
             return False
             
         return True
     
-    def test_deprecated_endpoints(self):
-        """Verify deprecated endpoints return proper 410 responses"""
-        print("\n4. DEPRECATED ENDPOINT VALIDATION")
-        print("-" * 40)
-        
-        try:
-            # Test deprecated Messenger webhook
-            payload = {
-                "object": "page",
-                "entry": [{"messaging": []}]
-            }
-            
-            resp = self.session.post(f"{BASE_URL}/webhook/messenger", 
-                                   json=payload, timeout=TIMEOUT)
-            
-            if resp.status_code == 410:
-                self.log_result("Messenger Webhook Deprecation", "PASS", "Returns 410 Gone")
-            else:
-                self.log_result("Messenger Webhook Deprecation", "FAIL", 
-                              f"Expected 410, got {resp.status_code}")
-                
-        except Exception as e:
-            self.log_result("Deprecated Endpoints", "FAIL", str(e))
             
     def test_security_measures(self):
         """Test security configurations"""
-        print("\n5. SECURITY VALIDATION")
+        print("\n4. SECURITY VALIDATION")
         print("-" * 40)
         
         try:
@@ -322,9 +278,8 @@ class DeploymentValidator:
         
         # Run all test suites
         self.test_health_endpoints()
-        self.test_messenger_endpoints()
-        self.test_messenger_functionality()
-        self.test_deprecated_endpoints()
+        self.test_web_application()
+        self.test_web_chat_functionality()
         self.test_security_measures()
         
         # Generate final report

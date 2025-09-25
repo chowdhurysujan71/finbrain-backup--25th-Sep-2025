@@ -1,14 +1,14 @@
 # finbrain
 
 ## Overview
-finbrain is an AI-first expense tracking application delivered via Facebook Messenger and a web interface. Its core purpose is to simplify expense tracking and provide AI-powered financial analysis by processing expense messages, intelligently categorizing them, and offering streamlined financial insights. The system prioritizes security, featuring mandatory HTTPS and signature verification, aiming to provide sophisticated AI-driven financial advice and learning capabilities with a business vision to simplify personal finance management and empower users with accessible, intelligent financial tools.
+finbrain is an AI-first expense tracking application delivered via a web chat interface. Its core purpose is to simplify expense tracking and provide AI-powered financial analysis by processing expense messages through the web chat, intelligently categorizing them, and offering streamlined financial insights. The system prioritizes security, featuring mandatory HTTPS and authentication, aiming to provide sophisticated AI-driven financial advice and learning capabilities with a business vision to simplify personal finance management and empower users with accessible, intelligent financial tools.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 Zero-surprise deployment requirement: 100% user-visible success demanded with comprehensive validation before any production changes.
 
 ## System Architecture
-finbrain utilizes a modular, AI-first architecture with a comprehensive 100% user-visible success guarantee. It prioritizes security with mandatory HTTPS and signature verification, employing deterministic routing with ADMIN > ANALYSIS > FAQ > COACHING > SMALLTALK hierarchy. A "never-empty" AI contract ensures zero blank responses. Complete bilingual support (English + Bengali) with advanced Unicode normalization and Bengali digit conversion is implemented.
+finbrain utilizes a modular, AI-first web architecture with a comprehensive 100% user-visible success guarantee. It prioritizes security with mandatory HTTPS and web authentication, employing deterministic routing with ADMIN > ANALYSIS > FAQ > COACHING > SMALLTALK hierarchy. A "never-empty" AI contract ensures zero blank responses. Complete bilingual support (English + Bengali) with advanced Unicode normalization and Bengali digit conversion is implemented.
 
 The Precision Capture & Audit (PCA) system ensures audit transparency and high-confidence auto-application of expenses (≥85% confidence), including enhanced Bengali + English pattern detection and a complete confidence score history logged for audit. The Clarifier Flow optimizes user interaction with 100% decision accuracy.
 
