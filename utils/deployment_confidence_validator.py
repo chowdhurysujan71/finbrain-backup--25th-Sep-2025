@@ -99,7 +99,8 @@ class DeploymentValidator:
                         error_data = resp.json()
                         if "Authentication required" in error_data.get('error', ''):
                             details += " (Correct auth error message)"
-                    except:
+                    except (KeyError, TypeError) as parse_error:
+                        logger.debug(f"Auth error parsing failed: {parse_error}")
                         pass
                 else:
                     details += f" (Expected 401, got {resp.status_code})"

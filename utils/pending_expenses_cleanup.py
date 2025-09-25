@@ -106,7 +106,8 @@ class PendingExpensesCleanup:
             logger.error(f"Critical error during pending_expenses cleanup: {e}")
             try:
                 db.session.rollback()
-            except:
+            except Exception as rollback_error:
+                logger.debug(f"Rollback failed during pending expense cleanup: {rollback_error}")
                 pass
             
             return {

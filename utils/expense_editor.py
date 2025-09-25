@@ -219,7 +219,8 @@ class ExpenseEditor:
                 "method": request.method,
                 "endpoint": request.endpoint
             }
-        except:
+        except (AttributeError, RuntimeError) as client_error:
+            logger.debug(f"Client info capture failed: {client_error}")
             return {"error": "Could not capture client info"}
     
     def get_edit_history(self, expense_id: int, user_id_hash: str) -> list[dict]:

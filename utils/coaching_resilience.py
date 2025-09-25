@@ -213,7 +213,8 @@ class CoachingResilience:
                     try:
                         from utils.session import delete_coaching_session
                         delete_coaching_session(psid_hash)
-                    except:
+                    except (ImportError, AttributeError) as session_error:
+                        logger.debug(f"Session cleanup failed: {session_error}")
                         pass  # Even clearing failed, but we don't crash
                     return None
                 

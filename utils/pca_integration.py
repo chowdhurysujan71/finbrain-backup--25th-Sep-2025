@@ -75,7 +75,8 @@ def integrate_pca_with_webhook(user_id: str, message_text: str, message_id: str,
                 'error': str(e)[:200],
                 'message_length': len(message_text)
             })
-        except:
+        except (KeyError, TypeError) as log_error:
+            logger.debug(f"PCA telemetry logging failed: {log_error}")
             pass
         
         # Always fallback to legacy on errors

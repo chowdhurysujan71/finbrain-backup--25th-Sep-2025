@@ -413,7 +413,8 @@ class MemoryOptimizer:
                 from utils.coaching_optimization import coaching_cache
                 coaching_cache.cleanup_expired_entries()
                 cleanup_stats['items_cleaned'] += 10  # Estimate
-            except:
+            except (KeyError, AttributeError) as cache_error:
+                logger.debug(f"Cache cleanup failed: {cache_error}")
                 pass
             
             # Cleanup old session data if emergency
@@ -436,7 +437,8 @@ class MemoryOptimizer:
                         while len(metric_list) > 100:  # Reduce to 100 items
                             metric_list.pop(0)
                             cleanup_stats['items_cleaned'] += 1
-                except:
+                except (IndexError, KeyError) as metric_error:
+                    logger.debug(f"Metric cleanup failed: {metric_error}")
                     pass
             
             cleanup_stats['duration_ms'] = (time.time() - cleanup_stats['start_time']) * 1000

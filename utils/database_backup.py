@@ -253,7 +253,8 @@ class DatabaseBackup:
                 'total_bytes': total_bytes,
                 'used_bytes': total_bytes - free_bytes
             }
-        except:
+        except OSError as disk_error:
+            logger.debug(f"Disk space check failed: {disk_error}")
             return {'free_bytes': -1, 'total_bytes': -1, 'used_bytes': -1}
 
 # Global backup instance

@@ -522,7 +522,8 @@ class FeatureFlagManager:
         try:
             from utils.coaching_safeguards import coaching_circuit_breaker
             coaching_circuit_breaker.force_open(f"Emergency disable: {reason}")
-        except:
+        except (ImportError, AttributeError) as breaker_error:
+            logger.debug(f"Emergency disable failed: {breaker_error}")
             pass
 
 # Global safeguard instances

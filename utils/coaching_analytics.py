@@ -306,7 +306,8 @@ class CoachingAnalytics:
             recent_operations = len([s for s in self.metrics['sessions_started'] 
                                    if current_time - s['timestamp'] <= 3600])
             self.health_metrics['error_rate_1h'] = recent_errors / max(recent_operations, 1) * 100
-        except:
+        except (ZeroDivisionError, KeyError) as calc_error:
+            logger.debug(f"Error rate health calculation failed: {calc_error}")
             pass
     
     def _get_health_status(self) -> str:
@@ -318,7 +319,8 @@ class CoachingAnalytics:
                 return 'degraded'
             else:
                 return 'healthy'
-        except:
+        except (KeyError, TypeError) as health_error:
+            logger.debug(f"Health status calculation failed: {health_error}")
             return 'unknown'
     
     def _generate_effectiveness_recommendations(self, topic_effectiveness: dict, avg_duration: float) -> list[str]:
