@@ -89,9 +89,19 @@ def handle_multi_expense_logging(psid_hash_val: str, mid: str, text: str, now: d
             # Create new expense using canonical path
             import backend_assistant as ba
             try:
+                # Safely handle amount conversion with validation
+                try:
+                    amount_value = float(expense_data.get('amount', 0))
+                    if amount_value <= 0:
+                        logger.warning(f"Skipping expense with invalid amount: {amount_value}")
+                        continue
+                except (ValueError, TypeError):
+                    logger.warning(f"Skipping expense with invalid amount format: {expense_data.get('amount')}")
+                    continue
+                    
                 expense_result = ba.add_expense(
                     user_id=psid_hash_val,
-                    amount_minor=int(float(expense_data['amount']) * 100),
+                    amount_minor=int(amount_value * 100),
                     currency=expense_data.get('currency', 'BDT'),
                     category=expense_data.get('category'),
                     description=expense_data.get('note', text),
@@ -105,7 +115,7 @@ def handle_multi_expense_logging(psid_hash_val: str, mid: str, text: str, now: d
                 continue
             
             logged_expenses.append(expense_data)
-            total_amount += float(expense_data['amount'])
+            total_amount += float(expense_data.get('amount', 0))
         
         if not logged_expenses:
             # All were duplicates
@@ -200,6 +210,16 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: dict[str,
     """
     Handle logging of a single expense.
     """
+    # Validate required expense data
+    if not expense_data or not expense_data.get('amount'):
+        logger.error(f"Invalid expense data: missing amount - {expense_data}")
+        return {
+            'text': "Unable to log expense: missing amount information.",
+            'intent': 'log_error',
+            'category': None,
+            'amount': None
+        }
+    
     # Check for existing expense (idempotency)
     existing = db.session.query(Expense).filter(
         Expense.user_id_hash == psid_hash_val,
@@ -219,10 +239,23 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: dict[str,
     # Use canonical creation path instead of direct database operations
     try:
         import backend_assistant as ba
-        # Create new expense using canonical add_expense
+        # Create new expense using canonical add_expense with safe amount handling
+        try:
+            amount_value = float(expense_data.get('amount', 0))
+            if amount_value <= 0:
+                raise ValueError(f"Invalid amount: {amount_value}")
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid amount in expense data: {expense_data.get('amount')} - {e}")
+            return {
+                'text': "Unable to log expense: invalid amount format.",
+                'intent': 'log_error',
+                'category': None,
+                'amount': None
+            }
+            
         expense_result = ba.add_expense(
             user_id=psid_hash_val,
-            amount_minor=int(float(expense_data['amount']) * 100),
+            amount_minor=int(amount_value * 100),
             currency=expense_data.get('currency', 'BDT'),
             category=expense_data.get('category'),
             description=expense_data.get('note', original_text),
@@ -251,8 +284,8 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: dict[str,
     from templates.replies_ai import format_ai_single_expense_reply, log_reply_banner
     log_reply_banner('LOG', psid_hash_val)
     response = format_ai_single_expense_reply(
-        float(expense_data['amount']), 
-        expense_data['category'], 
+        float(expense_data.get('amount', 0)), 
+        expense_data.get('category', 'other'), 
         expense_data.get('currency', 'BDT')
     )
     
@@ -262,8 +295,8 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: dict[str,
     return {
         'text': response,
         'intent': 'log_single',
-        'category': expense_data['category'],
-        'amount': expense_data['amount']
+        'category': expense_data.get('category', 'other'),
+        'amount': expense_data.get('amount', 0)
     }
 
 def _create_expense_from_data(psid_hash_val: str, unique_id: str, expense_data: dict[str, Any], original_text: str, now: datetime, mid: str | None = None) -> Expense:
@@ -274,7 +307,7 @@ def _create_expense_from_data(psid_hash_val: str, unique_id: str, expense_data: 
     
     expense = Expense()
     expense.user_id = psid_hash_val
-    expense.amount = expense_data['amount']
+    expense.amount = expense_data.get('amount', 0)
     expense.currency = expense_data.get('currency', 'BDT')
     expense.category = normalize_category(expense_data.get('category') or 'other')
     expense.description = expense_data.get('note', original_text)
@@ -462,8 +495,8 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
             )
             
             # Mark old expense as superseded
-            old_amount = float(best_candidate.amount)
-            new_amount = float(corrected_expense_data['amount'])
+            old_amount = float(best_candidate.amount or 0)
+            new_amount = float(corrected_expense_data.get('amount', 0))
             
             # Update correction metadata on old expense
             best_candidate.superseded_by = new_expense_result.get('expense_id')
@@ -585,7 +618,7 @@ def _create_new_expense(psid_hash_val: str, mid: str, expense_data: dict[str, An
     
     expense = Expense()
     expense.user_id = psid_hash_val
-    expense.amount = expense_data['amount']
+    expense.amount = expense_data.get('amount', 0)
     expense.currency = expense_data.get('currency', 'BDT')
     expense.category = normalize_category(expense_data.get('category') or 'other')
     expense.description = expense_data.get('note', original_text)
