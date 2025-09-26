@@ -18,7 +18,7 @@ class GapFixFlags:
     def __init__(self):
         """Initialize all gap-fix feature flags with safe defaults"""
         # Enhanced NLP and clarifier features
-        self.enable_clarifiers = self._get_flag('ENABLE_CLARIFIERS', False)
+        self.enable_clarifiers = self._get_flag('ENABLE_CLARIFIERS', True)  # Enable clarifiers by default
         self.feature_multi_expense = self._get_flag('FEATURE_MULTI_EXPENSE', True)  # Enable multi-expense by default
         self.smart_corrections = self._get_flag('SMART_CORRECTIONS', True)  # Enable smart corrections by default
         
