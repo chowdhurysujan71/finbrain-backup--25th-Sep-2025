@@ -1028,47 +1028,63 @@ def extract_all_expenses(text: str, now: datetime | None = None, **kwargs) -> li
     normalized = normalize_text_for_parsing(text)
     expenses = []
     
-    # ENHANCED MULTI-EXPENSE PARSING - Handle comma/semicolon/and separators properly
-    # Split text by separators first, then parse each segment individually
-    separators = [',', ';', ' and ', ' & ', ' / ', ' + ']
+    # ROBUST MULTI-EXPENSE PARSING - Two-pass masking to protect thousands separators
+    # Support both Latin digits (0-9) and Bangla digits (০-৯) 
     
-    # Split text by separators while preserving original text
-    segments = [text]  # Start with full text
-    for sep in separators:
-        new_segments = []
-        for segment in segments:
-            new_segments.extend(segment.split(sep))
-        segments = new_segments
+    # PASS 1: Find and mask number tokens with internal commas (thousands separators)
+    number_with_comma_pattern = r'\b(?:[\d\u09E6-\u09EF]{1,3}(?:,[\d\u09E6-\u09EF]{3})+)\b'
+    masked_text = normalized
+    masked_numbers = {}
+    placeholder_counter = 0
     
-    # Clean and filter segments
-    segments = [seg.strip() for seg in segments if seg.strip()]
+    # Replace thousands separators with temporary placeholders
+    for match in re.finditer(number_with_comma_pattern, normalized):
+        placeholder = f"__MASKED_NUMBER_{placeholder_counter}__"
+        masked_numbers[placeholder] = match.group(0)
+        masked_text = masked_text.replace(match.group(0), placeholder, 1)
+        placeholder_counter += 1
+    
+    # PASS 2: Split on expense separators (now safe from thousands separators)
+    separator_pattern = r'\s*(?:,|;|\band\b|&|/|\+)\s*'
+    segments = re.split(separator_pattern, masked_text)
+    
+    # PASS 3: Restore masked numbers in each segment
+    final_segments = []
+    for segment in segments:
+        segment = segment.strip()
+        if segment:
+            # Restore any masked numbers
+            for placeholder, original_number in masked_numbers.items():
+                segment = segment.replace(placeholder, original_number)
+            final_segments.append(segment)
+    
+    segments = final_segments
     
     found_amounts = []
     
-    # Enhanced patterns with non-greedy matching and separator awareness
+    # RESTORED locale-aware patterns with thousands/decimal support + segment awareness
     amount_patterns = [
-        # Currency symbols with amounts - segment-aware
-        (r'([৳$£€₹])\s*(\d+(?:\.\d{1,2})?)', 'symbol'),
-        # Amount with currency words - segment-aware
-        (r'(\d+(?:\.\d{1,2})?)\s*(tk|taka|bdt|usd|eur|inr|rs|dollar|pound|euro|rupee)\b', 'word'),
-        # Action verbs with amounts - segment-aware
-        (r'\b(spent|paid|bought|blew|burned|used)\s+.*?(\d+(?:\.\d{1,2})?)', 'verb'),
-        # Category + amount patterns - segment-aware (CRITICAL FIX)
-        (r'\b(coffee|lunch|dinner|breakfast|burger|pizza|tea|snack|uber|taxi|cng|bus|grocery|groceries|medicine|pharmacy)\s+(\d+(?:\.\d{1,2})?)', 'category'),
-        # Bare numbers - only as fallback for segments with lone numbers
-        (r'^(\d+(?:\.\d{1,2})?)$', 'bare')
+        # Currency symbols with amounts - RESTORED locale-aware (thousands separators)
+        (r'([৳$£€₹])\s*(\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)', 'symbol'),
+        # Amount with currency words - RESTORED locale-aware 
+        (r'(\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*(tk|taka|bdt|usd|eur|inr|rs|dollar|pound|euro|rupee)\b', 'word'),
+        # Action verbs with amounts - RESTORED locale-aware
+        (r'\b(spent|paid|bought|blew|burned|used)\s+.*?(\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)', 'verb'),
+        # Category + amount patterns - RESTORED locale-aware (CRITICAL FIX for comma separation)
+        (r'\b(coffee|lunch|dinner|breakfast|burger|pizza|tea|snack|uber|taxi|cng|bus|grocery|groceries|medicine|pharmacy)\s+(\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)', 'category'),
+        # Bare numbers - RESTORED locale-aware with thousands separators
+        (r'(?<![0-9.,])(\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d{1,2})?|\d{2,7}(?:[.,]\d{1,2})?)(?![0-9.,])', 'bare')
     ]
     
     # Process each segment separately for precise multi-expense detection
     for segment in segments:
-        segment_normalized = normalize_text_for_parsing(segment)
         segment_found = False
         
         for pattern, pattern_type in amount_patterns:
             if segment_found:  # Only take first match per segment
                 break
                 
-            matches = list(re.finditer(pattern, segment_normalized, re.IGNORECASE))
+            matches = list(re.finditer(pattern, segment, re.IGNORECASE))
             if matches:
                 match = matches[0]  # Take first match in segment
                 

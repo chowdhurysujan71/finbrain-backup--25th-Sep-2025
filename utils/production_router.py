@@ -657,7 +657,11 @@ class ProductionRouter:
                     logger.info(f"[DETERMINISTIC] Multi-expense: {len(all_expenses)} expenses in '{text[:50]}...'")
                     try:
                         from handlers.expense import handle_multi_expense_logging
-                        result = handle_multi_expense_logging(user_hash, rid, text, datetime.utcnow())
+                        from app import app
+                        
+                        # Ensure Flask app context for database operations
+                        with app.app_context():
+                            result = handle_multi_expense_logging(user_hash, rid, text, datetime.utcnow())
                         
                         self._emit_structured_telemetry(rid, user_hash, "LOG", "deterministic_multi", {
                             'expenses_count': len(all_expenses),
@@ -673,34 +677,28 @@ class ProductionRouter:
                         # Fall through to other routing
                 
                 elif len(all_expenses) == 1:
-                    # Single expense detected - route directly to optimized single handler
+                    # Single expense detected - route through idempotent handler for consistency
                     logger.info(f"[DETERMINISTIC] Single expense: '{text[:50]}...'")
-                    expense_data = all_expenses[0]
                     
                     try:
-                        # Use canonical single writer for consistency
-                        import backend_assistant as ba
-                        expense_result = ba.add_expense(
-                            user_id=user_hash,
-                            amount_minor=int(float(expense_data['amount']) * 100),
-                            currency=expense_data.get('currency', 'BDT'),
-                            category=expense_data.get('category'),
-                            description=expense_data.get('note', text),
-                            source='chat',
-                            message_id=rid
-                        )
+                        # FIX IDEMPOTENCY: Route through same handler as multi-expense for consistency
+                        from handlers.expense import handle_multi_expense_logging
+                        from app import app
                         
-                        response = f"✅ Logged ৳{float(expense_data['amount']):.0f} for {expense_data.get('category', 'expense')}"
-                        self._emit_structured_telemetry(rid, user_hash, "LOG", "deterministic_single", {
-                            'routing_method': 'unconditional_extraction',
-                            'amount': float(expense_data['amount']),
-                            'category': expense_data.get('category')
+                        # Ensure Flask app context for database operations
+                        with app.app_context():
+                            result = handle_multi_expense_logging(user_hash, rid, text, datetime.utcnow())
+                        
+                        self._emit_structured_telemetry(rid, user_hash, "LOG", "deterministic_single_idempotent", {
+                            'routing_method': 'unconditional_extraction_idempotent',
+                            'amount': result.get('amount'),
+                            'category': result.get('category')
                         })
                         self._record_processing_time(time.time() - start_time)
-                        return normalize(response), "log_single", expense_data.get('category'), float(expense_data['amount'])
+                        return normalize(result['text']), result['intent'], result.get('category'), result.get('amount')
                         
                     except Exception as e:
-                        logger.error(f"Deterministic single expense failed: {e}")
+                        logger.error(f"Deterministic single expense (idempotent) failed: {e}")
                         # Fall through to other routing
                         
                 # If no expenses found, continue to FAQ/SMALLTALK and other routing

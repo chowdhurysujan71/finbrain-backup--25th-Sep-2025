@@ -226,7 +226,7 @@ def _handle_single_expense(psid_hash_val: str, mid: str, expense_data: dict[str,
             currency=expense_data.get('currency', 'BDT'),
             category=expense_data.get('category'),
             description=expense_data.get('note', original_text),
-            source='messenger',
+            source='chat',  # Web-only architecture
             message_id=mid
         )
         
@@ -457,7 +457,7 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
                 currency=corrected_expense_data.get('currency', 'BDT'),
                 category=corrected_expense_data.get('category'),
                 description=corrected_expense_data.get('note', text),
-                source='messenger',
+                source='chat',  # Web-only architecture
                 message_id=mid
             )
             
