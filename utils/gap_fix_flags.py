@@ -19,7 +19,8 @@ class GapFixFlags:
         """Initialize all gap-fix feature flags with safe defaults"""
         # Enhanced NLP and clarifier features
         self.enable_clarifiers = self._get_flag('ENABLE_CLARIFIERS', False)
-        self.feature_multi_expense = self._get_flag('FEATURE_MULTI_EXPENSE', False)
+        self.feature_multi_expense = self._get_flag('FEATURE_MULTI_EXPENSE', True)  # Enable multi-expense by default
+        self.smart_corrections = self._get_flag('SMART_CORRECTIONS', True)  # Enable smart corrections by default
         
         # AI system controls
         self.ai_enabled = self._get_flag('AI_ENABLED', False) 
@@ -51,6 +52,7 @@ class GapFixFlags:
         flags_state = {
             'enable_clarifiers': self.enable_clarifiers,
             'feature_multi_expense': self.feature_multi_expense,
+            'smart_corrections': self.smart_corrections,
             'ai_enabled': self.ai_enabled,
             'ai_provider': self.ai_provider,
             'enhanced_confidence_scoring': self.enhanced_confidence_scoring,
@@ -76,6 +78,10 @@ class GapFixFlags:
     def is_multi_expense_enabled(self) -> bool:
         """Check if multi-expense logging is enabled"""
         return self.feature_multi_expense
+    
+    def is_smart_corrections_enabled(self) -> bool:
+        """Check if smart corrections are enabled"""
+        return self.smart_corrections
     
     def is_ai_enabled(self) -> bool:
         """Check if AI processing is enabled"""

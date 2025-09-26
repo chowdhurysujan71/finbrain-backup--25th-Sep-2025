@@ -164,9 +164,9 @@ def contains_money_with_correction_fallback(text: str, psid_hash: str) -> bool:
         return True
     
     # If standard detection failed, check if this is a correction message with fallback enabled
-    from utils.feature_flags import feature_enabled
+    from utils.gap_fix_flags import gap_fix_flags
     
-    if not feature_enabled(psid_hash, "SMART_CORRECTIONS"):
+    if not gap_fix_flags.is_smart_corrections_enabled():
         return False
         
     if not is_correction_message(text):
@@ -644,7 +644,72 @@ class ProductionRouter:
                 return response, "panic", None, None
             
             
-            # Step 0: FAQ/SMALLTALK GUARDRAIL - Deterministic responses with emojis (no AI)
+            # Step 0: DETERMINISTIC EXPENSE EXTRACTION - Always check for expenses first  
+            try:
+                from parsers.expense import extract_all_expenses
+                from datetime import datetime
+                
+                # CRITICAL: Always extract expenses unconditionally for deterministic routing
+                all_expenses = extract_all_expenses(text, datetime.utcnow())
+                
+                if len(all_expenses) > 1:
+                    # Multi-expense detected - route directly to multi-expense handler
+                    logger.info(f"[DETERMINISTIC] Multi-expense: {len(all_expenses)} expenses in '{text[:50]}...'")
+                    try:
+                        from handlers.expense import handle_multi_expense_logging
+                        result = handle_multi_expense_logging(user_hash, rid, text, datetime.utcnow())
+                        
+                        self._emit_structured_telemetry(rid, user_hash, "LOG", "deterministic_multi", {
+                            'expenses_count': len(all_expenses),
+                            'routing_method': 'unconditional_extraction',
+                            'amount': result.get('amount'),
+                            'category': result.get('category')
+                        })
+                        self._record_processing_time(time.time() - start_time)
+                        return normalize(result['text']), result['intent'], result.get('category'), result.get('amount')
+                        
+                    except Exception as e:
+                        logger.error(f"Deterministic multi-expense failed: {e}")
+                        # Fall through to other routing
+                
+                elif len(all_expenses) == 1:
+                    # Single expense detected - route directly to optimized single handler
+                    logger.info(f"[DETERMINISTIC] Single expense: '{text[:50]}...'")
+                    expense_data = all_expenses[0]
+                    
+                    try:
+                        # Use canonical single writer for consistency
+                        import backend_assistant as ba
+                        expense_result = ba.add_expense(
+                            user_id=user_hash,
+                            amount_minor=int(float(expense_data['amount']) * 100),
+                            currency=expense_data.get('currency', 'BDT'),
+                            category=expense_data.get('category'),
+                            description=expense_data.get('note', text),
+                            source='chat',
+                            message_id=rid
+                        )
+                        
+                        response = f"✅ Logged ৳{float(expense_data['amount']):.0f} for {expense_data.get('category', 'expense')}"
+                        self._emit_structured_telemetry(rid, user_hash, "LOG", "deterministic_single", {
+                            'routing_method': 'unconditional_extraction',
+                            'amount': float(expense_data['amount']),
+                            'category': expense_data.get('category')
+                        })
+                        self._record_processing_time(time.time() - start_time)
+                        return normalize(response), "log_single", expense_data.get('category'), float(expense_data['amount'])
+                        
+                    except Exception as e:
+                        logger.error(f"Deterministic single expense failed: {e}")
+                        # Fall through to other routing
+                        
+                # If no expenses found, continue to FAQ/SMALLTALK and other routing
+                logger.debug(f"[DETERMINISTIC] No expenses found in '{text[:30]}...', continuing to FAQ/smalltalk routing")
+                        
+            except Exception as e:
+                logger.error(f"Deterministic expense extraction failed: {e}, continuing to legacy routing")
+            
+            # Step 1: FAQ/SMALLTALK GUARDRAIL - Deterministic responses with emojis (no AI)
             faq_response = match_faq_or_smalltalk(text)
             if faq_response:
                 self._log_routing_decision(rid, user_hash, "faq_smalltalk", "deterministic")
@@ -843,43 +908,110 @@ class ProductionRouter:
             if is_correction_message(text):
                 logger.info(f"[ROUTER] Correction detected: user={user_hash[:8]}...")
                 
-                # Handle correction flow (always enabled)
+                # Handle correction flow (always enabled) - Enhanced with smart corrections
                 try:
+                    from datetime import datetime
                     from handlers.expense import (
                         handle_correction,  # Lazy import to avoid circular dependency
                     )
-                    correction_result = handle_correction(user_hash, rid, text, datetime.utcnow())
                     
-                    self._emit_structured_telemetry(rid, user_hash, "CORRECTION", "processed", {
-                        'corrections_always_on': True,
-                        'intent_result': correction_result.get('intent'),
-                        'amount': correction_result.get('amount'),
-                        'category': correction_result.get('category')
-                    })
+                    # Enhanced correction logic: accept corrections even without explicit money amounts
+                    # Check for smart corrections feature flag
+                    from utils.gap_fix_flags import gap_fix_flags
+                    money_in_correction = contains_money(text)
+                    smart_corrections_enabled = gap_fix_flags.is_smart_corrections_enabled()
                     
-                    self._record_processing_time(time.time() - start_time)
-                    return (
-                        normalize(correction_result['text']),
-                        correction_result['intent'],
-                        correction_result.get('category'),
-                        correction_result.get('amount')
-                    )
+                    # Accept correction if it has money OR if smart corrections are enabled
+                    if money_in_correction or smart_corrections_enabled:
+                        correction_result = handle_correction(user_hash, rid, text, datetime.utcnow())
+                    else:
+                        # Legacy behavior: only process corrections with explicit amounts
+                        logger.info(f"[ROUTER] Correction without amount and smart corrections disabled: '{text[:30]}...'")
+                        correction_result = None
+                    
+                    if correction_result:
+                        self._emit_structured_telemetry(rid, user_hash, "CORRECTION", "processed", {
+                            'corrections_always_on': True,
+                            'smart_corrections_enabled': smart_corrections_enabled,
+                            'money_in_correction': money_in_correction,
+                            'intent_result': correction_result.get('intent'),
+                            'amount': correction_result.get('amount'),
+                            'category': correction_result.get('category')
+                        })
+                        
+                        self._record_processing_time(time.time() - start_time)
+                        return (
+                            normalize(correction_result['text']),
+                            correction_result['intent'],
+                            correction_result.get('category'),
+                            correction_result.get('amount')
+                        )
                     
                 except Exception as e:
                     logger.error(f"Correction handling failed: {e}")
                     # Fall through to regular expense logging as fallback
                     
-            # Step 2: AI ROUTING FIRST - Enhanced with CC Decision Tree (Phase 2)
-            # Check if this looks like an expense for AI routing  
-            money_detected = contains_money_with_correction_fallback(text, user_hash)
+            # Step 3: DETERMINISTIC EXPENSE ROUTING - Always check for expenses first
+            # Use comprehensive expense extraction for deterministic routing
+            try:
+                from parsers.expense import extract_all_expenses
+                from datetime import datetime
+                
+                # Always extract all expenses to determine single vs multi deterministically
+                all_expenses = extract_all_expenses(text, datetime.utcnow())
+                
+                if len(all_expenses) > 1:
+                    # Multi-expense detected - route to multi-expense handler
+                    logger.info(f"[ROUTER] Multi-expense detected: {len(all_expenses)} expenses in '{text[:50]}...'")
+                    try:
+                        from handlers.expense import handle_multi_expense_logging
+                        result = handle_multi_expense_logging(user_hash, rid, text, datetime.utcnow())
+                        
+                        self._emit_structured_telemetry(rid, user_hash, "LOG", "deterministic_multi", {
+                            'expenses_count': len(all_expenses),
+                            'amount': result.get('amount'),
+                            'category': result.get('category')
+                        })
+                        self._record_processing_time(time.time() - start_time)
+                        return normalize(result['text']), result['intent'], result.get('category'), result.get('amount')
+                        
+                    except Exception as e:
+                        logger.error(f"Multi-expense handling failed: {e}, falling back to single expense")
+                
+                elif len(all_expenses) == 1:
+                    # Single expense detected - route to optimized single handler
+                    logger.info(f"[ROUTER] Single expense detected: '{text[:50]}...'")
+                    expense_data = all_expenses[0]
+                    
+                    try:
+                        # Use canonical single writer for consistency
+                        import backend_assistant as ba
+                        expense_result = ba.add_expense(
+                            user_id=user_hash,
+                            amount_minor=int(float(expense_data['amount']) * 100),
+                            currency=expense_data.get('currency', 'BDT'),
+                            category=expense_data.get('category'),
+                            description=expense_data.get('note', text),
+                            source='chat',
+                            message_id=rid
+                        )
+                        
+                        response = f"✅ Logged ৳{float(expense_data['amount']):.0f} for {expense_data.get('category', 'expense')}"
+                        self._emit_structured_telemetry(rid, user_hash, "LOG", "deterministic_single", {
+                            'amount': float(expense_data['amount']),
+                            'category': expense_data.get('category')
+                        })
+                        self._record_processing_time(time.time() - start_time)
+                        return normalize(response), "log_single", expense_data.get('category'), float(expense_data['amount'])
+                        
+                    except Exception as e:
+                        logger.error(f"Single expense logging failed: {e}, falling back to legacy")
+                
+            except Exception as e:
+                logger.error(f"Deterministic expense routing failed: {e}, falling back to legacy")
             
-            # Check for multi-expense messages first
-            if money_detected and self._is_multi_expense_message(text):
-                logger.info(f"[ROUTER] Multi-expense detected: '{text[:50]}...'")
-                try:
-                    return self._handle_multi_expense_logging(text, original_psid, user_hash, rid)
-                except Exception as e:
-                    logger.error(f"Multi-expense handling failed: {e}, falling through to single expense")
+            # Fallback: Check if this looks like an expense for legacy routing  
+            money_detected = contains_money_with_correction_fallback(text, user_hash)
             
             if money_detected:
                 # Try CC-based AI routing first (always enabled)

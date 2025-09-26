@@ -1028,81 +1028,96 @@ def extract_all_expenses(text: str, now: datetime | None = None, **kwargs) -> li
     normalized = normalize_text_for_parsing(text)
     expenses = []
     
-    # Find all amounts in the text (symbols, words, bare numbers) - ENHANCED FOR COMMA PARSING WITH STRICT BOUNDARIES
-    amount_patterns = [
-        # Currency symbols with amounts (enhanced for comma handling, strict boundaries)
-        (r'([৳$£€₹])\s*(?<![0-9.,])(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?![0-9.,])', 'symbol'),
-        # Amount with currency words (enhanced for comma handling, strict boundaries)
-        (r'(?<![0-9.,])(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?![0-9.,])\s*(tk|taka|bdt|usd|eur|inr|rs|dollar|pound|euro|rupee)\b', 'word'),
-        # Action verbs with amounts (enhanced for comma handling, strict boundaries)
-        (r'\b(spent|paid|bought|blew|burned|used)\s+[^\d]*(?<![0-9.,])(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?![0-9.,])', 'verb'),
-        # Category + amount patterns (enhanced for comma handling, strict boundaries)
-        (r'\b(coffee|lunch|dinner|breakfast|uber|taxi|cng|bus|grocery|groceries|medicine|pharmacy)\s+(?<![0-9.,])(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?![0-9.,])', 'category'),
-        # Bare numbers (enhanced for comma handling, strict boundaries to prevent inner matches)
-        (r'(?<![0-9.,])(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d{2,7}(?:\.\d{1,2})?)(?![0-9.,])', 'bare')
-    ]
+    # ENHANCED MULTI-EXPENSE PARSING - Handle comma/semicolon/and separators properly
+    # Split text by separators first, then parse each segment individually
+    separators = [',', ';', ' and ', ' & ', ' / ', ' + ']
+    
+    # Split text by separators while preserving original text
+    segments = [text]  # Start with full text
+    for sep in separators:
+        new_segments = []
+        for segment in segments:
+            new_segments.extend(segment.split(sep))
+        segments = new_segments
+    
+    # Clean and filter segments
+    segments = [seg.strip() for seg in segments if seg.strip()]
     
     found_amounts = []
     
-    for pattern, pattern_type in amount_patterns:
-        matches = re.finditer(pattern, normalized, re.IGNORECASE)
-        for match in matches:
-            if pattern_type == 'symbol':
-                symbol, amount_str = match.groups()
-                currency = CURRENCY_SYMBOLS.get(symbol, 'BDT')
-                amount_val = amount_str
-            elif pattern_type == 'word':
-                amount_val, currency_word = match.groups()
-                currency = CURRENCY_WORDS.get(currency_word.lower(), 'BDT')
-            elif pattern_type == 'verb':
-                amount_val = match.group(2)
-                currency = 'BDT'  # Default
-            elif pattern_type == 'category':
-                category_word, amount_val = match.groups()
-                currency = 'BDT'  # Default
-            else:  # bare
-                amount_val = match.group(1)
-                currency = 'BDT'  # Default
-            
-            try:
-                # Fix comma decimal parsing - handle thousands vs decimal separators
-                amount = _parse_amount_with_locale_support(amount_val)
-                
-                # Add database overflow protection
-                if amount <= 0 or amount >= Decimal('99999999.99'):  # Skip invalid amounts
-                    continue
-                
-                found_amounts.append({
-                    'amount': amount,
-                    'currency': currency,
-                    'start': match.start(),
-                    'end': match.end(),
-                    'context_start': max(0, match.start() - 50),
-                    'context_end': min(len(text), match.end() + 50)
-                })
-            except (InvalidOperation, ValueError):
-                continue
+    # Enhanced patterns with non-greedy matching and separator awareness
+    amount_patterns = [
+        # Currency symbols with amounts - segment-aware
+        (r'([৳$£€₹])\s*(\d+(?:\.\d{1,2})?)', 'symbol'),
+        # Amount with currency words - segment-aware
+        (r'(\d+(?:\.\d{1,2})?)\s*(tk|taka|bdt|usd|eur|inr|rs|dollar|pound|euro|rupee)\b', 'word'),
+        # Action verbs with amounts - segment-aware
+        (r'\b(spent|paid|bought|blew|burned|used)\s+.*?(\d+(?:\.\d{1,2})?)', 'verb'),
+        # Category + amount patterns - segment-aware (CRITICAL FIX)
+        (r'\b(coffee|lunch|dinner|breakfast|burger|pizza|tea|snack|uber|taxi|cng|bus|grocery|groceries|medicine|pharmacy)\s+(\d+(?:\.\d{1,2})?)', 'category'),
+        # Bare numbers - only as fallback for segments with lone numbers
+        (r'^(\d+(?:\.\d{1,2})?)$', 'bare')
+    ]
     
-    # Remove duplicate amounts at same position - improved logic for dual expenses
-    unique_amounts = []
-    for amount_info in found_amounts:
-        is_duplicate = False
-        for existing in unique_amounts:
-            # Check if positions overlap significantly (not just close)
-            position_overlap = (amount_info['start'] <= existing['end'] and 
-                              amount_info['end'] >= existing['start'])
-            amount_match = amount_info['amount'] == existing['amount']
-            
-            if position_overlap and amount_match:
-                is_duplicate = True
+    # Process each segment separately for precise multi-expense detection
+    for segment in segments:
+        segment_normalized = normalize_text_for_parsing(segment)
+        segment_found = False
+        
+        for pattern, pattern_type in amount_patterns:
+            if segment_found:  # Only take first match per segment
                 break
-        if not is_duplicate:
-            unique_amounts.append(amount_info)
+                
+            matches = list(re.finditer(pattern, segment_normalized, re.IGNORECASE))
+            if matches:
+                match = matches[0]  # Take first match in segment
+                
+                if pattern_type == 'symbol':
+                    symbol, amount_str = match.groups()
+                    currency = CURRENCY_SYMBOLS.get(symbol, 'BDT')
+                    amount_val = amount_str
+                elif pattern_type == 'word':
+                    amount_val, currency_word = match.groups()
+                    currency = CURRENCY_WORDS.get(currency_word.lower(), 'BDT')
+                elif pattern_type == 'verb':
+                    amount_val = match.group(2)
+                    currency = 'BDT'  # Default
+                elif pattern_type == 'category':
+                    category_word, amount_val = match.groups()
+                    currency = 'BDT'  # Default
+                else:  # bare
+                    amount_val = match.group(1)
+                    currency = 'BDT'  # Default
+                
+                try:
+                    # Parse amount with locale support
+                    amount = _parse_amount_with_locale_support(amount_val)
+                    
+                    # Add database overflow protection
+                    if amount <= 0 or amount >= Decimal('99999999.99'):  # Skip invalid amounts
+                        continue
+                    
+                    found_amounts.append({
+                        'amount': amount,
+                        'currency': currency,
+                        'start': 0,  # Segment-relative start
+                        'end': len(segment),  # Segment-relative end
+                        'context_start': 0,
+                        'context_end': len(segment),
+                        'segment_text': segment  # Store original segment for context
+                    })
+                    segment_found = True
+                    
+                except (InvalidOperation, ValueError):
+                    continue
     
-    # For each amount, infer category from targeted context
+    # No need for complex deduplication with segment-based parsing
+    unique_amounts = found_amounts
+    
+    # For each amount, infer category from segment context
     for amount_info in unique_amounts:
-        # Extract targeted context specific to this amount (fix multi-expense categories)
-        context_text = _extract_targeted_context(text, amount_info)
+        # Use segment text for precise category inference
+        context_text = amount_info.get('segment_text', text)
         
         # Infer category from context with user learning integration  
         user_hash = kwargs.get('user_hash')  # Extract user hash from kwargs if passed
