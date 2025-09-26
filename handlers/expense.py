@@ -276,7 +276,7 @@ def _create_expense_from_data(psid_hash_val: str, unique_id: str, expense_data: 
     expense.user_id = psid_hash_val
     expense.amount = expense_data['amount']
     expense.currency = expense_data.get('currency', 'BDT')
-    expense.category = normalize_category(expense_data.get('category'))
+    expense.category = normalize_category(expense_data.get('category') or 'other')
     expense.description = expense_data.get('note', original_text)
     expense.date = (expense_data.get('ts_client') or now).date()
     expense.time = (expense_data.get('ts_client') or now).time()
@@ -485,7 +485,7 @@ def handle_correction(psid_hash_val: str, mid: str, text: str, now: datetime) ->
         
         # Log successful correction
         log_correction_applied(
-            psid_hash_val, mid, best_candidate.id, new_expense_result.get('expense_id'), 
+            psid_hash_val, mid, best_candidate.id, str(new_expense_result.get('expense_id', '')), 
             {"old_amount": old_amount, "new_amount": new_amount}
         )
         
@@ -587,7 +587,7 @@ def _create_new_expense(psid_hash_val: str, mid: str, expense_data: dict[str, An
     expense.user_id = psid_hash_val
     expense.amount = expense_data['amount']
     expense.currency = expense_data.get('currency', 'BDT')
-    expense.category = normalize_category(expense_data.get('category'))
+    expense.category = normalize_category(expense_data.get('category') or 'other')
     expense.description = expense_data.get('note', original_text)
     expense.date = (expense_data.get('ts_client') or now).date()
     expense.time = (expense_data.get('ts_client') or now).time()
