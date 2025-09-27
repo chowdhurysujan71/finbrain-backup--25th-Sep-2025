@@ -2472,4 +2472,4 @@ except ImportError as e:
     logger.warning(f"Service Worker diagnostics not available: {e}")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=not is_production)
