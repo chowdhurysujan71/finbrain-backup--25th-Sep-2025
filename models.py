@@ -53,6 +53,25 @@ class Expense(db.Model):
     # Database security trigger bypass
     idempotency_key = db.Column(db.String(255), nullable=True)  # Required by database trigger, format: "api:<uuid>"
     
+    # Soft delete support
+    deleted_at = db.Column(db.DateTime(timezone=True), nullable=True)  # When this expense was soft deleted
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)  # Soft delete flag
+    
+    def soft_delete(self):
+        """Soft delete this expense"""
+        self.is_deleted = True
+        self.deleted_at = datetime.now(UTC)
+    
+    def restore(self):
+        """Restore this expense from soft delete"""
+        self.is_deleted = False
+        self.deleted_at = None
+    
+    @classmethod
+    def query_active(cls):
+        """Query only non-deleted expenses"""
+        return cls.query.filter(~cls.is_deleted)
+    
     def __repr__(self):
         return f'<Expense {self.id}: {self.description} - {self.amount}>'
 
@@ -156,6 +175,25 @@ class User(db.Model):
     challenge_end_date = db.Column(db.Date, nullable=True)  # Challenge end date (start + 2 days)
     challenge_completed = db.Column(db.Boolean, default=False)  # Successfully completed challenge
     challenge_report_sent = db.Column(db.Boolean, default=False)  # Auto-report completion flag
+    
+    # Soft delete support
+    deleted_at = db.Column(db.DateTime(timezone=True), nullable=True)  # When this user was soft deleted
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)  # Soft delete flag
+    
+    def soft_delete(self):
+        """Soft delete this user"""
+        self.is_deleted = True
+        self.deleted_at = datetime.now(UTC)
+    
+    def restore(self):
+        """Restore this user from soft delete"""
+        self.is_deleted = False
+        self.deleted_at = None
+    
+    @classmethod
+    def query_active(cls):
+        """Query only non-deleted users"""
+        return cls.query.filter(~cls.is_deleted)
     
     def to_dict(self):
         """Convert user to dictionary for AI processing"""
