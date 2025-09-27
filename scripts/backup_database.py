@@ -30,19 +30,31 @@ def create_backup():
     try:
         print(f"Creating database backup: {backup_filename}")
         
-        # Run pg_dump command
+        # Parse database URL for secure connection
+        from urllib.parse import urlparse
+        parsed = urlparse(database_url)
+        
+        # Set environment variables for pg_dump (more secure than CLI args)
+        env = os.environ.copy()
+        env['PGHOST'] = parsed.hostname
+        env['PGPORT'] = str(parsed.port or 5432)
+        env['PGUSER'] = parsed.username
+        env['PGPASSWORD'] = parsed.password
+        env['PGDATABASE'] = parsed.path.lstrip('/')
+        
+        # Run pg_dump command without database URL in args
         cmd = [
             'pg_dump',
-            database_url,
             '--file', backup_path,
             '--verbose',
             '--clean',
             '--if-exists',
             '--no-owner',
-            '--no-privileges'
+            '--no-privileges',
+            '--compress=9'  # Add compression
         ]
         
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
         
         if result.returncode == 0:
             print(f"✅ Backup completed successfully: {backup_path}")

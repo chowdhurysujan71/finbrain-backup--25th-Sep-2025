@@ -71,3 +71,4 @@ attached_assets/
 tmp/
 temp/cookies.txt
 *.jar
+backups/
