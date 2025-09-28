@@ -251,23 +251,22 @@ def check_spending_today():
                 alert_title = f"High Spending Alert: ৳{today_total:,.0f} today"
                 alert_message = f"You've spent ৳{today_total:,.0f} today, which is {(today_total/avg_daily*100):,.0f}% of your recent daily average (৳{avg_daily:,.0f}). Consider reviewing your expenses."
                 
-                banner = Banner(
-                    user_id_hash=user.user_id_hash,
-                    banner_type='spending_alert',
-                    title=alert_title,
-                    message=alert_message,
-                    action_text="View Today's Expenses",
-                    action_url="/chat?filter=today",
-                    priority=2,  # High priority
-                    style=alert_style,
-                    trigger_data={
-                        'amount': today_total,
-                        'threshold': spike_threshold,
-                        'period': 'daily',
-                        'avg_daily': avg_daily
-                    },
-                    expires_at=datetime.now(UTC) + timedelta(hours=12)
-                )
+                banner = Banner()
+                banner.user_id_hash = user.user_id_hash
+                banner.banner_type = 'spending_alert'
+                banner.title = alert_title
+                banner.message = alert_message
+                banner.action_text = "View Today's Expenses"
+                banner.action_url = "/chat?filter=today"
+                banner.priority = 2  # High priority
+                banner.style = alert_style
+                banner.trigger_data = {
+                    'amount': today_total,
+                    'threshold': spike_threshold,
+                    'period': 'daily',
+                    'avg_daily': avg_daily
+                }
+                banner.expires_at = datetime.now(UTC) + timedelta(hours=12)
                 
                 db.session.add(banner)
                 db.session.commit()
