@@ -92,18 +92,21 @@ def _get_env_bool(key: str, default: bool = False) -> bool:
     value = os.getenv(key, str(default)).lower()
     return value in ("true", "1", "yes", "on")
 
-def _is_master_user(user_email: str = None) -> bool:
+def _is_master_user(user_email: str | None = None) -> bool:
     """Check if user is a master user who gets early access."""
     if not user_email:
         try:
             from flask_login import current_user
-            user_email = getattr(current_user, 'email', None) if current_user.is_authenticated else None
+            if hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
+                user_email = getattr(current_user, 'email', None)
+            else:
+                user_email = None
         except Exception:
             user_email = None
     
-    return user_email and user_email in MASTER_USERS
+    return user_email is not None and user_email in MASTER_USERS
 
-def can_use_nudges(user_email: str = None) -> bool:
+def can_use_nudges(user_email: str | None = None) -> bool:
     """Check if user can access web-only nudging features."""
     # Master users always get access
     if _is_master_user(user_email):
@@ -115,7 +118,7 @@ def can_use_nudges(user_email: str = None) -> bool:
     logger.debug(f"Nudges flag for user {user_email}: {enabled}")
     return enabled
 
-def can_edit_in_chat(user_email: str = None) -> bool:
+def can_edit_in_chat(user_email: str | None = None) -> bool:
     """Check if user can use chat expense editing."""
     # Master users always get access
     if _is_master_user(user_email):
@@ -123,7 +126,7 @@ def can_edit_in_chat(user_email: str = None) -> bool:
     
     return _get_env_bool("CHAT_EDIT_ENABLED", False)
 
-def can_receive_spending_alerts(user_email: str = None) -> bool:
+def can_receive_spending_alerts(user_email: str | None = None) -> bool:
     """Check if user can receive spending spike alerts."""
     # Master users always get access
     if _is_master_user(user_email):
@@ -131,7 +134,7 @@ def can_receive_spending_alerts(user_email: str = None) -> bool:
     
     return _get_env_bool("SPENDING_ALERTS_ENABLED", False)
 
-def can_use_push_notifications(user_email: str = None) -> bool:
+def can_use_push_notifications(user_email: str | None = None) -> bool:
     """Check if user can use push notifications."""
     # Master users always get access  
     if _is_master_user(user_email):
@@ -139,7 +142,7 @@ def can_use_push_notifications(user_email: str = None) -> bool:
     
     return _get_env_bool("PUSH_NOTIFICATIONS_ENABLED", False)
 
-def get_nudging_features_status(user_email: str = None) -> dict:
+def get_nudging_features_status(user_email: str | None = None) -> dict:
     """Get status of all nudging features for a user."""
     return {
         "nudges_enabled": can_use_nudges(user_email),
