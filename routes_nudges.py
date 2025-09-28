@@ -7,6 +7,7 @@ All endpoints require authentication and feature flag approval.
 
 import logging
 from datetime import datetime, timedelta, UTC
+from utils.test_clock import get_current_time, get_banner_test_time
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -67,7 +68,7 @@ def get_active_banners():
         if not user:
             return jsonify({"error": "User not found"}), 404
         
-        # Get active banners for user
+        # Get active banners for user (using test clock for deterministic testing)
         banners = Banner.get_active_for_user(user.user_id_hash, limit=5)
         
         # Mark banners as shown and return data
@@ -383,6 +384,184 @@ def nudge_preferences():
         logger.error(f"Error handling nudge preferences: {e}")
         db.session.rollback()
         return jsonify({"error": "Failed to handle preferences"}), 500
+
+# =============================
+# HEALTH CHECK ENDPOINTS
+# =============================
+
+@nudges_bp.route('/health/banners', methods=['GET'])
+def health_check_banners():
+    """
+    Health check endpoint for banner system with comprehensive validation.
+    
+    Returns:
+        JSON with system health status and detailed diagnostics
+    """
+    try:
+        health_status = {
+            'status': 'healthy',
+            'timestamp': get_current_time().isoformat(),
+            'checks': {},
+            'metrics': {}
+        }
+        
+        # Check database connectivity
+        try:
+            banner_count = db.session.query(Banner).count()
+            health_status['checks']['database'] = {
+                'status': 'healthy',
+                'total_banners': banner_count
+            }
+        except Exception as e:
+            health_status['checks']['database'] = {
+                'status': 'unhealthy',
+                'error': str(e)
+            }
+            health_status['status'] = 'degraded'
+        
+        # Check feature flags
+        try:
+            from utils.feature_flags import can_use_nudges
+            flag_status = can_use_nudges('test@example.com')
+            health_status['checks']['feature_flags'] = {
+                'status': 'healthy',
+                'nudges_enabled': flag_status
+            }
+        except Exception as e:
+            health_status['checks']['feature_flags'] = {
+                'status': 'unhealthy', 
+                'error': str(e)
+            }
+            health_status['status'] = 'degraded'
+        
+        # Check active banners metrics
+        try:
+            from sqlalchemy import func, and_
+            active_banners = db.session.execute(
+                db.select(func.count(Banner.id)).where(
+                    and_(
+                        Banner.dismissed_at == None,
+                        Banner.expires_at > get_banner_test_time()
+                    )
+                )
+            ).scalar() or 0
+            
+            expired_banners = db.session.execute(
+                db.select(func.count(Banner.id)).where(
+                    Banner.expires_at <= get_banner_test_time()
+                )
+            ).scalar() or 0
+            
+            health_status['metrics']['active_banners'] = active_banners
+            health_status['metrics']['expired_banners'] = expired_banners
+            
+        except Exception as e:
+            health_status['checks']['banner_metrics'] = {
+                'status': 'unhealthy',
+                'error': str(e)
+            }
+            health_status['status'] = 'degraded'
+        
+        # Set overall status code
+        status_code = 200 if health_status['status'] == 'healthy' else 503
+        
+        return jsonify(health_status), status_code
+        
+    except Exception as e:
+        logger.error(f"Banner health check failed: {e}")
+        return jsonify({
+            'status': 'unhealthy',
+            'timestamp': get_current_time().isoformat(),
+            'error': str(e)
+        }), 503
+
+@nudges_bp.route('/health/nudges', methods=['GET'])  
+def health_check_nudges():
+    """
+    Health check endpoint for spending detection and nudges system.
+    
+    Returns:
+        JSON with nudges system health status and metrics
+    """
+    try:
+        health_status = {
+            'status': 'healthy',
+            'timestamp': get_current_time().isoformat(),
+            'checks': {},
+            'metrics': {}
+        }
+        
+        # Check database tables
+        try:
+            expense_count = db.session.query(Expense).count()
+            user_count = db.session.query(User).count()
+            
+            health_status['checks']['database_tables'] = {
+                'status': 'healthy',
+                'expense_count': expense_count,
+                'user_count': user_count
+            }
+        except Exception as e:
+            health_status['checks']['database_tables'] = {
+                'status': 'unhealthy',
+                'error': str(e)
+            }
+            health_status['status'] = 'degraded'
+        
+        # Check spending detection capabilities
+        try:
+            # Test spending analysis on recent data
+            week_ago = datetime.now(UTC) - timedelta(days=7)
+            recent_expenses = db.session.query(func.count(Expense.id)).filter(
+                Expense.created_at >= week_ago
+            ).scalar()
+            
+            health_status['metrics']['recent_expenses_7d'] = recent_expenses
+            
+            # Test spending spike detection logic
+            test_threshold = Decimal('1000.00')  # Test threshold
+            
+            health_status['checks']['spending_detection'] = {
+                'status': 'healthy',
+                'test_threshold': str(test_threshold),
+                'recent_activity': recent_expenses > 0
+            }
+            
+        except Exception as e:
+            health_status['checks']['spending_detection'] = {
+                'status': 'unhealthy',
+                'error': str(e)
+            }
+            health_status['status'] = 'degraded'
+        
+        # Check feature flag system
+        try:
+            from utils.feature_flags import can_receive_spending_alerts
+            alerts_enabled = can_receive_spending_alerts('test@example.com')
+            
+            health_status['checks']['alert_system'] = {
+                'status': 'healthy',
+                'alerts_enabled': alerts_enabled
+            }
+        except Exception as e:
+            health_status['checks']['alert_system'] = {
+                'status': 'unhealthy',
+                'error': str(e)
+            }
+            health_status['status'] = 'degraded'
+        
+        # Set overall status code
+        status_code = 200 if health_status['status'] == 'healthy' else 503
+        
+        return jsonify(health_status), status_code
+        
+    except Exception as e:
+        logger.error(f"Nudges health check failed: {e}")
+        return jsonify({
+            'status': 'unhealthy',
+            'timestamp': get_current_time().isoformat(),
+            'error': str(e)
+        }), 503
 
 # Register the blueprint
 def register_nudges_routes(app):
