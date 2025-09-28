@@ -13,6 +13,7 @@ from flask import request
 
 from db_base import db
 from models import Expense, ExpenseEdit
+from utils.money import normalize_amount_fields
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,10 @@ class ExpenseEditor:
             old_values = {}
             if 'amount' in changes:
                 old_values['amount'] = expense.amount
-                expense.amount = changes['amount'][1]
+                # Use money normalization to ensure consistency
+                normalized_amount, normalized_minor = normalize_amount_fields(changes['amount'][1])
+                expense.amount = normalized_amount
+                expense.amount_minor = normalized_minor
             
             if 'category' in changes:
                 old_values['category'] = expense.category  

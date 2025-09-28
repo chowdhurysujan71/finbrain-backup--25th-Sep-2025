@@ -43,17 +43,11 @@ def normalize_amount_fields(amount: Optional[float]) -> Tuple[Optional[float], O
             rounding=ROUND_HALF_UP
         )
         
-        # Convert back to float for database storage
-        normalized_amount = float(decimal_amount)
-        
-        # Calculate minor units (cents) with precise conversion
+        # Calculate minor units (cents) with precise Decimal conversion
         amount_minor = int((decimal_amount * 100).to_integral_value(rounding=ROUND_HALF_UP))
         
-        # Validation: Ensure consistency
-        expected_minor = int(normalized_amount * 100)
-        if amount_minor != expected_minor:
-            logger.warning(f"Minor unit calculation discrepancy: {amount_minor} vs {expected_minor}")
-            amount_minor = expected_minor
+        # Keep as Decimal for precision, convert to float only for database compatibility
+        normalized_amount = float(decimal_amount)
         
         logger.debug(f"Normalized {amount} -> amount={normalized_amount}, minor={amount_minor}")
         return normalized_amount, amount_minor
