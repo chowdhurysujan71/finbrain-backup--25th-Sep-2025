@@ -1,0 +1,389 @@
+"""
+Web-only nudging API endpoints for FinBrain.
+
+Provides banner management and spending detection APIs behind feature flags.
+All endpoints require authentication and feature flag approval.
+"""
+
+import logging
+from datetime import datetime, timedelta, UTC
+from decimal import Decimal
+from typing import Dict, List, Optional
+
+from flask import Blueprint, request, jsonify, g
+from flask_login import login_required, current_user
+from sqlalchemy import func, and_, or_
+from sqlalchemy.orm import joinedload
+
+from db_base import db
+from models import Banner, Expense, User
+from utils.feature_flags import can_use_nudges, can_receive_spending_alerts
+from utils.money import normalize_amount_fields
+
+logger = logging.getLogger(__name__)
+
+# Create blueprint for nudging endpoints
+nudges_bp = Blueprint('nudges', __name__, url_prefix='/api')
+
+def require_nudges_enabled(f):
+    """Decorator to ensure nudges are enabled for the user."""
+    def wrapper(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return jsonify({"error": "Authentication required"}), 401
+        
+        if not can_use_nudges(current_user.email):
+            return jsonify({"error": "Nudges not enabled for this user"}), 403
+        
+        return f(*args, **kwargs)
+    wrapper.__name__ = f.__name__
+    return wrapper
+
+def require_spending_alerts_enabled(f):
+    """Decorator to ensure spending alerts are enabled for the user."""
+    def wrapper(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return jsonify({"error": "Authentication required"}), 401
+        
+        if not can_receive_spending_alerts(current_user.email):
+            return jsonify({"error": "Spending alerts not enabled for this user"}), 403
+        
+        return f(*args, **kwargs)
+    wrapper.__name__ = f.__name__
+    return wrapper
+
+@nudges_bp.route('/banners', methods=['GET'])
+@login_required
+@require_nudges_enabled
+def get_active_banners():
+    """
+    Get active banners for the current user.
+    
+    Returns:
+        JSON array of active banners ordered by priority
+    """
+    try:
+        # Get user's ID hash
+        user = User.query.filter_by(email=current_user.email).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Get active banners for user
+        banners = Banner.get_active_for_user(user.user_id_hash, limit=5)
+        
+        # Mark banners as shown and return data
+        banner_data = []
+        for banner in banners:
+            banner.mark_shown()
+            banner_data.append(banner.to_dict())
+        
+        # Commit the shown updates
+        db.session.commit()
+        
+        logger.info(f"Retrieved {len(banner_data)} active banners for user {user.email}")
+        return jsonify({
+            "banners": banner_data,
+            "total_count": len(banner_data),
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error retrieving banners: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to retrieve banners"}), 500
+
+@nudges_bp.route('/banners/<int:banner_id>/dismiss', methods=['POST'])
+@login_required
+@require_nudges_enabled
+def dismiss_banner(banner_id: int):
+    """
+    Dismiss a banner by ID.
+    
+    Args:
+        banner_id: ID of banner to dismiss
+        
+    Returns:
+        JSON success response
+    """
+    try:
+        # Get user's ID hash
+        user = User.query.filter_by(email=current_user.email).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Find the banner
+        banner = Banner.query.filter_by(
+            id=banner_id,
+            user_id_hash=user.user_id_hash
+        ).first()
+        
+        if not banner:
+            return jsonify({"error": "Banner not found"}), 404
+        
+        if not banner.dismissible:
+            return jsonify({"error": "Banner cannot be dismissed"}), 400
+        
+        # Dismiss the banner
+        banner.dismiss()
+        db.session.commit()
+        
+        logger.info(f"User {user.email} dismissed banner {banner_id}")
+        return jsonify({
+            "success": True,
+            "message": "Banner dismissed successfully",
+            "banner_id": banner_id
+        })
+        
+    except Exception as e:
+        logger.error(f"Error dismissing banner {banner_id}: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to dismiss banner"}), 500
+
+@nudges_bp.route('/banners/<int:banner_id>/click', methods=['POST'])
+@login_required
+@require_nudges_enabled
+def click_banner_action(banner_id: int):
+    """
+    Record banner action click.
+    
+    Args:
+        banner_id: ID of banner that was clicked
+        
+    Returns:
+        JSON success response
+    """
+    try:
+        # Get user's ID hash
+        user = User.query.filter_by(email=current_user.email).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Find the banner
+        banner = Banner.query.filter_by(
+            id=banner_id,
+            user_id_hash=user.user_id_hash
+        ).first()
+        
+        if not banner:
+            return jsonify({"error": "Banner not found"}), 404
+        
+        # Record the click
+        banner.click_action()
+        db.session.commit()
+        
+        logger.info(f"User {user.email} clicked banner {banner_id} action")
+        return jsonify({
+            "success": True,
+            "message": "Banner click recorded",
+            "banner_id": banner_id,
+            "action_url": banner.action_url
+        })
+        
+    except Exception as e:
+        logger.error(f"Error recording banner click {banner_id}: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to record banner click"}), 500
+
+@nudges_bp.route('/nudges/check-today', methods=['GET'])
+@login_required
+@require_spending_alerts_enabled
+def check_spending_today():
+    """
+    Check for spending spike alerts for today.
+    
+    Returns:
+        JSON with spending analysis and any triggered alerts
+    """
+    try:
+        # Get user's ID hash
+        user = User.query.filter_by(email=current_user.email).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Get today's date
+        today = datetime.now(UTC).date()
+        
+        # Calculate today's spending
+        today_expenses = Expense.query_active().filter(
+            Expense.user_id_hash == user.user_id_hash,
+            Expense.date == today
+        ).all()
+        
+        today_total = sum(float(expense.amount) for expense in today_expenses)
+        
+        # Calculate recent average (last 7 days, excluding today)
+        week_ago = today - timedelta(days=7)
+        recent_expenses = Expense.query_active().filter(
+            Expense.user_id_hash == user.user_id_hash,
+            Expense.date >= week_ago,
+            Expense.date < today
+        ).all()
+        
+        # Calculate daily averages
+        daily_totals = {}
+        for expense in recent_expenses:
+            date_key = expense.date.isoformat()
+            daily_totals[date_key] = daily_totals.get(date_key, 0) + float(expense.amount)
+        
+        avg_daily = sum(daily_totals.values()) / max(len(daily_totals), 1)
+        
+        # Determine if this is a spending spike
+        spike_threshold = avg_daily * 1.5  # 50% above average
+        high_threshold = avg_daily * 2.0   # 100% above average
+        
+        is_spike = today_total > spike_threshold
+        is_high_spike = today_total > high_threshold
+        
+        # Check if we should create an alert banner
+        should_alert = is_spike and today_total > 500  # Minimum 500 BDT threshold
+        
+        alert_banner = None
+        if should_alert:
+            # Check if we already have an alert for today
+            existing_alert = Banner.query_active().filter(
+                Banner.user_id_hash == user.user_id_hash,
+                Banner.banner_type == 'spending_alert',
+                func.date(Banner.created_at) == today
+            ).first()
+            
+            if not existing_alert:
+                # Create spending alert banner
+                alert_style = 'error' if is_high_spike else 'warning'
+                alert_title = f"High Spending Alert: ৳{today_total:,.0f} today"
+                alert_message = f"You've spent ৳{today_total:,.0f} today, which is {(today_total/avg_daily*100):,.0f}% of your recent daily average (৳{avg_daily:,.0f}). Consider reviewing your expenses."
+                
+                banner = Banner(
+                    user_id_hash=user.user_id_hash,
+                    banner_type='spending_alert',
+                    title=alert_title,
+                    message=alert_message,
+                    action_text="View Today's Expenses",
+                    action_url="/chat?filter=today",
+                    priority=2,  # High priority
+                    style=alert_style,
+                    trigger_data={
+                        'amount': today_total,
+                        'threshold': spike_threshold,
+                        'period': 'daily',
+                        'avg_daily': avg_daily
+                    },
+                    expires_at=datetime.now(UTC) + timedelta(hours=12)
+                )
+                
+                db.session.add(banner)
+                db.session.commit()
+                
+                alert_banner = banner.to_dict()
+                logger.info(f"Created spending alert for user {user.email}: ৳{today_total} vs avg ৳{avg_daily}")
+        
+        return jsonify({
+            "analysis": {
+                "today_total": today_total,
+                "today_count": len(today_expenses),
+                "avg_daily": round(avg_daily, 2),
+                "recent_days_count": len(daily_totals),
+                "is_spike": is_spike,
+                "is_high_spike": is_high_spike,
+                "spike_threshold": round(spike_threshold, 2),
+                "analysis_date": today.isoformat()
+            },
+            "alert_created": alert_banner is not None,
+            "alert_banner": alert_banner,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error checking spending alerts: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to check spending alerts"}), 500
+
+@nudges_bp.route('/nudges/prefs', methods=['GET', 'POST'])
+@login_required
+@require_nudges_enabled
+def nudge_preferences():
+    """
+    Get or update user's nudge preferences.
+    
+    GET: Returns current preferences
+    POST: Updates preferences
+    """
+    try:
+        # Get user
+        user = User.query.filter_by(email=current_user.email).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        if request.method == 'GET':
+            # Return current preferences
+            prefs = user.preferences or {}
+            nudge_prefs = prefs.get('nudges', {})
+            
+            return jsonify({
+                "preferences": {
+                    "spending_alerts_enabled": nudge_prefs.get('spending_alerts', True),
+                    "streak_reminders_enabled": nudge_prefs.get('streak_reminders', True),
+                    "category_tips_enabled": nudge_prefs.get('category_tips', True),
+                    "milestone_notifications_enabled": nudge_prefs.get('milestones', True),
+                    "alert_threshold_multiplier": nudge_prefs.get('threshold_multiplier', 1.5),
+                    "minimum_alert_amount": nudge_prefs.get('min_alert_amount', 500)
+                },
+                "last_updated": prefs.get('nudges_updated_at'),
+                "user_email": user.email
+            })
+        
+        elif request.method == 'POST':
+            # Update preferences
+            data = request.get_json()
+            if not data:
+                return jsonify({"error": "No data provided"}), 400
+            
+            # Get current preferences
+            prefs = user.preferences or {}
+            nudge_prefs = prefs.get('nudges', {})
+            
+            # Update with new values
+            if 'spending_alerts_enabled' in data:
+                nudge_prefs['spending_alerts'] = bool(data['spending_alerts_enabled'])
+            
+            if 'streak_reminders_enabled' in data:
+                nudge_prefs['streak_reminders'] = bool(data['streak_reminders_enabled'])
+            
+            if 'category_tips_enabled' in data:
+                nudge_prefs['category_tips'] = bool(data['category_tips_enabled'])
+            
+            if 'milestone_notifications_enabled' in data:
+                nudge_prefs['milestones'] = bool(data['milestone_notifications_enabled'])
+            
+            if 'alert_threshold_multiplier' in data:
+                multiplier = float(data['alert_threshold_multiplier'])
+                if 1.0 <= multiplier <= 3.0:  # Reasonable range
+                    nudge_prefs['threshold_multiplier'] = multiplier
+            
+            if 'minimum_alert_amount' in data:
+                min_amount = float(data['minimum_alert_amount'])
+                if min_amount >= 0:
+                    nudge_prefs['min_alert_amount'] = min_amount
+            
+            # Save updated preferences
+            prefs['nudges'] = nudge_prefs
+            prefs['nudges_updated_at'] = datetime.utcnow().isoformat()
+            user.preferences = prefs
+            
+            db.session.commit()
+            
+            logger.info(f"Updated nudge preferences for user {user.email}")
+            return jsonify({
+                "success": True,
+                "message": "Preferences updated successfully",
+                "preferences": nudge_prefs
+            })
+        
+    except Exception as e:
+        logger.error(f"Error handling nudge preferences: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to handle preferences"}), 500
+
+# Register the blueprint
+def register_nudges_routes(app):
+    """Register nudging routes with the Flask app."""
+    app.register_blueprint(nudges_bp)
+    logger.info("✓ Nudge API routes registered")

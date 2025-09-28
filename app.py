@@ -2439,6 +2439,15 @@ try:
 except ImportError as e:
     logger.warning(f"PWA UI routes not available: {e}")
 
+# Register Nudge API routes (behind feature flags)
+try:
+    from routes_nudges import nudges_bp
+    if 'nudges' not in app.blueprints:
+        app.register_blueprint(nudges_bp)
+        logger.info("✓ Nudge API routes registered (/api/banners, /api/nudges/*)")
+except ImportError as e:
+    logger.warning(f"Nudge API routes not available: {e}")
+
 # Register Backend Assistant API routes
 try:
     from routes_backend_assistant import backend_api
