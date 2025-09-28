@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let res, data;
     try {
-      res = await fetch('/auth/register', {
+      res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         credentials: 'include',
