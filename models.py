@@ -70,7 +70,7 @@ class Expense(db.Model):
     @classmethod
     def query_active(cls):
         """Query only non-deleted expenses"""
-        return cls.query.filter(~cls.is_deleted)
+        return cls.query.filter(cls.is_deleted.is_(False))
     
     def __repr__(self):
         return f'<Expense {self.id}: {self.description} - {self.amount}>'
@@ -193,7 +193,7 @@ class User(db.Model):
     @classmethod
     def query_active(cls):
         """Query only non-deleted users"""
-        return cls.query.filter(~cls.is_deleted)
+        return cls.query.filter(cls.is_deleted.is_(False))
     
     def to_dict(self):
         """Convert user to dictionary for AI processing"""
@@ -437,7 +437,7 @@ class Banner(db.Model):
     def query_active(cls):
         """Query only non-deleted, non-dismissed banners"""
         return cls.query.filter(
-            cls.is_deleted == False,
+            cls.is_deleted.is_(False),
             cls.dismissed_at.is_(None)
         )
     
