@@ -27,3 +27,4 @@ alembic
 psycopg2-binary
 requests
 alembic
+psycopg2-binary
