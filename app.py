@@ -16,6 +16,9 @@ log_level = logging.INFO if os.environ.get('ENV') == 'production' else logging.D
 logging.basicConfig(level=log_level, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# SAFETY GUARD: Ensure web-only mode (no Facebook Messenger)
+assert os.environ.get("MESSAGING_CHANNEL", "web") == "web", "Only web chat supported - Facebook Messenger code quarantined"
+
 def validate_required_environment():
     """Validate all required environment variables are present at boot"""
     required_envs = [
