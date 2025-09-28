@@ -437,7 +437,7 @@ class Banner(db.Model):
     def query_active(cls):
         """Query only non-deleted, non-dismissed banners"""
         return cls.query.filter(
-            ~cls.is_deleted,
+            cls.is_deleted == False,
             cls.dismissed_at.is_(None)
         )
     
@@ -448,7 +448,7 @@ class Banner(db.Model):
         now = datetime.now(UTC)
         return cls.query_active().filter(
             cls.user_id_hash == user_id_hash,
-            (cls.expires_at.is_(None)) | (cls.expires_at > now)
+            db.or_(cls.expires_at.is_(None), cls.expires_at > now)
         ).order_by(cls.priority.asc(), cls.created_at.desc()).limit(limit).all()
     
     def mark_shown(self):
