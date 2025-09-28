@@ -13,7 +13,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from utils.production_router import production_router
 
-from .facebook_handler import send_facebook_message
+# from .facebook_handler import send_facebook_message  # QUARANTINED: Web-only mode
 from .identity import psid_hash
 from .logger import log_webhook_success
 from .policy_guard import is_within_24_hour_window, update_user_message_timestamp

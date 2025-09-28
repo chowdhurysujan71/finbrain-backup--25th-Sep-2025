@@ -13,7 +13,7 @@ import os
 
 import requests
 
-from utils.facebook_handler import send_message
+# from utils.facebook_handler import send_message  # QUARANTINED: Web-only mode
 
 logger = logging.getLogger(__name__)
 

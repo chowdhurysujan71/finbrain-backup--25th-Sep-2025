@@ -19,7 +19,7 @@ from utils.context_packet import (
     get_thin_context_reply,
     is_context_thin,
 )
-from utils.facebook_handler import send_message
+# from utils.facebook_handler import send_message  # QUARANTINED: Web-only mode
 from utils.quick_reply_system import send_custom_quick_replies
 from utils.ux_components import format_coach_reply, record_event
 
