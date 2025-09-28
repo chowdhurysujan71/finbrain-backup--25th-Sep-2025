@@ -2442,11 +2442,24 @@ except ImportError as e:
 # Register Nudge API routes (behind feature flags)
 try:
     from routes_nudges import nudges_bp
+    logger.info(f"✓ Nudges blueprint imported: {nudges_bp}")
+    logger.info(f"✓ Blueprint URL prefix: {nudges_bp.url_prefix}")
+    
     if 'nudges' not in app.blueprints:
         app.register_blueprint(nudges_bp)
         logger.info("✓ Nudge API routes registered (/api/banners, /api/nudges/*)")
+        
+        # Debug: Check what routes were actually registered
+        banner_routes = [str(rule) for rule in app.url_map.iter_rules() if 'banner' in str(rule)]
+        logger.info(f"✓ Banner routes found: {banner_routes}")
+    else:
+        logger.warning("Nudges blueprint already registered")
 except ImportError as e:
     logger.warning(f"Nudge API routes not available: {e}")
+except Exception as e:
+    logger.error(f"Failed to register nudges blueprint: {e}")
+    import traceback
+    logger.error(f"Traceback: {traceback.format_exc()}")
 
 # Register Backend Assistant API routes
 try:
