@@ -374,3 +374,128 @@ class PendingExpense(db.Model):
             'created_at': self.created_at,
             'expires_at': self.expires_at
         }
+
+class Banner(db.Model):
+    """In-app nudges and banners for web-only interface"""
+    __tablename__ = 'banners'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id_hash = db.Column(db.String(255), nullable=False, index=True)  # SHA-256 hashed user identifier
+    
+    # Banner content and configuration
+    banner_type = db.Column(db.String(50), nullable=False)  # 'spending_alert', 'streak_reminder', 'category_tip', 'milestone'
+    title = db.Column(db.String(200), nullable=False)  # Banner title/headline
+    message = db.Column(db.Text, nullable=False)  # Banner message content
+    action_text = db.Column(db.String(100), nullable=True)  # Optional CTA button text
+    action_url = db.Column(db.String(500), nullable=True)  # Optional CTA URL or route
+    
+    # Display configuration
+    priority = db.Column(db.Integer, default=5, nullable=False)  # 1=highest, 10=lowest priority
+    style = db.Column(db.String(20), default='info')  # 'info', 'warning', 'success', 'error'
+    dismissible = db.Column(db.Boolean, default=True, nullable=False)  # Can user dismiss?
+    auto_hide_seconds = db.Column(db.Integer, nullable=True)  # Auto-hide after N seconds (null = manual dismiss)
+    
+    # Trigger metadata for spending alerts
+    trigger_data = db.Column(JSON, default=dict)  # {amount: 1500, threshold: 1000, period: 'daily'}
+    context_expense_id = db.Column(db.Integer, db.ForeignKey('expenses.id'), nullable=True)  # Related expense if applicable
+    
+    # State tracking
+    shown_count = db.Column(db.Integer, default=0, nullable=False)  # How many times shown
+    last_shown_at = db.Column(db.DateTime, nullable=True)  # When last displayed
+    dismissed_at = db.Column(db.DateTime, nullable=True)  # When user dismissed (null = still active)
+    clicked_at = db.Column(db.DateTime, nullable=True)  # When user clicked action (null = not clicked)
+    
+    # Lifecycle timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=True)  # Banner expiry (null = no expiry)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Soft delete support
+    deleted_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
+    
+    # Constraint: active banners should not exceed reasonable limits per user
+    __table_args__ = (
+        db.CheckConstraint("priority >= 1 AND priority <= 10", name='ck_banner_priority_range'),
+        db.CheckConstraint("style IN ('info', 'warning', 'success', 'error')", name='ck_banner_style'),
+        db.CheckConstraint("banner_type IN ('spending_alert', 'streak_reminder', 'category_tip', 'milestone', 'onboarding', 'feature_tip')", name='ck_banner_type'),
+        db.Index('ix_banners_user_active', 'user_id_hash', 'is_deleted', 'dismissed_at'),
+        db.Index('ix_banners_priority_created', 'priority', 'created_at'),
+    )
+    
+    def soft_delete(self):
+        """Soft delete this banner"""
+        self.is_deleted = True
+        self.deleted_at = datetime.now(UTC)
+    
+    def restore(self):
+        """Restore this banner from soft delete"""
+        self.is_deleted = False
+        self.deleted_at = None
+    
+    @classmethod
+    def query_active(cls):
+        """Query only non-deleted, non-dismissed banners"""
+        return cls.query.filter(
+            ~cls.is_deleted,
+            cls.dismissed_at.is_(None)
+        )
+    
+    @classmethod
+    def get_active_for_user(cls, user_id_hash: str, limit: int = 5):
+        """Get active banners for a user ordered by priority"""
+        from datetime import timezone
+        now = datetime.now(UTC)
+        return cls.query_active().filter(
+            cls.user_id_hash == user_id_hash,
+            (cls.expires_at.is_(None)) | (cls.expires_at > now)
+        ).order_by(cls.priority.asc(), cls.created_at.desc()).limit(limit).all()
+    
+    def mark_shown(self):
+        """Mark banner as shown (increment counter)"""
+        self.shown_count += 1
+        self.last_shown_at = datetime.utcnow()
+    
+    def dismiss(self):
+        """Mark banner as dismissed by user"""
+        self.dismissed_at = datetime.utcnow()
+    
+    def click_action(self):
+        """Mark banner action as clicked"""
+        self.clicked_at = datetime.utcnow()
+    
+    def is_active(self) -> bool:
+        """Check if banner is currently active and should be shown"""
+        if self.is_deleted or self.dismissed_at:
+            return False
+        
+        now = datetime.now(UTC)
+        if self.expires_at and self.expires_at <= now:
+            return False
+        
+        return True
+    
+    def to_dict(self):
+        """Convert banner to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'banner_type': self.banner_type,
+            'title': self.title,
+            'message': self.message,
+            'action_text': self.action_text,
+            'action_url': self.action_url,
+            'priority': self.priority,
+            'style': self.style,
+            'dismissible': self.dismissible,
+            'auto_hide_seconds': self.auto_hide_seconds,
+            'trigger_data': self.trigger_data or {},
+            'context_expense_id': self.context_expense_id,
+            'shown_count': self.shown_count,
+            'last_shown_at': self.last_shown_at.isoformat() if self.last_shown_at else None,
+            'created_at': self.created_at.isoformat(),
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None,
+            'is_active': self.is_active()
+        }
+    
+    def __repr__(self):
+        return f'<Banner {self.id}: {self.banner_type} for {self.user_id_hash[:8]}...>'
