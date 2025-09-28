@@ -376,6 +376,9 @@ def nudge_preferences():
                 "preferences": nudge_prefs
             })
         
+        # Should never reach here due to method restriction, but LSP requires it
+        return jsonify({"error": "Method not allowed"}), 405
+        
     except Exception as e:
         logger.error(f"Error handling nudge preferences: {e}")
         db.session.rollback()
