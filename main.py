@@ -53,19 +53,6 @@ try:
             logger.error(f"✗ Database connection failed: {str(e)}")
             sys.exit(1)
     
-    # Add debug route to see all registered routes
-    @app.route('/__routes')
-    def debug_routes():
-        """Debug route to see all registered routes"""
-        routes = []
-        for rule in app.url_map.iter_rules():
-            routes.append({
-                'rule': str(rule),
-                'methods': list(rule.methods),
-                'endpoint': rule.endpoint
-            })
-        return {"routes": routes}
-    
     logger.info("✓ finbrain application ready for deployment")
     
 except ImportError as e:
