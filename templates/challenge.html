@@ -6,196 +6,350 @@
 <div class="page-container">
     <!-- Hero Section -->
     <header class="hero-section">
-        <h1 class="hero-title">3-Day Challenge</h1>
-        <p class="hero-subtitle">Build better spending habits with AI guidance</p>
+        <h1 class="hero-title">Daily Spending Challenge</h1>
+        <p class="hero-subtitle">Set goals and track your spending progress with AI insights</p>
     </header>
 
-    <!-- Challenge Progress -->
-    <section class="card challenge-card" aria-labelledby="challenge-title">
-        <h2 id="challenge-title" class="card-title">Your Progress</h2>
-        
-        <div class="challenge-progress">
-            <div class="progress-header">
-                <span class="progress-text">Day 2 of 3</span>
-                <span class="progress-percentage">67%</span>
+    {% if active_goals and goal_progress %}
+        <!-- Active Goal Section -->
+        <section class="card goal-active-card" aria-labelledby="active-goal-title">
+            <div class="goal-header">
+                <h2 id="active-goal-title" class="card-title">Your Active Goal</h2>
+                <div class="goal-actions">
+                    <button class="btn btn-sm btn-neutral" onclick="editGoal({{ active_goals[0].id }})">
+                        <i class="fa fa-edit"></i> Edit
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="removeGoal({{ active_goals[0].id }})">
+                        <i class="fa fa-trash"></i> Remove
+                    </button>
+                </div>
             </div>
             
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: 67%"></div>
+            <div class="current-goal">
+                <div class="goal-display">
+                    <div class="goal-icon">🎯</div>
+                    <div class="goal-content">
+                        <h3 class="goal-title">Daily Spending Limit</h3>
+                        <p class="goal-amount">Stay under {% if goal_progress.goal.currency == 'BDT' %}৳{% else %}{{ goal_progress.goal.currency }} {% endif %}{{ "%.0f"|format(goal_progress.goal.amount) }} per day</p>
+                        <p class="goal-description">Track your daily expenses and stay within your budget</p>
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
 
-        <div class="challenge-streak">
-            <div class="streak-icon">🔥</div>
-            <span class="streak-text">2 day streak! Keep it going!</span>
-        </div>
-    </section>
-
-    <!-- Daily Goals -->
-    <section class="goals-section" aria-labelledby="goals-title">
-        <h2 id="goals-title" class="section-title">Today's Goals</h2>
-        
-        <div class="goals-list">
-            <div class="goal-item completed">
-                <div class="goal-checkbox">✓</div>
-                <div class="goal-content">
-                    <h3 class="goal-title">Log 3 expenses</h3>
-                    <p class="goal-description">Track all your spending throughout the day</p>
-                    <div class="goal-progress">3/3 completed</div>
+        <!-- Weekly Progress Section -->
+        <section class="card progress-card" aria-labelledby="progress-title">
+            <h2 id="progress-title" class="card-title">This Week's Progress</h2>
+            
+            <div class="week-summary">
+                <div class="summary-stats">
+                    <div class="stat-item success">
+                        <div class="stat-value">{{ goal_progress.summary.ok_days }}</div>
+                        <div class="stat-label">Days Under Budget</div>
+                    </div>
+                    <div class="stat-item warning">
+                        <div class="stat-value">{{ goal_progress.summary.over_days }}</div>
+                        <div class="stat-label">Days Over Budget</div>
+                    </div>
+                    <div class="stat-item info">
+                        <div class="stat-value">{{ goal_progress.summary.total_days_with_spending }}</div>
+                        <div class="stat-label">Days with Spending</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="goal-item completed">
-                <div class="goal-checkbox">✓</div>
-                <div class="goal-content">
-                    <h3 class="goal-title">Stay under ৳500</h3>
-                    <p class="goal-description">Keep daily spending within budget</p>
-                    <div class="goal-progress">৳450/৳500 spent</div>
+            <div class="daily-breakdown">
+                <h3 class="breakdown-title">Daily Breakdown</h3>
+                <div class="days-grid">
+                    {% for day in goal_progress.days %}
+                    <div class="day-item {{ 'today' if day.is_today else '' }} {{ 'success' if day.ok else 'danger' if day.spent > 0 else 'neutral' }}">
+                        <div class="day-header">
+                            <span class="day-name">{{ day.day_name[:3] }}</span>
+                            {% if day.is_today %}
+                                <span class="today-badge">Today</span>
+                            {% endif %}
+                        </div>
+                        <div class="day-progress">
+                            <div class="day-spent">{% if goal_progress.goal.currency == 'BDT' %}৳{% else %}{{ goal_progress.goal.currency }} {% endif %}{{ "%.0f"|format(day.spent) }}</div>
+                            <div class="day-limit">/ {% if goal_progress.goal.currency == 'BDT' %}৳{% else %}{{ goal_progress.goal.currency }} {% endif %}{{ "%.0f"|format(day.limit) }}</div>
+                        </div>
+                        <div class="day-status">
+                            {% if day.spent == 0 %}
+                                <i class="fa fa-minus-circle text-muted"></i>
+                            {% elif day.ok %}
+                                <i class="fa fa-check-circle text-success"></i>
+                            {% else %}
+                                <i class="fa fa-times-circle text-danger"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
+        </section>
 
-            <div class="goal-item pending">
-                <div class="goal-checkbox">○</div>
-                <div class="goal-content">
-                    <h3 class="goal-title">Review spending</h3>
-                    <p class="goal-description">Check your expense categories</p>
-                    <div class="goal-progress">Not started</div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Challenge Insights -->
-    <section class="card insights-card" aria-labelledby="insights-title">
-        <h2 id="insights-title" class="card-title">Challenge Insights</h2>
-        
-        <div class="insight-stats">
-            <div class="stat-item">
-                <div class="stat-value">৳1,200</div>
-                <div class="stat-label">Total Saved</div>
-            </div>
+        <!-- Quick Actions -->
+        <section class="challenge-actions">
+            <button class="btn btn-primary btn-full" onclick="window.location.href='/chat'">
+                <i class="fa fa-plus"></i> Log Today's Expenses
+            </button>
             
-            <div class="stat-item">
-                <div class="stat-value">8</div>
-                <div class="stat-label">Goals Completed</div>
-            </div>
-            
-            <div class="stat-item">
-                <div class="stat-value">92%</div>
-                <div class="stat-label">Success Rate</div>
-            </div>
-        </div>
+            <button class="btn btn-neutral btn-full" onclick="window.location.href='/report'">
+                <i class="fa fa-chart-bar"></i> View Detailed Report
+            </button>
+        </section>
 
-        <div class="challenge-tip">
-            <div class="tip-icon">💡</div>
-            <div class="tip-content">
-                <h3 class="tip-title">Today's Tip</h3>
-                <p class="tip-text">You're doing great! Try using cash for small purchases to be more mindful of spending.</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Next Challenge Preview -->
-    <section class="card next-challenge-card" aria-labelledby="next-challenge-title">
-        <h2 id="next-challenge-title" class="card-title">Coming Next</h2>
-        
-        <div class="next-challenge">
-            <div class="challenge-icon">🎯</div>
-            <div class="challenge-info">
-                <h3 class="challenge-name">Weekly Budget Master</h3>
-                <p class="challenge-description">
-                    Set and stick to weekly budgets for different categories. 
-                    Get personalized AI coaching to reach your goals.
+    {% else %}
+        <!-- No Goals State -->
+        <section class="card empty-state-card" aria-labelledby="empty-state-title">
+            <div class="empty-state">
+                <div class="empty-icon">🎯</div>
+                <h2 id="empty-state-title" class="empty-title">Ready to Start Your Challenge?</h2>
+                <p class="empty-description">
+                    Set a daily spending goal and track your progress throughout the week. 
+                    Our AI will help you build better financial habits!
                 </p>
-                <div class="challenge-reward">
-                    <span class="reward-icon">🏆</span>
-                    <span class="reward-text">Unlock advanced insights</span>
+                
+                <div class="empty-actions">
+                    <button class="btn btn-primary btn-lg" onclick="openGoalWizard()">
+                        <i class="fa fa-target"></i> Set Your First Goal
+                    </button>
+                    
+                    <button class="btn btn-neutral btn-lg" onclick="window.location.href='/chat'">
+                        <i class="fa fa-comments"></i> Start Tracking Expenses
+                    </button>
                 </div>
+            </div>
+        </section>
+
+        <!-- Benefits Section -->
+        <section class="card benefits-card" aria-labelledby="benefits-title">
+            <h2 id="benefits-title" class="card-title">Why Set Spending Goals?</h2>
+            
+            <div class="benefits-list">
+                <div class="benefit-item">
+                    <div class="benefit-icon">📊</div>
+                    <div class="benefit-content">
+                        <h3 class="benefit-title">Track Progress</h3>
+                        <p class="benefit-description">See daily progress and weekly trends</p>
+                    </div>
+                </div>
+                
+                <div class="benefit-item">
+                    <div class="benefit-icon">🧠</div>
+                    <div class="benefit-content">
+                        <h3 class="benefit-title">AI Insights</h3>
+                        <p class="benefit-description">Get personalized spending advice</p>
+                    </div>
+                </div>
+                
+                <div class="benefit-item">
+                    <div class="benefit-icon">💪</div>
+                    <div class="benefit-content">
+                        <h3 class="benefit-title">Build Habits</h3>
+                        <p class="benefit-description">Develop mindful spending patterns</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    {% endif %}
+</div>
+
+<!-- Goal Wizard Modal -->
+<div id="goalWizardModal" class="modal {% if show_goal_wizard %}show{% endif %}" aria-labelledby="goal-wizard-title" aria-hidden="{% if show_goal_wizard %}false{% else %}true{% endif %}">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="goal-wizard-title" class="modal-title">
+                    {% if active_goals %}Edit Your Goal{% else %}Set Your Daily Spending Goal{% endif %}
+                </h3>
+                <button class="modal-close" onclick="closeGoalWizard()" aria-label="Close">&times;</button>
+            </div>
+            
+            <form id="goalForm" class="modal-body">
+                <div class="form-group">
+                    <label for="goalAmount" class="form-label">Daily Spending Limit ({% if active_goals and active_goals[0].currency == 'BDT' %}৳{% else %}{{ active_goals[0].currency if active_goals else 'BDT' }}{% endif %})</label>
+                    <input type="number" 
+                           id="goalAmount" 
+                           class="form-control" 
+                           min="1" 
+                           step="1" 
+                           placeholder="500"
+                           value="{% if active_goals %}{{ "%.0f"|format(active_goals[0].amount) }}{% endif %}"
+                           required>
+                    <small class="form-help">Set a realistic daily budget that works for your lifestyle</small>
+                </div>
+                
+                <div class="goal-examples">
+                    <p class="examples-title">Popular daily limits:</p>
+                    <div class="examples-buttons">
+                        <button type="button" class="btn btn-sm btn-outline" onclick="setAmount(300)">300</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="setAmount(500)">500</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="setAmount(750)">750</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="setAmount(1000)">1000</button>
+                    </div>
+                </div>
+            </form>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-neutral" onclick="closeGoalWizard()">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="goalForm">
+                    {% if active_goals %}Update Goal{% else %}Start Challenge{% endif %}
+                </button>
             </div>
         </div>
-    </section>
-
-    <!-- Action Buttons -->
-    <section class="challenge-actions">
-        <button class="btn btn-primary btn-full" onclick="completeGoal()">
-            Complete Review Goal
-        </button>
-        
-        <button class="btn btn-neutral btn-full" onclick="window.location.href='/chat'">
-            Log Today's Expenses
-        </button>
-    </section>
-
-    <!-- Challenge History -->
-    <section class="card history-card" aria-labelledby="history-title">
-        <h2 id="history-title" class="card-title">Challenge History</h2>
-        
-        <div class="history-list">
-            <div class="history-item completed">
-                <div class="history-icon">✅</div>
-                <div class="history-content">
-                    <h3 class="history-title">Mindful Spending</h3>
-                    <p class="history-description">3 days • Completed Sep 5</p>
-                </div>
-                <div class="history-score">95%</div>
-            </div>
-
-            <div class="history-item completed">
-                <div class="history-icon">✅</div>
-                <div class="history-content">
-                    <h3 class="history-title">Category Tracker</h3>
-                    <p class="history-description">5 days • Completed Sep 1</p>
-                </div>
-                <div class="history-score">88%</div>
-            </div>
-
-            <div class="history-item upcoming">
-                <div class="history-icon">🔒</div>
-                <div class="history-content">
-                    <h3 class="history-title">Budget Master</h3>
-                    <p class="history-description">Unlocks after current challenge</p>
-                </div>
-                <div class="history-score">—</div>
-            </div>
-        </div>
-    </section>
+    </div>
 </div>
 
 <script>
-function completeGoal() {
-    // Mark the review goal as completed
-    const pendingGoal = document.querySelector('.goal-item.pending');
-    if (pendingGoal) {
-        pendingGoal.classList.remove('pending');
-        pendingGoal.classList.add('completed');
+// Global variables
+const USER_ID = '{{ user_id }}';
+const HAS_ACTIVE_GOAL = {{ 'true' if active_goals else 'false' }};
+const CURRENT_GOAL_ID = {{ active_goals[0].id if active_goals else 'null' }};
+const CURRENT_CURRENCY = '{{ active_goals[0].currency if active_goals else 'BDT' }}';
+
+// Goal wizard functions
+function openGoalWizard() {
+    const modal = document.getElementById('goalWizardModal');
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    
+    // Focus on amount input
+    document.getElementById('goalAmount').focus();
+}
+
+function closeGoalWizard() {
+    const modal = document.getElementById('goalWizardModal');
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+}
+
+function setAmount(amount) {
+    document.getElementById('goalAmount').value = amount;
+}
+
+function editGoal(goalId) {
+    openGoalWizard();
+}
+
+// In-flight save guard
+let isSaving = false;
+
+async function saveGoal() {
+    // Prevent double submits
+    if (isSaving) {
+        return;
+    }
+    
+    const amount = parseFloat(document.getElementById('goalAmount').value);
+    const submitButton = document.querySelector('button[form="goalForm"][type="submit"]');
+    
+    if (!amount || amount <= 0) {
+        showToast('Please enter a valid amount greater than 0', 'error');
+        return;
+    }
+    
+    // Set in-flight flag and disable submit button
+    isSaving = true;
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Saving...';
+    }
+    
+    try {
+        const response = await fetch('/api/goals', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: 'daily_spend_under',
+                amount: amount,
+                currency: CURRENT_CURRENCY
+            })
+        });
         
-        const checkbox = pendingGoal.querySelector('.goal-checkbox');
-        checkbox.textContent = '✓';
+        // Handle response more robustly
+        let result = {};
+        if (response.headers.get('content-type')?.includes('application/json')) {
+            try {
+                result = await response.json();
+            } catch (e) {
+                console.warn('Failed to parse JSON response');
+            }
+        }
         
-        const progress = pendingGoal.querySelector('.goal-progress');
-        progress.textContent = 'Completed!';
-        
-        // Update overall progress
-        const progressFill = document.querySelector('.progress-fill');
-        const progressText = document.querySelector('.progress-text');
-        const progressPercentage = document.querySelector('.progress-percentage');
-        
-        progressFill.style.width = '100%';
-        progressText.textContent = 'Day 2 Complete!';
-        progressPercentage.textContent = '100%';
-        
-        // Show success message
-        showToast('🎉 Excellent! You\'ve completed all goals for today!', 'success');
-        
-        // Update button
-        const button = document.querySelector('.challenge-actions .btn-primary');
-        button.textContent = 'All Goals Complete!';
-        button.disabled = true;
-        button.classList.add('disabled');
+        if (response.ok && (result.success === true || response.status < 300)) {
+            showToast('🎯 Goal saved successfully!', 'success');
+            closeGoalWizard();
+            
+            // Reload page to show updated data
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            throw new Error(result.error || `Server error: ${response.status}`);
+        }
+    } catch (error) {
+        console.error('Error saving goal:', error);
+        showToast('Failed to save goal. Please try again.', 'error');
+    } finally {
+        // Re-enable submit button and clear in-flight flag
+        isSaving = false;
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = HAS_ACTIVE_GOAL ? 'Update Goal' : 'Start Challenge';
+        }
     }
 }
 
-// Toast helper function
+async function removeGoal(goalId) {
+    if (!confirm('Are you sure you want to remove this goal? Your progress will be lost.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/goals/${goalId}`, {
+            method: 'DELETE'
+        });
+        
+        // Handle response more robustly
+        let result = {};
+        if (response.headers.get('content-type')?.includes('application/json')) {
+            try {
+                result = await response.json();
+            } catch (e) {
+                console.warn('Failed to parse JSON response');
+            }
+        }
+        
+        if (response.ok && (result.success === true || response.status < 300)) {
+            showToast('Goal removed successfully', 'info');
+            
+            // Reload page to show updated state
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            throw new Error(result.error || `Server error: ${response.status}`);
+        }
+    } catch (error) {
+        console.error('Error removing goal:', error);
+        showToast('Failed to remove goal. Please try again.', 'error');
+    }
+}
+
+// Auto-open goal wizard if action parameter is set
+if (window.location.search.includes('action=set_goal')) {
+    // Small delay to ensure page is loaded
+    setTimeout(() => {
+        openGoalWizard();
+    }, 500);
+}
+
+// Toast helper function (reused from existing template)
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
@@ -206,13 +360,447 @@ function showToast(message, type = 'info') {
         </div>
     `;
     
-    document.getElementById('toast-container').appendChild(toast);
-    
-    setTimeout(() => {
-        if (toast.parentElement) {
-            toast.remove();
-        }
-    }, 5000);
+    const container = document.getElementById('toast-container');
+    if (container) {
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.remove();
+            }
+        }, 5000);
+    }
 }
+
+// Form submission handler
+document.getElementById('goalForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    saveGoal();
+});
+
+// ESC key handler for modal
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('goalWizardModal');
+        if (modal.classList.contains('show')) {
+            closeGoalWizard();
+        }
+    }
+});
+
+// Click outside modal to close
+document.getElementById('goalWizardModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeGoalWizard();
+    }
+});
 </script>
+
+<style>
+/* Goal-specific styles */
+.goal-active-card .goal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.goal-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.current-goal {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 2px solid #dee2e6;
+}
+
+.goal-display {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.goal-icon {
+    font-size: 2.5rem;
+    flex-shrink: 0;
+}
+
+.goal-content .goal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+    color: #212529;
+}
+
+.goal-content .goal-amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0d6efd;
+    margin: 0 0 0.5rem 0;
+}
+
+.goal-content .goal-description {
+    color: #6c757d;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/* Weekly progress styles */
+.week-summary {
+    margin-bottom: 2rem;
+}
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 2px solid transparent;
+}
+
+.stat-item.success { background-color: #d1e7dd; border-color: #a3cfbb; }
+.stat-item.warning { background-color: #fff3cd; border-color: #ffda6a; }
+.stat-item.info { background-color: #cff4fc; border-color: #9eeaf9; }
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* Daily breakdown styles */
+.breakdown-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #212529;
+}
+
+.days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.75rem;
+}
+
+.day-item {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+    border: 2px solid #e9ecef;
+    transition: all 0.2s ease;
+}
+
+.day-item.today {
+    border-color: #0d6efd;
+    background: linear-gradient(135deg, #cfe2ff 0%, #e7f1ff 100%);
+}
+
+.day-item.success { border-color: #198754; background-color: #d1e7dd; }
+.day-item.danger { border-color: #dc3545; background-color: #f8d7da; }
+.day-item.neutral { border-color: #6c757d; background-color: #f8f9fa; }
+
+.day-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.day-name {
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #495057;
+}
+
+.today-badge {
+    background: #0d6efd;
+    color: white;
+    font-size: 0.6rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 10px;
+    margin-top: 0.25rem;
+}
+
+.day-progress {
+    margin-bottom: 0.5rem;
+}
+
+.day-spent {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #212529;
+}
+
+.day-limit {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.day-status i {
+    font-size: 1.125rem;
+}
+
+/* Empty state styles */
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+}
+
+.empty-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #212529;
+}
+
+.empty-description {
+    font-size: 1.125rem;
+    color: #6c757d;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.empty-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* Benefits section */
+.benefits-list {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.benefit-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.benefit-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.benefit-title {
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+    color: #212529;
+}
+
+.benefit-description {
+    color: #6c757d;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/* Goal wizard modal styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-dialog {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.modal.show .modal-dialog {
+    transform: scale(1);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 1.5rem 0 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+    margin-bottom: 1.5rem;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    color: #212529;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6c757d;
+    padding: 0;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    color: #212529;
+}
+
+.modal-body {
+    padding: 0 1.5rem;
+}
+
+.modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #212529;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #0d6efd;
+}
+
+.form-help {
+    display: block;
+    margin-top: 0.5rem;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.goal-examples {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.examples-title {
+    margin: 0 0 0.75rem 0;
+    font-weight: 500;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.examples-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .days-grid {
+        gap: 0.5rem;
+    }
+    
+    .day-item {
+        padding: 0.5rem 0.25rem;
+    }
+    
+    .day-spent, .day-limit {
+        font-size: 0.8rem;
+    }
+    
+    .summary-stats {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .modal-dialog {
+        width: 95%;
+        margin: 1rem;
+    }
+    
+    .goal-actions {
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+    
+    .goal-display {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .empty-actions {
+        width: 100%;
+    }
+    
+    .empty-actions .btn {
+        width: 100%;
+        max-width: 300px;
+    }
+}
+</style>
 {% endblock %}
