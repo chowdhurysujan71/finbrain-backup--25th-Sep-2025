@@ -101,8 +101,14 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"      # Required for subdomain redi
 # SECURITY FIX: Conditional session cookie settings - environment-based
 if is_production:
     app.config["SESSION_COOKIE_SECURE"] = True         # HTTPS only in production
-    app.config["SESSION_COOKIE_DOMAIN"] = ".finbrain.app"  # Share cookies across finbrain.app subdomains in production
-    logger.info("✓ Session cookies configured for finbrain.app subdomains (production, secure)")
+    # Support both finbrain.app and replit domains for testing
+    replit_domains = os.environ.get('REPLIT_DOMAINS', '')
+    if replit_domains and ('replit.dev' in replit_domains or 'replit.app' in replit_domains):
+        app.config["SESSION_COOKIE_DOMAIN"] = None      # Allow all domains for replit testing
+        logger.info(f"✓ Session cookies configured for replit domain (production testing): {replit_domains}")
+    else:
+        app.config["SESSION_COOKIE_DOMAIN"] = ".finbrain.app"  # Share cookies across finbrain.app subdomains in production
+        logger.info("✓ Session cookies configured for finbrain.app subdomains (production, secure)")
 else:
     # Development: Allow HTTP and localhost sessions for testing
     app.config["SESSION_COOKIE_SECURE"] = False        # Allow HTTP in development/testing
@@ -123,7 +129,16 @@ if env == 'production' or env == 'prod':
         "https://chat.finbrain.app",
         "https://admin.finbrain.app"
     ]
-    logger.info(f"✓ CORS configured for production with exact origins: {finbrain_origins}")
+    
+    # Add replit domain for testing if running on Replit
+    replit_domains = os.environ.get('REPLIT_DOMAINS', '')
+    if replit_domains and ('replit.dev' in replit_domains or 'replit.app' in replit_domains):
+        # Extract the full replit domain and add HTTPS
+        replit_origin = f"https://{replit_domains}"
+        finbrain_origins.append(replit_origin)
+        logger.info(f"✓ CORS configured for production with replit testing: {finbrain_origins}")
+    else:
+        logger.info(f"✓ CORS configured for production with exact origins: {finbrain_origins}")
 else:
     # Development: Allow localhost and any finbrain.app subdomain for testing
     finbrain_origins = [
