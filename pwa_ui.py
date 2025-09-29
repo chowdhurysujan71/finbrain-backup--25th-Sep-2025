@@ -250,6 +250,7 @@ def report():
 
 
 
+
 @pwa_ui.route('/profile')
 def profile():
     """
