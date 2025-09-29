@@ -17,15 +17,15 @@ from db_base import db
 from utils.db_guard import assert_single_db_instance
 
 assert_single_db_instance(db)
-import logging
-from typing import Any, Dict, List, Union
+import logging  # noqa: E402
+from typing import Any  # noqa: E402
 
-from sqlalchemy import text
+from sqlalchemy import text  # noqa: E402
 
-from models import User
-from utils.identity import ensure_hashed
-from utils.single_writer_guard import canonical_writer_context
-from utils.single_writer_metrics import record_canonical_write
+from models import User  # noqa: E402
+from utils.identity import ensure_hashed  # noqa: E402
+from utils.single_writer_guard import canonical_writer_context  # noqa: E402
+from utils.single_writer_metrics import record_canonical_write  # noqa: E402
 
 logger = logging.getLogger(__name__)
 

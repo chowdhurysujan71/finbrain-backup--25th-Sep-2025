@@ -4,7 +4,7 @@ import os
 import sys
 import time
 import uuid
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import wraps
 
 from flask import Flask, g, jsonify, make_response, render_template, request, session
@@ -81,7 +81,7 @@ if is_production:
         sys.exit(1)
 
 # Import shared db and Base from lightweight module
-from db_base import db
+from db_base import db  # noqa: E402
 
 # Create the app
 app = Flask(__name__, static_folder='static', static_url_path='/static')
@@ -147,7 +147,7 @@ CORS(app, supports_credentials=True, resources={
     r"/ai-chat": {"origins": production_origins}, 
     r"/auth/*": {"origins": production_origins}
 })
-from utils.rate_limiting import limiter
+from utils.rate_limiting import limiter  # noqa: E402
 
 limiter.init_app(app)
 
@@ -160,11 +160,11 @@ login_manager.login_message = 'Please log in to access this page.'
 @login_manager.user_loader
 def load_user(user_id):
     """Load user by ID for Flask-Login sessions"""
-    from models import User
+    from models import User  # noqa: E402
     return User.query.get(int(user_id))
 
 # Request logging middleware using existing structured logger
-from utils.logger import structured_logger
+from utils.logger import structured_logger  # noqa: E402
 
 
 @app.before_request
@@ -371,8 +371,8 @@ db.init_app(app)
 
 with app.app_context():
     # Import models to ensure tables are created
-    import models
-    import models_pca
+    import models  # noqa: F401
+    import models_pca  # noqa: F401
     
     # Use read-only database validation for Alembic-managed environments
     # Schema creation is now handled by Alembic migrations
@@ -1013,7 +1013,7 @@ def readiness_check():
     return jsonify(response), status_code
 
 # Import admin authentication from admin_ops
-from admin_ops import require_admin
+from admin_ops import require_admin  # noqa: E402
 
 
 # Diagnostic helper functions
@@ -2182,7 +2182,7 @@ def ops_users():
         return jsonify({"error": "Failed to retrieve users"}), 500
 
 # Register streamlined admin operations
-from admin_ops import admin_ops
+from admin_ops import admin_ops  # noqa: E402
 
 app.register_blueprint(admin_ops)
 

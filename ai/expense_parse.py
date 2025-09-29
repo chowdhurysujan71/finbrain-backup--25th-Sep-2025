@@ -4,7 +4,6 @@ Fixes "function has no len()" errors through type safety
 """
 
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +33,12 @@ def parse_expense(text: str, user_hash: str = None, check_ambiguity: bool = True
     note = result.get("note")
     
     # Unwrap callables
-    if callable(amt): amt = amt()
-    if callable(cat): cat = cat()
-    if callable(note): note = note()
+    if callable(amt):
+        amt = amt()
+    if callable(cat):
+        cat = cat()
+    if callable(note):
+        note = note()
     
     # Strict validation
     if amt is None or not isinstance(amt, (int, float, str)):
