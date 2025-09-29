@@ -7,7 +7,7 @@ import os
 import random
 import secrets
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Tuple
 
 from flask import session
@@ -199,8 +199,8 @@ def generate_nonce_captcha() -> dict[str, str]:
         captcha_data = math_captcha.generate_captcha()
         nonce = secrets.token_urlsafe(16)
         
-        # Store in database with 2-minute TTL
-        expires_at = datetime.utcnow() + timedelta(minutes=2)
+        # Store in database with 2-minute TTL - ensure timezone-aware
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=2)
         
         # Clean up old expired entries first
         db.session.execute(db.text(
@@ -267,8 +267,9 @@ def verify_nonce_captcha(nonce: str, user_answer: str) -> tuple[bool, str]:
             
         answer_data, expires_at = result
         
-        # Check expiration
-        if datetime.utcnow() > expires_at:
+        # Check expiration - ensure both datetimes are timezone-aware
+        current_time = datetime.now(timezone.utc)
+        if current_time > expires_at:
             # Clean up expired entry
             db.session.execute(db.text(
                 "DELETE FROM captcha_nonces WHERE nonce = :nonce"
