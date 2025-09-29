@@ -256,6 +256,16 @@ def debug_env():
     all_feature_vars = {k: v for k, v in os.environ.items() if 'FEATURE' in k.upper()}
     return f"FEATURE_PROFILE_V2: '{feature_flag}'<br>All FEATURE vars: {all_feature_vars}"
 
+@pwa_ui.route('/profile-demo')
+def profile_demo():
+    """Demo route to show Profile V2 without authentication (for testing only)"""
+    import os
+    logger.info("Demo profile route accessed (no auth required)")
+    
+    # Always show profile v2 for demo
+    logger.info("Using profile v2 for demo")
+    return render_template('profile_v2.html', user_id='demo123')
+
 @pwa_ui.route('/profile')
 def profile():
     """
