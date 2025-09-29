@@ -271,9 +271,11 @@ def profile():
 @pwa_ui.route('/challenge')
 def challenge():
     """
-    3-day challenge progress UI
+    3-day challenge progress UI with goal-setting functionality
     AUTHENTICATION REQUIRED
     """
+    from flask import request
+    
     user = require_auth_or_redirect()  # Require authentication or redirect to login
     
     # If it's a redirect response, return it directly
@@ -284,9 +286,98 @@ def challenge():
         from flask import redirect
         return redirect("/login?returnTo=/challenge")
     
-    logger.info(f"PWA challenge route accessed by user: {user.user_id_hash}")
+    # Get action parameter (e.g., ?action=set_goal from banner)
+    action = request.args.get('action')
     
-    return render_template('challenge.html', user_id=user.user_id_hash)
+    # Fetch existing goals for the user
+    active_goals = []
+    goal_progress = None
+    
+    try:
+        # Import Goal model and database to fetch user goals
+        from models import Goal, Expense
+        from datetime import datetime, timedelta
+        from sqlalchemy import func
+        from db_base import db
+        
+        # Get active goals
+        active_goals = Goal.get_active_for_user(user.user_id_hash, 'daily_spend_under')
+        
+        # If user has an active daily spending goal, get weekly progress
+        if active_goals:
+            goal = active_goals[0]
+            
+            # Calculate week range (Monday to Sunday)
+            from utils.timezone import get_current_time
+            now = get_current_time()
+            days_since_monday = now.weekday()
+            monday = (now - timedelta(days=days_since_monday)).date()
+            
+            # Get daily spending for current week
+            week_expenses = db.session.query(
+                func.DATE(Expense.date).label('date'),
+                func.sum(Expense.amount).label('spent')
+            ).filter(
+                Expense.user_id_hash == user.user_id_hash,
+                Expense.date >= monday,
+                Expense.date <= now.date(),
+                Expense.is_deleted.is_(False)  # Exclude soft-deleted expenses
+            ).group_by(func.DATE(Expense.date)).all()
+            
+            # Build daily progress
+            days = []
+            ok_days = 0
+            over_days = 0
+            
+            for i in range(7):  # Monday to Sunday
+                day_date = monday + timedelta(days=i)
+                day_spent = 0
+                
+                # Find spending for this day
+                for expense_day in week_expenses:
+                    if expense_day.date == day_date:
+                        day_spent = float(expense_day.spent)
+                        break
+                
+                is_ok = day_spent <= float(goal.amount)
+                if day_spent > 0:  # Only count days with spending
+                    if is_ok:
+                        ok_days += 1
+                    else:
+                        over_days += 1
+                
+                days.append({
+                    "date": day_date.isoformat(),
+                    "day_name": day_date.strftime("%A"),
+                    "spent": day_spent,
+                    "limit": float(goal.amount),
+                    "ok": is_ok,
+                    "is_today": day_date == now.date()
+                })
+            
+            goal_progress = {
+                "goal": goal.to_dict(),
+                "days": days,
+                "summary": {
+                    "ok_days": ok_days,
+                    "over_days": over_days,
+                    "total_days_with_spending": ok_days + over_days
+                }
+            }
+            
+    except Exception as e:
+        logger.error(f"Error fetching goal data for challenge page: {e}")
+        active_goals = []
+        goal_progress = None
+    
+    logger.info(f"PWA challenge route accessed by user: {user.user_id_hash}, action: {action}, goals: {len(active_goals)}")
+    
+    return render_template('challenge.html', 
+                         user_id=user.user_id_hash,
+                         action=action,
+                         active_goals=active_goals,
+                         goal_progress=goal_progress,
+                         show_goal_wizard=action == 'set_goal' or len(active_goals) == 0)
 
 @pwa_ui.route('/admin/chat')
 def admin_chat():
