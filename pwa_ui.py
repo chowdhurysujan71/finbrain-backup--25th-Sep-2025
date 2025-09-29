@@ -341,7 +341,7 @@ def auth_login():
 
     from auth_helpers import validate_return_to_url
     from models import User
-    from utils.captcha import verify_session_captcha
+    from utils.captcha import verify_nonce_captcha
     
     try:
         data = request.get_json(silent=True) or {}
@@ -349,16 +349,17 @@ def auth_login():
         email = data.get('email', '').lower().strip()
         password = data.get('password', '')
         captcha_answer = data.get('captcha_answer', '').strip()
+        captcha_nonce = data.get('captcha_nonce', '').strip()
         return_to = data.get('returnTo', '').strip()
         
         if not email or not password:
             return jsonify({"error": "Email and password required"}), 400
         
-        if not captcha_answer:
-            return jsonify({"error": "CAPTCHA answer required"}), 400
+        if not captcha_answer or not captcha_nonce:
+            return jsonify({"error": "CAPTCHA answer and nonce required"}), 400
         
         # Verify CAPTCHA before processing authentication
-        captcha_valid, captcha_error = verify_session_captcha(captcha_answer)
+        captcha_valid, captcha_error = verify_nonce_captcha(captcha_nonce, captcha_answer)
         if not captcha_valid:
             logger.warning(f"Failed CAPTCHA attempt for login: {email} - {captcha_error}")
             return jsonify({"error": f"CAPTCHA failed: {captcha_error}"}), 400
@@ -467,7 +468,7 @@ def auth_register():
 
     from db_base import db
     from models import User
-    from utils.captcha import verify_session_captcha
+    from utils.captcha import verify_nonce_captcha
     from utils.identity import psid_hash
     
     try:
@@ -477,15 +478,16 @@ def auth_register():
         password = data.get('password', '')
         name = data.get('name', '').strip()
         captcha_answer = data.get('captcha_answer', '').strip()
+        captcha_nonce = data.get('captcha_nonce', '').strip()
         
         if not email or not password:
             return jsonify({"error": "Email and password required"}), 400
         
-        if not captcha_answer:
-            return jsonify({"error": "CAPTCHA answer required"}), 400
+        if not captcha_answer or not captcha_nonce:
+            return jsonify({"error": "CAPTCHA answer and nonce required"}), 400
         
         # Verify CAPTCHA before processing registration
-        captcha_valid, captcha_error = verify_session_captcha(captcha_answer)
+        captcha_valid, captcha_error = verify_nonce_captcha(captcha_nonce, captcha_answer)
         if not captcha_valid:
             logger.warning(f"Failed CAPTCHA attempt for registration: {email} - {captcha_error}")
             return jsonify({"error": f"CAPTCHA failed: {captcha_error}"}), 400
@@ -540,17 +542,18 @@ def auth_register():
 def generate_captcha():
     """
     Generate CAPTCHA for authentication endpoints
-    Returns a math question for the user to solve
+    Returns a math question and nonce for the user to solve
     """
     from flask import jsonify
 
-    from utils.captcha import generate_session_captcha
+    from utils.captcha import generate_nonce_captcha
     
     try:
-        captcha_data = generate_session_captcha()
+        captcha_data = generate_nonce_captcha()
         return jsonify({
             "success": True,
-            "question": captcha_data['question']
+            "question": captcha_data['question'],
+            "nonce": captcha_data['nonce']
         }), 200
         
     except Exception as e:
@@ -558,7 +561,8 @@ def generate_captcha():
         return jsonify({
             "success": False,
             "error": "Failed to generate CAPTCHA",
-            "question": "What is 2 + 2?"  # Fallback
+            "question": "What is 2 + 2?",  # Fallback
+            "nonce": "fallback_nonce"
         }), 500
 
 @pwa_ui.route('/auth/logout', methods=['POST'])
