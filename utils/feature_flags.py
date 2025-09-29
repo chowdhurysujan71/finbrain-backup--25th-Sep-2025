@@ -142,6 +142,14 @@ def can_use_push_notifications(user_email: str | None = None) -> bool:
     
     return _get_env_bool("PUSH_NOTIFICATIONS_ENABLED", False)
 
+def can_use_banners(user_email: str | None = None) -> bool:
+    """Check if user can see smart banners."""
+    # Master users always get access  
+    if _is_master_user(user_email):
+        return True
+    
+    return _get_env_bool("FEATURE_BANNERS", True)  # Default ON for better UX
+
 def get_nudging_features_status(user_email: str | None = None) -> dict:
     """Get status of all nudging features for a user."""
     return {
@@ -149,6 +157,7 @@ def get_nudging_features_status(user_email: str | None = None) -> dict:
         "chat_edit_enabled": can_edit_in_chat(user_email),
         "spending_alerts_enabled": can_receive_spending_alerts(user_email),
         "push_notifications_enabled": can_use_push_notifications(user_email),
+        "banners_enabled": can_use_banners(user_email),
         "is_master_user": _is_master_user(user_email),
         "master_users": len(MASTER_USERS)
     }

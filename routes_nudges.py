@@ -17,7 +17,7 @@ from sqlalchemy.orm import joinedload
 
 from db_base import db
 from models import Banner, Expense, User
-from utils.feature_flags import can_use_nudges, can_receive_spending_alerts
+from utils.feature_flags import can_use_nudges, can_receive_spending_alerts, can_use_banners
 from utils.money import normalize_amount_fields
 
 logger = logging.getLogger(__name__)
@@ -95,8 +95,33 @@ def require_spending_alerts_enabled(f):
     wrapper.__name__ = f.__name__
     return wrapper
 
+def require_banners_enabled(f):
+    """Decorator to ensure banners are enabled for the user."""
+    def wrapper(*args, **kwargs):
+        # Get user from our auth system
+        if not g.user_id:
+            return jsonify({
+                "error": "Authentication required",
+                "error_code": "AUTH_REQUIRED", 
+                "success": False,
+                "trace_id": getattr(g, 'request_id', 'unknown')
+            }), 401
+        
+        # Get user object for feature flag check
+        user = User.query.filter_by(user_id_hash=g.user_id).first()
+        if not user:
+            return jsonify({"error": "User not found", "success": False}), 404
+        
+        if not can_use_banners(user.email):
+            return jsonify({"error": "Banners not enabled for this user", "success": False}), 403
+        
+        return f(*args, **kwargs)
+    wrapper.__name__ = f.__name__
+    return wrapper
+
 @nudges_bp.route('/banners', methods=['GET'])
-@require_nudges_enabled
+@require_api_auth
+@require_banners_enabled
 def get_active_banners():
     """
     Get active banners for the current user.
@@ -135,7 +160,8 @@ def get_active_banners():
         return jsonify({"error": "Failed to retrieve banners"}), 500
 
 @nudges_bp.route('/banners/<int:banner_id>/dismiss', methods=['POST'])
-@require_nudges_enabled
+@require_api_auth
+@require_banners_enabled
 def dismiss_banner(banner_id: int):
     """
     Dismiss a banner by ID.
@@ -181,7 +207,8 @@ def dismiss_banner(banner_id: int):
         return jsonify({"error": "Failed to dismiss banner"}), 500
 
 @nudges_bp.route('/banners/<int:banner_id>/click', methods=['POST'])
-@require_nudges_enabled
+@require_api_auth
+@require_banners_enabled
 def click_banner_action(banner_id: int):
     """
     Record banner action click.
