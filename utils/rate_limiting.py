@@ -12,6 +12,10 @@ logger = logging.getLogger(__name__)
 
 def get_rate_limit_storage():
     """Get rate limiting storage backend with Redis fallback"""
+    # TEMPORARY: Force memory storage to avoid Redis quota exhaustion
+    logger.info("Forcing in-memory rate limiting storage to avoid Redis issues")
+    return None
+        
     redis_url = os.getenv('REDIS_URL')
     if not redis_url:
         logger.warning("No REDIS_URL available, using in-memory rate limiting storage")

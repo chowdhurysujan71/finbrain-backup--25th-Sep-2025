@@ -4,6 +4,7 @@ Includes RL-2 graceful non-AI fallback system
 """
 import json
 import logging
+import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -64,7 +65,11 @@ class BackgroundProcessor:
         self.job_queue_enabled = JOB_QUEUE_ENABLED
         self.job_polling_active = False
         
-        if self.job_queue_enabled and job_queue and hasattr(job_queue, 'redis_available') and job_queue.redis_available:
+        # TEMPORARY: Disable job queue to avoid Redis quota exhaustion
+        disable_job_queue = True  # Force disable until Redis issues resolved
+        if disable_job_queue:
+            logger.info("Job queue temporarily disabled to avoid Redis issues")
+        elif self.job_queue_enabled and job_queue and hasattr(job_queue, 'redis_available') and job_queue.redis_available:
             # Start job queue polling worker only if Redis is actually available
             self.executor.submit(self._job_queue_worker)
             logger.info("Redis job queue worker started")
