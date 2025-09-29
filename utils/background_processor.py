@@ -65,8 +65,8 @@ class BackgroundProcessor:
         self.job_queue_enabled = JOB_QUEUE_ENABLED
         self.job_polling_active = False
         
-        # TEMPORARY: Disable job queue to avoid Redis quota exhaustion
-        disable_job_queue = True  # Force disable until Redis issues resolved
+        # Redis job queue control - can be disabled via environment variable for safety
+        disable_job_queue = os.getenv("DISABLE_JOB_QUEUE", "false").lower() == "true"
         if disable_job_queue:
             logger.info("Job queue temporarily disabled to avoid Redis issues")
         elif self.job_queue_enabled and job_queue and hasattr(job_queue, 'redis_available') and job_queue.redis_available:

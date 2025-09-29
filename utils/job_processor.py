@@ -123,6 +123,8 @@ class JobProcessor:
         """
         if job.type == "analysis":
             return self._process_analysis_job(job, request_id)
+        elif job.type == "daily_goal_analysis":
+            return self._process_goal_analysis_job(job, request_id)
         else:
             return False, None, f"Unknown job type: {job.type}"
     
@@ -191,6 +193,45 @@ class JobProcessor:
         except Exception as e:
             error_msg = f"Analysis job failed: {str(e)}"
             logger.error(f"Job {job.job_id} analysis failed: {e}")
+            return False, None, error_msg
+    
+    def _process_goal_analysis_job(self, job: Job, request_id: str) -> tuple[bool, str | None, str | None]:
+        """
+        Process goal analysis job without AI - uses deterministic analysis
+        
+        Returns:
+            (success, result_path, error)
+        """
+        try:
+            # Import and call goal automation processor
+            from utils.goal_automation import process_daily_goal_analysis_job
+            
+            # Process goal analysis (doesn't use AI, so no circuit breaker needed)
+            result = process_daily_goal_analysis_job(job.payload)
+            
+            if result.get('status') == 'success':
+                # Store result if we have storage available (simplified for goals)
+                result_path = None
+                if self.storage_client:
+                    try:
+                        file_content = json.dumps(result, indent=2)
+                        file_path = f"{job.user_id}/goal_analysis_{job.job_id}.json"
+                        upload_result = self.storage_client.upload_file_content(
+                            file_path, file_content, "application/json"
+                        )
+                        if upload_result.get("success"):
+                            result_path = file_path
+                    except Exception:
+                        pass  # Continue without storage
+                
+                return True, result_path, None
+            else:
+                error_msg = result.get('error', 'Goal analysis failed')
+                return False, None, error_msg
+                
+        except Exception as e:
+            error_msg = f"Goal analysis job exception: {str(e)}"
+            logger.error(error_msg)
             return False, None, error_msg
     
     def _is_ai_failure(self, error: str) -> bool:
