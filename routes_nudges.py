@@ -12,7 +12,6 @@ from decimal import Decimal
 from typing import Dict, List, Optional
 
 from flask import Blueprint, request, jsonify, g
-from flask_login import current_user
 from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import joinedload
 
@@ -25,6 +24,12 @@ logger = logging.getLogger(__name__)
 
 # Create blueprint for nudging endpoints
 nudges_bp = Blueprint('nudges', __name__, url_prefix='/api')
+
+def get_current_user():
+    """Get current user from g.user_id (our auth system)"""
+    if not g.user_id:
+        return None
+    return User.query.filter_by(user_id_hash=g.user_id).first()
 
 def require_api_auth(f):
     """Custom API authentication decorator that returns JSON instead of redirecting."""
@@ -100,8 +105,8 @@ def get_active_banners():
         JSON array of active banners ordered by priority
     """
     try:
-        # Get user's ID hash
-        user = User.query.filter_by(email=current_user.email).first()
+        # Get user from auth system
+        user = get_current_user()
         if not user:
             return jsonify({"error": "User not found"}), 404
         
@@ -142,8 +147,8 @@ def dismiss_banner(banner_id: int):
         JSON success response
     """
     try:
-        # Get user's ID hash
-        user = User.query.filter_by(email=current_user.email).first()
+        # Get user from auth system
+        user = get_current_user()
         if not user:
             return jsonify({"error": "User not found"}), 404
         
@@ -188,8 +193,8 @@ def click_banner_action(banner_id: int):
         JSON success response
     """
     try:
-        # Get user's ID hash
-        user = User.query.filter_by(email=current_user.email).first()
+        # Get user from auth system
+        user = get_current_user()
         if not user:
             return jsonify({"error": "User not found"}), 404
         
@@ -229,8 +234,8 @@ def check_spending_today():
         JSON with spending analysis and any triggered alerts
     """
     try:
-        # Get user's ID hash
-        user = User.query.filter_by(email=current_user.email).first()
+        # Get user from auth system
+        user = get_current_user()
         if not user:
             return jsonify({"error": "User not found"}), 404
         
@@ -341,7 +346,7 @@ def nudge_preferences():
     """
     try:
         # Get user
-        user = User.query.filter_by(email=current_user.email).first()
+        user = get_current_user()
         if not user:
             return jsonify({"error": "User not found"}), 404
         
