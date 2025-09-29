@@ -500,3 +500,107 @@ class Banner(db.Model):
     
     def __repr__(self):
         return f'<Banner {self.id}: {self.banner_type} for {self.user_id_hash[:8]}...>'
+
+class Goal(db.Model):
+    """Goal tracking table for budget goals and financial targets"""
+    __tablename__ = 'goals'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id_hash = db.Column(db.String(255), nullable=False, index=True)  # SHA-256 hashed user identifier
+    type = db.Column(db.String(50), nullable=False, index=True)  # 'daily_spend_under', etc.
+    amount = db.Column(db.Numeric(12, 2), nullable=False)  # Goal amount
+    currency = db.Column(db.String(3), nullable=False)  # 'BDT', 'USD', etc.
+    start_date = db.Column(db.Date, nullable=False, default=date.today)  # Goal start date
+    status = db.Column(db.String(20), nullable=False, default='active')  # 'active', 'inactive'
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Ensure at most one active goal per type per user
+    __table_args__ = (
+        db.Index('ix_goals_user_type_status', 'user_id_hash', 'type', 'status'),
+        db.Index('ux_goals_user_type_active', 'user_id_hash', 'type', unique=True, 
+                 postgresql_where=db.text("status = 'active'")),  # Partial unique index for active goals
+        db.CheckConstraint("status IN ('active', 'inactive')", name='ck_goals_status'),
+    )
+    
+    @classmethod
+    def get_active_for_user(cls, user_id_hash: str, goal_type: str = None):
+        """Get active goals for a user, optionally filtered by type"""
+        query = cls.query.filter(
+            cls.user_id_hash == user_id_hash,
+            cls.status == 'active'
+        )
+        if goal_type:
+            query = query.filter(cls.type == goal_type)
+        return query.all()
+    
+    @classmethod
+    def get_or_create_daily_goal(cls, user_id_hash: str, amount: float, currency: str = 'BDT'):
+        """Get existing daily goal or create new one (thread-safe upsert)"""
+        from sqlalchemy.exc import IntegrityError
+        
+        try:
+            # Attempt to create new goal directly - let unique constraint handle duplicates
+            new_goal = cls(
+                user_id_hash=user_id_hash,
+                type='daily_spend_under',
+                amount=amount,
+                currency=currency,
+                status='active'
+            )
+            db.session.add(new_goal)
+            db.session.flush()  # Force constraint check before commit
+            return new_goal
+            
+        except IntegrityError:
+            # Unique constraint violation - active goal already exists
+            db.session.rollback()
+            
+            # Deactivate existing goal and create new one in a nested transaction
+            with db.session.begin_nested():
+                # Lock the existing active goal
+                existing = cls.query.filter(
+                    cls.user_id_hash == user_id_hash,
+                    cls.type == 'daily_spend_under',
+                    cls.status == 'active'
+                ).with_for_update().first()
+                
+                if existing:
+                    existing.status = 'inactive'
+                    existing.updated_at = datetime.utcnow()
+                    db.session.flush()
+                
+                # Create new goal
+                new_goal = cls(
+                    user_id_hash=user_id_hash,
+                    type='daily_spend_under',
+                    amount=amount,
+                    currency=currency,
+                    status='active'
+                )
+                db.session.add(new_goal)
+                db.session.flush()
+                
+                # Context manager will commit automatically
+                return new_goal
+    
+    def deactivate(self):
+        """Deactivate this goal"""
+        self.status = 'inactive'
+        self.updated_at = datetime.utcnow()
+    
+    def to_dict(self):
+        """Convert goal to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'type': self.type,
+            'amount': float(self.amount),
+            'currency': self.currency,
+            'start_date': self.start_date.isoformat(),
+            'status': self.status,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
+        }
+    
+    def __repr__(self):
+        return f'<Goal {self.id}: {self.type} {self.amount} {self.currency} for {self.user_id_hash[:8]}...>'
