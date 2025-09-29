@@ -12,7 +12,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional
 
 from flask import Blueprint, request, jsonify, g
-from flask_login import login_required, current_user
+from flask_login import current_user
 from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import joinedload
 
@@ -26,14 +26,41 @@ logger = logging.getLogger(__name__)
 # Create blueprint for nudging endpoints
 nudges_bp = Blueprint('nudges', __name__, url_prefix='/api')
 
+def require_api_auth(f):
+    """Custom API authentication decorator that returns JSON instead of redirecting."""
+    def wrapper(*args, **kwargs):
+        # Check authentication using g.user_id from our main auth system
+        if not g.user_id:
+            return jsonify({
+                "error": "Authentication required",
+                "error_code": "AUTH_REQUIRED",
+                "success": False,
+                "trace_id": getattr(g, 'request_id', 'unknown')
+            }), 401
+        
+        return f(*args, **kwargs)
+    wrapper.__name__ = f.__name__
+    return wrapper
+
 def require_nudges_enabled(f):
     """Decorator to ensure nudges are enabled for the user."""
     def wrapper(*args, **kwargs):
-        if not current_user.is_authenticated:
-            return jsonify({"error": "Authentication required"}), 401
+        # Get user from our auth system
+        if not g.user_id:
+            return jsonify({
+                "error": "Authentication required", 
+                "error_code": "AUTH_REQUIRED",
+                "success": False,
+                "trace_id": getattr(g, 'request_id', 'unknown')
+            }), 401
         
-        if not can_use_nudges(current_user.email):
-            return jsonify({"error": "Nudges not enabled for this user"}), 403
+        # Get user object for feature flag check
+        user = User.query.filter_by(user_id_hash=g.user_id).first()
+        if not user:
+            return jsonify({"error": "User not found", "success": False}), 404
+        
+        if not can_use_nudges(user.email):
+            return jsonify({"error": "Nudges not enabled for this user", "success": False}), 403
         
         return f(*args, **kwargs)
     wrapper.__name__ = f.__name__
@@ -42,18 +69,28 @@ def require_nudges_enabled(f):
 def require_spending_alerts_enabled(f):
     """Decorator to ensure spending alerts are enabled for the user."""
     def wrapper(*args, **kwargs):
-        if not current_user.is_authenticated:
-            return jsonify({"error": "Authentication required"}), 401
+        # Get user from our auth system
+        if not g.user_id:
+            return jsonify({
+                "error": "Authentication required",
+                "error_code": "AUTH_REQUIRED", 
+                "success": False,
+                "trace_id": getattr(g, 'request_id', 'unknown')
+            }), 401
         
-        if not can_receive_spending_alerts(current_user.email):
-            return jsonify({"error": "Spending alerts not enabled for this user"}), 403
+        # Get user object for feature flag check
+        user = User.query.filter_by(user_id_hash=g.user_id).first()
+        if not user:
+            return jsonify({"error": "User not found", "success": False}), 404
+        
+        if not can_receive_spending_alerts(user.email):
+            return jsonify({"error": "Spending alerts not enabled for this user", "success": False}), 403
         
         return f(*args, **kwargs)
     wrapper.__name__ = f.__name__
     return wrapper
 
 @nudges_bp.route('/banners', methods=['GET'])
-@login_required
 @require_nudges_enabled
 def get_active_banners():
     """
@@ -93,7 +130,6 @@ def get_active_banners():
         return jsonify({"error": "Failed to retrieve banners"}), 500
 
 @nudges_bp.route('/banners/<int:banner_id>/dismiss', methods=['POST'])
-@login_required
 @require_nudges_enabled
 def dismiss_banner(banner_id: int):
     """
@@ -140,7 +176,6 @@ def dismiss_banner(banner_id: int):
         return jsonify({"error": "Failed to dismiss banner"}), 500
 
 @nudges_bp.route('/banners/<int:banner_id>/click', methods=['POST'])
-@login_required
 @require_nudges_enabled
 def click_banner_action(banner_id: int):
     """
@@ -185,7 +220,6 @@ def click_banner_action(banner_id: int):
         return jsonify({"error": "Failed to record banner click"}), 500
 
 @nudges_bp.route('/nudges/check-today', methods=['GET'])
-@login_required
 @require_spending_alerts_enabled
 def check_spending_today():
     """
@@ -297,7 +331,6 @@ def check_spending_today():
         return jsonify({"error": "Failed to check spending alerts"}), 500
 
 @nudges_bp.route('/nudges/prefs', methods=['GET', 'POST'])
-@login_required
 @require_nudges_enabled
 def nudge_preferences():
     """
