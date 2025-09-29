@@ -561,18 +561,18 @@ def seed_test_banners():
         # Create default test banners
         test_banners = []
         
-        # Banner 1: Spending Alert
+        # Banner 1: Goal Setting (Budget Goal)
         banner1 = Banner()
         banner1.user_id_hash = user.user_id_hash
-        banner1.title = data.get('banner1_title', "Spending Alert 📊")
-        banner1.message = data.get('banner1_message', "You've spent 15% more this week compared to last week. Review your expenses to stay on track.")
-        banner1.banner_type = "spending_alert"
-        banner1.priority = data.get('banner1_priority', 2)
-        banner1.expires_at = get_banner_test_time() + timedelta(days=data.get('banner1_expires_days', 7))
+        banner1.title = data.get('banner1_title', "Set Budget Goal 🎯")
+        banner1.message = data.get('banner1_message', "Stay on track with your spending! Set a daily budget goal and get AI insights to help you build better financial habits.")
+        banner1.banner_type = "goal_setting"
+        banner1.priority = data.get('banner1_priority', 1)  # High priority
+        banner1.expires_at = get_banner_test_time() + timedelta(days=data.get('banner1_expires_days', 30))
         banner1.dismissible = data.get('banner1_dismissible', True)
-        banner1.action_text = data.get('banner1_action_text', "Review Spending")
-        banner1.action_url = data.get('banner1_action_url', "/chat")
-        banner1.style = data.get('banner1_style', "warning")
+        banner1.action_text = data.get('banner1_action_text', "Set Goal")
+        banner1.action_url = data.get('banner1_action_url', "/challenge?action=set_goal")
+        banner1.style = data.get('banner1_style', "primary")
         
         # Banner 2: Savings Tip
         banner2 = Banner()
