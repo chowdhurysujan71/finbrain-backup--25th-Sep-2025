@@ -253,7 +253,9 @@ def profile():
     """
     Profile summary showing user info if available
     AUTHENTICATION REQUIRED
+    Feature-flagged: FEATURE_PROFILE_V2 enables new Google/Stripe-grade profile UI
     """
+    import os
     user = require_auth_or_redirect()  # Require authentication or redirect to login
     
     # If it's a redirect response, return it directly
@@ -266,7 +268,12 @@ def profile():
     
     logger.info(f"PWA profile route accessed by user: {user.user_id_hash}")
     
-    return render_template('profile.html', user_id=user.user_id_hash)
+    # Feature flag: Use profile v2 if enabled, otherwise fallback to current
+    if os.environ.get('FEATURE_PROFILE_V2') == 'true':
+        logger.info(f"Using profile v2 for user: {user.user_id_hash}")
+        return render_template('profile_v2.html', user_id=user.user_id_hash)
+    else:
+        return render_template('profile.html', user_id=user.user_id_hash)
 
 @pwa_ui.route('/challenge')
 def challenge():
