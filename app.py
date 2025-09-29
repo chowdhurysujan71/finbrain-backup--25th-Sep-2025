@@ -154,7 +154,7 @@ limiter.init_app(app)
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'pwa_ui.login'  # type: ignore # Redirect unauthenticated users
+login_manager.login_view = '/login'  # Direct URL path to avoid blueprint resolution issues
 login_manager.login_message = 'Please log in to access this page.'
 
 @login_manager.user_loader

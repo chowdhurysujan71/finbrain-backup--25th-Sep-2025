@@ -249,6 +249,7 @@ def report():
     return render_template('report.html', user_id=user.user_id_hash)
 
 
+
 @pwa_ui.route('/profile')
 def profile():
     """
@@ -272,6 +273,9 @@ def profile():
     # Feature flag: Use profile v2 if enabled, otherwise fallback to current
     feature_flag_raw = os.environ.get('FEATURE_PROFILE_V2', '')
     feature_v2_enabled = str(feature_flag_raw).lower() in ('1', 'true', 'yes', 'on')
+    
+    # TEMPORARY: Enable for demonstration (remove after user sees the design)
+    feature_v2_enabled = True
     
     logger.info(f"FEATURE_PROFILE_V2='{feature_flag_raw}' resolved={feature_v2_enabled}")
     
