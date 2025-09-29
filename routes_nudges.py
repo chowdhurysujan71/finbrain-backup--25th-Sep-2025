@@ -713,6 +713,244 @@ def health_check_nudges():
             'error': str(e)
         }), 503
 
+# ========================================
+# GOALS API ENDPOINTS
+# ========================================
+
+@nudges_bp.route('/goals', methods=['POST'])
+@require_api_auth
+@require_banners_enabled
+def create_goal():
+    """
+    Create or update a goal for the current user.
+    
+    Request body:
+    {
+        "type": "daily_spend_under",
+        "amount": 500.00,
+        "currency": "BDT"
+    }
+    """
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        data = request.get_json() or {}
+        
+        # Validate required fields
+        goal_type = data.get('type')
+        amount = data.get('amount')
+        currency = data.get('currency', 'BDT')
+        
+        if not goal_type:
+            return jsonify({"error": "Goal type is required"}), 400
+            
+        if not amount or amount <= 0:
+            return jsonify({"error": "Goal amount must be greater than 0"}), 400
+            
+        # Currently only support daily spending goals
+        if goal_type != 'daily_spend_under':
+            return jsonify({"error": "Only 'daily_spend_under' goals are currently supported"}), 400
+        
+        # Import Goal model
+        from models import Goal
+        
+        # Create or update goal using the thread-safe upsert method
+        goal = Goal.get_or_create_daily_goal(
+            user_id_hash=user.user_id_hash,
+            amount=float(amount),
+            currency=currency
+        )
+        
+        db.session.commit()
+        
+        logger.info(f"Goal created/updated for user {user.email}: {goal_type} {amount} {currency}")
+        
+        return jsonify({
+            "success": True,
+            "goal": goal.to_dict(),
+            "message": "Goal created successfully"
+        }), 201
+        
+    except Exception as e:
+        logger.error(f"Error creating goal: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to create goal"}), 500
+
+@nudges_bp.route('/goals', methods=['GET'])
+@require_api_auth
+@require_banners_enabled
+def list_goals():
+    """
+    Get active goals for the current user.
+    
+    Optional query parameters:
+    - type: Filter by goal type (e.g., daily_spend_under)
+    """
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        # Import Goal model
+        from models import Goal
+        
+        goal_type = request.args.get('type')
+        goals = Goal.get_active_for_user(user.user_id_hash, goal_type)
+        
+        return jsonify({
+            "success": True,
+            "goals": [goal.to_dict() for goal in goals]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error listing goals: {e}")
+        return jsonify({"error": "Failed to list goals"}), 500
+
+@nudges_bp.route('/goals/progress', methods=['GET'])
+@require_api_auth
+@require_banners_enabled
+def get_goal_progress():
+    """
+    Get weekly progress for daily spending goals.
+    
+    Query parameters:
+    - type: Goal type (default: daily_spend_under)
+    - range: Time range (default: week)
+    """
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        goal_type = request.args.get('type', 'daily_spend_under')
+        range_param = request.args.get('range', 'week')
+        
+        # Currently only support week range
+        if range_param != 'week':
+            return jsonify({"error": "Only 'week' range is currently supported"}), 400
+            
+        # Import models
+        from models import Goal, Expense
+        from datetime import datetime, timedelta
+        
+        # Get active goal of specified type
+        goals = Goal.get_active_for_user(user.user_id_hash, goal_type)
+        if not goals:
+            return jsonify({
+                "error": "No active goal found",
+                "type": goal_type,
+                "range": range_param
+            }), 404
+            
+        goal = goals[0]  # Take the first active goal
+        
+        # Calculate week range (Monday to Sunday)
+        now = get_current_time()
+        days_since_monday = now.weekday()
+        monday = (now - timedelta(days=days_since_monday)).date()
+        
+        # Get daily spending for the current week
+        week_expenses = db.session.query(
+            func.DATE(Expense.date).label('date'),
+            func.sum(Expense.amount).label('spent')
+        ).filter(
+            Expense.user_id_hash == user.user_id_hash,
+            Expense.date >= monday,
+            Expense.date <= now.date(),
+            ~Expense.is_deleted  # Exclude soft-deleted expenses
+        ).group_by(func.DATE(Expense.date)).all()
+        
+        # Build daily progress
+        days = []
+        ok_days = 0
+        over_days = 0
+        
+        for i in range(7):  # Monday to Sunday
+            day_date = monday + timedelta(days=i)
+            day_spent = 0
+            
+            # Find spending for this day
+            for expense_day in week_expenses:
+                if expense_day.date == day_date:
+                    day_spent = float(expense_day.spent)
+                    break
+            
+            is_ok = day_spent <= float(goal.amount)
+            if day_spent > 0:  # Only count days with spending
+                if is_ok:
+                    ok_days += 1
+                else:
+                    over_days += 1
+            
+            days.append({
+                "date": day_date.isoformat(),
+                "spent": day_spent,
+                "limit": float(goal.amount),
+                "ok": is_ok
+            })
+        
+        return jsonify({
+            "success": True,
+            "type": goal_type,
+            "range": range_param,
+            "days": days,
+            "summary": {
+                "ok_days": ok_days,
+                "over_days": over_days,
+                "goal": goal.to_dict()
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting goal progress: {e}")
+        return jsonify({"error": "Failed to get goal progress"}), 500
+
+@nudges_bp.route('/goals/<int:goal_id>', methods=['DELETE'])
+@require_api_auth
+@require_banners_enabled
+def delete_goal(goal_id):
+    """
+    Deactivate a goal by ID.
+    
+    Path parameters:
+    - goal_id: The ID of the goal to deactivate
+    """
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        # Import Goal model
+        from models import Goal
+        
+        # Find the goal
+        goal = Goal.query.filter(
+            Goal.id == goal_id,
+            Goal.user_id_hash == user.user_id_hash,
+            Goal.status == 'active'
+        ).first()
+        
+        if not goal:
+            return jsonify({"error": "Goal not found or already inactive"}), 404
+        
+        # Deactivate the goal
+        goal.deactivate()
+        db.session.commit()
+        
+        logger.info(f"Goal {goal_id} deactivated for user {user.email}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Goal deactivated successfully"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error deleting goal {goal_id}: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to delete goal"}), 500
+
 # Register the blueprint
 def register_nudges_routes(app):
     """Register nudging routes with the Flask app."""
