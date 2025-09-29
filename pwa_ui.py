@@ -248,23 +248,6 @@ def report():
     
     return render_template('report.html', user_id=user.user_id_hash)
 
-@pwa_ui.route('/debug-env')
-def debug_env():
-    """Debug endpoint to check environment variables"""
-    import os
-    feature_flag = os.environ.get('FEATURE_PROFILE_V2', 'NOT_SET')
-    all_feature_vars = {k: v for k, v in os.environ.items() if 'FEATURE' in k.upper()}
-    return f"FEATURE_PROFILE_V2: '{feature_flag}'<br>All FEATURE vars: {all_feature_vars}"
-
-@pwa_ui.route('/profile-demo')
-def profile_demo():
-    """Demo route to show Profile V2 without authentication (for testing only)"""
-    import os
-    logger.info("Demo profile route accessed (no auth required)")
-    
-    # Always show profile v2 for demo
-    logger.info("Using profile v2 for demo")
-    return render_template('profile_v2.html', user_id='demo123')
 
 @pwa_ui.route('/profile')
 def profile():
@@ -289,9 +272,6 @@ def profile():
     # Feature flag: Use profile v2 if enabled, otherwise fallback to current
     feature_flag_raw = os.environ.get('FEATURE_PROFILE_V2', '')
     feature_v2_enabled = str(feature_flag_raw).lower() in ('1', 'true', 'yes', 'on')
-    
-    # TEMP: Force enable for testing (remove after demo)
-    feature_v2_enabled = True
     
     logger.info(f"FEATURE_PROFILE_V2='{feature_flag_raw}' resolved={feature_v2_enabled}")
     
