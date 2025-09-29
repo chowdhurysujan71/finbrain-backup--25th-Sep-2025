@@ -505,7 +505,7 @@ def health_check_banners():
             active_banners = db.session.execute(
                 db.select(func.count(Banner.id)).where(
                     and_(
-                        Banner.dismissed_at == None,
+                        Banner.dismissed_at.is_(None),
                         Banner.expires_at > get_banner_test_time()
                     )
                 )
@@ -539,6 +539,91 @@ def health_check_banners():
             'timestamp': get_current_time().isoformat(),
             'error': str(e)
         }), 503
+
+@nudges_bp.route('/banners/seed', methods=['POST'])
+@require_api_auth
+@require_banners_enabled
+def seed_test_banners():
+    """
+    Seed test banners for the current user - useful for development and testing.
+    
+    Request body can include optional custom banner data, otherwise defaults are used.
+    """
+    try:
+        # Get user from auth system
+        user = get_current_user()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Get optional custom banner data from request
+        data = request.get_json() or {}
+        
+        # Create default test banners
+        test_banners = []
+        
+        # Banner 1: Spending Alert
+        banner1 = Banner()
+        banner1.user_id_hash = user.user_id_hash
+        banner1.title = data.get('banner1_title', "Spending Alert 📊")
+        banner1.message = data.get('banner1_message', "You've spent 15% more this week compared to last week. Review your expenses to stay on track.")
+        banner1.banner_type = "spending_alert"
+        banner1.priority = data.get('banner1_priority', 2)
+        banner1.expires_at = get_banner_test_time() + timedelta(days=data.get('banner1_expires_days', 7))
+        banner1.dismissible = data.get('banner1_dismissible', True)
+        banner1.action_text = data.get('banner1_action_text', "Review Spending")
+        banner1.action_url = data.get('banner1_action_url', "/chat")
+        banner1.style = data.get('banner1_style', "warning")
+        
+        # Banner 2: Savings Tip
+        banner2 = Banner()
+        banner2.user_id_hash = user.user_id_hash
+        banner2.title = data.get('banner2_title', "💡 Savings Tip")
+        banner2.message = data.get('banner2_message', "Try the 50/30/20 rule: 50% needs, 30% wants, 20% savings. Start small and build the habit!")
+        banner2.banner_type = "savings_tip"
+        banner2.priority = data.get('banner2_priority', 3)
+        banner2.expires_at = get_banner_test_time() + timedelta(days=data.get('banner2_expires_days', 14))
+        banner2.dismissible = data.get('banner2_dismissible', True)
+        banner2.action_text = data.get('banner2_action_text', "Learn More")
+        banner2.action_url = data.get('banner2_action_url', "/chat")
+        banner2.style = data.get('banner2_style', "info")
+        
+        test_banners.extend([banner1, banner2])
+        
+        # Add optional third banner if requested
+        if data.get('create_achievement_banner', False):
+            banner3 = Banner()
+            banner3.user_id_hash = user.user_id_hash
+            banner3.title = data.get('banner3_title', "🎉 Achievement Unlocked!")
+            banner3.message = data.get('banner3_message', "Congratulations! You've tracked expenses for 7 consecutive days. Keep up the great work!")
+            banner3.banner_type = "achievement"
+            banner3.priority = data.get('banner3_priority', 1)  # High priority
+            banner3.expires_at = get_banner_test_time() + timedelta(days=data.get('banner3_expires_days', 3))
+            banner3.dismissible = data.get('banner3_dismissible', True)
+            banner3.action_text = data.get('banner3_action_text', "Continue Tracking")
+            banner3.action_url = data.get('banner3_action_url', "/chat")
+            banner3.style = data.get('banner3_style', "success")
+            test_banners.append(banner3)
+        
+        # Save all banners to database
+        for banner in test_banners:
+            db.session.add(banner)
+        
+        db.session.commit()
+        
+        logger.info(f"Seeded {len(test_banners)} test banners for user {user.email}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Successfully seeded {len(test_banners)} test banners",
+            "banners_created": len(test_banners),
+            "banner_ids": [banner.id for banner in test_banners],
+            "user_email": user.email
+        })
+        
+    except Exception as e:
+        logger.error(f"Error seeding test banners: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to seed test banners"}), 500
 
 @nudges_bp.route('/health/nudges', methods=['GET'])  
 def health_check_nudges():
