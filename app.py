@@ -98,20 +98,16 @@ app.secret_key = session_secret
 app.config["SESSION_COOKIE_HTTPONLY"] = True       # JS cannot read cookie
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"      # Required for subdomain redirects
 
-# SECURITY FIX: Conditional session cookie settings - environment-based
+# SESSION CONFIGURATION: Replit-as-production ready
 if is_production:
     app.config["SESSION_COOKIE_SECURE"] = True         # HTTPS only in production
-    # Support both finbrain.app and replit domains for testing
-    replit_domains = os.environ.get('REPLIT_DOMAINS', '')
-    if replit_domains and ('replit.dev' in replit_domains or 'replit.app' in replit_domains):
-        app.config["SESSION_COOKIE_DOMAIN"] = None      # Allow all domains for replit testing
-        logger.info(f"✓ Session cookies configured for replit domain (production testing): {replit_domains}")
-    else:
-        app.config["SESSION_COOKIE_DOMAIN"] = ".finbrain.app"  # Share cookies across finbrain.app subdomains in production
-        logger.info("✓ Session cookies configured for finbrain.app subdomains (production, secure)")
+    app.config["SESSION_COOKIE_DOMAIN"] = None         # Host-only cookies (works on any domain)
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"      # Required for subdomain redirects
+    logger.info("✓ Session cookies configured for Replit production: host-only, secure, SameSite=Lax")
 else:
     # Development: Allow HTTP and localhost sessions for testing
     app.config["SESSION_COOKIE_SECURE"] = False        # Allow HTTP in development/testing
+    app.config["SESSION_COOKIE_DOMAIN"] = None         # Host-only
     logger.info("✓ Session cookies configured for localhost (development, non-secure)")
 
 app.config["SESSION_COOKIE_NAME"] = "fbn.sid"      # Custom session cookie name
@@ -119,42 +115,37 @@ app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 30  # 30 days
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# SECURITY CRITICAL FIX: Restrict CORS to exact finbrain.app origins only
+# CORS CONFIGURATION: Replit-as-production ready
 if env == 'production' or env == 'prod':
-    # Production: Only allow exact finbrain.app subdomains
-    finbrain_origins = [
-        "https://finbrain.app",
-        "https://login.finbrain.app", 
-        "https://app.finbrain.app",
-        "https://chat.finbrain.app",
-        "https://admin.finbrain.app"
-    ]
-    
-    # Add replit domain for testing if running on Replit
+    # Production: Use Replit domain as primary production origin
     replit_domains = os.environ.get('REPLIT_DOMAINS', '')
     if replit_domains and ('replit.dev' in replit_domains or 'replit.app' in replit_domains):
-        # Extract the full replit domain and add HTTPS
-        replit_origin = f"https://{replit_domains}"
-        finbrain_origins.append(replit_origin)
-        logger.info(f"✓ CORS configured for production with replit testing: {finbrain_origins}")
+        # Replit as production
+        production_origins = [f"https://{replit_domains}"]
+        logger.info(f"✓ CORS configured for Replit production: {production_origins}")
     else:
-        logger.info(f"✓ CORS configured for production with exact origins: {finbrain_origins}")
+        # Fallback to finbrain.app if available
+        production_origins = [
+            "https://finbrain.app",
+            "https://login.finbrain.app", 
+            "https://app.finbrain.app",
+            "https://chat.finbrain.app",
+            "https://admin.finbrain.app"
+        ]
+        logger.info(f"✓ CORS configured for finbrain.app production: {production_origins}")
 else:
-    # Development: Allow localhost and any finbrain.app subdomain for testing
-    finbrain_origins = [
+    # Development: Allow localhost
+    production_origins = [
         os.getenv("APP_ORIGIN", "http://localhost:5000"),
-        "http://localhost:5000",
-        "https://*.finbrain.app",
-        "https://finbrain.app"
+        "http://localhost:5000"
     ]
-    logger.info(f"✓ CORS configured for development: {finbrain_origins}")
+    logger.info(f"✓ CORS configured for development: {production_origins}")
 
-# SECURITY FIX: Limit CORS scope to specific routes only, remove global wildcard
+# CORS: Scoped to specific routes for security
 CORS(app, supports_credentials=True, resources={
-    r"/api/*": {"origins": finbrain_origins},
-    r"/ai-chat": {"origins": finbrain_origins}, 
-    r"/auth/*": {"origins": finbrain_origins}
-    # Removed global r"/*" route for security
+    r"/api/*": {"origins": production_origins},
+    r"/ai-chat": {"origins": production_origins}, 
+    r"/auth/*": {"origins": production_origins}
 })
 from utils.rate_limiting import limiter
 

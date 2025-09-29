@@ -14,11 +14,11 @@ FAQ_JSON = {
         ),
         "is my financial data secure": (
             "🔒 Your data is encrypted **in transit and at rest**. We don't store sensitive banking details and follow "
-            "industry-standard security practices. View our Privacy Policy: https://www.finbrain.app/privacy-policy"
+            "industry-standard security practices. View our Privacy Policy: /privacy-policy"
         ),
         "what messaging platforms do you support": (
             "💬 We're starting with popular platforms and expanding based on user demand. Join early access to help shape priorities. "
-            "For details and updates visit www.finbrain.app"
+            "For details and updates check our help section."
         ),
         "how much does finbrain cost": (
             "We're currently in early access - it's free while we perfect the experience! "
@@ -35,12 +35,12 @@ FAQ_JSON = {
         ),
         "how do i get started": (
             "🚀 Join early access with your email and be among the first to experience finbrain. "
-            "For details and updates visit www.finbrain.app"
+            "For details and updates check our help section."
         ),
         "privacy policy and terms": (
             "📋 View our legal documents:\n"
-            "• Privacy Policy: https://www.finbrain.app/privacy-policy\n"
-            "• Terms of Service: https://www.finbrain.app/terms-of-service\n"
+            "• Privacy Policy: /privacy-policy\n"
+            "• Terms of Service: /terms-of-service\n"
             "Your privacy and data protection are our top priority.\n\n"
             "⚖️ Important: finbrain provides educational insights only, not professional financial advice. "
             "Always consult qualified financial advisors for investment or major financial decisions."
@@ -51,7 +51,7 @@ FAQ_JSON = {
         "hello": "😊 Hello! I can help you track expenses or show your spending summary.",
         "who built you": (
             "🏗️ I was built by the finbrain team to make managing money as easy as sending a message. "
-            "For details and updates visit www.finbrain.app"
+            "For details and updates check our help section."
         )
     },
     "fallback": {
