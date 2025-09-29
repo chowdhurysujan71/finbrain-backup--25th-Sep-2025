@@ -4,6 +4,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const err  = document.getElementById('auth-error');
   const spin = document.getElementById('auth-spinner');
   const captchaQuestion = document.getElementById('captcha-question');
+  
+  // Store CAPTCHA nonce
+  let captchaNonce = null;
 
   // Load CAPTCHA on page load
   async function loadCaptcha() {
@@ -12,11 +15,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (data.success && captchaQuestion) {
         captchaQuestion.textContent = data.question;
+        captchaNonce = data.nonce; // Store the nonce
       }
     } catch (e) {
       console.error('Failed to load CAPTCHA:', e);
       if (captchaQuestion) {
         captchaQuestion.textContent = 'What is 2 + 2?';
+        captchaNonce = 'fallback_nonce'; // Fallback nonce
       }
     }
   }
@@ -44,7 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ 
           email: form.email.value, 
           password: form.password.value,
-          captcha_answer: form.captcha.value
+          captcha_answer: form.captcha.value,
+          captcha_nonce: captchaNonce
         })
       });
       data = await res.json().catch(() => ({}));
