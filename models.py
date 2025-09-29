@@ -1,5 +1,6 @@
 from datetime import UTC, date, datetime
 
+from flask_login import UserMixin
 from sqlalchemy import JSON
 
 from db_base import db
@@ -109,7 +110,7 @@ class ExpenseEdit(db.Model):
     def __repr__(self):
         return f'<ExpenseEdit {self.id}: Expense {self.expense_id} edited by {self.editor_user_id[:8]}...>'
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     """User tracking table"""
     __tablename__ = 'users'
     

@@ -9,6 +9,7 @@ from functools import wraps
 
 from flask import Flask, g, jsonify, make_response, render_template, request, session
 from flask_cors import CORS
+from flask_login import LoginManager
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Configure logging - production mode removes debug and reload
@@ -143,6 +144,18 @@ CORS(app, supports_credentials=True, resources={
 from utils.rate_limiting import limiter
 
 limiter.init_app(app)
+
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'pwa_ui.login'  # Redirect unauthenticated users
+login_manager.login_message = 'Please log in to access this page.'
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Load user by ID for Flask-Login sessions"""
+    from models import User
+    return User.query.get(int(user_id))
 
 # Request logging middleware using existing structured logger
 from utils.logger import structured_logger
