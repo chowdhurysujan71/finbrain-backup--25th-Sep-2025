@@ -189,14 +189,15 @@
         }
         bannerContent.className = `alert ${alertClass}`;
         
-        // Build banner HTML
+        // Build banner HTML with better styling
         bannerContent.innerHTML = `
             <div class="d-flex justify-content-between align-items-start">
-                <div class="banner-text">
-                    <h5 class="alert-heading">${escapeHtml(banner.title)}</h5>
-                    <p class="mb-0">${escapeHtml(banner.message)}</p>
+                <div class="banner-text flex-grow-1">
+                    <h5 class="alert-heading mb-2 fw-semibold">${escapeHtml(banner.title)}</h5>
+                    <p class="mb-3 text-muted">${escapeHtml(banner.message)}</p>
+                    ${banner.action_text ? `<a href="${escapeHtml(banner.action_url)}" class="btn btn-sm btn-outline-primary">${escapeHtml(banner.action_text)}</a>` : ''}
                 </div>
-                <button type="button" class="btn-close" onclick="dismissBanner('${banner.id}')" aria-label="Dismiss"></button>
+                <button type="button" class="btn-close ms-3" onclick="dismissBanner('${banner.id}')" aria-label="Dismiss"></button>
             </div>
         `;
         
