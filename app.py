@@ -188,6 +188,10 @@ def attach_user_and_trace():
     # SINGLE-SOURCE-OF-TRUTH: Set authenticated user context from session only
     g.user_id = get_user_id_from_session()
     
+    # AUTH FLOW GUARD: Redirect authenticated users away from auth pages
+    if g.user_id and request.path in ("/login", "/register", "/signup"):
+        return redirect("/chat", code=302)
+    
     # Get current subdomain for routing logic
     current_subdomain = get_subdomain()
     
