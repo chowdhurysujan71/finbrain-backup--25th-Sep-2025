@@ -209,19 +209,38 @@ def attach_user_and_trace():
         return resp
     
     # SUBDOMAIN AUTHENTICATION ENFORCEMENT
-    # Redirect unauthenticated users from protected subdomains to login.finbrain.app
+    # Redirect unauthenticated users from protected subdomains to login
     if current_subdomain and is_protected_subdomain(current_subdomain) and not g.user_id:
         # Skip auth redirect for auth-related routes to prevent redirect loops
         if not (request.path.startswith('/auth/') or request.path.startswith('/api/auth/')):
+            # Helper function to build environment-aware URLs
+            def build_domain_url(subdomain=None, path="/"):
+                """Build URL with environment-aware domain detection"""
+                replit_domains = os.environ.get('REPLIT_DOMAINS', '')
+                
+                if replit_domains and ('replit.dev' in replit_domains or 'replit.app' in replit_domains):
+                    # Replit domain: use path-based routing
+                    base_url = f"https://{replit_domains}"
+                    if subdomain and subdomain != 'www':
+                        return f"{base_url}/{subdomain}{path}"
+                    else:
+                        return f"{base_url}{path}"
+                else:
+                    # Production finbrain.app domain: use subdomain routing
+                    if subdomain and subdomain != 'www':
+                        return f"https://{subdomain}.finbrain.app{path}"
+                    else:
+                        return f"https://finbrain.app{path}"
+            
             # Build returnTo URL with current subdomain and path
-            return_to_url = f"https://{current_subdomain}.finbrain.app{request.path}"
+            return_to_url = build_domain_url(current_subdomain, request.path)
             if request.query_string:
                 return_to_url += f"?{request.query_string.decode('utf-8')}"
             
-            # Redirect to login subdomain with returnTo parameter
-            login_url = f"https://login.finbrain.app/login?returnTo={quote(return_to_url)}"
+            # Redirect to login with returnTo parameter
+            login_url = build_domain_url('login', f"/login?returnTo={quote(return_to_url)}")
             
-            app.logger.info(f"[{g.request_id}] Redirecting unauthenticated user from {current_subdomain}.finbrain.app to login")
+            app.logger.info(f"[{g.request_id}] Redirecting unauthenticated user from {current_subdomain} to login")
             return redirect(login_url, code=302)
     
     # PRODUCTION SECURITY: Block ALL /api/* requests without authentication

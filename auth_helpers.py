@@ -50,18 +50,21 @@ def is_authenticated():
 
 def get_subdomain():
     """
-    Parse subdomain from request.host for finbrain.app routing
+    Parse subdomain from request.host for finbrain.app and replit domain routing
     
     Returns:
         str: Subdomain name ('app', 'login', 'report', etc.) or 'www' for root domain
-        None: For localhost or non-finbrain.app domains
+        None: For localhost or unrecognized domains
     
     Examples:
         app.finbrain.app -> 'app'
         login.finbrain.app -> 'login' 
         finbrain.app -> 'www'
         localhost:5000 -> None
+        replit.dev/app -> 'app' (from path-based routing)
     """
+    import os
+    
     try:
         host = request.host.lower()
         
@@ -69,7 +72,7 @@ def get_subdomain():
         if 'localhost' in host or '127.0.0.1' in host or not host:
             return None
             
-        # Handle finbrain.app domains
+        # Handle finbrain.app domains (production)
         if '.finbrain.app' in host:
             # Extract subdomain from host like "app.finbrain.app"
             subdomain = host.split('.finbrain.app')[0]
@@ -84,7 +87,26 @@ def get_subdomain():
         if host == 'finbrain.app':
             return 'www'
             
-        # Non-finbrain.app domains
+        # Handle replit domains for testing
+        replit_domains = os.environ.get('REPLIT_DOMAINS', '')
+        if replit_domains and (host in replit_domains or 'replit.dev' in host or 'replit.app' in host):
+            # For replit domains, extract subdomain from path if available
+            # Since replit doesn't support real subdomains, we'll use path-based routing
+            path = getattr(request, 'path', '/')
+            if path.startswith('/app'):
+                return 'app'
+            elif path.startswith('/login'):
+                return 'login'
+            elif path.startswith('/report'):
+                return 'report'
+            elif path.startswith('/profile'):
+                return 'profile'
+            elif path.startswith('/challenge'):
+                return 'challenge'
+            else:
+                return 'www'  # Default for replit domains
+            
+        # Non-recognized domains
         return None
         
     except Exception as e:
@@ -112,7 +134,7 @@ def is_protected_subdomain(subdomain):
 def validate_return_to_url(return_to):
     """
     Validate returnTo parameter for security
-    Only allows local paths to prevent open redirect attacks
+    Only allows local paths and trusted domains to prevent open redirect attacks
     
     Args:
         return_to: The returnTo URL parameter
@@ -120,6 +142,8 @@ def validate_return_to_url(return_to):
     Returns:
         bool: True if URL is safe to redirect to
     """
+    import os
+    
     if not return_to:
         return False
         
@@ -129,9 +153,19 @@ def validate_return_to_url(return_to):
         
         # Only allow relative paths (no scheme, no netloc)
         if parsed.scheme or parsed.netloc:
-            # Allow only finbrain.app subdomains
-            if not (parsed.netloc.endswith('.finbrain.app') or parsed.netloc == 'finbrain.app'):
-                return False
+            # Allow finbrain.app subdomains (production)
+            if parsed.netloc.endswith('.finbrain.app') or parsed.netloc == 'finbrain.app':
+                return True
+                
+            # Allow replit domains for testing
+            replit_domains = os.environ.get('REPLIT_DOMAINS', '')
+            if replit_domains and (parsed.netloc in replit_domains or 
+                                 'replit.dev' in parsed.netloc or 
+                                 'replit.app' in parsed.netloc):
+                return True
+                
+            # Block all other external domains
+            return False
                 
         # Don't allow javascript: or data: URLs
         if return_to.lower().startswith(('javascript:', 'data:', 'vbscript:')):
