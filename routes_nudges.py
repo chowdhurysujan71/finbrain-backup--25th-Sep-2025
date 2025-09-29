@@ -124,10 +124,10 @@ def require_banners_enabled(f):
 @require_banners_enabled
 def get_active_banners():
     """
-    Get active banners for the current user.
+    Get active banners for the current user with goal-aware intelligence.
     
     Returns:
-        JSON array of active banners ordered by priority
+        JSON array of active banners ordered by priority with goal coaching
     """
     try:
         # Get user from auth system
@@ -135,22 +135,27 @@ def get_active_banners():
         if not user:
             return jsonify({"error": "User not found"}), 404
         
-        # Get active banners for user (using test clock for deterministic testing)
-        banners = Banner.get_active_for_user(user.user_id_hash, limit=5)
+        # Use smart banner service for goal-aware banners
+        try:
+            from utils.smart_banners import smart_banner_service
+            banner_data = smart_banner_service.get_goal_aware_banners(user.user_id_hash, limit=5)
+            service_used = "smart_banners"
+        except Exception as e:
+            logger.warning(f"Smart banner service failed, falling back to basic banners: {e}")
+            # Fallback to original banner system
+            banners = Banner.get_active_for_user(user.user_id_hash, limit=5)
+            banner_data = []
+            for banner in banners:
+                banner.mark_shown()
+                banner_data.append(banner.to_dict())
+            db.session.commit()
+            service_used = "basic_banners"
         
-        # Mark banners as shown and return data
-        banner_data = []
-        for banner in banners:
-            banner.mark_shown()
-            banner_data.append(banner.to_dict())
-        
-        # Commit the shown updates
-        db.session.commit()
-        
-        logger.info(f"Retrieved {len(banner_data)} active banners for user {user.email}")
+        logger.info(f"Retrieved {len(banner_data)} banners for user {user.email} using {service_used}")
         return jsonify({
             "banners": banner_data,
             "total_count": len(banner_data),
+            "service": service_used,
             "timestamp": datetime.utcnow().isoformat()
         })
         

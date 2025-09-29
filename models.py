@@ -419,7 +419,7 @@ class Banner(db.Model):
     __table_args__ = (
         db.CheckConstraint("priority >= 1 AND priority <= 10", name='ck_banner_priority_range'),
         db.CheckConstraint("style IN ('info', 'warning', 'success', 'error')", name='ck_banner_style'),
-        db.CheckConstraint("banner_type IN ('spending_alert', 'streak_reminder', 'category_tip', 'milestone', 'onboarding', 'feature_tip')", name='ck_banner_type'),
+        db.CheckConstraint("banner_type IN ('spending_alert', 'streak_reminder', 'category_tip', 'milestone', 'onboarding', 'feature_tip', 'goal_setting', 'goal_celebration', 'goal_adjustment', 'goal_suggestion', 'goal_achievement')", name='ck_banner_type'),
         db.Index('ix_banners_user_active', 'user_id_hash', 'is_deleted', 'dismissed_at'),
         db.Index('ix_banners_priority_created', 'priority', 'created_at'),
     )
