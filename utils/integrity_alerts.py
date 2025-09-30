@@ -9,7 +9,7 @@ import os
 import smtplib
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
-from email.mime.text import MimeText
+from email.mime.text import MIMEText
 from typing import Any, Dict
 
 import requests
@@ -150,6 +150,9 @@ class IntegrityAlerting:
         alert_email_to = os.getenv('ALERT_EMAIL_TO')
         alert_email_from = os.getenv('ALERT_EMAIL_FROM', smtp_user)
         
+        if not all([smtp_host, smtp_user, smtp_pass]):
+            raise ValueError("Email configuration is incomplete")
+        
         report = alert_data['report']
         
         # Create email
@@ -165,16 +168,16 @@ class IntegrityAlerting:
         html_content = self._generate_email_html(alert_data)
         
         # Attach parts
-        text_part = MimeText(text_content, 'plain')
-        html_part = MimeText(html_content, 'html')
+        text_part = MIMEText(text_content, 'plain')
+        html_part = MIMEText(html_content, 'html')
         
         msg.attach(text_part)
         msg.attach(html_part)
         
         # Send email
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
+        with smtplib.SMTP(smtp_host, smtp_port) as server:  # type: ignore
             server.starttls()
-            server.login(smtp_user, smtp_pass)
+            server.login(smtp_user, smtp_pass)  # type: ignore
             server.send_message(msg)
         
         logger.info(f"Email alert sent to {alert_email_to}")
@@ -182,6 +185,8 @@ class IntegrityAlerting:
     def _send_slack_alert(self, alert_data: dict[str, Any]):
         """Send Slack alert to operations channel"""
         webhook_url = os.getenv('SLACK_WEBHOOK_URL')
+        if not webhook_url:
+            raise ValueError("Slack webhook URL is not configured")
         
         report = alert_data['report']
         failed_checks = alert_data['failed_checks']
@@ -261,6 +266,8 @@ class IntegrityAlerting:
     def _send_webhook_alert(self, alert_data: dict[str, Any]):
         """Send alert to generic webhook endpoint"""
         webhook_url = os.getenv('INTEGRITY_WEBHOOK_URL')
+        if not webhook_url:
+            raise ValueError("Integrity webhook URL is not configured")
         webhook_secret = os.getenv('INTEGRITY_WEBHOOK_SECRET')
         
         # Prepare payload
