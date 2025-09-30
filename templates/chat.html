@@ -193,7 +193,7 @@
             </div>
         `;
         
-        bannerContainer.style.display = 'block';
+        bannerContainer.classList.remove('hidden');
     }
     
     async function dismissBanner(bannerId) {
@@ -213,7 +213,7 @@
                     bannerContainer.style.transition = 'opacity 0.3s ease';
                     bannerContainer.style.opacity = '0';
                     setTimeout(() => {
-                        bannerContainer.style.display = 'none';
+                        bannerContainer.classList.add('hidden');
                         bannerContainer.style.opacity = '1';
                     }, 300);
                 }
@@ -227,7 +227,7 @@
     function hideStaticPreviewBanner() {
         const staticBanner = document.querySelector('.chat-preview-banner');
         if (staticBanner) {
-            staticBanner.style.display = 'none';
+            staticBanner.classList.add('hidden');
         }
     }
     

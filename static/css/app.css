@@ -1085,6 +1085,63 @@ h1, h2, h3, h4, h5, h6 {
     font-size: var(--font-size-lg);
 }
 
+/* ===== SMART BANNER ===== */
+.smart-banner {
+    margin-bottom: var(--space-4);
+    padding: 0;
+    overflow: hidden;
+}
+
+.smart-banner .alert {
+    margin-bottom: 0;
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+}
+
+.smart-banner .alert-heading {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+    line-height: 1.4;
+}
+
+.smart-banner .alert p {
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-3);
+    line-height: 1.5;
+}
+
+.smart-banner .btn-close {
+    padding: var(--space-2);
+    opacity: 0.6;
+}
+
+.smart-banner .btn-close:hover {
+    opacity: 1;
+}
+
+/* Compact banner layout */
+.smart-banner .d-flex {
+    gap: var(--space-3);
+}
+
+.smart-banner .banner-text {
+    flex: 1;
+}
+
+/* Override Bootstrap alert spacing */
+.smart-banner .alert-success {
+    background-color: hsl(142, 76%, 95%);
+    border-color: hsl(142, 76%, 80%);
+    color: hsl(142, 76%, 20%);
+}
+
+.smart-banner .alert-info {
+    background-color: var(--color-primary-50);
+    border-color: hsl(210, 100%, 80%);
+    color: hsl(210, 100%, 30%);
+}
+
 /* ===== UTILITY CLASSES ===== */
 .hidden {
     display: none !important;

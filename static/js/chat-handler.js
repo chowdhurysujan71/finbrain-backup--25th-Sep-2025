@@ -205,7 +205,7 @@ const handleCategorySelection = async (chipElement) => {
       if (clarificationMsg) {
         const optionsContainer = clarificationMsg.querySelector('.clarification-options');
         if (optionsContainer) {
-          optionsContainer.style.display = 'none';
+          optionsContainer.classList.add('hidden');
         }
         // Add selected indicator
         const selectedIndicator = document.createElement('div');
@@ -246,7 +246,7 @@ function applyUIUpdates(uiUpdates) {
     const chartTarget = document.getElementById('expense-chart');
     if (chartTarget) {
       // Show the chart container
-      chartTarget.style.display = 'block';
+      chartTarget.classList.remove('hidden');
       
       // Render simple category breakdown (placeholder for Chart.js)
       const chartData = uiUpdates.chart_update;
@@ -300,7 +300,7 @@ function applyUIUpdates(uiUpdates) {
         progressInfo.appendChild(progressCircle);
         progressInfo.appendChild(progressMessage);
         progressTarget.appendChild(progressInfo);
-        progressTarget.style.display = 'block';
+        progressTarget.classList.remove('hidden');
         
         console.log('[UI-UPDATE] Progress ring updated');
       }
@@ -316,7 +316,7 @@ function applyUIUpdates(uiUpdates) {
       // SECURITY: Server must sanitize banner HTML before sending
       // TODO: Convert to structured data (title/body/cta) for safe client-side rendering
       bannerTarget.innerHTML = uiUpdates.banner;
-      bannerTarget.style.display = 'block';
+      bannerTarget.classList.remove('hidden');
       console.log('[UI-UPDATE] Banner displayed');
     } else {
       console.warn('[UI-UPDATE] Banner target #smart-banner not found');
