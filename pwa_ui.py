@@ -214,6 +214,8 @@ def chat():
     Expense input + recent entries list (HTMX partial hydrate)
     AUTHENTICATION REQUIRED
     """
+    from flask import make_response
+    
     user = require_auth_or_redirect()  # Require authentication or redirect to login
     
     # If it's a redirect response, return it directly
@@ -226,7 +228,11 @@ def chat():
     
     logger.info(f"PWA chat route accessed by user: {user.user_id_hash}")
     
-    return render_template('chat.html', user_id=user.user_id_hash)
+    response = make_response(render_template('chat.html', user_id=user.user_id_hash))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @pwa_ui.route('/report')
 def report():
@@ -234,6 +240,8 @@ def report():
     Money Story summary cards + placeholder charts
     AUTHENTICATION REQUIRED
     """
+    from flask import make_response
+    
     user = require_auth_or_redirect()  # Require authentication or redirect to login
     
     # If it's a redirect response, return it directly
@@ -246,7 +254,11 @@ def report():
     
     logger.info(f"PWA report route accessed by user: {user.user_id_hash}")
     
-    return render_template('report.html', user_id=user.user_id_hash)
+    response = make_response(render_template('report.html', user_id=user.user_id_hash))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 
@@ -258,6 +270,8 @@ def profile():
     AUTHENTICATION REQUIRED
     Uses Google/Stripe-grade profile UI (profile_v2.html)
     """
+    from flask import make_response
+    
     user = require_auth_or_redirect()  # Require authentication or redirect to login
     
     # If it's a redirect response, return it directly
@@ -271,7 +285,11 @@ def profile():
     logger.info(f"PWA profile route accessed by user: {user.user_id_hash}")
     
     # Always use profile_v2 (production-ready with logout button and zero-hallucination)
-    return render_template('profile_v2.html', user_id=user.user_id_hash)
+    response = make_response(render_template('profile_v2.html', user_id=user.user_id_hash))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @pwa_ui.route('/challenge')
 def challenge():
