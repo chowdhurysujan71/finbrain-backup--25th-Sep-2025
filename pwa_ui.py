@@ -1148,6 +1148,8 @@ def ai_chat():
         return jsonify({"error": "Please log in to track expenses"}), 401
     
     start_time = time.time()
+    emit_telemetry = None  # Initialize to prevent unbound variable in error handler
+    
     try:
         data = request.get_json(force=True) or {}
         text = (data.get("text") or data.get("message") or "").strip()
