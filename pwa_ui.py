@@ -907,7 +907,7 @@ def api_profile():
         month_expenses = Expense.query_active().filter(
             Expense.user_id_hash == user_id_hash,
             Expense.date >= month_start,
-            Expense.date < next_month.date()
+            Expense.date < next_month
         ).all()
         
         expense_count = len(month_expenses)
