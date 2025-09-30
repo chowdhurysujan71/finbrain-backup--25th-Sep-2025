@@ -210,9 +210,15 @@ document.getElementById('saveCorrection').addEventListener('click', async () => 
     }
     
     try {
+        // Get CSRF token
+        const csrfToken = await window.csrfManager.getToken();
+        
         const response = await fetch('/api/corrections/create', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
             body: JSON.stringify(data)
         });
         
@@ -237,9 +243,15 @@ document.getElementById('createRuleBtn')?.addEventListener('click', async (e) =>
     
     if (confirm(`Create a rule to automatically categorize transactions like "${merchant}" as "${category}"?`)) {
         try {
+            // Get CSRF token
+            const csrfToken = await window.csrfManager.getToken();
+            
             const response = await fetch('/api/rules/create', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
                 body: JSON.stringify({
                     merchant_pattern: merchant,
                     category: category,

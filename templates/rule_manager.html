@@ -204,9 +204,15 @@ document.querySelectorAll('.toggle-rule').forEach(btn => {
         const action = e.target.dataset.action;
         
         try {
+            // Get CSRF token
+            const csrfToken = await window.csrfManager.getToken();
+            
             const response = await fetch(`/api/rules/${ruleId}/toggle`, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
                 body: JSON.stringify({active: action === 'enable'})
             });
             
@@ -258,8 +264,14 @@ document.querySelectorAll('.delete-rule').forEach(btn => {
             const ruleId = e.target.dataset.ruleId;
             
             try {
+                // Get CSRF token
+                const csrfToken = await window.csrfManager.getToken();
+                
                 const response = await fetch(`/api/rules/${ruleId}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
                 });
                 
                 if (response.ok) {
@@ -279,9 +291,15 @@ document.getElementById('saveRule').addEventListener('click', async () => {
     const data = Object.fromEntries(formData);
     
     try {
+        // Get CSRF token
+        const csrfToken = await window.csrfManager.getToken();
+        
         const response = await fetch('/api/rules/create', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
             body: JSON.stringify(data)
         });
         

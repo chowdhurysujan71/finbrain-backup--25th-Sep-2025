@@ -137,10 +137,14 @@ document.querySelectorAll('.apply-rule-btn').forEach(btn => {
         // Show confirmation
         if (confirm(`Create a rule to automatically categorize similar transactions as "${category}"?`)) {
             try {
+                // Get CSRF token
+                const csrfToken = await window.csrfManager.getToken();
+                
                 const response = await fetch('/api/rules/create', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
                     },
                     body: JSON.stringify({
                         tx_id: txId,
