@@ -680,7 +680,7 @@ def get_totals(user_id: str, period: str) -> dict[str, str | int | None]:
         }
         
     except Exception as e:
-        logger.error(f"get_totals failed: {e}")
+        logger.error(f"get_totals failed for user {user_id[:8]}..., period {period}: {str(e)}", exc_info=True)
         return {
             "period": period,
             "total_minor": 0,
