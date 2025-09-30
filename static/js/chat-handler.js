@@ -182,7 +182,7 @@ const handleCategorySelection = async (chipElement) => {
   
   try {
     // Send category selection to backend
-    const response = await fetch('/api/backend/confirm_expense', {
+    const response = await csrfFetch('/api/backend/confirm_expense', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -356,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // 2) chat roundtrip (SINGLE endpoint)
-      const r = await fetch('/ai-chat', {
+      const r = await csrfFetch('/ai-chat', {
         method: 'POST',
         headers: { 'Content-Type':'application/json', 'X-Request-ID': rid },
         credentials: 'same-origin',

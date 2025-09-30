@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0066ff">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -34,8 +35,24 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/profile_v2.css') }}?v=20250929">
     {% endif %}
     
+    <!-- CSRF Protection - Must load first -->
+    <script src="/static/js/csrf.js"></script>
+    
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+    
+    <!-- HTMX CSRF Configuration -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.body.addEventListener('htmx:configRequest', function(event) {
+            const token = csrfManager.getToken();
+            if (token && (event.detail.verb === 'post' || event.detail.verb === 'put' || 
+                          event.detail.verb === 'patch' || event.detail.verb === 'delete')) {
+                event.detail.headers['X-CSRFToken'] = token;
+            }
+        });
+    });
+    </script>
     
     <!-- PWA Script -->
     <script src="/static/js/pwa.js" defer></script>

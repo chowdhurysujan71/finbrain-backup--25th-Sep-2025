@@ -196,7 +196,7 @@
     
     async function dismissBanner(bannerId) {
         try {
-            const response = await fetch(`/api/banners/${bannerId}/dismiss`, {
+            const response = await csrfFetch(`/api/banners/${bannerId}/dismiss`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {

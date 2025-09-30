@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let res, data;
     try {
-      res = await fetch('/api/auth/register', {
+      res = await csrfFetch('/api/auth/register', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         credentials: 'include',

@@ -9,6 +9,7 @@
     </div>
 
     <form id="clarificationForm" method="POST" style="display: flex; flex-direction: column; gap: 20px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         
         <!-- Amount Clarification -->
         <div class="amount-section" style="background: rgba(255,255,255,0.1); padding: 18px; border-radius: 10px; backdrop-filter: blur(10px);">

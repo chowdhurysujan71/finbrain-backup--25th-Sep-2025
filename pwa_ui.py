@@ -568,6 +568,25 @@ def auth_me():
         logger.error(f"Auth check error: {e}")
         return jsonify({"error": "Auth check failed"}), 500
 
+@pwa_ui.route('/api/auth/csrf-token', methods=['GET'])
+def csrf_token():
+    """
+    Generate and return CSRF token for AJAX requests
+    This endpoint is exempt from CSRF protection (GET request)
+    """
+    from flask import jsonify, make_response
+    from flask_wtf.csrf import generate_csrf
+    
+    try:
+        token = generate_csrf()
+        response = make_response(jsonify({"csrf_token": token}), 200)
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
+        response.headers['Pragma'] = 'no-cache'
+        return response
+    except Exception as e:
+        logger.error(f"CSRF token generation error: {e}")
+        return jsonify({"error": "Failed to generate CSRF token"}), 500
+
 @pwa_ui.route('/api/auth/register', methods=['POST'])
 @limiter.limit("3 per minute")
 def auth_register():

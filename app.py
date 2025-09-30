@@ -151,6 +151,17 @@ from utils.rate_limiting import limiter  # noqa: E402
 
 limiter.init_app(app)
 
+# Initialize CSRF Protection
+from flask_wtf.csrf import CSRFProtect  # noqa: E402
+
+# CSRF configuration (MUST be set before CSRFProtect initialization)
+app.config['WTF_CSRF_TIME_LIMIT'] = None  # Token doesn't expire (tied to session)
+app.config['WTF_CSRF_SSL_STRICT'] = is_production  # Strict HTTPS enforcement in production
+app.config['WTF_CSRF_ENABLED'] = True
+
+csrf = CSRFProtect(app)
+logger.info(f"✓ CSRF protection enabled (production={is_production})")
+
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
