@@ -1,30 +1,43 @@
 // static/js/chat-handler.js
 
 // Toast notification utility
-function showToast(message) {
+function showToast(message, type = 'success') {
   const toast = document.createElement('div');
   toast.className = 'toast';
   toast.textContent = message;
+  
+  const colors = {
+    success: '#28a745',
+    error: '#dc3545',
+    info: '#17a2b8',
+    warning: '#ffc107'
+  };
+  
   toast.style.cssText = `
     position: fixed;
     top: 20px;
     right: 20px;
-    background: #dc3545;
+    background: ${colors[type] || colors.success};
     color: white;
     padding: 12px 20px;
-    border-radius: 4px;
-    z-index: 1000;
+    border-radius: 8px;
+    z-index: 10000;
     font-size: 14px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: slideIn 0.3s ease-out;
   `;
   
   document.body.appendChild(toast);
   
   // Remove after 4 seconds
   setTimeout(() => {
-    if (toast.parentNode) {
-      toast.parentNode.removeChild(toast);
-    }
+    toast.style.animation = 'slideOut 0.3s ease-in';
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    }, 300);
   }, 4000);
 }
 
@@ -229,12 +242,31 @@ function applyUIUpdates(uiUpdates) {
   }
   
   // Chart update (if present)
-  if (uiUpdates.chart_update) {
+  if (uiUpdates.chart_update && uiUpdates.chart_update.categories && uiUpdates.chart_update.categories.length > 0) {
     const chartTarget = document.getElementById('expense-chart');
     if (chartTarget) {
-      // Update chart data (placeholder - would integrate with Chart.js)
-      console.log('[UI-UPDATE] Chart update ready:', uiUpdates.chart_update);
-      // TODO: Wire to Chart.js when chart component is added
+      // Show the chart container
+      chartTarget.style.display = 'block';
+      
+      // Render simple category breakdown (placeholder for Chart.js)
+      const chartData = uiUpdates.chart_update;
+      chartTarget.innerHTML = `
+        <div class="chart-title">Today's Spending: ৳${chartData.total}</div>
+        <div class="chart-container">
+          ${chartData.categories.map(cat => `
+            <div style="margin-bottom: 0.5rem;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                <span>${cat.category}</span>
+                <span>৳${cat.amount} (${cat.percentage}%)</span>
+              </div>
+              <div style="background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden;">
+                <div style="background: linear-gradient(90deg, #667eea, #764ba2); height: 100%; width: ${cat.percentage}%;"></div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      console.log('[UI-UPDATE] Chart displayed:', chartData.categories.length, 'categories');
     } else {
       console.warn('[UI-UPDATE] Chart target #expense-chart not found');
     }
@@ -253,7 +285,8 @@ function applyUIUpdates(uiUpdates) {
         
         const progressCircle = document.createElement('div');
         progressCircle.className = 'progress-circle';
-        progressCircle.setAttribute('data-percentage', ringData.percentage);
+        // Set CSS custom property for conic-gradient
+        progressCircle.style.setProperty('--percentage', `${Math.max(0, Math.min(100, ringData.percentage))}%`);
         
         const progressValue = document.createElement('span');
         progressValue.className = 'progress-value';
@@ -317,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const a = await fetch('/api/auth/me', { credentials:'same-origin' });
       if (!a.ok) {
         // User not authenticated, redirect to login
-        showToast('Please log in to track expenses.');
+        showToast('Please log in to track expenses.', 'error');
         window.location.href = '/login?returnTo=/chat';
         return;
       }
@@ -333,7 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Handle 401 from AI chat endpoint
       if (r.status === 401) {
         const data = await r.json().catch(() => ({}));
-        showToast(data.error || 'Please log in to track expenses.');
+        showToast(data.error || 'Please log in to track expenses.', 'error');
         window.location.href = '/login?returnTo=/chat';
         return;
       }
@@ -369,7 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('[CHAT-DEBUG] Message processing completed');
     } catch (err) {
       console.error('[TRACE] fail', err);
-      showToast(`Chat failed: ${err.message}`);
+      showToast(`Chat failed: ${err.message}`, 'error');
     } finally {
       sendBtn.disabled = false;
       input.focus();

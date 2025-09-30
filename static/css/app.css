@@ -1322,3 +1322,99 @@ h1, h2, h3, h4, h5, h6 {
         opacity: 1;
     }
 }
+
+/* ===== TOAST ANIMATIONS ===== */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+/* ===== PROGRESS RING ===== */
+#progress-ring {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    color: white;
+    box-shadow: var(--shadow-lg);
+}
+
+.progress-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.progress-circle {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: conic-gradient(
+        #fff 0% var(--percentage, 0%),
+        rgba(255, 255, 255, 0.2) var(--percentage, 0%) 100%
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.progress-circle::before {
+    content: '';
+    position: absolute;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.progress-value {
+    position: relative;
+    z-index: 1;
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+}
+
+.progress-message {
+    text-align: center;
+    font-size: var(--font-size-base);
+    margin: 0;
+    font-weight: 500;
+}
+
+/* ===== EXPENSE CHART ===== */
+#expense-chart {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border);
+}
+
+.chart-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    margin-bottom: var(--space-4);
+    color: var(--color-fg);
+}
+
+.chart-container {
+    margin-top: var(--space-4);
+}
