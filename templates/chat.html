@@ -84,8 +84,12 @@
             </form>
         </div>
         
-        <!-- Recent Expenses (populated by JavaScript) -->
-        <div id="recent-expenses-list" class="recent-expenses-list" style="margin-top: 1rem;">
+        <!-- Recent Expenses -->
+        <div id="recent-expenses-list" class="recent-expenses-list" style="margin-top: 1rem;" 
+             hx-get="/partials/entries" 
+             hx-trigger="load, expense-added from:body" 
+             hx-swap="innerHTML">
+            <!-- Entries will load here -->
         </div>
     </section>
 
