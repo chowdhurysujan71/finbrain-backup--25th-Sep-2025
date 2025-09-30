@@ -634,18 +634,23 @@ def get_totals(user_id: str, period: str) -> dict[str, str | int | None]:
         # Ensure user_id is properly hashed for consistent lookup
         user_hash = ensure_hashed(user_id)
         
-        # Calculate date range based on period
-        now = datetime.utcnow()
+        # Calculate date range based on period using Asia/Dhaka timezone
+        from utils.timezone_helpers import start_of_day_dhaka, today_local
+        
+        today_dhaka = today_local()
         
         if period == "day":
-            start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Use Asia/Dhaka timezone for day boundaries
+            start_date = start_of_day_dhaka(today_dhaka)
         elif period == "week":
-            # Start of current week (Monday)
-            days_since_monday = now.weekday()
-            start_date = (now - timedelta(days=days_since_monday)).replace(hour=0, minute=0, second=0, microsecond=0)
+            # Start of current week (Monday) in Dhaka timezone
+            days_since_monday = today_dhaka.weekday()
+            week_start_date = today_dhaka - timedelta(days=days_since_monday)
+            start_date = start_of_day_dhaka(week_start_date)
         elif period == "month":
-            # Start of current month
-            start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            # Start of current month in Dhaka timezone
+            month_start_date = today_dhaka.replace(day=1)
+            start_date = start_of_day_dhaka(month_start_date)
         else:
             raise ValueError(f"Invalid period: {period}")
         
