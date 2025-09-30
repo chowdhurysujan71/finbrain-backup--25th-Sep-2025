@@ -3,7 +3,7 @@
     <div class="entries-list">
         {% for entry in entries[:5] %}
             <div class="entry-item" data-entry-id="{{ entry.id }}">
-                <div class="entry-main">
+                <div class="entry-main" onclick="toggleDetails({{ entry.id }})">
                     <div class="entry-category">
                         {% if entry.category == 'food' %}🍽️
                         {% elif entry.category == 'transport' %}🚗
@@ -21,10 +21,23 @@
                         <span class="amount-value">৳{{ "%.2f"|format(entry.amount) }}</span>
                     </div>
                     
-                    <button class="entry-action edit" 
-                            onclick="editEntry({{ entry.id }})"
-                            aria-label="Edit expense">
-                        ✏️
+                    <span class="expand-icon">▼</span>
+                </div>
+                
+                <!-- Expandable Details (hidden by default) -->
+                <div class="entry-details" id="details-{{ entry.id }}" style="display: none;">
+                    <div class="detail-row">
+                        <span class="detail-label">Description:</span>
+                        <span class="detail-value">{{ entry.description or 'No description' }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Date:</span>
+                        <span class="detail-value">{{ entry.date }} {{ entry.time }}</span>
+                    </div>
+                    <button class="btn btn-sm btn-primary" 
+                            onclick="event.stopPropagation(); editEntry({{ entry.id }})"
+                            style="margin-top: 0.5rem;">
+                        ✏️ Edit
                     </button>
                 </div>
             </div>
@@ -54,6 +67,20 @@
 {% endif %}
 
 <script>
+function toggleDetails(entryId) {
+    const detailsDiv = document.getElementById(`details-${entryId}`);
+    const entryMain = document.querySelector(`[data-entry-id="${entryId}"] .entry-main`);
+    const expandIcon = entryMain.querySelector('.expand-icon');
+    
+    if (detailsDiv.style.display === 'none') {
+        detailsDiv.style.display = 'block';
+        expandIcon.textContent = '▲';
+    } else {
+        detailsDiv.style.display = 'none';
+        expandIcon.textContent = '▼';
+    }
+}
+
 async function editEntry(entryId) {
     const entryElement = document.querySelector(`[data-entry-id="${entryId}"]`);
     if (!entryElement) return;
