@@ -1518,6 +1518,7 @@ def ai_chat():
         # Check if an expense was successfully saved
         expense_intents = ["expense_logged", "ai_expense_logged", "log_single", "log_expense"]
         expense_id = None
+        ui_updates = {}
         if intent in expense_intents and amount is not None:
             # FIX: Get the expense_id by looking up the most recent expense for this user
             try:
@@ -1536,6 +1537,18 @@ def ai_chat():
                 
                 if recent_expense:
                     expense_id = recent_expense.id
+                    
+                    # ATOMIC CASCADE: Trigger UI refresh for all dependent components
+                    cascade_start = time.time()
+                    try:
+                        from utils.event_hooks import on_expense_committed
+                        ui_updates = on_expense_committed(expense_id, db_user_id)
+                        cascade_ms = int((time.time() - cascade_start) * 1000)
+                        logger.info(f"Atomic cascade completed in {cascade_ms}ms for expense {expense_id}: {len(ui_updates)} UI components updated")
+                    except Exception as cascade_err:
+                        cascade_ms = int((time.time() - cascade_start) * 1000)
+                        logger.error(f"Atomic cascade failed after {cascade_ms}ms for expense {expense_id}: {cascade_err}")
+                        # Continue execution - cascade failure shouldn't break the response
                     
             except Exception as e:
                 logger.warning(f"Could not retrieve expense_id for logging: {e}")
@@ -1592,7 +1605,9 @@ def ai_chat():
             # New additive fields for enhanced functionality
             "ok": True,
             "mode": "expense" if intent == "add_expense" else "chat",
-            "expense_id": expense_id  # Will be None for non-expense intents
+            "expense_id": expense_id,  # Will be None for non-expense intents
+            # ATOMIC CASCADE: Include HTML UI updates for HTMX/DOM manipulation
+            "ui_updates": ui_updates if ui_updates else {}  # confirmation, chart, progress, banner, celebration
         }
         
         return jsonify(response_data), 200
