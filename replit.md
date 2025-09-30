@@ -11,6 +11,30 @@ finbrain is an AI-first expense tracking application delivered via a web chat in
 - **Enterprise Safety**: 7-day database retention, migration system, comprehensive audit logging
 - **Tester Safety**: Ready for controlled tester access (5-10 users initially recommended)
 
+## Recent Development (September 30, 2025)
+🚧 **4-System Integrated Architecture** - Building demo-grade finbrain with:
+
+**Foundation Layer (✅ COMPLETE)**:
+- ✅ Atomic `on_expense_committed()` event hook for deterministic UI updates
+- ✅ Truth & safety guardrails with data provenance and "I don't have that yet" responses  
+- ✅ Trust Hub database tables (password_resets, deletion_requests) with atomic operations
+- ✅ Performance indexes for <500ms query SLO
+- ✅ Kill switches with graceful degradation (banners, insights, exports)
+
+**Active Development**:
+- 🔧 System 4 (Friction Elimination): Quick-taps, undo, quick-edit endpoints
+- 🔧 System 3 (Intelligence Layer): History, micro-dashboard, insights with verify CTAs
+- 🔧 System 2 (Emotional Engagement): HTMX partials, banners, celebrations
+- 🔧 System 1 (Trust Hub): Password reset, CSV exports, account deletion with 7-day hold
+
+**Architecture Principles**:
+- Atomic event hooks as single source of truth
+- Zero-hallucination with provable claims only
+- Asia/Dhaka timezone for all date operations
+- Kill switches for instant feature disable
+- Graceful degradation without breaking chat
+- <2s expense→UI refresh, <3s exports, <500ms history queries
+
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 Zero-surprise deployment requirement: 100% user-visible success demanded with comprehensive validation before any production changes.
