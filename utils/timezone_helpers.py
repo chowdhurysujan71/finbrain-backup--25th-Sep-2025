@@ -192,6 +192,160 @@ def today_local() -> date:
         logger.error(f"Local today calculation failed: {e}")
         return datetime.utcnow().date()  # Fallback to UTC date
 
+
+def start_of_day_dhaka(date_obj: Optional[date] = None) -> datetime:
+    """
+    Get the start of day (00:00:00) in Asia/Dhaka timezone.
+    
+    Args:
+        date_obj: date object (defaults to today in Dhaka)
+        
+    Returns:
+        datetime object for midnight in Dhaka (as UTC for DB queries)
+    """
+    try:
+        if date_obj is None:
+            date_obj = today_local()
+        
+        # Create midnight in Dhaka timezone
+        midnight_dhaka = DHAKA_TZ.localize(datetime.combine(date_obj, datetime.min.time()))
+        
+        # Convert to UTC for database queries
+        return midnight_dhaka.astimezone(UTC_TZ).replace(tzinfo=None)
+    except Exception as e:
+        logger.error(f"Start of day calculation failed for {date_obj}: {e}")
+        return datetime.combine(date_obj or datetime.utcnow().date(), datetime.min.time())
+
+
+def end_of_day_dhaka(date_obj: Optional[date] = None) -> datetime:
+    """
+    Get the end of day (23:59:59.999999) in Asia/Dhaka timezone.
+    
+    Args:
+        date_obj: date object (defaults to today in Dhaka)
+        
+    Returns:
+        datetime object for end of day in Dhaka (as UTC for DB queries)
+    """
+    try:
+        if date_obj is None:
+            date_obj = today_local()
+        
+        # Create end of day in Dhaka timezone
+        end_dhaka = DHAKA_TZ.localize(datetime.combine(date_obj, datetime.max.time()))
+        
+        # Convert to UTC for database queries
+        return end_dhaka.astimezone(UTC_TZ).replace(tzinfo=None)
+    except Exception as e:
+        logger.error(f"End of day calculation failed for {date_obj}: {e}")
+        return datetime.combine(date_obj or datetime.utcnow().date(), datetime.max.time())
+
+
+def is_today_dhaka(dt: datetime) -> bool:
+    """
+    Check if a datetime is today in Asia/Dhaka timezone.
+    
+    Args:
+        dt: datetime to check
+        
+    Returns:
+        bool: True if datetime is today in Dhaka
+    """
+    try:
+        if dt is None:
+            return False
+        
+        local_dt = to_local(dt)
+        today = today_local()
+        
+        return local_dt.date() == today
+    except Exception as e:
+        logger.error(f"is_today_dhaka check failed for {dt}: {e}")
+        return False
+
+
+def is_yesterday_dhaka(dt: datetime) -> bool:
+    """
+    Check if a datetime is yesterday in Asia/Dhaka timezone.
+    
+    Args:
+        dt: datetime to check
+        
+    Returns:
+        bool: True if datetime is yesterday in Dhaka
+    """
+    try:
+        if dt is None:
+            return False
+        
+        from datetime import timedelta
+        
+        local_dt = to_local(dt)
+        today = today_local()
+        yesterday = today - timedelta(days=1)
+        
+        return local_dt.date() == yesterday
+    except Exception as e:
+        logger.error(f"is_yesterday_dhaka check failed for {dt}: {e}")
+        return False
+
+
+def format_dhaka_time(dt: datetime, format_str: str = '%Y-%m-%d %H:%M') -> str:
+    """
+    Format a datetime in Asia/Dhaka timezone.
+    
+    Args:
+        dt: datetime to format
+        format_str: strftime format string
+        
+    Returns:
+        Formatted string in Dhaka time
+    """
+    try:
+        if dt is None:
+            return ''
+        
+        dhaka_dt = to_local(dt)
+        return dhaka_dt.strftime(format_str)
+    except Exception as e:
+        logger.error(f"Format dhaka time failed for {dt}: {e}")
+        return ''
+
+
+def format_dhaka_time_friendly(dt: datetime) -> str:
+    """
+    Format a datetime in a user-friendly way in Dhaka time.
+    
+    Shows:
+    - "Today at HH:MM" if today
+    - "Yesterday at HH:MM" if yesterday
+    - "DD MMM at HH:MM" if this year
+    - "DD MMM YYYY at HH:MM" if previous years
+    
+    Args:
+        dt: datetime to format
+        
+    Returns:
+        User-friendly formatted string
+    """
+    try:
+        if dt is None:
+            return ''
+        
+        dhaka_dt = to_local(dt)
+        
+        if is_today_dhaka(dt):
+            return f"Today at {dhaka_dt.strftime('%H:%M')}"
+        elif is_yesterday_dhaka(dt):
+            return f"Yesterday at {dhaka_dt.strftime('%H:%M')}"
+        elif dhaka_dt.year == today_local().year:
+            return dhaka_dt.strftime('%d %b at %H:%M')
+        else:
+            return dhaka_dt.strftime('%d %b %Y at %H:%M')
+    except Exception as e:
+        logger.error(f"Format friendly time failed for {dt}: {e}")
+        return ''
+
 # Validation functions for testing
 def validate_timezone_helpers():
     """
