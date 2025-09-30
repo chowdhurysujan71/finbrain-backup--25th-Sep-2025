@@ -174,6 +174,41 @@ def load_user(user_id):
     from models import User  # noqa: E402
     return User.query.get(int(user_id))
 
+# Register Jinja template filters for timezone conversion
+from utils.timezone_helpers import (  # noqa: E402
+    format_dhaka_time,
+    format_dhaka_time_friendly,
+    is_today_dhaka,
+    is_yesterday_dhaka,
+    to_local,
+)
+
+
+@app.template_filter('to_dhaka')
+def to_dhaka_filter(dt, format_str='%Y-%m-%d %H:%M'):
+    """Convert UTC datetime to Dhaka time and format it"""
+    return format_dhaka_time(dt, format_str)
+
+
+@app.template_filter('to_dhaka_friendly')
+def to_dhaka_friendly_filter(dt):
+    """Convert UTC datetime to user-friendly Dhaka time (Today at HH:MM, etc)"""
+    return format_dhaka_time_friendly(dt)
+
+
+@app.template_filter('is_today')
+def is_today_filter(dt):
+    """Check if datetime is today in Dhaka timezone"""
+    return is_today_dhaka(dt)
+
+
+@app.template_filter('is_yesterday')
+def is_yesterday_filter(dt):
+    """Check if datetime is yesterday in Dhaka timezone"""
+    return is_yesterday_dhaka(dt)
+
+logger.info("✓ Timezone Jinja filters registered (Asia/Dhaka)")
+
 # Request logging middleware using existing structured logger
 from utils.logger import structured_logger  # noqa: E402
 
