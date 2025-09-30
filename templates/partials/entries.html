@@ -1,7 +1,21 @@
 <!-- Recent Entries Partial for HTMX -->
+<style>
+.entries-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+@media (max-width: 480px) {
+    .entries-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
 {% if entries and entries|length > 0 %}
-    <div class="entries-list">
-        {% for entry in entries[:5] %}
+    <div class="entries-list entries-grid">
+        {% for entry in entries[:4] %}
             <div class="entry-item" data-entry-id="{{ entry.id }}">
                 <div class="entry-main" onclick="toggleDetails({{ entry.id }})">
                     <div class="entry-category">
@@ -44,11 +58,11 @@
         {% endfor %}
     </div>
     
-    <!-- Entries Summary (for last 5 entries shown) -->
+    <!-- Entries Summary (for last 4 entries shown) -->
     <div class="entries-summary">
         <div class="summary-item">
             <span class="summary-label">Showing:</span>
-            <span class="summary-value">Last {{ [entries|length, 5]|min }} expenses</span>
+            <span class="summary-value">Last {{ [entries|length, 4]|min }} expenses</span>
         </div>
     </div>
     

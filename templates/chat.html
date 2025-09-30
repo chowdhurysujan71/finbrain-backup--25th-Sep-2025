@@ -236,24 +236,6 @@
         loadSmartBanners();
     });
     </script>
-    
-
-    <!-- Recent Entries Section -->
-    <section class="entries-section" aria-labelledby="recent-entries-title">
-        <h2 id="recent-entries-title" class="section-title">Recent Expenses</h2>
-        
-        <div id="entries-section" 
-             hx-get="/partials/entries" 
-             hx-trigger="load, expense-added from:body"
-             hx-target="this"
-             hx-swap="innerHTML">
-            <!-- Recent entries will load here via HTMX -->
-            <div class="loading-state">
-                <div class="loading-spinner"></div>
-                <p>Loading recent expenses...</p>
-            </div>
-        </div>
-    </section>
 </div>
 
 
