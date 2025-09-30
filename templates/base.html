@@ -44,11 +44,13 @@
     <!-- HTMX CSRF Configuration -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        document.body.addEventListener('htmx:configRequest', function(event) {
-            const token = csrfManager.getToken();
-            if (token && (event.detail.verb === 'post' || event.detail.verb === 'put' || 
-                          event.detail.verb === 'patch' || event.detail.verb === 'delete')) {
-                event.detail.headers['X-CSRFToken'] = token;
+        document.body.addEventListener('htmx:configRequest', async function(event) {
+            const verb = event.detail.verb ? event.detail.verb.toLowerCase() : '';
+            if (['post', 'put', 'patch', 'delete'].includes(verb)) {
+                const token = await window.csrfManager.getToken();
+                if (token) {
+                    event.detail.headers['X-CSRFToken'] = token;
+                }
             }
         });
     });
