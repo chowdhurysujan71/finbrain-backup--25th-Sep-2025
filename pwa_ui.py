@@ -327,8 +327,8 @@ def challenge():
             goal = active_goals[0]
             
             # Calculate week range (Monday to Sunday)
-            from utils.timezone_helpers import get_current_time
-            now = get_current_time()
+            from utils.timezone_helpers import now_local
+            now = now_local()
             days_since_monday = now.weekday()
             monday = (now - timedelta(days=days_since_monday)).date()
             
