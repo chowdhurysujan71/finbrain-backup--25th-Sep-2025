@@ -93,6 +93,8 @@ class GoalAutomationEngine:
                                success_rate: float, days_with_data: int, days_over_goal: int) -> Dict[str, Any]:
         """Generate intelligent insights and recommendations based on goal performance"""
         
+        suggested_amount = 0.0  # Initialize to avoid unbound variable
+        
         # Success rate categories
         if success_rate >= 85:
             performance = "excellent"

@@ -872,7 +872,7 @@ def get_goal_progress():
             Expense.user_id_hash == user.user_id_hash,
             Expense.date >= monday,
             Expense.date <= now.date(),
-            ~Expense.is_deleted  # Exclude soft-deleted expenses
+            Expense.is_deleted == False  # Exclude soft-deleted expenses
         ).group_by(func.DATE(Expense.date)).all()
         
         # Build daily progress
@@ -941,7 +941,8 @@ def delete_goal(goal_id):
         # Find the goal
         goal = Goal.query.filter(
             Goal.id == goal_id,
-            Goal.user_id_hash == user.user_id_hash,
+            Goal.user_id_hash == user.user_id_hash
+        ).filter(
             Goal.status == 'active'
         ).first()
         

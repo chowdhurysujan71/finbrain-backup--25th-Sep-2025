@@ -524,7 +524,7 @@ class Goal(db.Model):
     )
     
     @classmethod
-    def get_active_for_user(cls, user_id_hash: str, goal_type: str = None):
+    def get_active_for_user(cls, user_id_hash: str, goal_type: str | None = None):
         """Get active goals for a user, optionally filtered by type"""
         query = cls.query.filter(
             cls.user_id_hash == user_id_hash,

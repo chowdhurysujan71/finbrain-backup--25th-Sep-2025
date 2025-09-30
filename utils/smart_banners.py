@@ -6,6 +6,8 @@ import logging
 from datetime import datetime, timedelta, UTC
 from typing import Dict, List, Optional, Any
 
+from db_base import db
+
 logger = logging.getLogger(__name__)
 
 class SmartBannerService:
@@ -257,7 +259,7 @@ class SmartBannerService:
                 Expense.user_id_hash
             ).filter(
                 Expense.date >= seven_days_ago,
-                Expense.is_deleted.is_(False)
+                Expense.is_deleted == False
             ).group_by(Expense.user_id_hash).limit(100).all()  # Safety limit
             
             scheduled_jobs = 0
