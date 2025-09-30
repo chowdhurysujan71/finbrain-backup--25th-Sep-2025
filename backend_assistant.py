@@ -119,7 +119,9 @@ def propose_expense(raw_text: str) -> dict[str, str | int | float | None]:
         
         # Deterministic category mapping - NEVER invent categories
         category_keywords = {
-            'food': ['lunch', 'dinner', 'breakfast', 'coffee', 'tea', 'restaurant', 'food', 'meal', 'eat', 'snack', 'drink'],
+            'food': ['lunch', 'dinner', 'breakfast', 'coffee', 'tea', 'restaurant', 'food', 'meal', 'eat', 'snack', 'drink', 
+                     'groceries', 'grocery', 'meat', 'chicken', 'beef', 'pork', 'fish', 'seafood', 'vegetables', 'fruits', 
+                     'rice', 'bread', 'milk', 'cheese', 'pizza', 'burger', 'sandwich', 'noodles', 'pasta', 'cooking'],
             'transport': ['bus', 'taxi', 'uber', 'rickshaw', 'train', 'metro', 'transport', 'travel', 'fare', 'ride'],
             'bills': ['electricity', 'water', 'gas', 'internet', 'phone', 'bill', 'utility', 'rent', 'mortgage'],
             'shopping': ['shop', 'buy', 'purchase', 'market', 'store', 'clothes', 'shirt', 'dress', 'shoes']
