@@ -604,3 +604,128 @@ class Goal(db.Model):
     
     def __repr__(self):
         return f'<Goal {self.id}: {self.type} {self.amount} {self.currency} for {self.user_id_hash[:8]}...>'
+
+
+class PasswordReset(db.Model):
+    """Password reset tokens for secure password recovery"""
+    __tablename__ = 'password_resets'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    token_hash = db.Column(db.String(255), nullable=False, unique=True, index=True)  # SHA-256 hashed token
+    user_id_hash = db.Column(db.String(255), nullable=False, index=True)
+    expires_at = db.Column(db.DateTime(timezone=True), nullable=False, index=True)
+    used_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=datetime.now(UTC))
+    ip_address = db.Column(db.String(45), nullable=True)  # IPv6 max length
+    user_agent = db.Column(db.Text, nullable=True)
+    
+    @classmethod
+    def is_valid_token(cls, token_hash: str) -> bool:
+        """Check if token is valid (exists, not used, not expired)"""
+        reset = cls.query.filter(
+            cls.token_hash == token_hash,
+            cls.used_at.is_(None),
+            cls.expires_at > datetime.now(UTC)
+        ).first()
+        return reset is not None
+    
+    @classmethod
+    def mark_used(cls, token_hash: str) -> bool:
+        """Mark token as used atomically, return True if successful"""
+        # Atomic update: only update if unused and not expired
+        result = db.session.execute(
+            db.update(cls.__table__)
+            .where(
+                cls.token_hash == token_hash,
+                cls.used_at.is_(None),
+                cls.expires_at > datetime.now(UTC)
+            )
+            .values(used_at=datetime.now(UTC))
+        )
+        db.session.commit()
+        
+        # Return True only if exactly one row was updated
+        return result.rowcount == 1
+    
+    @classmethod
+    def create_token(cls, user_id_hash: str, token_hash: str, expires_minutes: int = 30, 
+                     ip_address: str | None = None, user_agent: str | None = None):
+        """Create a new password reset token"""
+        from datetime import timedelta
+        
+        expires_at = datetime.now(UTC) + timedelta(minutes=expires_minutes)
+        
+        reset = cls(
+            user_id_hash=user_id_hash,
+            token_hash=token_hash,
+            expires_at=expires_at,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        db.session.add(reset)
+        db.session.commit()
+        return reset
+    
+    def __repr__(self):
+        return f'<PasswordReset {self.id} for {self.user_id_hash[:8]}... expires {self.expires_at}>'
+
+
+class DeletionRequest(db.Model):
+    """Account deletion requests with 7-day hold period"""
+    __tablename__ = 'deletion_requests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id_hash = db.Column(db.String(255), nullable=False, unique=True, index=True)  # One active request per user
+    scheduled_delete_at = db.Column(db.DateTime(timezone=True), nullable=False, index=True)
+    canceled_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=datetime.now(UTC))
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.Text, nullable=True)
+    
+    @classmethod
+    def get_active_request(cls, user_id_hash: str):
+        """Get active deletion request for user (not canceled)"""
+        return cls.query.filter(
+            cls.user_id_hash == user_id_hash,
+            cls.canceled_at.is_(None)
+        ).first()
+    
+    @classmethod
+    def create_request(cls, user_id_hash: str, hold_days: int = 7, 
+                      ip_address: str | None = None, user_agent: str | None = None):
+        """Create account deletion request with hold period"""
+        from datetime import timedelta
+        
+        # Cancel any existing active request first
+        existing = cls.get_active_request(user_id_hash)
+        if existing:
+            existing.canceled_at = datetime.now(UTC)
+            db.session.flush()
+        
+        scheduled_delete_at = datetime.now(UTC) + timedelta(days=hold_days)
+        
+        request = cls(
+            user_id_hash=user_id_hash,
+            scheduled_delete_at=scheduled_delete_at,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        db.session.add(request)
+        db.session.commit()
+        return request
+    
+    def cancel(self):
+        """Cancel this deletion request"""
+        self.canceled_at = datetime.now(UTC)
+        db.session.commit()
+    
+    def days_remaining(self) -> int:
+        """Calculate days remaining until deletion"""
+        if self.canceled_at:
+            return 0
+        
+        delta = self.scheduled_delete_at - datetime.now(UTC)
+        return max(0, delta.days)
+    
+    def __repr__(self):
+        return f'<DeletionRequest {self.id} for {self.user_id_hash[:8]}... on {self.scheduled_delete_at}>'
