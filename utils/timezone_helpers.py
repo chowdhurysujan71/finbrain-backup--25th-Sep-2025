@@ -101,7 +101,7 @@ def is_same_local_day(dt1: datetime, dt2: datetime) -> bool:
         logger.error(f"Same day comparison failed for {dt1}, {dt2}: {e}")
         return False
 
-def local_date_from_datetime(dt: datetime) -> date | None:
+def local_date_from_datetime(dt: datetime) -> date:
     """
     Extract local date from datetime
     
@@ -109,20 +109,21 @@ def local_date_from_datetime(dt: datetime) -> date | None:
         dt: datetime object
         
     Returns:
-        date: Date in Asia/Dhaka timezone
+        date: Date in Asia/Dhaka timezone, falls back to today if conversion fails
     """
     try:
         if dt is None:
-            return None
+            logger.warning("local_date_from_datetime received None, falling back to today")
+            return today_local()
             
         local_dt = to_local(dt)
         return local_dt.date()
         
     except Exception as e:
         logger.error(f"Local date extraction failed for {dt}: {e}")
-        return None
+        return today_local()  # Fallback to current date
 
-def days_between_local(dt1: datetime, dt2: datetime) -> int | None:
+def days_between_local(dt1: datetime, dt2: datetime) -> int:
     """
     Calculate days between two datetimes in local timezone
     
@@ -131,23 +132,21 @@ def days_between_local(dt1: datetime, dt2: datetime) -> int | None:
         dt2: Later datetime
         
     Returns:
-        int: Number of days between (positive if dt2 > dt1)
+        int: Number of days between (positive if dt2 > dt1), 0 if calculation fails
     """
     try:
         if dt1 is None or dt2 is None:
-            return None
+            logger.warning(f"days_between_local received None input, returning 0")
+            return 0
             
         date1 = local_date_from_datetime(dt1)
         date2 = local_date_from_datetime(dt2)
         
-        if date1 is None or date2 is None:
-            return None
-            
         return (date2 - date1).days
         
     except Exception as e:
         logger.error(f"Days calculation failed for {dt1}, {dt2}: {e}")
-        return None
+        return 0  # Safe fallback
 
 def is_within_hours(dt1: datetime, dt2: datetime, hours: int) -> bool:
     """
