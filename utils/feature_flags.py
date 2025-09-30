@@ -85,7 +85,8 @@ def get_expense_repair_config() -> dict:
 # ==============================
 
 # Master users who always get access to new features (for testing)
-MASTER_USERS = set(os.getenv("MASTER_USERS", "chowdhurysujan71@gmail.com").split(","))
+# SECURITY: No default - require explicit env configuration
+MASTER_USERS = set(os.getenv("MASTER_USERS", "").split(",")) if os.getenv("MASTER_USERS") else set()
 
 def _get_env_bool(key: str, default: bool = False) -> bool:
     """Get boolean value from environment variable."""
@@ -150,6 +151,22 @@ def can_use_banners(user_email: str | None = None) -> bool:
     
     return _get_env_bool("FEATURE_BANNERS", True)  # Default ON for better UX
 
+def can_use_insights(user_email: str | None = None) -> bool:
+    """Check if user can see insights and micro-dashboard."""
+    # Master users always get access  
+    if _is_master_user(user_email):
+        return True
+    
+    return _get_env_bool("FEATURE_INSIGHTS", True)  # Default ON for better UX
+
+def can_use_exports(user_email: str | None = None) -> bool:
+    """Check if user can export data (CSV downloads)."""
+    # Master users always get access  
+    if _is_master_user(user_email):
+        return True
+    
+    return _get_env_bool("FEATURE_EXPORTS", True)  # Default ON for better UX
+
 def get_nudging_features_status(user_email: str | None = None) -> dict:
     """Get status of all nudging features for a user."""
     return {
@@ -158,8 +175,22 @@ def get_nudging_features_status(user_email: str | None = None) -> dict:
         "spending_alerts_enabled": can_receive_spending_alerts(user_email),
         "push_notifications_enabled": can_use_push_notifications(user_email),
         "banners_enabled": can_use_banners(user_email),
+        "insights_enabled": can_use_insights(user_email),
+        "exports_enabled": can_use_exports(user_email),
         "is_master_user": _is_master_user(user_email),
         "master_users": len(MASTER_USERS)
+    }
+
+def get_kill_switch_status() -> dict:
+    """
+    Get current status of all kill switches for monitoring.
+    Returns dict with each feature's enabled status.
+    """
+    return {
+        "banners": _get_env_bool("FEATURE_BANNERS", True),
+        "insights": _get_env_bool("FEATURE_INSIGHTS", True),
+        "exports": _get_env_bool("FEATURE_EXPORTS", True),
+        "timestamp": __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat()
     }
 
 # Boot time initialization logging
