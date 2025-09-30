@@ -29,7 +29,9 @@ def to_local(dt: datetime, timezone_str: str = 'Asia/Dhaka') -> datetime:
     """
     try:
         if dt is None:
-            return None
+            # Fallback to current UTC time if None
+            logger.warning("to_local received None, falling back to current UTC")
+            dt = datetime.utcnow()
             
         # Ensure dt is timezone-aware (assume UTC if naive)
         if dt.tzinfo is None:
@@ -44,7 +46,12 @@ def to_local(dt: datetime, timezone_str: str = 'Asia/Dhaka') -> datetime:
         
     except Exception as e:
         logger.error(f"Timezone conversion failed for {dt}: {e}")
-        return dt  # Return original if conversion fails
+        # Fallback to current time in target timezone
+        try:
+            target_tz = pytz.timezone(timezone_str)
+            return datetime.now(target_tz)
+        except:
+            return datetime.utcnow()  # Ultimate fallback
 
 def day_key(dt: datetime) -> str:
     """
@@ -58,14 +65,17 @@ def day_key(dt: datetime) -> str:
     """
     try:
         if dt is None:
-            return None
+            # Fallback to current date
+            logger.warning("day_key received None, falling back to current date")
+            dt = datetime.utcnow()
             
         local_dt = to_local(dt)
         return local_dt.strftime('%Y-%m-%d')
         
     except Exception as e:
         logger.error(f"Day key generation failed for {dt}: {e}")
-        return None
+        # Fallback to current date string
+        return datetime.utcnow().strftime('%Y-%m-%d')
 
 def is_same_local_day(dt1: datetime, dt2: datetime) -> bool:
     """
