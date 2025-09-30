@@ -11,19 +11,19 @@
     </header>
 
     <!-- Smart Nudges Banner (hidden by default, shown via JavaScript) -->
-    <section id="smart-banner" class="card smart-banner" style="display: none;">
+    <section id="smart-banner" class="card smart-banner hidden">
         <div class="alert" id="banner-content">
             <!-- Banner content will be populated by JavaScript -->
         </div>
     </section>
     
     <!-- Progress Ring (populated by atomic cascade) -->
-    <div id="progress-ring" class="card" style="display: none; margin-bottom: 1rem;">
+    <div id="progress-ring" class="card hidden">
         <!-- Progress ring content populated by JavaScript -->
     </div>
     
     <!-- Expense Chart (placeholder for future System 3) -->
-    <div id="expense-chart" style="display: none;">
+    <div id="expense-chart" class="hidden">
         <!-- Chart will be rendered here when Chart.js integration is added -->
     </div>
 
@@ -41,7 +41,7 @@
         <h2 id="chat-title" class="card-title">💬 Chat with finbrain AI</h2>
         
         <!-- Chat Messages -->
-        <div id="chat-error" class="alert alert-danger" style="display: none;"></div>
+        <div id="chat-error" class="alert alert-danger hidden"></div>
         <div id="chat-messages" class="chat-messages">
             <div class="message ai-message">
                 <div class="message-avatar">🤖</div>
@@ -67,7 +67,7 @@
                               rows="2" maxlength="500"></textarea>
                     <button type="submit" class="btn btn-primary chat-send-btn" id="chat-send">
                         <span class="btn-text">Send</span>
-                        <span id="chat-spinner" class="btn-loading" style="display: none;">⏳</span>
+                        <span id="chat-spinner" class="btn-loading hidden">⏳</span>
                     </button>
                 </div>
                 <div class="chat-suggestions">
@@ -85,7 +85,7 @@
         </div>
         
         <!-- Recent Expenses -->
-        <div id="recent-expenses-list" class="recent-expenses-list" style="margin-top: 1rem;" 
+        <div id="recent-expenses-list" class="recent-expenses-list" 
              hx-get="/partials/entries" 
              hx-trigger="load, expense-added from:body" 
              hx-swap="innerHTML">

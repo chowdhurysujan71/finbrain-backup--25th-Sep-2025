@@ -1,18 +1,4 @@
 <!-- Recent Entries Partial for HTMX -->
-<style>
-.entries-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
-}
-
-@media (max-width: 480px) {
-    .entries-grid {
-        grid-template-columns: 1fr;
-    }
-}
-</style>
-
 {% if entries and entries|length > 0 %}
     <div class="entries-list entries-grid">
         {% for entry in entries[:4] %}
@@ -39,7 +25,7 @@
                 </div>
                 
                 <!-- Expandable Details (hidden by default) -->
-                <div class="entry-details" id="details-{{ entry.id }}" style="display: none;">
+                <div class="entry-details" id="details-{{ entry.id }}">
                     <div class="detail-row">
                         <span class="detail-label">Description:</span>
                         <span class="detail-value">{{ entry.description or 'No description' }}</span>
@@ -49,8 +35,7 @@
                         <span class="detail-value">{{ entry.date }} {{ entry.time }}</span>
                     </div>
                     <button class="btn btn-sm btn-primary" 
-                            onclick="event.stopPropagation(); editEntry({{ entry.id }})"
-                            style="margin-top: 0.5rem;">
+                            onclick="event.stopPropagation(); editEntry({{ entry.id }})">
                         ✏️ Edit
                     </button>
                 </div>
@@ -83,14 +68,17 @@
 <script>
 function toggleDetails(entryId) {
     const detailsDiv = document.getElementById(`details-${entryId}`);
-    const entryMain = document.querySelector(`[data-entry-id="${entryId}"] .entry-main`);
-    const expandIcon = entryMain.querySelector('.expand-icon');
+    const entryItem = document.querySelector(`[data-entry-id="${entryId}"]`);
+    const expandIcon = entryItem.querySelector('.expand-icon');
     
-    if (detailsDiv.style.display === 'none') {
-        detailsDiv.style.display = 'block';
+    // Toggle CSS classes for animation
+    detailsDiv.classList.toggle('show');
+    entryItem.classList.toggle('expanded');
+    
+    // Update icon
+    if (detailsDiv.classList.contains('show')) {
         expandIcon.textContent = '▲';
     } else {
-        detailsDiv.style.display = 'none';
         expandIcon.textContent = '▼';
     }
 }

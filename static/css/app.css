@@ -125,10 +125,28 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .page-container {
-    max-width: 428px;
+    max-width: 480px;
     margin: 0 auto;
     padding: var(--space-4);
     padding-bottom: var(--space-8);
+}
+
+@media (min-width: 768px) {
+    .page-container {
+        max-width: 720px;
+    }
+}
+
+@media (min-width: 992px) {
+    .page-container {
+        max-width: 960px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .page-container {
+        max-width: 1140px;
+    }
 }
 
 .hero-section {
@@ -432,67 +450,147 @@ h1, h2, h3, h4, h5, h6 {
     space-y: var(--space-4);
 }
 
+/* Responsive Grid for Expense Cards */
+.entries-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+@media (min-width: 576px) {
+    .entries-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 .entry-item {
     display: flex;
-    align-items: center;
-    padding: var(--space-4);
+    flex-direction: column;
+    padding: var(--space-5);
     background: var(--color-bg);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    margin-bottom: var(--space-3);
+    border-radius: var(--radius-lg);
     transition: all var(--transition-normal);
     position: relative;
+    cursor: pointer;
 }
 
 .entry-item:hover {
     box-shadow: var(--shadow-md);
     border-color: var(--color-primary);
+    transform: translateY(-2px);
 }
 
 .entry-main {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: var(--space-4);
-    flex: 1;
+    width: 100%;
 }
 
 .entry-category {
-    font-size: var(--font-size-xl);
-    width: 40px;
-    text-align: center;
+    font-size: var(--font-size-2xl);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.category-name {
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    color: var(--color-muted);
+    text-transform: capitalize;
 }
 
 .entry-details {
-    flex: 1;
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-border);
+    display: none;
+}
+
+.entry-details.show {
+    display: block;
+    animation: expandDetails 0.2s ease-out;
+}
+
+.entry-details .btn {
+    margin-top: var(--space-2);
+}
+
+.detail-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-bottom: var(--space-2);
+}
+
+@keyframes expandDetails {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .entry-description {
     font-weight: 500;
-    margin-bottom: var(--space-1);
+    margin-bottom: var(--space-2);
+    font-size: var(--font-size-base);
 }
 
 .entry-meta {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     color: var(--color-muted);
     display: flex;
+    flex-direction: column;
     gap: var(--space-2);
 }
 
 .entry-amount {
     text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.expand-icon {
+    color: var(--color-muted);
+    font-size: var(--font-size-sm);
+    transition: transform var(--transition-fast);
+}
+
+.entry-item.expanded .expand-icon {
+    transform: rotate(180deg);
 }
 
 .amount-value {
-    font-weight: 600;
-    font-size: var(--font-size-lg);
+    font-weight: 700;
+    font-size: var(--font-size-xl);
     color: var(--color-fg);
 }
 
 .amount-category {
     display: block;
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     color: var(--color-muted);
     text-transform: capitalize;
+}
+
+.detail-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-muted);
+    font-weight: 500;
+}
+
+.detail-value {
+    font-size: var(--font-size-base);
+    color: var(--color-fg);
 }
 
 .entry-actions {
@@ -545,6 +643,40 @@ h1, h2, h3, h4, h5, h6 {
 
 .empty-description {
     margin-bottom: var(--space-6);
+}
+
+.entries-summary {
+    margin-top: var(--space-4);
+    padding: var(--space-3);
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    text-align: center;
+}
+
+.summary-item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.summary-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-muted);
+    font-weight: 500;
+}
+
+.summary-value {
+    font-size: var(--font-size-sm);
+    color: var(--color-fg);
+    font-weight: 600;
+}
+
+.recent-expenses-list {
+    margin-top: var(--space-6);
+}
+
+#progress-ring {
+    margin-bottom: var(--space-4);
 }
 
 /* ===== EXPENSE ROW STYLING ===== */
