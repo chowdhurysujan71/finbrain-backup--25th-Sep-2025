@@ -82,12 +82,35 @@ async function editEntry(entryId) {
     const currentAmount = entryElement.querySelector('.amount-value').textContent.replace('৳', '').replace(',', '').trim();
     const currentCategory = entryElement.querySelector('.amount-category').textContent.toLowerCase();
     
-    // Simple prompt for now (can be enhanced with a modal later)
+    // Prompt for amount
     const newAmount = prompt('Enter new amount:', currentAmount);
-    if (!newAmount || newAmount === currentAmount) return;
+    if (!newAmount) return;
     
-    const newCategory = prompt('Enter new category (food, transport, shopping, bills, uncategorized):', currentCategory);
-    if (!newCategory) return;
+    // Category editing: only allowed from 'uncategorized' (or 'uncategorised')
+    let newCategory = currentCategory;
+    if (currentCategory === 'uncategorized' || currentCategory === 'uncategorised') {
+        const categoryChoice = prompt(
+            'Choose category:\n1 = Food\n2 = Transport\n3 = Shopping\n4 = Bills\n5 = Uncategorized',
+            '5'
+        );
+        
+        if (categoryChoice) {
+            const categoryMap = {
+                '1': 'food',
+                '2': 'transport',
+                '3': 'shopping',
+                '4': 'bills',
+                '5': 'uncategorized'
+            };
+            newCategory = categoryMap[categoryChoice] || 'uncategorized';
+        }
+    }
+    
+    // Check if anything changed
+    if (parseFloat(newAmount) === parseFloat(currentAmount) && newCategory === currentCategory) {
+        showToast('No changes made', 'info');
+        return;
+    }
     
     try {
         entryElement.style.opacity = '0.5';
@@ -99,7 +122,7 @@ async function editEntry(entryId) {
             body: JSON.stringify({
                 expense_id: entryId,
                 amount: parseFloat(newAmount),
-                category: newCategory.toLowerCase()
+                category: newCategory
             })
         });
         

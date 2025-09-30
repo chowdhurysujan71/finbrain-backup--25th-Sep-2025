@@ -1563,12 +1563,13 @@ def ai_chat():
         # Update variables for downstream processing
         intent, amount, category = repaired_intent, repaired_amount, repaired_category
         
-        # Check if an expense was successfully saved
-        expense_intents = ["expense_logged", "ai_expense_logged", "log_single", "log_expense", "add_expense"]
+        # Check if an expense was successfully saved by looking in database
         expense_id = None
         ui_updates = {}
-        if intent in expense_intents and amount is not None:
-            # FIX: Get the expense_id by looking up the most recent expense for this user
+        recent_expense = None
+        
+        # Try to find a recently saved expense (regardless of intent string)
+        if amount is not None:
             try:
                 from datetime import datetime, timedelta
 
@@ -1600,18 +1601,18 @@ def ai_chat():
                     
             except Exception as e:
                 logger.warning(f"Could not retrieve expense_id for logging: {e}")
-            
-            # FIX: Log expense_saved with expense_id and without json.dumps
-            if emit_telemetry:
-                emit_telemetry({
-                    "request_id": request_id,
-                    "expense_saved": True,
-                    "id": expense_id,  # FIX: Include the primary key as required
-                    "amount": amount,
-                    "source": "ai-chat",
-                    "category": category,
-                    "intent": intent
-                })
+        
+        # Log expense_saved telemetry if an expense was found
+        if recent_expense and emit_telemetry:
+            emit_telemetry({
+                "request_id": request_id,
+                "expense_saved": True,
+                "id": expense_id,
+                "amount": amount,
+                "source": "ai-chat",
+                "category": category,
+                "intent": intent
+            })
         
         latency_ms = int((time.time() - start_time) * 1000)
         
