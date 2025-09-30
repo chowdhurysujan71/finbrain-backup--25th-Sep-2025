@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+
+{% block title %}Expense Details - finbrain{% endblock %}
+
+{% block content %}
+<style>
+/* Google × Stripe 2025 Design System */
+:root {
+    --bg: #ffffff;
+    --surface: #f7f9fc;
+    --surface-2: #eef2f7;
+    --text: #0b1220;
+    --muted: #5b667a;
+    --pri: #3b6aff;
+    --pri-600: #2f56db;
+    --pri-050: #eef3ff;
+    --good: #10b981;
+    --warn: #f59e0b;
+    --bad: #ef4444;
+    --accent: #7c3aed;
+    --ring: rgba(59,106,255,.35);
+    --shadow-soft: 0 1px 2px rgba(9,12,20,.06), 0 8px 24px rgba(9,12,20,.06);
+    --shadow-raise: 0 10px 20px rgba(9,12,20,.10);
+    --radius: 14px;
+    --radius-lg: 18px;
+    --gap: 16px;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+}
+
+.expense-detail {
+    max-width: 428px;
+    margin: 0 auto;
+    padding: 1rem;
+    padding-bottom: 100px;
+}
+
+.card {
+    background: var(--surface);
+    border: none;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-soft);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.expense-amount {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+}
+
+.expense-category {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--pri-050);
+    color: var(--pri);
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.expense-category.uncategorized {
+    background: var(--surface-2);
+    color: var(--muted);
+}
+
+.expense-info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--surface-2);
+}
+
+.expense-info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.info-value {
+    color: var(--text);
+    font-weight: 500;
+}
+
+.btn-primary {
+    background-color: var(--pri);
+    border: none;
+    border-radius: 10px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    transition: all 150ms ease;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    background-color: var(--pri-600);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-raise);
+}
+
+.btn-secondary {
+    background-color: var(--surface-2);
+    color: var(--text);
+    border: none;
+    border-radius: 10px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    transition: all 150ms ease;
+    width: 100%;
+}
+
+.btn-secondary:hover {
+    background-color: #e2e8f0;
+}
+
+.btn-danger {
+    background-color: var(--bad);
+    border: none;
+    border-radius: 10px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    transition: all 150ms ease;
+    width: 100%;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #dc2626;
+}
+
+.form-label {
+    color: var(--text);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-control, .form-select {
+    border: 2px solid var(--surface-2);
+    border-radius: 10px;
+    padding: 0.75rem;
+    font-size: 1rem;
+    transition: all 150ms ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--pri);
+    box-shadow: 0 0 0 3px var(--ring);
+    outline: none;
+}
+
+.edit-section {
+    display: none;
+}
+
+.edit-section.active {
+    display: block;
+}
+
+.action-buttons {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--pri);
+    text-decoration: none;
+    font-weight: 500;
+    margin-bottom: 1rem;
+}
+
+.back-link:hover {
+    color: var(--pri-600);
+}
+
+/* Toast notifications */
+.toast-container {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    min-width: 300px;
+}
+</style>
+
+<div class="expense-detail">
+    <a href="/profile" class="back-link">
+        <i class="fas fa-arrow-left"></i> Back to Profile
+    </a>
+
+    <!-- Expense Details Card -->
+    <div class="card">
+        <div class="expense-amount">৳{{ "%.2f"|format(expense.amount) }}</div>
+        
+        <span class="expense-category {% if expense.category == 'uncategorized' %}uncategorized{% endif %}">
+            {% if expense.category == 'food' %}🍽️
+            {% elif expense.category == 'transport' %}🚗
+            {% elif expense.category == 'bills' %}📄
+            {% elif expense.category == 'shopping' %}🛍️
+            {% else %}❓{% endif %}
+            {{ expense.category|title }}
+        </span>
+        
+        <div style="margin-top: 1.5rem;">
+            {% if expense.description %}
+            <div class="expense-info-row">
+                <span class="info-label">Description</span>
+                <span class="info-value">{{ expense.description }}</span>
+            </div>
+            {% endif %}
+            
+            <div class="expense-info-row">
+                <span class="info-label">Date</span>
+                <span class="info-value">{{ expense.created_at.strftime('%b %d, %Y at %I:%M %p') }}</span>
+            </div>
+            
+            <div class="expense-info-row">
+                <span class="info-label">Source</span>
+                <span class="info-value">{{ expense.source|default('Manual', true) }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Form -->
+    <div class="card" id="edit-form">
+        <h5 style="margin-bottom: 1rem; font-weight: 600;">Edit Expense</h5>
+        
+        <form id="expense-edit-form">
+            <input type="hidden" name="expense_id" value="{{ expense.id }}">
+            
+            <div class="mb-3">
+                <label for="amount" class="form-label">Amount (৳)</label>
+                <input 
+                    type="number" 
+                    class="form-control" 
+                    id="amount" 
+                    name="amount" 
+                    value="{{ expense.amount }}"
+                    step="0.01"
+                    min="0"
+                >
+            </div>
+            
+            <div class="mb-3">
+                <label for="category" class="form-label">Category</label>
+                <select class="form-select" id="category" name="category">
+                    {% for cat in valid_categories %}
+                    <option value="{{ cat }}" {% if expense.category == cat %}selected{% endif %}>
+                        {% if cat == 'food' %}🍽️ Food
+                        {% elif cat == 'transport' %}🚗 Transport
+                        {% elif cat == 'bills' %}📄 Bills
+                        {% elif cat == 'shopping' %}🛍️ Shopping
+                        {% else %}❓ Uncategorized{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="description" class="form-label">Description (optional)</label>
+                <input 
+                    type="text" 
+                    class="form-control" 
+                    id="description" 
+                    name="description" 
+                    value="{{ expense.description or '' }}"
+                    placeholder="e.g., Lunch at restaurant"
+                >
+            </div>
+            
+            <button 
+                type="submit" 
+                class="btn btn-primary"
+                hx-post="/expense/quick-edit"
+                hx-vals='js:{expense_id: {{ expense.id }}, amount: document.getElementById("amount").value, category: document.getElementById("category").value, description: document.getElementById("description").value}'
+                hx-swap="none"
+                hx-on::after-request="if(event.detail.successful) { setTimeout(() => window.location.href = '/profile', 1500); }"
+            >
+                Save Changes
+            </button>
+        </form>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="card" style="border-left: 4px solid var(--bad);">
+        <h6 style="color: var(--bad); font-weight: 600; margin-bottom: 0.75rem;">Danger Zone</h6>
+        <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem;">
+            Delete this expense permanently. This action cannot be undone.
+        </p>
+        <button 
+            class="btn btn-danger"
+            hx-post="/expense/undo"
+            hx-vals='{"expense_id": {{ expense.id }}}'
+            hx-confirm="Are you sure you want to delete this expense? This cannot be undone."
+            hx-swap="none"
+            hx-on::after-request="if(event.detail.successful) { window.location.href = '/profile'; }"
+        >
+            <i class="fas fa-trash-alt"></i> Delete Expense
+        </button>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container" class="toast-container"></div>
+
+<script>
+// Prevent form default submission
+document.getElementById('expense-edit-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+});
+
+// Listen for HTMX events to show toasts
+document.body.addEventListener('htmx:afterRequest', function(event) {
+    const xhr = event.detail.xhr;
+    if (xhr && xhr.responseText && xhr.responseText.includes('alert')) {
+        // Extract toast HTML from response and show it
+        const container = document.getElementById('toast-container');
+        if (container && xhr.responseText) {
+            // Find all alert divs in the response
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xhr.responseText, 'text/html');
+            const alerts = doc.querySelectorAll('.alert');
+            
+            alerts.forEach(alert => {
+                container.innerHTML = '';
+                container.appendChild(alert.cloneNode(true));
+                
+                // Auto-dismiss after 3 seconds
+                setTimeout(() => {
+                    container.innerHTML = '';
+                }, 3000);
+            });
+        }
+    }
+});
+</script>
+{% endblock %}
