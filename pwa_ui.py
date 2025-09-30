@@ -1094,6 +1094,53 @@ def entries_partial():
         # Fallback to empty state - NEVER bypass API endpoints
         return render_template('partials/entries.html', entries=[])
 
+@pwa_ui.route('/partials/quick-taps')
+def quick_taps_partial():
+    """
+    Quick-tap amount buttons for HTMX - appears on input focus
+    Returns smart amount suggestions based on user patterns
+    """
+    from flask import session
+    
+    try:
+        # SECURITY: Session check for UI guardrails consistency
+        if 'user_id' not in session:
+            logger.debug("Quick-taps: no session, returning empty")
+            return '', 200
+        
+        # Default smart amounts (in BDT) - common spending patterns (spec: ৳50, ৳100, ৳200)
+        default_amounts = [50, 100, 200]
+        
+        # If user is authenticated, could personalize based on their spending patterns
+        # For now, use defaults for demo
+        amounts = default_amounts
+        
+        # Build HTML for quick-tap buttons
+        buttons_html = '<div class="quick-taps-container" style="display: flex; gap: 0.5rem; margin: 0.5rem 0; flex-wrap: wrap;">'
+        
+        for amount in amounts:
+            buttons_html += f'''
+                <button 
+                    type="button"
+                    class="btn btn-outline-primary quick-tap-btn" 
+                    data-amount="{amount}"
+                    onclick="document.getElementById('chat-input').value = '{amount}'; this.parentElement.style.display = 'none';"
+                    style="min-width: 60px; min-height: 44px; font-size: 1rem; touch-action: manipulation;"
+                >
+                    ৳{amount}
+                </button>
+            '''
+        
+        buttons_html += '</div>'
+        
+        logger.debug(f"Quick-taps partial rendered with amounts: {amounts}")
+        return buttons_html, 200
+        
+    except Exception as e:
+        logger.error(f"Error rendering quick-taps: {e}")
+        # Return empty on error - graceful degradation
+        return '', 200
+
 @pwa_ui.route('/ai-chat-test', methods=['POST'])
 def ai_chat_test():
     """Simple test endpoint to verify frontend is working"""
