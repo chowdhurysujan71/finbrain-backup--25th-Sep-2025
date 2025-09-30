@@ -2,7 +2,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('register-form');
   const err  = document.getElementById('auth-error');
-  const spin = document.getElementById('auth-spinner');
   const captchaQuestion = document.getElementById('captcha-question');
   
   // Store CAPTCHA nonce
@@ -44,11 +43,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Handle button loading state
     const registerBtn = document.getElementById('register-btn');
-    const btnText = registerBtn?.querySelector('.btn-text');
-    const btnLoading = registerBtn?.querySelector('.btn-loading');
-    if (btnText) btnText.style.display = 'none';
-    if (btnLoading) btnLoading.style.display = 'inline';
-    if (registerBtn) registerBtn.disabled = true;
+    const originalText = registerBtn?.textContent;
+    if (registerBtn) {
+      registerBtn.textContent = 'Creating account...';
+      registerBtn.disabled = true;
+    }
 
     let res, data;
     try {
@@ -68,17 +67,19 @@ document.addEventListener('DOMContentLoaded', () => {
       data = await res.json().catch(() => ({}));
     } catch (e) {
       // Restore button state on error
-      if (btnText) btnText.style.display = 'inline';
-      if (btnLoading) btnLoading.style.display = 'none';
-      if (registerBtn) registerBtn.disabled = false;
+      if (registerBtn) {
+        registerBtn.textContent = originalText;
+        registerBtn.disabled = false;
+      }
       if (err) { err.textContent = 'Network error'; err.style.display = 'block'; }
       return;
     }
     
     // Restore button state
-    if (btnText) btnText.style.display = 'inline';
-    if (btnLoading) btnLoading.style.display = 'none';
-    if (registerBtn) registerBtn.disabled = false;
+    if (registerBtn) {
+      registerBtn.textContent = originalText;
+      registerBtn.disabled = false;
+    }
 
     if (!res.ok) {
       const msg = data.error || data.message || 'Account already exists';

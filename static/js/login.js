@@ -2,7 +2,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('login-form');
   const err  = document.getElementById('auth-error');
-  const spin = document.getElementById('auth-spinner');
   const captchaQuestion = document.getElementById('captcha-question');
   
   // Store CAPTCHA nonce
@@ -34,11 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Handle button loading state
     const loginBtn = document.getElementById('login-btn');
-    const btnText = loginBtn?.querySelector('.btn-text');
-    const btnLoading = loginBtn?.querySelector('.btn-loading');
-    if (btnText) btnText.style.display = 'none';
-    if (btnLoading) btnLoading.style.display = 'inline';
-    if (loginBtn) loginBtn.disabled = true;
+    const originalText = loginBtn?.textContent;
+    if (loginBtn) {
+      loginBtn.textContent = 'Signing in...';
+      loginBtn.disabled = true;
+    }
 
     let res, data;
     try {
@@ -56,17 +55,19 @@ document.addEventListener('DOMContentLoaded', () => {
       data = await res.json().catch(() => ({}));
     } catch (e) {
       // Restore button state on error
-      if (btnText) btnText.style.display = 'inline';
-      if (btnLoading) btnLoading.style.display = 'none';
-      if (loginBtn) loginBtn.disabled = false;
+      if (loginBtn) {
+        loginBtn.textContent = originalText;
+        loginBtn.disabled = false;
+      }
       if (err) { err.textContent = 'Network error'; err.style.display = 'block'; }
       return;
     }
     
     // Restore button state
-    if (btnText) btnText.style.display = 'inline';
-    if (btnLoading) btnLoading.style.display = 'none';
-    if (loginBtn) loginBtn.disabled = false;
+    if (loginBtn) {
+      loginBtn.textContent = originalText;
+      loginBtn.disabled = false;
+    }
 
     if (!res.ok) {
       const msg = data.error || data.message || 'Invalid email or password';
