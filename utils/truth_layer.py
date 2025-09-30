@@ -125,7 +125,7 @@ class TruthLayer:
                 Expense.user_id_hash == user_id_hash,
                 Expense.date >= start_date,
                 Expense.date <= end_date,
-                Expense.is_deleted.is_(False)
+                Expense.is_deleted.is_(False)  # type: ignore
             ).first()
             
             count = result[0] if result else 0
@@ -188,7 +188,7 @@ class TruthLayer:
                 Expense.user_id_hash == user_id_hash,
                 Expense.date >= start_date,
                 Expense.date <= end_date,
-                Expense.is_deleted.is_(False)
+                Expense.is_deleted.is_(False)  # type: ignore
             ).group_by(Expense.category).all()
             
             # Calculate grand total for percentages

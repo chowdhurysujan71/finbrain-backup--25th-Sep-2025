@@ -46,7 +46,7 @@ def on_expense_committed(expense_id: int, user_id_hash: str) -> Dict[str, Any]:
         expense = Expense.query.filter(
             Expense.id == expense_id,
             Expense.user_id_hash == user_id_hash,
-            Expense.is_deleted == False
+            Expense.is_deleted.is_(False)  # type: ignore
         ).first()
         
         if not expense:
@@ -107,7 +107,7 @@ def _build_chart_update(user_id_hash: str, expense_date: date) -> Dict[str, Any]
         day_expenses = Expense.query.filter(
             Expense.user_id_hash == user_id_hash,
             Expense.date == expense_date,
-            Expense.is_deleted == False
+            Expense.is_deleted.is_(False)  # type: ignore
         ).all()
         
         # Calculate category breakdown
@@ -163,7 +163,7 @@ def _build_progress_ring(user_id_hash: str, expense_date: date) -> Dict[str, Any
         ).filter(
             Expense.user_id_hash == user_id_hash,
             Expense.date == expense_date,
-            Expense.is_deleted == False
+            Expense.is_deleted.is_(False)  # type: ignore
         ).scalar() or 0
         
         today_spent = float(today_total) / 100

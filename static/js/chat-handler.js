@@ -216,6 +216,89 @@ const handleCategorySelection = async (chipElement) => {
   }
 };
 
+// Apply atomic UI updates from expense cascade
+function applyUIUpdates(uiUpdates) {
+  console.log('[UI-UPDATE] Applying atomic UI updates:', uiUpdates);
+  
+  // Confirmation toast (if present)
+  if (uiUpdates.confirmation) {
+    const confirmData = uiUpdates.confirmation;
+    if (confirmData.message) {
+      showToast(confirmData.message);
+    }
+  }
+  
+  // Chart update (if present)
+  if (uiUpdates.chart_update) {
+    const chartTarget = document.getElementById('expense-chart');
+    if (chartTarget) {
+      // Update chart data (placeholder - would integrate with Chart.js)
+      console.log('[UI-UPDATE] Chart update ready:', uiUpdates.chart_update);
+      // TODO: Wire to Chart.js when chart component is added
+    } else {
+      console.warn('[UI-UPDATE] Chart target #expense-chart not found');
+    }
+  }
+  
+  // Progress ring update (if present)
+  if (uiUpdates.progress_ring) {
+    const progressTarget = document.getElementById('progress-ring');
+    if (progressTarget) {
+      const ringData = uiUpdates.progress_ring;
+      if (ringData.has_goal) {
+        // Update progress ring display (XSS-safe using DOM nodes + textContent)
+        progressTarget.innerHTML = ''; // Clear existing content
+        const progressInfo = document.createElement('div');
+        progressInfo.className = 'progress-info';
+        
+        const progressCircle = document.createElement('div');
+        progressCircle.className = 'progress-circle';
+        progressCircle.setAttribute('data-percentage', ringData.percentage);
+        
+        const progressValue = document.createElement('span');
+        progressValue.className = 'progress-value';
+        progressValue.textContent = Math.round(ringData.percentage) + '%';
+        
+        const progressMessage = document.createElement('p');
+        progressMessage.className = 'progress-message';
+        progressMessage.textContent = ringData.message; // XSS-safe: textContent, not innerHTML
+        
+        progressCircle.appendChild(progressValue);
+        progressInfo.appendChild(progressCircle);
+        progressInfo.appendChild(progressMessage);
+        progressTarget.appendChild(progressInfo);
+        progressTarget.style.display = 'block';
+        
+        console.log('[UI-UPDATE] Progress ring updated');
+      }
+    } else {
+      console.warn('[UI-UPDATE] Progress ring target #progress-ring not found');
+    }
+  }
+  
+  // Smart banner (if present)
+  if (uiUpdates.banner) {
+    const bannerTarget = document.getElementById('smart-banner');
+    if (bannerTarget) {
+      // SECURITY: Server must sanitize banner HTML before sending
+      // TODO: Convert to structured data (title/body/cta) for safe client-side rendering
+      bannerTarget.innerHTML = uiUpdates.banner;
+      bannerTarget.style.display = 'block';
+      console.log('[UI-UPDATE] Banner displayed');
+    } else {
+      console.warn('[UI-UPDATE] Banner target #smart-banner not found');
+    }
+  }
+  
+  // Celebration (if present)
+  if (uiUpdates.celebration) {
+    // Show celebration toast with special styling
+    const celebrationMsg = uiUpdates.celebration.message || '🎉 Milestone achieved!';
+    showToast(celebrationMsg);
+    console.log('[UI-UPDATE] Celebration displayed');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.querySelector('#chat-form');
   const input = document.querySelector('#chat-input');
@@ -271,6 +354,15 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('[CHAT-DEBUG] Error in renderAssistant:', err);
         // Emergency fallback - always show some response
         addMsg("bot", "✅ Your message has been received and processed!");
+      }
+      
+      // Apply atomic UI updates if present (System 4 cascade)
+      if (data.ui_updates && Object.keys(data.ui_updates).length > 0) {
+        try {
+          applyUIUpdates(data.ui_updates);
+        } catch (err) {
+          console.error('[UI-UPDATE] Failed to apply UI updates:', err);
+        }
       }
       
       input.value = '';
