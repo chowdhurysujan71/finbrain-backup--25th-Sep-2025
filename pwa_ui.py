@@ -1238,6 +1238,150 @@ def expense_undo():
         db.session.rollback()
         return '<div class="alert alert-danger">Failed to undo expense</div>', 500
 
+@pwa_ui.route('/expense/quick-edit', methods=['POST'])
+def expense_quick_edit():
+    """
+    Quick-edit an expense field (amount, category, or note)
+    Returns HTMX-compatible HTML with toast + out-of-band UI updates
+    """
+    from flask import session
+    from db_base import db
+    from utils.event_hooks import on_expense_committed
+    from utils.expense_editor import ExpenseEditor
+    from utils.config import CURRENCY_SYMBOL
+    import time
+    import math
+    
+    start_time = time.monotonic()
+    
+    try:
+        # SECURITY: Session check
+        if 'user_id' not in session:
+            return '<div class="alert alert-danger">Please log in</div>', 401
+        
+        # Parse request (support both JSON and form data)
+        expense_id = None
+        new_amount = None
+        new_category = None
+        new_description = None
+        
+        if request.is_json:
+            data = request.get_json() or {}
+            expense_id = data.get('expense_id')
+            new_amount = data.get('amount')
+            new_category = data.get('category')
+            new_description = data.get('description') or data.get('note')
+        else:
+            expense_id = request.form.get('expense_id')
+            new_amount = request.form.get('amount')
+            new_category = request.form.get('category')
+            new_description = request.form.get('description') or request.form.get('note')
+        
+        if not expense_id:
+            return '<div class="alert alert-danger">Expense ID required</div>', 400
+        
+        # Cast to int for consistency
+        try:
+            expense_id = int(expense_id)
+        except ValueError:
+            return '<div class="alert alert-danger">Invalid expense ID</div>', 400
+        
+        # Validate and convert amount if provided
+        if new_amount is not None:
+            try:
+                new_amount = float(new_amount)
+                # Reject non-finite values (NaN, Inf)
+                if not math.isfinite(new_amount):
+                    return '<div class="alert alert-danger">Amount must be a valid number</div>', 400
+            except ValueError:
+                return '<div class="alert alert-danger">Invalid amount format</div>', 400
+        
+        # Use session user_id_hash directly (already hashed)
+        user_id_hash = session['user_id']
+        
+        # Use ExpenseEditor for canonical write path with audit trail
+        editor = ExpenseEditor()
+        result = editor.edit_expense(
+            expense_id=int(expense_id),
+            editor_user_id=user_id_hash,
+            new_amount=new_amount,
+            new_category=new_category,
+            new_description=new_description,
+            reason="quick_edit"
+        )
+        
+        if not result.get('success'):
+            error_msg = result.get('error', 'Edit failed')
+            return f'<div class="alert alert-danger">{error_msg}</div>', 400
+        
+        # Check if there were no changes
+        changes = result.get('changes', {})
+        if not changes:
+            return '<div class="toast-notification">No changes detected</div>', 200
+        
+        # Trigger on_expense_committed for atomic UI refresh
+        ui_updates = on_expense_committed(expense_id, user_id_hash)
+        
+        # Build change summary for toast
+        change_summary = []
+        if 'amount' in changes:
+            old_amt, new_amt = changes['amount']
+            change_summary.append(f"Amount: {CURRENCY_SYMBOL}{old_amt:.2f} → {CURRENCY_SYMBOL}{new_amt:.2f}")
+        if 'category' in changes:
+            old_cat, new_cat = changes['category']
+            change_summary.append(f"Category: {old_cat} → {new_cat}")
+        if 'description' in changes:
+            change_summary.append("Note updated")
+        
+        summary_text = ', '.join(change_summary)
+        
+        # Build HTMX-compatible response with toast + out-of-band swaps
+        html_parts = [
+            # Main toast (primary swap target)
+            f'''<div class="toast-notification" role="alert" style="
+                position: fixed; bottom: 2rem; right: 2rem; 
+                background: #007bff; color: white; 
+                padding: 1rem 1.5rem; border-radius: 0.5rem; 
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                z-index: 9999; animation: slideIn 0.3s ease-out;">
+                <strong>✓ Expense updated</strong>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">{summary_text}</p>
+            </div>
+            <style>
+                @keyframes slideIn {{ from {{ transform: translateY(100%); opacity: 0; }} to {{ transform: translateY(0); opacity: 1; }} }}
+            </style>''',
+        ]
+        
+        # Add out-of-band swaps for UI updates if available
+        if ui_updates and isinstance(ui_updates, dict):
+            # Chart update
+            if ui_updates.get('chart_update'):
+                html_parts.append(f'<div id="expense-chart" hx-swap-oob="true">{ui_updates["chart_update"]}</div>')
+            
+            # Progress ring update
+            if ui_updates.get('progress_ring'):
+                html_parts.append(f'<div id="progress-ring" hx-swap-oob="true">{ui_updates["progress_ring"]}</div>')
+            
+            # Banner update
+            if ui_updates.get('banner'):
+                html_parts.append(f'<div id="smart-banner" hx-swap-oob="true">{ui_updates["banner"]}</div>')
+        
+        # Latency monitoring for <1s SLA
+        elapsed_ms = (time.monotonic() - start_time) * 1000
+        
+        if elapsed_ms > 1000:
+            logger.warning(f"Quick-edit SLA breach: {elapsed_ms:.1f}ms (>1s), expense_id={expense_id}, changes={list(changes.keys())}, ui_swaps={len([k for k in ui_updates.keys() if ui_updates.get(k)]) if ui_updates else 0}")
+        else:
+            logger.info(f"Quick-edit completed: {elapsed_ms:.1f}ms, expense_id={expense_id}, changes={list(changes.keys())}")
+        
+        return '\n'.join(html_parts), 200
+        
+    except Exception as e:
+        elapsed_ms = (time.monotonic() - start_time) * 1000
+        logger.error(f"Error in quick-edit ({elapsed_ms:.1f}ms): {e}")
+        db.session.rollback()
+        return '<div class="alert alert-danger">Failed to update expense</div>', 500
+
 @pwa_ui.route('/ai-chat-test', methods=['POST'])
 def ai_chat_test():
     """Simple test endpoint to verify frontend is working"""
