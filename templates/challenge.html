@@ -238,13 +238,18 @@ function editGoal(goalId) {
 let isSaving = false;
 
 async function saveGoal() {
+    console.log('saveGoal() called');
+    
     // Prevent double submits
     if (isSaving) {
+        console.log('Already saving, skipping');
         return;
     }
     
     const amount = parseFloat(document.getElementById('goalAmount').value);
     const submitButton = document.querySelector('button[form="goalForm"][type="submit"]');
+    
+    console.log('Amount:', amount);
     
     if (!amount || amount <= 0) {
         showToast('Please enter a valid amount greater than 0', 'error');
@@ -259,8 +264,16 @@ async function saveGoal() {
     }
     
     try {
+        // Check if csrfManager exists
+        if (!window.csrfManager) {
+            console.error('csrfManager not found!');
+            throw new Error('CSRF manager not initialized');
+        }
+        
+        console.log('Getting CSRF token...');
         // Get CSRF token
         const csrfToken = await window.csrfManager.getToken();
+        console.log('CSRF token received, making request...');
         
         const response = await fetch('/api/goals', {
             method: 'POST',
