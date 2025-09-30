@@ -259,10 +259,14 @@ async function saveGoal() {
     }
     
     try {
+        // Get CSRF token
+        const csrfToken = await window.csrfManager.getToken();
+        
         const response = await fetch('/api/goals', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
                 type: 'daily_spend_under',
@@ -311,8 +315,14 @@ async function removeGoal(goalId) {
     }
     
     try {
+        // Get CSRF token
+        const csrfToken = await window.csrfManager.getToken();
+        
         const response = await fetch(`/api/goals/${goalId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
         });
         
         // Handle response more robustly

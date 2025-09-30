@@ -262,10 +262,14 @@ function checkAuthStatus() {
 
 async function logoutUser() {
     try {
+        // Get CSRF token
+        const csrfToken = await window.csrfManager.getToken();
+        
         const response = await fetch('/auth/logout', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
             }
         });
         
