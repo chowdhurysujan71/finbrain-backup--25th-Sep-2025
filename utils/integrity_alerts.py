@@ -8,7 +8,7 @@ import logging
 import os
 import smtplib
 from datetime import datetime
-from email.mime.multipart import MimeMultipart
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MimeText
 from typing import Any, Dict
 
@@ -153,7 +153,7 @@ class IntegrityAlerting:
         report = alert_data['report']
         
         # Create email
-        msg = MimeMultipart('alternative')
+        msg = MIMEMultipart('alternative')
         msg['Subject'] = f"[FinBrain] {alert_data['severity']}: Data Integrity Alert"
         msg['From'] = alert_email_from
         msg['To'] = alert_email_to
