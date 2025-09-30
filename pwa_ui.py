@@ -256,9 +256,8 @@ def profile():
     """
     Profile summary showing user info if available
     AUTHENTICATION REQUIRED
-    Feature-flagged: FEATURE_PROFILE_V2 enables new Google/Stripe-grade profile UI
+    Uses Google/Stripe-grade profile UI (profile_v2.html)
     """
-    import os
     user = require_auth_or_redirect()  # Require authentication or redirect to login
     
     # If it's a redirect response, return it directly
@@ -271,21 +270,8 @@ def profile():
     
     logger.info(f"PWA profile route accessed by user: {user.user_id_hash}")
     
-    # Feature flag: Use profile v2 if enabled, otherwise fallback to current
-    feature_flag_raw = os.environ.get('FEATURE_PROFILE_V2', '')
-    feature_v2_enabled = str(feature_flag_raw).lower() in ('1', 'true', 'yes', 'on')
-    
-    # TEMPORARY: Enable for demonstration (remove after user sees the design)
-    feature_v2_enabled = True
-    
-    logger.info(f"FEATURE_PROFILE_V2='{feature_flag_raw}' resolved={feature_v2_enabled}")
-    
-    if feature_v2_enabled:
-        logger.info(f"Using profile v2 for user: {user.user_id_hash}")
-        return render_template('profile_v2.html', user_id=user.user_id_hash)
-    else:
-        logger.info(f"Using profile v1 (fallback) for user: {user.user_id_hash}")
-        return render_template('profile.html', user_id=user.user_id_hash)
+    # Always use profile_v2 (production-ready with logout button and zero-hallucination)
+    return render_template('profile_v2.html', user_id=user.user_id_hash)
 
 @pwa_ui.route('/challenge')
 def challenge():
