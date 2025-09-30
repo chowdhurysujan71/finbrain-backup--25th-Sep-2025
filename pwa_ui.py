@@ -1564,7 +1564,7 @@ def ai_chat():
         intent, amount, category = repaired_intent, repaired_amount, repaired_category
         
         # Check if an expense was successfully saved
-        expense_intents = ["expense_logged", "ai_expense_logged", "log_single", "log_expense"]
+        expense_intents = ["expense_logged", "ai_expense_logged", "log_single", "log_expense", "add_expense"]
         expense_id = None
         ui_updates = {}
         if intent in expense_intents and amount is not None:

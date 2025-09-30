@@ -74,40 +74,80 @@
 {% endif %}
 
 <script>
-function editEntry(entryId) {
-    showToast('Edit functionality coming soon!', 'info');
-    // TODO: Implement edit modal or inline editing
+async function editEntry(entryId) {
+    const entryElement = document.querySelector(`[data-entry-id="${entryId}"]`);
+    if (!entryElement) return;
+    
+    // Get current values
+    const currentAmount = entryElement.querySelector('.amount-value').textContent.replace('৳', '').replace(',', '').trim();
+    const currentCategory = entryElement.querySelector('.amount-category').textContent.toLowerCase();
+    
+    // Simple prompt for now (can be enhanced with a modal later)
+    const newAmount = prompt('Enter new amount:', currentAmount);
+    if (!newAmount || newAmount === currentAmount) return;
+    
+    const newCategory = prompt('Enter new category (food, transport, shopping, bills, uncategorized):', currentCategory);
+    if (!newCategory) return;
+    
+    try {
+        entryElement.style.opacity = '0.5';
+        
+        const response = await fetch('/expense/quick-edit', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                expense_id: entryId,
+                amount: parseFloat(newAmount),
+                category: newCategory.toLowerCase()
+            })
+        });
+        
+        if (response.ok) {
+            showToast('Expense updated successfully!', 'success');
+            // Reload page to refresh all data
+            setTimeout(() => location.reload(), 500);
+        } else {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Failed to update expense');
+        }
+    } catch (error) {
+        console.error('Error updating expense:', error);
+        showToast('Failed to update expense', 'error');
+        entryElement.style.opacity = '1';
+    }
 }
 
-function deleteEntry(entryId) {
-    if (confirm('Are you sure you want to delete this expense?')) {
-        // For demo mode, just remove from DOM
-        const entryElement = document.querySelector(`[data-entry-id="${entryId}"]`);
-        if (entryElement) {
-            entryElement.style.opacity = '0.5';
-            showToast('Expense deleted (demo mode)', 'success');
-            
-            setTimeout(() => {
-                entryElement.remove();
-                // Update summary if no entries left
-                const entriesList = document.querySelector('.entries-list');
-                if (entriesList && entriesList.children.length === 0) {
-                    // Replace with empty state
-                    entriesList.parentElement.innerHTML = `
-                        <div class="entries-empty">
-                            <div class="empty-icon">📝</div>
-                            <h3 class="empty-title">No expenses yet</h3>
-                            <p class="empty-description">
-                                Start tracking your spending by adding your first expense above.
-                            </p>
-                            <button class="btn btn-neutral btn-sm" onclick="focusAmountInput()">
-                                Add First Expense
-                            </button>
-                        </div>
-                    `;
-                }
-            }, 300);
+async function deleteEntry(entryId) {
+    if (!confirm('Are you sure you want to delete this expense?')) return;
+    
+    const entryElement = document.querySelector(`[data-entry-id="${entryId}"]`);
+    if (!entryElement) return;
+    
+    try {
+        entryElement.style.opacity = '0.5';
+        
+        const response = await fetch('/expense/undo', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                expense_id: entryId
+            })
+        });
+        
+        if (response.ok) {
+            showToast('Expense deleted successfully!', 'success');
+            // Reload page to refresh all data
+            setTimeout(() => location.reload(), 500);
+        } else {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Failed to delete expense');
         }
+    } catch (error) {
+        console.error('Error deleting expense:', error);
+        showToast('Failed to delete expense', 'error');
+        entryElement.style.opacity = '1';
     }
 }
 
