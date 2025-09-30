@@ -227,7 +227,7 @@ body {
             
             <div class="expense-info-row">
                 <span class="info-label">Date</span>
-                <span class="info-value">{{ expense.created_at.strftime('%b %d, %Y at %I:%M %p') }}</span>
+                <span class="info-value">{{ expense.created_at | to_dhaka('%b %d, %Y at %I:%M %p') }}</span>
             </div>
             
             <div class="expense-info-row">

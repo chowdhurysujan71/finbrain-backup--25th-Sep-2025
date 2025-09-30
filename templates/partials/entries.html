@@ -32,7 +32,7 @@
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Date:</span>
-                        <span class="detail-value">{{ entry.date }} {{ entry.time }}</span>
+                        <span class="detail-value">{{ entry.created_at | to_dhaka_friendly }}</span>
                     </div>
                     <button class="btn btn-sm btn-primary" 
                             onclick="event.stopPropagation(); editEntry({{ entry.id }})">
