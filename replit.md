@@ -21,6 +21,10 @@ finbrain is an AI-first expense tracking application delivered via a web chat in
 - ✅ Trust Hub database tables (password_resets, deletion_requests) with atomic operations
 - ✅ Performance indexes for <500ms query SLO
 - ✅ Kill switches with graceful degradation (banners, insights, exports)
+- ✅ **Timezone Display Fix**: All customer-facing interfaces now show Asia/Dhaka time instead of UTC (September 30, 2025)
+  - Expense cards display local Dhaka time (e.g., "Today at 20:30")
+  - Today/Week/Month totals calculate using Dhaka day boundaries
+  - Data remains stored in UTC (display-only conversion)
 
 **Active Development**:
 - 🔧 System 4 (Friction Elimination): Quick-taps, undo, quick-edit endpoints
@@ -31,7 +35,7 @@ finbrain is an AI-first expense tracking application delivered via a web chat in
 **Architecture Principles**:
 - Atomic event hooks as single source of truth
 - Zero-hallucination with provable claims only
-- Asia/Dhaka timezone for all date operations
+- Asia/Dhaka timezone for all customer-facing displays (data stored in UTC)
 - Kill switches for instant feature disable
 - Graceful degradation without breaking chat
 - <2s expense→UI refresh, <3s exports, <500ms history queries
