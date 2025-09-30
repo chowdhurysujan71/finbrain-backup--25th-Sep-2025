@@ -115,10 +115,13 @@ async function apiCall(endpoint, data = {}) {
     try {
         console.log(`[Report] Making API call to ${endpoint} with data:`, data);
         
+        const csrfToken = await getCsrfToken();
+        
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
             },
             credentials: 'include', // Include session cookies
             body: JSON.stringify(data)
