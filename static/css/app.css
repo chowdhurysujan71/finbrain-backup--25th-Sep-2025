@@ -1085,6 +1085,43 @@ h1, h2, h3, h4, h5, h6 {
     font-size: var(--font-size-lg);
 }
 
+/* ===== WELCOME BANNER ===== */
+.welcome-banner {
+    margin-bottom: var(--space-4);
+    padding: 0;
+    overflow: hidden;
+}
+
+.welcome-banner .alert {
+    margin-bottom: 0;
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    background-color: var(--color-primary-50);
+    border-color: hsl(210, 100%, 85%);
+    color: hsl(210, 100%, 25%);
+}
+
+.welcome-banner .alert-heading {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+    line-height: 1.4;
+    color: hsl(210, 100%, 20%);
+}
+
+.welcome-banner ul {
+    padding-left: 1.5rem;
+    margin-bottom: var(--space-2);
+}
+
+.welcome-banner li {
+    margin-bottom: var(--space-1);
+}
+
+.welcome-banner .banner-icon {
+    flex-shrink: 0;
+}
+
 /* ===== SMART BANNER ===== */
 .smart-banner {
     margin-bottom: var(--space-4);

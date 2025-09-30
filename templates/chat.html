@@ -27,12 +27,22 @@
         <!-- Chart will be rendered here when Chart.js integration is added -->
     </div>
 
-    <!-- Chat Now Active -->
-    <section class="card chat-preview-banner">
-        <div class="alert alert-success">
-            <h2>💬 Chat Feature - Now Live!</h2>
-            <p><strong>Chat with finbrain AI is now active.</strong></p>
-            <p>Try saying "I spent 200 taka on lunch" or ask for spending insights!</p>
+    <!-- Welcome Banner -->
+    <section class="card welcome-banner">
+        <div class="alert alert-info">
+            <div class="d-flex align-items-start gap-3">
+                <div class="banner-icon" style="font-size: 2rem;">🤖</div>
+                <div class="flex-grow-1">
+                    <h5 class="alert-heading mb-2">Hi! I'm your AI expense assistant. You can:</h5>
+                    <ul class="mb-2" style="font-size: 0.875rem; line-height: 1.6;">
+                        <li>📝 Say "I spent 500 taka on lunch" to log expenses</li>
+                        <li>📊 Ask "Show my spending summary"</li>
+                        <li>💡 Get insights: "How's my spending this month?"</li>
+                        <li>🎯 Ask for financial advice and tips</li>
+                    </ul>
+                    <p class="mb-0" style="font-size: 0.875rem;">Just type naturally - I'll understand! 😊</p>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -43,19 +53,7 @@
         <!-- Chat Messages -->
         <div id="chat-error" class="alert alert-danger hidden"></div>
         <div id="chat-messages" class="chat-messages">
-            <div class="message ai-message">
-                <div class="message-avatar">🤖</div>
-                <div class="message-content">
-                    <p>Hi! I'm your AI expense assistant. You can:</p>
-                    <ul>
-                        <li>📝 Say "I spent 500 taka on lunch" to log expenses</li>
-                        <li>📊 Ask "Show my spending summary"</li>
-                        <li>💡 Get insights: "How's my spending this month?"</li>
-                        <li>🎯 Ask for financial advice and tips</li>
-                    </ul>
-                    <p>Just type naturally - I'll understand! 😊</p>
-                </div>
-            </div>
+            <!-- Messages will appear here -->
         </div>
         
         <!-- Chat Input -->
