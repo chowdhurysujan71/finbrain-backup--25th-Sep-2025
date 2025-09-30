@@ -7,9 +7,10 @@ finbrain is an AI-first expense tracking application delivered via a web chat in
 ✅ **PRODUCTION-READY** with comprehensive safety measures implemented (September 2025):
 - **Database Protection**: Soft-delete functionality for User and Expense tables prevents accidental data loss
 - **Backup System**: Secure pg_dump backup script with environment variable authentication 
-- **Security Hardened**: A-grade security status, debug mode disabled, rate limiting active
+- **Security Hardened**: A-grade security status, debug mode disabled, rate limiting active, CSRF protection enabled
 - **Enterprise Safety**: 7-day database retention, migration system, comprehensive audit logging
 - **Tester Safety**: Ready for controlled tester access (5-10 users initially recommended)
+- **CSRF Protection**: Flask-WTF CSRF protection fully implemented and tested (September 30, 2025)
 
 ## Recent Development (September 30, 2025)
 🚧 **4-System Integrated Architecture** - Building demo-grade finbrain with:
@@ -44,7 +45,13 @@ finbrain utilizes a modular, AI-first web architecture with a comprehensive 100%
 
 The Precision Capture & Audit (PCA) system ensures audit transparency and high-confidence auto-application of expenses (≥85% confidence), including enhanced Bengali + English pattern detection and a complete confidence score history logged for audit. The Clarifier Flow optimizes user interaction with 100% decision accuracy.
 
-The application uses Flask with SQLAlchemy for database integration, with PostgreSQL as the primary database. Security measures include X-Hub-Signature-256 verification, HTTPS enforcement, automated monitoring, SHA-256 hashing of user identifiers, and comprehensive input sanitization with XSS prevention.
+The application uses Flask with SQLAlchemy for database integration, with PostgreSQL as the primary database. Security measures include:
+- **CSRF Protection**: Flask-WTF with session-based tokens, X-CSRFToken headers for AJAX/HTMX requests
+- **Token Management**: Secure /api/auth/csrf-token endpoint with Cache-Control: no-store headers
+- **Request Protection**: All POST/PUT/PATCH/DELETE endpoints protected, GET requests unaffected
+- **HTTPS Enforcement**: Mandatory HTTPS in production with secure session cookies
+- **Authentication**: SHA-256 hashing of user identifiers, comprehensive input sanitization with XSS prevention
+- **Legacy Security**: X-Hub-Signature-256 verification (deprecated, webhooks removed), automated monitoring
 
 Background message processing is handled by a thread pool. The AI system implements a resilient fallback chain for responses (primary AI → backup providers → stale cache → deterministic local responses) and uses circuit breaker patterns. Bengali digit normalization and advanced money detection are supported.
 
