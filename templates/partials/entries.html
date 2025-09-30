@@ -86,28 +86,37 @@ async function editEntry(entryId) {
     const newAmount = prompt('Enter new amount:', currentAmount);
     if (!newAmount) return;
     
-    // Category editing: only allowed from 'uncategorized' (or 'uncategorised')
+    // Validate amount
+    const parsedAmount = parseFloat(newAmount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        showToast('Please enter a valid amount', 'error');
+        return;
+    }
+    
+    // Category editing: now allowed for all expenses
+    // Include all categories from the template
+    const categoryChoice = prompt(
+        'Choose category:\n0 = Keep current (' + currentCategory + ')\n1 = Food\n2 = Transport\n3 = Shopping\n4 = Bills\n5 = Entertainment\n6 = Health\n7 = Education\n8 = Uncategorized',
+        '0'
+    );
+    
     let newCategory = currentCategory;
-    if (currentCategory === 'uncategorized' || currentCategory === 'uncategorised') {
-        const categoryChoice = prompt(
-            'Choose category:\n1 = Food\n2 = Transport\n3 = Shopping\n4 = Bills\n5 = Uncategorized',
-            '5'
-        );
-        
-        if (categoryChoice) {
-            const categoryMap = {
-                '1': 'food',
-                '2': 'transport',
-                '3': 'shopping',
-                '4': 'bills',
-                '5': 'uncategorized'
-            };
-            newCategory = categoryMap[categoryChoice] || 'uncategorized';
-        }
+    if (categoryChoice && categoryChoice !== '0') {
+        const categoryMap = {
+            '1': 'food',
+            '2': 'transport',
+            '3': 'shopping',
+            '4': 'bills',
+            '5': 'entertainment',
+            '6': 'health',
+            '7': 'education',
+            '8': 'uncategorized'
+        };
+        newCategory = categoryMap[categoryChoice] || currentCategory;
     }
     
     // Check if anything changed
-    if (parseFloat(newAmount) === parseFloat(currentAmount) && newCategory === currentCategory) {
+    if (parsedAmount === parseFloat(currentAmount) && newCategory === currentCategory) {
         showToast('No changes made', 'info');
         return;
     }
@@ -121,7 +130,7 @@ async function editEntry(entryId) {
             credentials: 'same-origin',
             body: JSON.stringify({
                 expense_id: entryId,
-                amount: parseFloat(newAmount),
+                amount: parsedAmount,
                 category: newCategory
             })
         });
