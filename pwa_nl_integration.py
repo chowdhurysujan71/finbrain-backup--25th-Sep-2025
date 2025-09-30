@@ -59,6 +59,10 @@ def handle_nl_expense_entry(text: str, user_id_hash: str) -> dict[str, Any]:
                         expense.needed_clarification = False
                         db.session.commit()
                 
+                # Trigger event hook for UI updates and banners
+                from utils.event_hooks import on_expense_committed
+                event_response = on_expense_committed(expense_id, user_id_hash)
+                
                 return {
                     "success": True,
                     "action": "saved",
@@ -69,7 +73,8 @@ def handle_nl_expense_entry(text: str, user_id_hash: str) -> dict[str, Any]:
                         "description": result.description,
                         "confidence": result.confidence
                     },
-                    "message": f"✅ Expense logged: ৳{result.amount} for {result.category}"
+                    "message": f"✅ Expense logged: ৳{result.amount} for {result.category}",
+                    "ui_updates": event_response  # Include UI updates from event hook
                 }
             else:
                 return {
@@ -160,8 +165,12 @@ def handle_clarification_response(
                 if expense:
                     expense.nl_confidence = 0.9  # High confidence after clarification
                     expense.nl_language = 'clarified'
-                    expense.needed_clarification = True
+                    expense.needed_clarification = False  # Fixed: clarified expenses no longer need clarification
                     db.session.commit()
+            
+            # Trigger event hook for UI updates and banners
+            from utils.event_hooks import on_expense_committed
+            event_response = on_expense_committed(expense_id, user_id_hash)
             
             return {
                 "success": True,
@@ -171,7 +180,8 @@ def handle_clarification_response(
                     "category": confirmed_category,
                     "description": confirmed_description
                 },
-                "message": f"✅ Expense confirmed: ৳{confirmed_amount} for {confirmed_category}"
+                "message": f"✅ Expense confirmed: ৳{confirmed_amount} for {confirmed_category}",
+                "ui_updates": event_response  # Include UI updates from event hook
             }
         else:
             return {

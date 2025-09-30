@@ -133,9 +133,15 @@ async function editEntry(entryId) {
     try {
         entryElement.style.opacity = '0.5';
         
+        // Get CSRF token
+        const csrfToken = await window.csrfManager.getToken();
+        
         const response = await fetch('/expense/quick-edit', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
             credentials: 'same-origin',
             body: JSON.stringify({
                 expense_id: entryId,

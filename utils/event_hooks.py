@@ -200,10 +200,23 @@ def _build_progress_ring(user_id_hash: str, expense_date: date) -> Dict[str, Any
 
 
 def _evaluate_banner(user_id_hash: str, expense: Expense) -> Optional[Dict[str, Any]]:
-    """Evaluate if a smart banner should be shown (placeholder for now)"""
-    # TODO: Wire to SmartBannerService in System 2 phase
-    # For now, return None - banners will be added later
-    return None
+    """Evaluate if a smart banner should be shown"""
+    try:
+        from utils.smart_banners import SmartBannerService
+        
+        # Initialize banner service and check for goal-aware banners
+        banner_service = SmartBannerService()
+        banners = banner_service.get_goal_aware_banners(user_id_hash, limit=1)
+        
+        # Return first banner if available
+        if banners and len(banners) > 0:
+            return banners[0]
+        
+        return None
+        
+    except Exception as e:
+        logger.error(f"Banner evaluation failed: {e}")
+        return None
 
 
 def _check_celebration(user_id_hash: str, expense: Expense) -> Optional[Dict[str, Any]]:

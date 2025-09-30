@@ -311,15 +311,14 @@ function applyUIUpdates(uiUpdates) {
   
   // Smart banner (if present)
   if (uiUpdates.banner) {
-    const bannerTarget = document.getElementById('smart-banner');
-    if (bannerTarget) {
-      // SECURITY: Server must sanitize banner HTML before sending
-      // TODO: Convert to structured data (title/body/cta) for safe client-side rendering
-      bannerTarget.innerHTML = uiUpdates.banner;
-      bannerTarget.classList.remove('hidden');
-      console.log('[UI-UPDATE] Banner displayed');
+    // Render structured banner data as toast notification
+    const bannerData = uiUpdates.banner;
+    if (bannerData.title && bannerData.message) {
+      const bannerMessage = `${bannerData.title}\n${bannerData.message}`;
+      showToast(bannerMessage, bannerData.style || 'info');
+      console.log('[UI-UPDATE] Banner displayed:', bannerData.banner_type);
     } else {
-      console.warn('[UI-UPDATE] Banner target #smart-banner not found');
+      console.warn('[UI-UPDATE] Banner data missing title or message');
     }
   }
   
