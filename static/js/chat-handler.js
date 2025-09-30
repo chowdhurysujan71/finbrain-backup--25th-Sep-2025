@@ -398,6 +398,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       
+      // Dispatch 'expense-added' event for HTMX partial refreshes (Gap #1)
+      // Only dispatch for successful expense additions, not queries
+      // Check both mode+ok and expense_id for robustness (backend contract validation)
+      if (data.mode === 'expense' && data.ok === true && data.expense_id) {
+        console.log('[EVENT-DISPATCH] Dispatching expense-added event for expense_id:', data.expense_id);
+        window.dispatchEvent(new Event('expense-added'));
+      }
+      
       input.value = '';
       console.log('[CHAT-DEBUG] Message processing completed');
     } catch (err) {
