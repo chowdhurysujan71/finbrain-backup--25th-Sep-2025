@@ -1145,6 +1145,50 @@ def quick_taps_partial():
         # Return empty on error - graceful degradation
         return '', 200
 
+@pwa_ui.route('/expense/<int:expense_id>')
+def expense_detail(expense_id):
+    """
+    View and edit expense details
+    AUTHENTICATION REQUIRED
+    """
+    from flask import make_response
+    from models import Expense
+    
+    user = require_auth_or_redirect()
+    
+    if isinstance(user, Response):
+        return user
+        
+    if not user:
+        from flask import redirect
+        return redirect(f"/login?returnTo=/expense/{expense_id}")
+    
+    # Get the expense
+    expense = Expense.query.get(expense_id)
+    
+    if not expense:
+        from flask import abort
+        abort(404)
+    
+    # Verify user owns this expense
+    if expense.user_id_hash != user.user_id_hash:
+        from flask import abort
+        abort(403)
+    
+    # Valid categories for dropdown
+    valid_categories = ['food', 'transport', 'bills', 'shopping', 'uncategorized']
+    
+    response = make_response(render_template(
+        'expense_detail.html', 
+        expense=expense,
+        valid_categories=valid_categories,
+        user_id=user.user_id_hash
+    ))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
 @pwa_ui.route('/expense/undo', methods=['POST'])
 def expense_undo():
     """
