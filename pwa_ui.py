@@ -1141,6 +1141,103 @@ def quick_taps_partial():
         # Return empty on error - graceful degradation
         return '', 200
 
+@pwa_ui.route('/expense/undo', methods=['POST'])
+def expense_undo():
+    """
+    Undo (soft-delete) an expense via canonical write path
+    Returns HTMX-compatible HTML with toast + out-of-band UI updates
+    """
+    from flask import session
+    from db_base import db
+    from models import Expense
+    from utils.event_hooks import on_expense_committed
+    from utils.identity import ensure_hashed
+    from utils.expense_editor import ExpenseEditor
+    
+    try:
+        # SECURITY: Session check
+        if 'user_id' not in session:
+            return '<div class="alert alert-danger">Please log in</div>', 401
+        
+        # Get expense_id from request (support both JSON and form data)
+        expense_id = None
+        if request.is_json:
+            data = request.get_json() or {}
+            expense_id = data.get('expense_id')
+        else:
+            expense_id = request.form.get('expense_id')
+        
+        if not expense_id:
+            return '<div class="alert alert-danger">Expense ID required</div>', 400
+        
+        # Get user hash
+        user_id_hash = ensure_hashed(session['user_id'])
+        
+        # Get expense for amount display
+        expense = Expense.query.get(expense_id)
+        if not expense:
+            return '<div class="alert alert-danger">Expense not found</div>', 404
+        
+        # Verify ownership
+        if expense.user_id_hash != user_id_hash:
+            return '<div class="alert alert-danger">Unauthorized</div>', 403
+        
+        # Idempotency: Check if already deleted
+        if expense.is_deleted:
+            logger.debug(f"Expense {expense_id} already deleted - idempotent")
+            return '<div class="toast-notification">Already undone</div>', 200
+        
+        # Soft delete via canonical write path (creates audit trail)
+        expense.soft_delete()
+        db.session.commit()
+        
+        logger.info(f"Expense {expense_id} undone by user {user_id_hash[:8]}...")
+        
+        # Trigger on_expense_committed to get UI refresh HTML
+        ui_updates = on_expense_committed(expense_id, user_id_hash)
+        
+        # Format amount using app currency symbol
+        from utils.config import CURRENCY_SYMBOL
+        amount_display = f"{CURRENCY_SYMBOL}{expense.amount:.2f}"
+        
+        # Build HTMX-compatible response with toast + out-of-band swaps
+        html_parts = [
+            # Main toast (primary swap target)
+            f'''<div class="toast-notification" role="alert" style="
+                position: fixed; bottom: 2rem; right: 2rem; 
+                background: #28a745; color: white; 
+                padding: 1rem 1.5rem; border-radius: 0.5rem; 
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                z-index: 9999; animation: slideIn 0.3s ease-out;">
+                <strong>✓ Expense undone</strong>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">{amount_display} removed</p>
+            </div>
+            <style>
+                @keyframes slideIn {{ from {{ transform: translateY(100%); opacity: 0; }} to {{ transform: translateY(0); opacity: 1; }} }}
+            </style>''',
+        ]
+        
+        # Add out-of-band swaps for UI updates if available
+        if ui_updates and isinstance(ui_updates, dict):
+            # Chart update
+            if ui_updates.get('chart_update'):
+                html_parts.append(f'<div id="expense-chart" hx-swap-oob="true">{ui_updates["chart_update"]}</div>')
+            
+            # Progress ring update
+            if ui_updates.get('progress_ring'):
+                html_parts.append(f'<div id="progress-ring" hx-swap-oob="true">{ui_updates["progress_ring"]}</div>')
+            
+            # Banner update
+            if ui_updates.get('banner'):
+                html_parts.append(f'<div id="smart-banner" hx-swap-oob="true">{ui_updates["banner"]}</div>')
+        
+        return '\n'.join(html_parts), 200
+        
+    except Exception as e:
+        logger.error(f"Error undoing expense: {e}")
+        db.session.rollback()
+        return '<div class="alert alert-danger">Failed to undo expense</div>', 500
+
 @pwa_ui.route('/ai-chat-test', methods=['POST'])
 def ai_chat_test():
     """Simple test endpoint to verify frontend is working"""
