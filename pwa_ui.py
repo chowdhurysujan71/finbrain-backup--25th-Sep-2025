@@ -1098,13 +1098,23 @@ def entries_partial():
         expenses_data = get_recent_expenses(user_id_hash, limit=10)
         
         # Convert backend response to template format
+        from datetime import datetime
         entries = []
         for expense in expenses_data:
+            # Parse created_at ISO string to datetime object for template filters
+            created_at_obj = None
+            if expense.get('created_at'):
+                try:
+                    created_at_obj = datetime.fromisoformat(expense.get('created_at').replace('Z', '+00:00'))
+                except Exception as e:
+                    logger.warning(f"Failed to parse created_at: {e}")
+            
             entries.append({
                 'id': expense.get('id', 0),
                 'amount': float(expense.get('amount_minor', 0)) / 100,  # Convert to major units
                 'category': str(expense.get('category', 'uncategorized') or 'uncategorized').title(),
                 'description': expense.get('description', '') or f"{str(expense.get('category', 'uncategorized') or 'uncategorized').title()} expense",
+                'created_at': created_at_obj,  # Pass datetime object for template filters
                 'date': str(expense.get('created_at', ''))[:10] if expense.get('created_at') and isinstance(expense.get('created_at'), str) else '',  # Extract date part
                 'time': str(expense.get('created_at', ''))[11:16] if expense.get('created_at') and isinstance(expense.get('created_at'), str) and len(str(expense.get('created_at', ''))) > 11 else '00:00'  # Extract time part
             })
