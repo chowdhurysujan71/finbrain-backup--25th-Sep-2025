@@ -30,6 +30,9 @@ logger = logging.getLogger(__name__)
 
 pwa_ui = Blueprint('pwa_ui', __name__)
 
+# Import CSRF for exempting specific routes
+from app import csrf
+
 def require_auth():
     """Helper function to ensure user is authenticated via session with DB retry logic"""
     from flask import abort, session
@@ -587,11 +590,13 @@ def forgot_password():
     return render_template('forgot_password.html')
 
 @pwa_ui.route('/auth/forgot-password', methods=['POST'])
+@csrf.exempt
 @limiter.limit("5 per hour")
 def forgot_password_submit():
     """
     Generate password reset token and log it (email not configured yet)
     Rate limited to 5 requests per hour
+    CSRF exempt: Anonymous users don't have sessions yet
     """
     from flask import jsonify
     from models import PasswordReset, User
@@ -665,11 +670,13 @@ def reset_password(token):
     return render_template('reset_password.html', token=token)
 
 @pwa_ui.route('/auth/reset-password', methods=['POST'])
+@csrf.exempt
 @limiter.limit("5 per hour")
 def reset_password_submit():
     """
     Reset password using token and mark token as used
     Rate limited to 5 requests per hour
+    CSRF exempt: Anonymous users don't have sessions yet
     """
     from flask import jsonify
     from werkzeug.security import generate_password_hash

@@ -162,6 +162,7 @@ app.config['WTF_CSRF_ENABLED'] = True
 csrf = CSRFProtect(app)
 
 # All routes now protected by CSRF (including /api/nudges, /api/goals, /api/banners)
+# Password reset routes are exempted in pwa_ui.py using @csrf.exempt decorator
 # Frontend already sends X-CSRFToken headers for all POST/PUT/DELETE requests
 
 logger.info(f"✓ CSRF protection enabled (production={is_production})")
