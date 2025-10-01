@@ -288,26 +288,25 @@ body {
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1 me-2">
                         <div style="font-weight: 500; color: var(--text); margin-bottom: 4px;">Delete Account</div>
-                        <div class="small" style="color: var(--muted);">Permanently remove your account</div>
+                        <div class="small" style="color: var(--muted);">Request permanent account removal</div>
                     </div>
-                    <button onclick="requestAccountDeletion()" class="btn btn-sm" style="background-color: var(--surface-2); color: var(--bad); border: 1px solid var(--bad); border-radius: 8px; padding: 8px 16px; font-weight: 500;">
-                        <i class="fas fa-trash me-1"></i> Delete
+                    <button onclick="showDeletionModal()" class="btn btn-sm" style="background-color: var(--surface-2); color: var(--bad); border: 1px solid var(--bad); border-radius: 8px; padding: 8px 16px; font-weight: 500;">
+                        <i class="fas fa-trash me-1"></i> Request
                     </button>
                 </div>
                 
-                <!-- Deletion Request Banner -->
+                <!-- Deletion Request Submitted Banner -->
                 {% if deletion_request %}
-                <div class="mt-3 p-3" style="background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 8px;">
-                    <div class="d-flex align-items-start mb-2">
-                        <span style="font-size: 1.25rem; margin-right: 8px;">⚠️</span>
+                <div class="mt-3 p-3" style="background-color: #FFF3CD; border: 1px solid #FFC107; border-radius: 8px;">
+                    <div class="d-flex align-items-start">
+                        <span style="font-size: 1.25rem; margin-right: 8px;">⏰</span>
                         <div>
-                            <div style="font-weight: 600; color: #991b1b; margin-bottom: 4px;">Account Deletion Pending</div>
-                            <div class="small" style="color: #991b1b;">Your account will be deleted in 7 days. You can cancel this request below.</div>
+                            <div style="font-weight: 600; color: #856404; margin-bottom: 4px;">Deletion Request Submitted</div>
+                            <div class="small" style="color: #856404;">
+                                Your request has been received. We will process it within 7 days and contact you via email to confirm completion.
+                            </div>
                         </div>
                     </div>
-                    <button onclick="cancelDeletion()" class="btn btn-sm w-100" style="background-color: white; color: var(--text); border: 1px solid #d1d5db; border-radius: 8px; padding: 8px; font-weight: 500;">
-                        Cancel Deletion
-                    </button>
                 </div>
                 {% endif %}
             </div>
@@ -341,6 +340,62 @@ body {
         </section>
     </div>
 </main>
+
+<!-- Account Deletion Request Modal -->
+<div class="modal fade" id="deletionModal" tabindex="-1" aria-labelledby="deletionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: var(--radius); border: none; box-shadow: var(--shadow-raise);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--surface-2); padding: 20px 24px;">
+                <h5 class="modal-title" id="deletionModalLabel" style="color: var(--text); font-weight: 600;">Request Account Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="deletionForm" onsubmit="submitDeletionRequest(event)">
+                <div class="modal-body" style="padding: 24px;">
+                    <p style="color: var(--text); margin-bottom: 20px;">
+                        We're sorry to see you go. Please help us improve by letting us know why you want to delete your account.
+                    </p>
+                    
+                    <!-- Reason Dropdown -->
+                    <div class="mb-3">
+                        <label for="deletionReason" class="form-label" style="font-weight: 500; color: var(--text);">Why are you leaving? *</label>
+                        <select class="form-select" id="deletionReason" name="reason" required style="border-radius: 8px; border: 1px solid #d1d5db; padding: 10px 12px;">
+                            <option value="">Select a reason...</option>
+                            <option value="too_expensive">Too expensive</option>
+                            <option value="not_useful">Not useful for my needs</option>
+                            <option value="privacy">Privacy concerns</option>
+                            <option value="alternative">Found an alternative</option>
+                            <option value="other">Other reason</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Details Textarea -->
+                    <div class="mb-3">
+                        <label for="deletionDetails" class="form-label" style="font-weight: 500; color: var(--text);">Please provide more details * (min 10 characters)</label>
+                        <textarea class="form-control" id="deletionDetails" name="details" rows="4" required minlength="10" maxlength="1000" placeholder="Tell us more about your decision..." style="border-radius: 8px; border: 1px solid #d1d5db; padding: 10px 12px; resize: vertical;"></textarea>
+                        <div class="form-text" style="color: var(--muted); font-size: 12px;">
+                            <span id="charCount">0</span>/1000 characters
+                        </div>
+                    </div>
+                    
+                    <!-- Warning -->
+                    <div style="background-color: #FEF2F2; border: 1px solid #FEE2E2; padding: 16px; border-radius: 8px;">
+                        <p style="margin: 0; font-size: 14px; color: #991B1B; line-height: 1.5;">
+                            <strong>⚠️ Important:</strong> Your request will be processed within 7 days. This action is permanent and cannot be undone. All your data will be deleted.
+                        </p>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid var(--surface-2); padding: 16px 24px;">
+                    <button type="button" class="btn btn-sm" data-bs-dismiss="modal" style="background-color: var(--surface-2); color: var(--text); border: none; border-radius: 8px; padding: 10px 20px; font-weight: 500;">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-sm" id="submitDeletionBtn" style="background-color: var(--bad); color: white; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 500;">
+                        Submit Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -668,71 +723,76 @@ async function exportData() {
     }
 }
 
-// Account deletion request handler
-async function requestAccountDeletion() {
-    const confirmed = confirm(
-        'Are you sure you want to delete your account?\n\n' +
-        'This will permanently delete:\n' +
-        '• All your expenses\n' +
-        '• All your financial data\n' +
-        '• Your account information\n\n' +
-        'You will have 7 days to cancel this request before deletion is final.'
-    );
+// Show deletion modal
+function showDeletionModal() {
+    const modal = new bootstrap.Modal(document.getElementById('deletionModal'));
+    modal.show();
     
-    if (!confirmed) return;
+    // Reset form
+    document.getElementById('deletionForm').reset();
+    document.getElementById('charCount').textContent = '0';
+}
+
+// Character counter for textarea
+document.addEventListener('DOMContentLoaded', () => {
+    const textarea = document.getElementById('deletionDetails');
+    if (textarea) {
+        textarea.addEventListener('input', (e) => {
+            document.getElementById('charCount').textContent = e.target.value.length;
+        });
+    }
+});
+
+// Submit deletion request form
+async function submitDeletionRequest(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const submitBtn = document.getElementById('submitDeletionBtn');
+    const originalBtnText = submitBtn.innerHTML;
+    
+    // Disable button during submission
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
     
     try {
         // Get CSRF token
         const csrfToken = await window.csrfManager.getToken();
+        
+        // Get form data
+        const formData = new FormData(form);
         
         const response = await fetch('/profile/request-deletion', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
             },
+            body: formData,
             credentials: 'include'
         });
         
         const data = await response.json();
         
         if (data.success) {
-            // Reload page to show deletion banner
-            window.location.reload();
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deletionModal'));
+            modal.hide();
+            
+            // Reload page to show submission banner
+            setTimeout(() => {
+                window.location.reload();
+            }, 300);
         } else {
-            alert(data.error || 'Failed to request account deletion. Please try again.');
+            // Re-enable button on error
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+            alert(data.error || 'Failed to submit deletion request. Please try again.');
         }
     } catch (error) {
         console.error('Deletion request error:', error);
-        alert('Connection error. Please try again.');
-    }
-}
-
-// Cancel deletion request handler
-async function cancelDeletion() {
-    try {
-        // Get CSRF token
-        const csrfToken = await window.csrfManager.getToken();
-        
-        const response = await fetch('/profile/cancel-deletion', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            },
-            credentials: 'include'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            // Reload page to hide deletion banner
-            window.location.reload();
-        } else {
-            alert(data.error || 'Failed to cancel deletion request. Please try again.');
-        }
-    } catch (error) {
-        console.error('Cancel deletion error:', error);
+        // Re-enable button on error
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
         alert('Connection error. Please try again.');
     }
 }

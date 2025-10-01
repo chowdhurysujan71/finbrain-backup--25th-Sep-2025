@@ -671,61 +671,81 @@ class PasswordReset(db.Model):
 
 
 class DeletionRequest(db.Model):
-    """Account deletion requests with 7-day hold period"""
+    """Account deletion requests - manual admin processing with 7-day minimum turnaround"""
     __tablename__ = 'deletion_requests'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id_hash = db.Column(db.String(255), nullable=False, unique=True, index=True)  # One active request per user
-    scheduled_delete_at = db.Column(db.DateTime(timezone=True), nullable=False, index=True)
+    user_id_hash = db.Column(db.String(255), nullable=False, index=True)
+    user_email = db.Column(db.String(120), nullable=True)
+    user_name = db.Column(db.String(100), nullable=True)
+    
+    # Request details
+    reason = db.Column(db.String(50), nullable=False)  # too_expensive|not_useful|privacy|alternative|other
+    details = db.Column(db.Text, nullable=False)  # User's explanation (10-1000 chars)
+    
+    # Status tracking
+    status = db.Column(db.String(20), nullable=False, default='submitted', index=True)  # submitted|processed|rejected
+    active_request = db.Column(db.Boolean, default=True, nullable=False)  # One active request per user
+    
+    # Timestamps
+    submitted_at = db.Column(db.DateTime(timezone=True), nullable=False, default=datetime.now(UTC))
+    processed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    processed_by = db.Column(db.String(120), nullable=True)  # Admin email who processed it
+    
+    # Email tracking
+    email_message_id = db.Column(db.String(255), nullable=True)  # Resend message ID
+    
+    # Legacy fields (deprecated, kept for migration compatibility)
+    scheduled_delete_at = db.Column(db.DateTime(timezone=True), nullable=True)
     canceled_at = db.Column(db.DateTime(timezone=True), nullable=True)
-    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=datetime.now(UTC))
     ip_address = db.Column(db.String(45), nullable=True)
     user_agent = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=True)
     
     @classmethod
     def get_active_request(cls, user_id_hash: str):
-        """Get active deletion request for user (not canceled)"""
+        """Get active deletion request for user"""
         return cls.query.filter(
             cls.user_id_hash == user_id_hash,
-            cls.canceled_at.is_(None)
+            cls.active_request == True,
+            cls.status == 'submitted'
         ).first()
     
     @classmethod
-    def create_request(cls, user_id_hash: str, hold_days: int = 7, 
-                      ip_address: str | None = None, user_agent: str | None = None):
-        """Create account deletion request with hold period"""
-        from datetime import timedelta
-        
-        # Cancel any existing active request first
+    def create_request(cls, user_id_hash: str, user_email: str, user_name: str,
+                      reason: str, details: str, email_message_id: str | None = None):
+        """Create account deletion request - manual admin processing"""
+        # Check for existing active request (idempotency)
         existing = cls.get_active_request(user_id_hash)
         if existing:
-            existing.canceled_at = datetime.now(UTC)
-            db.session.flush()
-        
-        scheduled_delete_at = datetime.now(UTC) + timedelta(days=hold_days)
+            return existing  # Return existing request, don't create duplicate
         
         request = cls(
             user_id_hash=user_id_hash,
-            scheduled_delete_at=scheduled_delete_at,
-            ip_address=ip_address,
-            user_agent=user_agent
+            user_email=user_email,
+            user_name=user_name,
+            reason=reason,
+            details=details,
+            status='submitted',
+            active_request=True,
+            submitted_at=datetime.now(UTC),
+            email_message_id=email_message_id
         )
         db.session.add(request)
         db.session.commit()
         return request
     
-    def cancel(self):
-        """Cancel this deletion request"""
-        self.canceled_at = datetime.now(UTC)
-        db.session.commit()
-    
-    def days_remaining(self) -> int:
-        """Calculate days remaining until deletion"""
-        if self.canceled_at:
-            return 0
+    @classmethod
+    def cancel_request(cls, user_id_hash: str) -> bool:
+        """Cancel active deletion request (legacy method, no longer used)"""
+        request = cls.get_active_request(user_id_hash)
+        if not request:
+            return False
         
-        delta = self.scheduled_delete_at - datetime.now(UTC)
-        return max(0, delta.days)
+        request.active_request = False
+        request.canceled_at = datetime.now(UTC)
+        db.session.commit()
+        return True
     
     def __repr__(self):
-        return f'<DeletionRequest {self.id} for {self.user_id_hash[:8]}... on {self.scheduled_delete_at}>'
+        return f'<DeletionRequest {self.id} for {self.user_id_hash[:8]}... status={self.status}>'

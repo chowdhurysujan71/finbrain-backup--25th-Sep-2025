@@ -338,74 +338,85 @@ def export_expenses_csv():
         return jsonify({"error": "Failed to export expenses"}), 500
 
 @pwa_ui.route('/profile/request-deletion', methods=['POST'])
-@limiter.limit("3 per hour")
+@limiter.limit("1 per day")
 def request_account_deletion():
     """
-    Request account deletion with 7-day hold period
-    Rate limited to 3 requests per hour
+    Request account deletion - manual admin processing
+    Sends email to hello@finbrain.app with user's request
+    Rate limited to 1 request per day per user
     """
     from models import DeletionRequest
     from db_base import db
+    import re
+    import html
     
     user = require_auth()
     if not user:
         return jsonify({"error": "Authentication required"}), 401
     
     try:
-        # Check if there's already an active deletion request
+        # Parse form data
+        reason = request.form.get('reason', '').strip()
+        details = request.form.get('details', '').strip()
+        
+        # Validate reason (dropdown values)
+        valid_reasons = ['too_expensive', 'not_useful', 'privacy', 'alternative', 'other']
+        if reason not in valid_reasons:
+            return jsonify({"error": "Invalid reason selected"}), 400
+        
+        # Validate details (mandatory, 10-1000 chars)
+        if not details or len(details) < 10:
+            return jsonify({"error": "Please provide at least 10 characters explaining why you want to delete your account"}), 400
+        if len(details) > 1000:
+            return jsonify({"error": "Explanation too long (max 1000 characters)"}), 400
+        
+        # Strip HTML tags from details to prevent injection
+        details_clean = re.sub(r'<[^>]+>', '', details)
+        details_clean = html.escape(details_clean)
+        
+        # Check if there's already an active deletion request (idempotency)
         existing = DeletionRequest.get_active_request(user.user_id_hash)
         if existing:
-            return jsonify({"error": "Deletion request already pending"}), 400
+            return jsonify({
+                "success": True,
+                "message": "Your deletion request has already been submitted. Please allow 7 days for processing."
+            }), 200
         
-        # Create deletion request with 7-day hold
-        DeletionRequest.create_request(user.user_id_hash)
+        # Send email to admin
+        email_message_id = None
+        try:
+            from utils.email_service import send_deletion_request_email
+            email_message_id = send_deletion_request_email(
+                user_email=user.email,
+                user_name=user.name or 'Unknown',
+                user_id_hash=user.user_id_hash,
+                reason=reason,
+                details=details_clean
+            )
+        except Exception as email_error:
+            logger.error(f"Failed to send deletion request email: {email_error}")
+            # Continue anyway - request is still recorded
         
-        logger.info(f"Account deletion requested for user {user.email}")
+        # Create deletion request in database
+        request_obj = DeletionRequest.create_request(
+            user_id_hash=user.user_id_hash,
+            user_email=user.email,
+            user_name=user.name or 'Unknown',
+            reason=reason,
+            details=details_clean,
+            email_message_id=email_message_id
+        )
+        
+        logger.info(f"Account deletion requested: user={user.email}, request_id={request_obj.id}, reason={reason}")
         
         return jsonify({
             "success": True,
-            "message": "Account deletion requested. You have 7 days to cancel before permanent deletion."
+            "message": "Your deletion request has been submitted. We will process it within 7 days and contact you via email."
         }), 200
         
     except Exception as e:
-        logger.error(f"Deletion request error: {e}")
-        return jsonify({"error": "Failed to request account deletion"}), 500
-
-@pwa_ui.route('/profile/cancel-deletion', methods=['POST'])
-@limiter.limit("5 per hour")
-def cancel_account_deletion():
-    """
-    Cancel pending account deletion request
-    Rate limited to 5 requests per hour
-    """
-    from models import DeletionRequest
-    from db_base import db
-    
-    user = require_auth()
-    if not user:
-        return jsonify({"error": "Authentication required"}), 401
-    
-    try:
-        # Get active deletion request
-        deletion_request = DeletionRequest.get_active_request(user.user_id_hash)
-        if not deletion_request:
-            return jsonify({"error": "No active deletion request found"}), 404
-        
-        # Cancel the request
-        success = DeletionRequest.cancel_request(user.user_id_hash)
-        
-        if success:
-            logger.info(f"Account deletion cancelled for user {user.email}")
-            return jsonify({
-                "success": True,
-                "message": "Account deletion request cancelled successfully"
-            }), 200
-        else:
-            return jsonify({"error": "Failed to cancel deletion request"}), 500
-        
-    except Exception as e:
-        logger.error(f"Cancel deletion error: {e}")
-        return jsonify({"error": "Failed to cancel deletion request"}), 500
+        logger.error(f"Deletion request error: {e}", exc_info=True)
+        return jsonify({"error": "Failed to submit deletion request. Please try again later."}), 500
 
 @pwa_ui.route('/profile')
 def profile():
