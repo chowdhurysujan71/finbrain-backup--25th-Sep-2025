@@ -310,13 +310,26 @@ def export_expenses_csv():
             'Expense ID'
         ])
         
-        # Write data rows
+        # Write data rows with CSV formula injection protection
+        def sanitize_csv_cell(value):
+            """Prevent CSV formula injection by escaping dangerous characters"""
+            if not value:
+                return ''
+            value_str = str(value)
+            # Check first non-whitespace character for formula injection risk
+            stripped = value_str.lstrip(" \t\r\n")
+            if stripped and stripped[0] in ('=', '+', '-', '@'):
+                # Only add prefix if not already present
+                if not value_str.startswith("'"):
+                    return "'" + value_str
+            return value_str
+        
         for expense in expenses:
             writer.writerow([
                 expense.date.strftime('%Y-%m-%d') if expense.date else '',
                 f"{expense.amount:.2f}",
-                expense.category or '',
-                expense.description or '',
+                sanitize_csv_cell(expense.category or ''),
+                sanitize_csv_cell(expense.description or ''),
                 expense.created_at.strftime('%Y-%m-%d %H:%M:%S') if expense.created_at else '',
                 str(expense.id)
             ])
@@ -397,17 +410,28 @@ def request_account_deletion():
             logger.error(f"Failed to send deletion request email: {email_error}")
             # Continue anyway - request is still recorded
         
-        # Create deletion request in database
-        request_obj = DeletionRequest.create_request(
-            user_id_hash=user.user_id_hash,
-            user_email=user.email,
-            user_name=user.name or 'Unknown',
-            reason=reason,
-            details=details_clean,
-            email_message_id=email_message_id
-        )
-        
-        logger.info(f"Account deletion requested: user={user.email}, request_id={request_obj.id}, reason={reason}")
+        # Create deletion request in database (with duplicate prevention)
+        try:
+            request_obj = DeletionRequest.create_request(
+                user_id_hash=user.user_id_hash,
+                user_email=user.email,
+                user_name=user.name or 'Unknown',
+                reason=reason,
+                details=details_clean,
+                email_message_id=email_message_id
+            )
+            
+            logger.info(f"Account deletion requested: user={user.email}, request_id={request_obj.id}, reason={reason}")
+        except Exception as db_error:
+            # Handle race condition from partial unique index
+            from sqlalchemy.exc import IntegrityError
+            if isinstance(db_error, IntegrityError) and 'ux_deletion_requests_user_active' in str(db_error):
+                logger.warning(f"Duplicate deletion request attempt blocked for user {user.email}")
+                return jsonify({
+                    "success": True,
+                    "message": "Your deletion request has already been submitted. Please allow 7 days for processing."
+                }), 200
+            raise
         
         return jsonify({
             "success": True,

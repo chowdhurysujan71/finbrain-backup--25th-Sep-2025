@@ -13,6 +13,22 @@ finbrain is an AI-first expense tracking application delivered via a web chat in
 - **CSRF Protection**: Flask-WTF CSRF protection fully implemented and tested (September 30, 2025)
 
 ## Recent Development (October 1, 2025)
+✅ **Trust Hub: CSV Export & Manual Account Deletion** - Production-ready with security hardening:
+- ✅ **CSV Export**: Users can download all expense data with CSV formula injection protection
+  - Rate limited: 3 exports per hour
+  - Sanitizes cells starting with =, +, -, @, tab, carriage return to prevent formula execution
+  - CSRF protected, session-based authentication
+- ✅ **Account Deletion Request**: Form-based manual admin processing workflow
+  - Modal form with mandatory reason dropdown + 10-1000 character explanation
+  - Rate limited: 1 request per day per user
+  - Email notification to hello@finbrain.app with full request details (user_email, name, user_id_hash, reason, sanitized details)
+  - Database unique constraint prevents duplicate active requests (partial index on user_id_hash WHERE active_request=TRUE)
+  - HTML sanitization (regex strip + html.escape) prevents XSS
+  - Manual admin processing only - no automated deletion, no user cancel (7-day minimum turnaround)
+- ✅ **Bootstrap JS Integration**: Added Bootstrap 5 bundle to base.html for modal functionality
+- ✅ **Database Schema**: DeletionRequest table updated with new columns (user_email, user_name, reason, details, status, active_request, submitted_at, processed_at, processed_by, email_message_id)
+
+**Previous (October 1, 2025)**:
 ✅ **Google-Grade Color Palette & UI Fixes** - Production-ready with WCAG compliance:
 - ✅ Implemented Google-grade color palette: Blue (#1976D2) for trust, Green (#2E7D32) for growth, Magenta (#C2185B) for celebrations
 - ✅ Fixed progress ring text visibility: All text now pure white (#FFFFFF) on green background for WCAG 4.5:1 contrast
