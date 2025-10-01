@@ -712,7 +712,7 @@ def reset_password_submit():
     try:
         data = request.get_json(silent=True) or {}
         token = data.get('token', '').strip()
-        new_password = data.get('password', '')
+        new_password = data.get('new_password', '')  # Match form field name
         
         if not token or not new_password:
             return jsonify({"error": "Token and password are required"}), 400
