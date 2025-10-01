@@ -298,8 +298,8 @@ async function loadCategoriesData() {
     try {
         console.log('[Report] Loading categories data...');
         
-        // Get recent expenses to calculate category totals
-        const expensesData = await apiCall('/api/backend/get_recent_expenses', { limit: 100 });
+        // Get recent expenses to calculate category totals (increased limit for heavy users)
+        const expensesData = await apiCall('/api/backend/get_recent_expenses', { limit: 500 });
         
         if (!expensesData || !Array.isArray(expensesData)) {
             throw new Error('Invalid expenses data received');
@@ -307,11 +307,23 @@ async function loadCategoriesData() {
 
         reportData.expenses = expensesData;
 
-        // Calculate category totals from recent expenses
+        // Filter expenses to current month only (using expense date, not created_at)
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        
+        const thisMonthExpenses = expensesData.filter(expense => {
+            // Use date field if available, fall back to created_at
+            const dateString = expense.date || expense.created_at;
+            const expenseDate = new Date(dateString);
+            return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
+        });
+
+        // Calculate category totals from this month's expenses
         const categoryTotals = {};
         let totalSpent = 0;
 
-        expensesData.forEach(expense => {
+        thisMonthExpenses.forEach(expense => {
             const category = expense.category || 'other';
             const amount = expense.amount_minor || expense.amount * 100 || 0;
             

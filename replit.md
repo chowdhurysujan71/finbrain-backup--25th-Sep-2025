@@ -13,6 +13,14 @@ finbrain is an AI-first expense tracking application delivered via a web chat in
 - **CSRF Protection**: Flask-WTF CSRF protection fully implemented and tested (September 30, 2025)
 
 ## Recent Development (October 1, 2025)
+✅ **Google-Grade Color Palette & UI Fixes** - Production-ready with WCAG compliance:
+- ✅ Implemented Google-grade color palette: Blue (#1976D2) for trust, Green (#2E7D32) for growth, Magenta (#C2185B) for celebrations
+- ✅ Fixed progress ring text visibility: All text now pure white (#FFFFFF) on green background for WCAG 4.5:1 contrast
+- ✅ Fixed report page month filter: "Top Categories This Month" now correctly filters by expense.date field, not created_at
+- ✅ Increased expense limit to 500 for heavy users to prevent undercounting
+- ✅ All interactive elements meet WCAG AA accessibility standards
+
+**Previous (October 1, 2025)**:
 ✅ **Critical Fix: Goal Saving & CSRF Protection** - Production-ready with zero regressions:
 - ✅ Fixed goal saving functionality by exempting /api blueprint from CSRF (session auth protected)
 - ✅ Created unique index `ux_goals_user_type_active` to prevent duplicate active goals
