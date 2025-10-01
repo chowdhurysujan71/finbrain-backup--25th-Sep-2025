@@ -1,18 +1,37 @@
 /* finbrain PWA - HIG-Inspired Design System */
 
-/* ===== CSS CUSTOM PROPERTIES (Brand Tokens) ===== */
+/* ===== CSS CUSTOM PROPERTIES (Material Design 3 Inspired) ===== */
 :root {
-    /* Colors */
-    --color-primary: hsl(210, 100%, 50%);          /* Primary Blue */
-    --color-primary-50: hsl(210, 100%, 95%);       /* Finance Blue Light */
-    --color-success: hsl(142, 76%, 36%);
-    --color-warning: hsl(45, 100%, 51%);
-    --color-error: hsl(0, 84%, 60%);
-    --color-bg: hsl(0, 0%, 100%);
-    --color-fg: hsl(220, 13%, 18%);
-    --color-muted: hsl(220, 9%, 46%);
-    --color-border: hsl(220, 13%, 91%);
-    --color-surface: hsl(0, 0%, 98%);
+    /* Primary Colors - Deep Purple (Financial Trust) */
+    --color-primary: #6750A4;                      /* Material Purple 500 */
+    --color-primary-hover: #7965B3;
+    --color-primary-light: #E8DEF8;                /* Purple 50 */
+    --color-primary-container: #EADDFF;
+    
+    /* Secondary Colors - Teal (Growth & Balance) */
+    --color-secondary: #00897B;                    /* Material Teal 600 */
+    --color-secondary-light: #B2DFDB;
+    --color-secondary-container: #D0F2EF;
+    
+    /* Tertiary Colors - Amber (Attention) */
+    --color-tertiary: #F59E0B;                     /* Warm amber for highlights */
+    --color-tertiary-light: #FEF3C7;
+    
+    /* Semantic Colors */
+    --color-success: #00897B;                      /* Aligned with secondary */
+    --color-success-light: #D0F2EF;
+    --color-warning: #F59E0B;
+    --color-warning-light: #FEF3C7;
+    --color-error: #DC2626;
+    --color-error-light: #FEE2E2;
+    
+    /* Neutral Colors - Sophisticated Grays */
+    --color-bg: #FEFBFF;                           /* Slightly warm white */
+    --color-fg: #1C1B1F;                           /* Rich black */
+    --color-muted: #49454F;                        /* Medium gray */
+    --color-border: #E7E0EC;                       /* Light purple-gray */
+    --color-surface: #F7F2FA;                      /* Subtle purple tint */
+    --color-surface-variant: #E7E0EC;
     
     /* Typography */
     --font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
@@ -205,7 +224,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: hsl(210, 100%, 45%);
+    background: var(--color-primary-hover);
     transform: translateY(-1px);
 }
 
@@ -216,12 +235,18 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-neutral:hover:not(:disabled) {
-    background: hsl(220, 13%, 95%);
+    background: var(--color-primary-light);
 }
 
 .btn-success {
     background: var(--color-success);
     color: white;
+    font-weight: 600;
+}
+
+.btn-success:hover:not(:disabled) {
+    background: #00695C;
+    transform: translateY(-1px);
 }
 
 .btn-sm {
@@ -264,7 +289,7 @@ h1, h2, h3, h4, h5, h6 {
 .form-select:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px hsl(210, 100%, 50%, 0.1);
+    box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.12);
 }
 
 .input-group {
@@ -356,7 +381,7 @@ h1, h2, h3, h4, h5, h6 {
 .nav-item:hover,
 .nav-item.active {
     color: var(--color-primary);
-    background: var(--color-primary-50);
+    background: var(--color-primary-light);
 }
 
 .nav-icon {
@@ -387,15 +412,27 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .alert-success {
-    background-color: #f0f9f4;
-    color: #166534;
-    border-left: 4px solid #22c55e;
+    background-color: var(--color-success-light);
+    color: #00695C;
+    border-left: 4px solid var(--color-success);
 }
 
 .alert-error {
-    background-color: #fef2f2;
-    color: #991b1b;
-    border-left: 4px solid #ef4444;
+    background-color: var(--color-error-light);
+    color: #B91C1C;
+    border-left: 4px solid var(--color-error);
+}
+
+.alert-warning {
+    background-color: var(--color-warning-light);
+    color: #92400E;
+    border-left: 4px solid var(--color-warning);
+}
+
+.alert-info {
+    background-color: var(--color-primary-light);
+    color: #4A148C;
+    border-left: 4px solid var(--color-primary);
 }
 
 .alert-icon {
@@ -851,7 +888,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .insight-tip {
-    background: var(--color-primary-50);
+    background: var(--color-primary-light);
     border-left-color: var(--color-primary);
 }
 
@@ -910,7 +947,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .action-card:hover {
-    background: var(--color-primary-50);
+    background: var(--color-primary-light);
     border-color: var(--color-primary);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
@@ -1096,9 +1133,9 @@ h1, h2, h3, h4, h5, h6 {
     margin-bottom: 0;
     border-radius: var(--radius-lg);
     padding: var(--space-4);
-    background-color: var(--color-primary-50);
-    border-color: hsl(210, 100%, 85%);
-    color: hsl(210, 100%, 25%);
+    background-color: var(--color-primary-light);
+    border-color: var(--color-primary-container);
+    color: var(--color-fg);
 }
 
 .welcome-banner .alert-heading {
@@ -1106,7 +1143,7 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
     margin-bottom: var(--space-2);
     line-height: 1.4;
-    color: hsl(210, 100%, 20%);
+    color: var(--color-primary);
 }
 
 .welcome-banner ul {
@@ -1168,15 +1205,15 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Override Bootstrap alert spacing */
 .smart-banner .alert-success {
-    background-color: hsl(142, 76%, 95%);
-    border-color: hsl(142, 76%, 80%);
-    color: hsl(142, 76%, 20%);
+    background-color: var(--color-success-light);
+    border-color: var(--color-secondary-light);
+    color: #00695C;
 }
 
 .smart-banner .alert-info {
-    background-color: var(--color-primary-50);
-    border-color: hsl(210, 100%, 80%);
-    color: hsl(210, 100%, 30%);
+    background-color: var(--color-primary-light);
+    border-color: var(--color-primary-container);
+    color: var(--color-primary);
 }
 
 /* ===== UTILITY CLASSES ===== */
@@ -1410,12 +1447,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .ai-message .message-avatar {
-    background: linear-gradient(135deg, #0066ff 0%, #004bbd 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, #8B7AB8 100%);
     color: white;
 }
 
 .user-message .message-avatar {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, var(--color-secondary) 0%, #00695C 100%);
     color: white;
 }
 
@@ -1471,7 +1508,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .chat-input:focus {
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+    box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.12);
     outline: none;
 }
 
@@ -1574,7 +1611,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== PROGRESS RING ===== */
 #progress-ring {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, #8B7AB8 100%);
     border-radius: var(--radius-lg);
     padding: var(--space-6);
     color: white;
@@ -1595,7 +1632,7 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 50%;
     background: conic-gradient(
         #fff 0% var(--percentage, 0%),
-        rgba(255, 255, 255, 0.2) var(--percentage, 0%) 100%
+        rgba(255, 255, 255, 0.25) var(--percentage, 0%) 100%
     );
     display: flex;
     align-items: center;
@@ -1608,7 +1645,7 @@ h1, h2, h3, h4, h5, h6 {
     width: 90px;
     height: 90px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, #8B7AB8 100%);
 }
 
 .progress-value {
@@ -1616,6 +1653,7 @@ h1, h2, h3, h4, h5, h6 {
     z-index: 1;
     font-size: var(--font-size-2xl);
     font-weight: 700;
+    color: white;
 }
 
 .progress-message {
@@ -1623,6 +1661,7 @@ h1, h2, h3, h4, h5, h6 {
     font-size: var(--font-size-base);
     margin: 0;
     font-weight: 500;
+    color: rgba(255, 255, 255, 0.95);
 }
 
 /* ===== EXPENSE CHART ===== */
