@@ -248,7 +248,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-success:hover:not(:disabled) {
-    background: #00695C;
+    background: #388E3C;
     transform: translateY(-1px);
 }
 
@@ -416,26 +416,33 @@ h1, h2, h3, h4, h5, h6 {
 
 .alert-success {
     background-color: var(--color-success-light);
-    color: #00695C;
+    color: #2E7D32;
     border-left: 4px solid var(--color-success);
 }
 
 .alert-error {
     background-color: var(--color-error-light);
-    color: #B91C1C;
+    color: #C62828;
     border-left: 4px solid var(--color-error);
 }
 
 .alert-warning {
     background-color: var(--color-warning-light);
-    color: #92400E;
+    color: #F57C00;
     border-left: 4px solid var(--color-warning);
 }
 
 .alert-info {
-    background-color: var(--color-primary-light);
-    color: #4A148C;
-    border-left: 4px solid var(--color-primary);
+    background-color: var(--color-info-light);
+    color: #1565C0;
+    border-left: 4px solid var(--color-info);
+}
+
+.alert-celebration {
+    background-color: var(--color-tertiary-light);
+    color: #AD1457;
+    border-left: 4px solid var(--color-tertiary);
+    font-weight: 600;
 }
 
 .alert-icon {
@@ -1210,13 +1217,20 @@ h1, h2, h3, h4, h5, h6 {
 .smart-banner .alert-success {
     background-color: var(--color-success-light);
     border-color: var(--color-secondary-light);
-    color: #00695C;
+    color: #2E7D32;
 }
 
 .smart-banner .alert-info {
-    background-color: var(--color-primary-light);
+    background-color: var(--color-info-light);
     border-color: var(--color-primary-container);
     color: var(--color-primary);
+}
+
+.smart-banner .alert-celebration,
+.smart-banner .alert-primary {
+    background-color: var(--color-tertiary-light);
+    border-color: var(--color-tertiary-container);
+    color: var(--color-tertiary);
 }
 
 /* ===== UTILITY CLASSES ===== */
@@ -1450,12 +1464,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .ai-message .message-avatar {
-    background: linear-gradient(135deg, var(--color-primary) 0%, #8B7AB8 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, #42A5F5 100%);
     color: white;
 }
 
 .user-message .message-avatar {
-    background: linear-gradient(135deg, var(--color-secondary) 0%, #00695C 100%);
+    background: linear-gradient(135deg, var(--color-secondary) 0%, #66BB6A 100%);
     color: white;
 }
 
@@ -1614,7 +1628,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== PROGRESS RING ===== */
 #progress-ring {
-    background: linear-gradient(135deg, var(--color-primary) 0%, #8B7AB8 100%);
+    background: linear-gradient(135deg, var(--color-secondary) 0%, #66BB6A 100%);
     border-radius: var(--radius-lg);
     padding: var(--space-6);
     color: white;
@@ -1635,7 +1649,7 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 50%;
     background: conic-gradient(
         #fff 0% var(--percentage, 0%),
-        rgba(255, 255, 255, 0.25) var(--percentage, 0%) 100%
+        rgba(255, 255, 255, 0.3) var(--percentage, 0%) 100%
     );
     display: flex;
     align-items: center;
@@ -1648,7 +1662,7 @@ h1, h2, h3, h4, h5, h6 {
     width: 90px;
     height: 90px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--color-primary) 0%, #8B7AB8 100%);
+    background: linear-gradient(135deg, var(--color-secondary) 0%, #66BB6A 100%);
 }
 
 .progress-value {
