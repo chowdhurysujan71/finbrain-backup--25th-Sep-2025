@@ -77,23 +77,23 @@
         <h2 id="actions-title" class="section-title">Quick Actions</h2>
         
         <div class="actions-grid">
-            <button class="action-card" onclick="window.location.href='/chat'">
-                <div class="action-icon">➕</div>
+            <button class="action-card" onclick="window.location.href='/chat'" aria-label="Add new expense">
+                <div class="action-icon" aria-hidden="true">➕</div>
                 <span class="action-label">Add Expense</span>
             </button>
 
-            <button class="action-card" onclick="showExportOptions()">
-                <div class="action-icon">📤</div>
+            <button class="action-card" onclick="showExportOptions()" aria-label="Export your expense data">
+                <div class="action-icon" aria-hidden="true">📤</div>
                 <span class="action-label">Export Data</span>
             </button>
 
-            <button class="action-card" onclick="showBudgetSettings()">
-                <div class="action-icon">🎯</div>
+            <button class="action-card" onclick="showBudgetSettings()" aria-label="Set your monthly budget goal">
+                <div class="action-icon" aria-hidden="true">🎯</div>
                 <span class="action-label">Set Budget</span>
             </button>
 
-            <button class="action-card" onclick="showToast('Coming soon! AI will analyze your spending patterns.', 'info')">
-                <div class="action-icon">🤖</div>
+            <button class="action-card" onclick="showToast('Coming soon! AI will analyze your spending patterns.', 'info')" aria-label="Get AI-powered spending analysis">
+                <div class="action-icon" aria-hidden="true">🤖</div>
                 <span class="action-label">AI Analysis</span>
             </button>
         </div>
