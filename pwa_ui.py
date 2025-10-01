@@ -1281,36 +1281,33 @@ def progress_partial():
         percentage = (today_spent / goal_amount * 100) if goal_amount > 0 else 0
         remaining = goal_amount - today_spent
         
-        # Determine status and color
+        # Determine status and color (Google-grade palette)
         if percentage >= 100:
             status = 'over'
-            status_class = 'text-danger'
-            ring_color = '#dc3545'
+            ring_color = '#C62828'  # Red 700 - error state
         elif percentage >= 80:
             status = 'warning'
-            status_class = 'text-warning'
-            ring_color = '#ffc107'
+            ring_color = '#F57C00'  # Orange 600 - warning
         else:
             status = 'good'
-            status_class = 'text-success'
-            ring_color = '#28a745'
+            ring_color = '#FFFFFF'  # White - on track
         
-        # Build progress ring HTML
+        # Build progress ring HTML (white text on green background for WCAG compliance)
         progress_html = f'''
         <div class="progress-ring-container text-center p-3">
             <div class="progress-ring" style="width: 120px; height: 120px; margin: 0 auto; position: relative;">
                 <svg width="120" height="120" style="transform: rotate(-90deg);">
-                    <circle cx="60" cy="60" r="50" fill="none" stroke="#e9ecef" stroke-width="10"/>
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255, 255, 255, 0.3)" stroke-width="10"/>
                     <circle cx="60" cy="60" r="50" fill="none" stroke="{ring_color}" stroke-width="10" 
                             stroke-dasharray="{min(percentage, 100) * 3.14} 314" 
                             stroke-linecap="round"/>
                 </svg>
                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-                    <div class="{status_class}" style="font-size: 1.5rem; font-weight: bold;">৳{today_spent:.0f}</div>
-                    <div style="font-size: 0.75rem; color: #6c757d;">of ৳{goal_amount:.0f}</div>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #FFFFFF;">৳{today_spent:.0f}</div>
+                    <div style="font-size: 0.875rem; color: #FFFFFF;">of ৳{goal_amount:.0f}</div>
                 </div>
             </div>
-            <p class="mt-2 mb-0 {status_class}">
+            <p class="mt-2 mb-0" style="color: #FFFFFF; font-weight: 500;">
                 {f"৳{abs(remaining):.0f} over budget" if remaining < 0 else f"৳{remaining:.0f} remaining"}
             </p>
         </div>
