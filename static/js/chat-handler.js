@@ -230,6 +230,8 @@ const handleCategorySelection = async (chipElement) => {
 };
 
 // Apply atomic UI updates from expense cascade
+// Note: Banner, Progress, and Chart are now handled by HTMX partials
+// This function only handles celebration toasts and confirmations
 function applyUIUpdates(uiUpdates) {
   console.log('[UI-UPDATE] Applying atomic UI updates:', uiUpdates);
   
@@ -241,92 +243,11 @@ function applyUIUpdates(uiUpdates) {
     }
   }
   
-  // Chart update (if present)
-  if (uiUpdates.chart_update && uiUpdates.chart_update.categories && uiUpdates.chart_update.categories.length > 0) {
-    const chartTarget = document.getElementById('expense-chart');
-    if (chartTarget) {
-      // Show the chart container
-      chartTarget.classList.remove('hidden');
-      
-      // Render simple category breakdown (placeholder for Chart.js)
-      const chartData = uiUpdates.chart_update;
-      chartTarget.innerHTML = `
-        <div class="chart-title">Today's Spending: ৳${chartData.total}</div>
-        <div class="chart-container">
-          ${chartData.categories.map(cat => `
-            <div style="margin-bottom: 0.5rem;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                <span>${cat.category}</span>
-                <span>৳${cat.amount} (${cat.percentage}%)</span>
-              </div>
-              <div style="background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden;">
-                <div style="background: linear-gradient(90deg, #667eea, #764ba2); height: 100%; width: ${cat.percentage}%;"></div>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      `;
-      console.log('[UI-UPDATE] Chart displayed:', chartData.categories.length, 'categories');
-    } else {
-      console.warn('[UI-UPDATE] Chart target #expense-chart not found');
-    }
-  }
-  
-  // Progress ring update (if present)
-  if (uiUpdates.progress_ring) {
-    const progressTarget = document.getElementById('progress-ring');
-    if (progressTarget) {
-      const ringData = uiUpdates.progress_ring;
-      if (ringData.has_goal) {
-        // Update progress ring display (XSS-safe using DOM nodes + textContent)
-        progressTarget.innerHTML = ''; // Clear existing content
-        const progressInfo = document.createElement('div');
-        progressInfo.className = 'progress-info';
-        
-        const progressCircle = document.createElement('div');
-        progressCircle.className = 'progress-circle';
-        // Set CSS custom property for conic-gradient
-        progressCircle.style.setProperty('--percentage', `${Math.max(0, Math.min(100, ringData.percentage))}%`);
-        
-        const progressValue = document.createElement('span');
-        progressValue.className = 'progress-value';
-        progressValue.textContent = Math.round(ringData.percentage) + '%';
-        
-        const progressMessage = document.createElement('p');
-        progressMessage.className = 'progress-message';
-        progressMessage.textContent = ringData.message; // XSS-safe: textContent, not innerHTML
-        
-        progressCircle.appendChild(progressValue);
-        progressInfo.appendChild(progressCircle);
-        progressInfo.appendChild(progressMessage);
-        progressTarget.appendChild(progressInfo);
-        progressTarget.classList.remove('hidden');
-        
-        console.log('[UI-UPDATE] Progress ring updated');
-      }
-    } else {
-      console.warn('[UI-UPDATE] Progress ring target #progress-ring not found');
-    }
-  }
-  
-  // Smart banner (if present)
-  if (uiUpdates.banner) {
-    // Render structured banner data as toast notification
-    const bannerData = uiUpdates.banner;
-    if (bannerData.title && bannerData.message) {
-      const bannerMessage = `${bannerData.title}\n${bannerData.message}`;
-      showToast(bannerMessage, bannerData.style || 'info');
-      console.log('[UI-UPDATE] Banner displayed:', bannerData.banner_type);
-    } else {
-      console.warn('[UI-UPDATE] Banner data missing title or message');
-    }
-  }
-  
   // Celebration (if present)
   if (uiUpdates.celebration) {
     // Show celebration toast with special styling
     const celebrationMsg = uiUpdates.celebration.message || '🎉 Milestone achieved!';
-    showToast(celebrationMsg);
+    showToast(celebrationMsg, 'success');
     console.log('[UI-UPDATE] Celebration displayed');
   }
 }
