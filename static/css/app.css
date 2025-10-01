@@ -1,37 +1,40 @@
 /* finbrain PWA - HIG-Inspired Design System */
 
-/* ===== CSS CUSTOM PROPERTIES (Material Design 3 Inspired) ===== */
+/* ===== CSS CUSTOM PROPERTIES (Google-Grade Palette) ===== */
 :root {
-    /* Primary Colors - Deep Purple (Financial Trust) */
-    --color-primary: #6750A4;                      /* Material Purple 500 */
-    --color-primary-hover: #7965B3;
-    --color-primary-light: #E8DEF8;                /* Purple 50 */
-    --color-primary-container: #EADDFF;
+    /* Primary Colors - Blue 600 (Trust & Future) */
+    --color-primary: #1E88E5;                      /* Google Blue 600 */
+    --color-primary-hover: #1976D2;                /* Blue 700 for hover */
+    --color-primary-light: #E3F2FD;                /* Blue 50 */
+    --color-primary-container: #BBDEFB;            /* Blue 100 */
     
-    /* Secondary Colors - Teal (Growth & Balance) */
-    --color-secondary: #00897B;                    /* Material Teal 600 */
-    --color-secondary-light: #B2DFDB;
-    --color-secondary-container: #D0F2EF;
+    /* Secondary Colors - Green 500 (Growth & Balance) */
+    --color-secondary: #43A047;                    /* Google Green 500 */
+    --color-secondary-light: #C8E6C9;              /* Green 100 */
+    --color-secondary-container: #E8F5E9;          /* Green 50 */
     
-    /* Tertiary Colors - Amber (Attention) */
-    --color-tertiary: #F59E0B;                     /* Warm amber for highlights */
-    --color-tertiary-light: #FEF3C7;
+    /* Tertiary Colors - Magenta (Energy & Celebration) */
+    --color-tertiary: #E91E63;                     /* Magenta/Pink 500 */
+    --color-tertiary-light: #FCE4EC;               /* Pink 50 */
+    --color-tertiary-container: #F8BBD0;           /* Pink 100 */
     
     /* Semantic Colors */
-    --color-success: #00897B;                      /* Aligned with secondary */
-    --color-success-light: #D0F2EF;
-    --color-warning: #F59E0B;
-    --color-warning-light: #FEF3C7;
-    --color-error: #DC2626;
-    --color-error-light: #FEE2E2;
+    --color-success: #43A047;                      /* Green - growth & positive */
+    --color-success-light: #E8F5E9;
+    --color-warning: #FFB300;                      /* Amber - soft alerts */
+    --color-warning-light: #FFF8E1;
+    --color-error: #E53935;                        /* Red 600 - errors */
+    --color-error-light: #FFEBEE;
+    --color-info: #42A5F5;                         /* Light Blue 400 */
+    --color-info-light: #E1F5FE;
     
-    /* Neutral Colors - Sophisticated Grays */
-    --color-bg: #FEFBFF;                           /* Slightly warm white */
-    --color-fg: #1C1B1F;                           /* Rich black */
-    --color-muted: #49454F;                        /* Medium gray */
-    --color-border: #E7E0EC;                       /* Light purple-gray */
-    --color-surface: #F7F2FA;                      /* Subtle purple tint */
-    --color-surface-variant: #E7E0EC;
+    /* Neutral Colors - Google Grays */
+    --color-bg: #FFFFFF;                           /* Pure white */
+    --color-fg: #202124;                           /* Primary text (Google) */
+    --color-muted: #5F6368;                        /* Secondary text (Google) */
+    --color-border: #DADCE0;                       /* Google border gray */
+    --color-surface: #F5F5F5;                      /* Surface gray */
+    --color-surface-variant: #E8EAED;              /* Variant surface */
     
     /* Typography */
     --font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
