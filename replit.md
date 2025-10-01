@@ -47,22 +47,36 @@ finbrain is an AI-first expense tracking application delivered via a web chat in
 **Previous Development (September 30, 2025)**:
 🚧 **4-System Integrated Architecture** - Building demo-grade finbrain with:
 
+**Completed Systems (✅ PRODUCTION-READY)**:
+
+**System 1 - Trust Hub (✅ COMPLETE)**:
+- ✅ Password reset with cryptographic security (SHA-256, 1hr expiry, single-use)
+- ✅ CSV export with formula injection protection (rate limited: 3/hour)
+- ✅ Account deletion with manual admin processing (rate limited: 1/day, 7-day turnaround)
+
+**System 2 - Emotional Engagement (✅ COMPLETE)**:
+- ✅ HTMX partials for interactive UI updates without page reload
+- ✅ Achievement celebrations and milestone tracking
+- ✅ Motivational banners and progress indicators
+
+**System 4 - Friction Elimination (✅ COMPLETE)**:
+- ✅ Quick-edit endpoints for fast expense modifications
+- ✅ Undo functionality for accidental actions
+- ✅ Quick category/amount adjustments with inline editing
+
 **Foundation Layer (✅ COMPLETE)**:
 - ✅ Atomic `on_expense_committed()` event hook for deterministic UI updates
 - ✅ Truth & safety guardrails with data provenance and "I don't have that yet" responses  
 - ✅ Trust Hub database tables (password_resets, deletion_requests) with atomic operations
 - ✅ Performance indexes for <500ms query SLO
 - ✅ Kill switches with graceful degradation (banners, insights, exports)
-- ✅ **Timezone Display Fix**: All customer-facing interfaces now show Asia/Dhaka time instead of UTC (September 30, 2025)
+- ✅ **Timezone Display Fix**: All customer-facing interfaces now show Asia/Dhaka time instead of UTC
   - Expense cards display local Dhaka time (e.g., "Today at 20:30")
   - Today/Week/Month totals calculate using Dhaka day boundaries
   - Data remains stored in UTC (display-only conversion)
 
 **Active Development**:
-- 🔧 System 4 (Friction Elimination): Quick-taps, undo, quick-edit endpoints
 - 🔧 System 3 (Intelligence Layer): History, micro-dashboard, insights with verify CTAs
-- 🔧 System 2 (Emotional Engagement): HTMX partials, banners, celebrations
-- 🔧 System 1 (Trust Hub): Password reset, CSV exports, account deletion with 7-day hold
 
 **Architecture Principles**:
 - Atomic event hooks as single source of truth
