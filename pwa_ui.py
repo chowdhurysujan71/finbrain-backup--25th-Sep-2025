@@ -637,15 +637,30 @@ def forgot_password_submit():
             user_agent=user_agent
         )
         
-        # Log unhashed token since email not configured yet
-        logger.info(f"Password reset token generated for {email}: {token}")
-        logger.info(f"Reset link: /auth/reset-password/{token}")
+        # SECURITY: Only expose token in strict development mode
+        import os
+        is_dev_mode = os.getenv('APP_ENV', 'production') == 'development' and os.getenv('EMAIL_DELIVERY_ENABLED', 'true').lower() == 'false'
         
-        return jsonify({
-            "success": True,
-            "message": "If the email exists, a password reset link will be sent",
-            "token": token  # Include token in response since email not configured
-        }), 200
+        if is_dev_mode:
+            # Development/testing only: log and return token
+            logger.warning(f"[DEV MODE] Password reset token generated for {email}: {token}")
+            logger.warning(f"[DEV MODE] Reset link: /auth/reset-password/{token}")
+            
+            return jsonify({
+                "success": True,
+                "message": "If the email exists, a password reset link will be sent",
+                "token": token,  # ONLY in dev mode
+                "dev_mode": True
+            }), 200
+        else:
+            # Production: Never log or return token
+            logger.info(f"Password reset token generated for user (email hidden for security)")
+            # TODO: Send email with reset link to user's email address
+            
+            return jsonify({
+                "success": True,
+                "message": "If the email exists, a password reset link will be sent"
+            }), 200
         
     except Exception as e:
         logger.error(f"Forgot password error: {e}")
@@ -670,13 +685,12 @@ def reset_password(token):
     return render_template('reset_password.html', token=token)
 
 @pwa_ui.route('/auth/reset-password', methods=['POST'])
-@csrf.exempt
 @limiter.limit("5 per hour")
 def reset_password_submit():
     """
     Reset password using token and mark token as used
     Rate limited to 5 requests per hour
-    CSRF exempt: Anonymous users don't have sessions yet
+    CSRF protected: Token-based validation provides security
     """
     from flask import jsonify
     from werkzeug.security import generate_password_hash
