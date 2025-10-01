@@ -656,22 +656,24 @@ def get_totals(user_id: str, period: str) -> dict[str, str | int | None]:
             raise ValueError(f"Invalid period: {period}")
         
         # Security pattern: EXECUTE weekly_totals - using prepared statement via SQLAlchemy
+        # Use date field (not created_at) for period filtering to match user's expense date
         totals_result = db.session.execute(text("""
             SELECT 
                 COALESCE(SUM(amount_minor), 0) as total_minor,
                 COUNT(*) as expenses_count,
                 (SELECT category FROM expenses 
-                 WHERE user_id_hash = :user_hash AND created_at >= :start_date
+                 WHERE user_id_hash = :user_hash AND date >= :start_date
                  GROUP BY category ORDER BY SUM(amount_minor) DESC NULLS LAST LIMIT 1) AS top_category
             FROM expenses 
             WHERE user_id_hash = :user_hash 
-            AND created_at >= :start_date
+            AND date >= :start_date
         """), {"user_hash": user_hash, "start_date": start_date}).first()
         total_minor = int(totals_result[0] or 0) if totals_result else 0
         expenses_count = int(totals_result[1] or 0) if totals_result else 0
         top_category = totals_result[2] if totals_result and len(totals_result) > 2 else None
         
         # Get top 5 categories with totals for accurate reporting
+        # Use date field (not created_at) for period filtering to match user's expense date
         categories_result = db.session.execute(text("""
             SELECT 
                 COALESCE(category, 'other') as category,
@@ -679,7 +681,7 @@ def get_totals(user_id: str, period: str) -> dict[str, str | int | None]:
                 COUNT(*) as count
             FROM expenses 
             WHERE user_id_hash = :user_hash 
-            AND created_at >= :start_date
+            AND date >= :start_date
             GROUP BY category
             ORDER BY total_minor DESC
             LIMIT 5
