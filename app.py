@@ -160,6 +160,10 @@ app.config['WTF_CSRF_SSL_STRICT'] = is_production  # Strict HTTPS enforcement in
 app.config['WTF_CSRF_ENABLED'] = True
 
 csrf = CSRFProtect(app)
+
+# Exempt API endpoints from CSRF protection (they use session-based auth)
+csrf.exempt('routes_nudges.nudges_bp')
+
 logger.info(f"✓ CSRF protection enabled (production={is_production})")
 
 # Initialize Flask-Login
