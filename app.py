@@ -161,8 +161,8 @@ app.config['WTF_CSRF_ENABLED'] = True
 
 csrf = CSRFProtect(app)
 
-# Exempt API endpoints from CSRF protection (they use session-based auth)
-csrf.exempt('routes_nudges.nudges_bp')
+# All routes now protected by CSRF (including /api/nudges, /api/goals, /api/banners)
+# Frontend already sends X-CSRFToken headers for all POST/PUT/DELETE requests
 
 logger.info(f"✓ CSRF protection enabled (production={is_production})")
 
