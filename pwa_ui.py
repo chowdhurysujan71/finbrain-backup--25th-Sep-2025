@@ -271,6 +271,142 @@ def report():
 
 
 
+@pwa_ui.route('/profile/export-csv', methods=['POST'])
+@limiter.limit("3 per hour")
+def export_expenses_csv():
+    """
+    Export all user expenses as CSV
+    Rate limited to 3 downloads per hour
+    """
+    from flask import make_response
+    from models import Expense
+    from db_base import db
+    import csv
+    from io import StringIO
+    from datetime import datetime
+    
+    user = require_auth()
+    if not user:
+        return jsonify({"error": "Authentication required"}), 401
+    
+    try:
+        # Fetch all expenses for the user
+        expenses = Expense.query.filter_by(
+            user_id_hash=user.user_id_hash,
+            deleted_at=None  # Exclude soft-deleted expenses
+        ).order_by(Expense.date.desc()).all()
+        
+        # Create CSV in memory
+        si = StringIO()
+        writer = csv.writer(si)
+        
+        # Write header
+        writer.writerow([
+            'Date',
+            'Amount (৳)',
+            'Category',
+            'Description',
+            'Created At',
+            'Expense ID'
+        ])
+        
+        # Write data rows
+        for expense in expenses:
+            writer.writerow([
+                expense.date.strftime('%Y-%m-%d') if expense.date else '',
+                f"{expense.amount:.2f}",
+                expense.category or '',
+                expense.description or '',
+                expense.created_at.strftime('%Y-%m-%d %H:%M:%S') if expense.created_at else '',
+                str(expense.id)
+            ])
+        
+        # Create response with CSV
+        output = si.getvalue()
+        si.close()
+        
+        response = make_response(output)
+        response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename=finbrain_expenses_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        
+        logger.info(f"CSV export generated for user {user.email}: {len(expenses)} expenses")
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"CSV export error: {e}")
+        return jsonify({"error": "Failed to export expenses"}), 500
+
+@pwa_ui.route('/profile/request-deletion', methods=['POST'])
+@limiter.limit("3 per hour")
+def request_account_deletion():
+    """
+    Request account deletion with 7-day hold period
+    Rate limited to 3 requests per hour
+    """
+    from models import DeletionRequest
+    from db_base import db
+    
+    user = require_auth()
+    if not user:
+        return jsonify({"error": "Authentication required"}), 401
+    
+    try:
+        # Check if there's already an active deletion request
+        existing = DeletionRequest.get_active_request(user.user_id_hash)
+        if existing:
+            return jsonify({"error": "Deletion request already pending"}), 400
+        
+        # Create deletion request with 7-day hold
+        DeletionRequest.create_request(user.user_id_hash)
+        
+        logger.info(f"Account deletion requested for user {user.email}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Account deletion requested. You have 7 days to cancel before permanent deletion."
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Deletion request error: {e}")
+        return jsonify({"error": "Failed to request account deletion"}), 500
+
+@pwa_ui.route('/profile/cancel-deletion', methods=['POST'])
+@limiter.limit("5 per hour")
+def cancel_account_deletion():
+    """
+    Cancel pending account deletion request
+    Rate limited to 5 requests per hour
+    """
+    from models import DeletionRequest
+    from db_base import db
+    
+    user = require_auth()
+    if not user:
+        return jsonify({"error": "Authentication required"}), 401
+    
+    try:
+        # Get active deletion request
+        deletion_request = DeletionRequest.get_active_request(user.user_id_hash)
+        if not deletion_request:
+            return jsonify({"error": "No active deletion request found"}), 404
+        
+        # Cancel the request
+        success = DeletionRequest.cancel_request(user.user_id_hash)
+        
+        if success:
+            logger.info(f"Account deletion cancelled for user {user.email}")
+            return jsonify({
+                "success": True,
+                "message": "Account deletion request cancelled successfully"
+            }), 200
+        else:
+            return jsonify({"error": "Failed to cancel deletion request"}), 500
+        
+    except Exception as e:
+        logger.error(f"Cancel deletion error: {e}")
+        return jsonify({"error": "Failed to cancel deletion request"}), 500
+
 @pwa_ui.route('/profile')
 def profile():
     """
