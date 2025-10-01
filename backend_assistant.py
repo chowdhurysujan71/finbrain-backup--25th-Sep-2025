@@ -644,10 +644,19 @@ def get_totals(user_id: str, period: str) -> dict[str, str | int | None]:
             # Use Asia/Dhaka timezone for day boundaries
             start_date = start_of_day_dhaka(today_dhaka)
         elif period == "week":
-            # Start of current week (Monday) in Dhaka timezone
-            days_since_monday = today_dhaka.weekday()
-            week_start_date = today_dhaka - timedelta(days=days_since_monday)
-            start_date = start_of_day_dhaka(week_start_date)
+            # Week starts on Saturday, ends on Friday (user preference)
+            # Limited to current month only
+            # Saturday is weekday() = 5
+            days_since_saturday = (today_dhaka.weekday() + 2) % 7
+            week_start_date = today_dhaka - timedelta(days=days_since_saturday)
+            
+            # Limit to current month
+            month_start_date = today_dhaka.replace(day=1)
+            month_start = start_of_day_dhaka(month_start_date)
+            week_start = start_of_day_dhaka(week_start_date)
+            
+            # Use the later of week start or month start
+            start_date = max(week_start, month_start)
         elif period == "month":
             # Start of current month in Dhaka timezone
             month_start_date = today_dhaka.replace(day=1)
