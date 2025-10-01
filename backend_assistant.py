@@ -623,7 +623,8 @@ def get_totals(user_id: str, period: str) -> dict[str, str | int | None]:
       "period": "week",
       "total_minor": int,
       "top_category": "food",
-      "expenses_count": int
+      "expenses_count": int,
+      "top_categories": [{"category": "food", "total_minor": 5000, "count": 3, "percentage": 50}]
     }
     Rules:
     - Must call SQL: SELECT SUM(amount_minor), COUNT(*), category FROM expenses WHERE user_id_hash=? AND created_at BETWEEN ...
@@ -670,13 +671,39 @@ def get_totals(user_id: str, period: str) -> dict[str, str | int | None]:
         expenses_count = int(totals_result[1] or 0) if totals_result else 0
         top_category = totals_result[2] if totals_result and len(totals_result) > 2 else None
         
+        # Get top 5 categories with totals for accurate reporting
+        categories_result = db.session.execute(text("""
+            SELECT 
+                COALESCE(category, 'other') as category,
+                SUM(amount_minor) as total_minor,
+                COUNT(*) as count
+            FROM expenses 
+            WHERE user_id_hash = :user_hash 
+            AND created_at >= :start_date
+            GROUP BY category
+            ORDER BY total_minor DESC
+            LIMIT 5
+        """), {"user_hash": user_hash, "start_date": start_date}).fetchall()
+        
+        top_categories = []
+        for row in categories_result:
+            cat_total = int(row[1] or 0)
+            percentage = round((cat_total / total_minor * 100), 1) if total_minor > 0 else 0
+            top_categories.append({
+                "category": row[0] or "other",
+                "total_minor": cat_total,
+                "count": int(row[2] or 0),
+                "percentage": percentage
+            })
+        
         # Results extracted above from canonical queries - NEVER invent numbers
         
         return {
             "period": period,
             "total_minor": total_minor,
             "top_category": top_category,
-            "expenses_count": expenses_count
+            "expenses_count": expenses_count,
+            "top_categories": top_categories
         }
         
     except Exception as e:
@@ -685,7 +712,8 @@ def get_totals(user_id: str, period: str) -> dict[str, str | int | None]:
             "period": period,
             "total_minor": 0,
             "top_category": None,
-            "expenses_count": 0
+            "expenses_count": 0,
+            "top_categories": []
         }
 
 def get_recent_expenses(user_id: str, limit: int = 10) -> list[dict[str, str | int | float]]:

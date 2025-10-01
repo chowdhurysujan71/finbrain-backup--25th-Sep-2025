@@ -298,40 +298,20 @@ async function loadCategoriesData() {
     try {
         console.log('[Report] Loading categories data...');
         
-        // Get recent expenses to calculate category totals (increased limit for heavy users)
-        const expensesData = await apiCall('/api/backend/get_recent_expenses', { limit: 500 });
+        // Get month totals with top_categories from server (accurate full-period data)
+        const monthData = await apiCall('/api/backend/get_totals', { period: 'month' });
         
-        if (!expensesData || !Array.isArray(expensesData)) {
-            throw new Error('Invalid expenses data received');
+        if (!monthData || !monthData.top_categories) {
+            throw new Error('Invalid month data received');
         }
 
-        reportData.expenses = expensesData;
-
-        // Filter expenses to current month only (using expense date, not created_at)
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
+        const topCategories = monthData.top_categories;
+        const totalSpent = monthData.total_minor || 0;
         
-        const thisMonthExpenses = expensesData.filter(expense => {
-            // Use date field if available, fall back to created_at
-            const dateString = expense.date || expense.created_at;
-            const expenseDate = new Date(dateString);
-            return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
-        });
-
-        // Calculate category totals from this month's expenses
+        // Convert to format expected by display function
         const categoryTotals = {};
-        let totalSpent = 0;
-
-        thisMonthExpenses.forEach(expense => {
-            const category = expense.category || 'other';
-            const amount = expense.amount_minor || expense.amount * 100 || 0;
-            
-            if (!categoryTotals[category]) {
-                categoryTotals[category] = 0;
-            }
-            categoryTotals[category] += amount;
-            totalSpent += amount;
+        topCategories.forEach(cat => {
+            categoryTotals[cat.category] = cat.total_minor;
         });
 
         reportData.categories = categoryTotals;
@@ -344,7 +324,7 @@ async function loadCategoriesData() {
         console.error('[Report] Failed to load categories data:', error);
         showError('Failed to load category breakdown. Please refresh the page.');
         
-        document.getElementById('categories-list').innerHTML = '<div class="error-text">Unable to load categories</div>';
+        document.getElementById('categories-list').innerHTML = '<div class="error-text">Unable to load categories. <button class="btn btn-sm btn-primary" onclick="loadCategoriesData()">Retry</button></div>';
     }
 }
 
