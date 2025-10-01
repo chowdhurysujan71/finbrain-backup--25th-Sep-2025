@@ -1174,6 +1174,238 @@ def quick_taps_partial():
         # Return empty on error - graceful degradation
         return '', 200
 
+@pwa_ui.route('/partials/banner')
+def banner_partial():
+    """
+    Smart banner partial for HTMX - shows goal-aware coaching banners
+    Returns HTML for banner display or empty if no banners
+    """
+    from flask import session
+    
+    try:
+        # SECURITY: Session check for authenticated users only
+        if 'user_id' not in session:
+            logger.debug("Banner partial: no session, returning empty")
+            return '', 200
+        
+        from utils.identity import ensure_hashed
+        from utils.smart_banners import SmartBannerService
+        
+        user_id_hash = ensure_hashed(session['user_id'])
+        
+        # Get goal-aware banners from SmartBannerService
+        banner_service = SmartBannerService()
+        banners = banner_service.get_goal_aware_banners(user_id_hash, limit=1)
+        
+        if not banners or len(banners) == 0:
+            logger.debug(f"No banners for user {user_id_hash[:8]}")
+            return '', 200
+        
+        # Render first banner
+        banner = banners[0]
+        
+        # Map banner style to Bootstrap alert class
+        style_map = {
+            'error': 'alert-danger',
+            'warning': 'alert-warning',
+            'info': 'alert-info',
+            'success': 'alert-success',
+            'primary': 'alert-primary'
+        }
+        alert_class = style_map.get(banner.get('style', 'info'), 'alert-info')
+        
+        # Build banner HTML
+        banner_html = f'''
+        <div class="alert {alert_class}" role="alert">
+            <div class="d-flex align-items-start justify-content-between">
+                <div class="flex-grow-1">
+                    <strong>{banner.get('title', '')}</strong>
+                    <p class="mb-2 mt-1">{banner.get('message', '')}</p>
+                    {f'<a href="{banner.get("action_url", "#")}" class="btn btn-sm btn-outline-primary">{banner.get("action_text", "View")}</a>' if banner.get('action_url') else ''}
+                </div>
+                {'<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' if banner.get('dismissible', True) else ''}
+            </div>
+        </div>
+        '''
+        
+        logger.debug(f"Banner rendered for user {user_id_hash[:8]}: {banner.get('banner_type')}")
+        return banner_html, 200
+        
+    except Exception as e:
+        logger.error(f"Error rendering banner: {e}")
+        return '', 200
+
+@pwa_ui.route('/partials/progress')
+def progress_partial():
+    """
+    Goal progress ring partial for HTMX - shows spending vs goal
+    Returns HTML for progress visualization or empty if no goal
+    """
+    from flask import session
+    
+    try:
+        # SECURITY: Session check for authenticated users only
+        if 'user_id' not in session:
+            logger.debug("Progress partial: no session, returning empty")
+            return '', 200
+        
+        from utils.identity import ensure_hashed
+        from models import Goal, Expense
+        from db_base import db
+        from datetime import date
+        from sqlalchemy import func
+        
+        user_id_hash = ensure_hashed(session['user_id'])
+        
+        # Get active daily spending goal
+        active_goals = Goal.get_active_for_user(user_id_hash, 'daily_spend_under')
+        
+        if not active_goals:
+            logger.debug(f"No active goal for user {user_id_hash[:8]}")
+            return '', 200
+        
+        goal = active_goals[0]
+        goal_amount = float(goal.amount)
+        
+        # Calculate today's spending
+        today = date.today()
+        today_total = db.session.query(
+            func.sum(Expense.amount_minor)
+        ).filter(
+            Expense.user_id_hash == user_id_hash,
+            Expense.date == today,
+            Expense.is_deleted.is_(False)
+        ).scalar() or 0
+        
+        today_spent = float(today_total) / 100
+        percentage = (today_spent / goal_amount * 100) if goal_amount > 0 else 0
+        remaining = goal_amount - today_spent
+        
+        # Determine status and color
+        if percentage >= 100:
+            status = 'over'
+            status_class = 'text-danger'
+            ring_color = '#dc3545'
+        elif percentage >= 80:
+            status = 'warning'
+            status_class = 'text-warning'
+            ring_color = '#ffc107'
+        else:
+            status = 'good'
+            status_class = 'text-success'
+            ring_color = '#28a745'
+        
+        # Build progress ring HTML
+        progress_html = f'''
+        <div class="progress-ring-container text-center p-3">
+            <div class="progress-ring" style="width: 120px; height: 120px; margin: 0 auto; position: relative;">
+                <svg width="120" height="120" style="transform: rotate(-90deg);">
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="#e9ecef" stroke-width="10"/>
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="{ring_color}" stroke-width="10" 
+                            stroke-dasharray="{min(percentage, 100) * 3.14} 314" 
+                            stroke-linecap="round"/>
+                </svg>
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                    <div class="{status_class}" style="font-size: 1.5rem; font-weight: bold;">৳{today_spent:.0f}</div>
+                    <div style="font-size: 0.75rem; color: #6c757d;">of ৳{goal_amount:.0f}</div>
+                </div>
+            </div>
+            <p class="mt-2 mb-0 {status_class}">
+                {f"৳{abs(remaining):.0f} over budget" if remaining < 0 else f"৳{remaining:.0f} remaining"}
+            </p>
+        </div>
+        '''
+        
+        logger.debug(f"Progress ring rendered for user {user_id_hash[:8]}: {percentage:.1f}%")
+        return progress_html, 200
+        
+    except Exception as e:
+        logger.error(f"Error rendering progress ring: {e}")
+        return '', 200
+
+@pwa_ui.route('/partials/chart')
+def chart_partial():
+    """
+    Category breakdown chart partial for HTMX - shows today's spending by category
+    Returns HTML for chart visualization or empty if no expenses
+    """
+    from flask import session
+    
+    try:
+        # SECURITY: Session check for authenticated users only
+        if 'user_id' not in session:
+            logger.debug("Chart partial: no session, returning empty")
+            return '', 200
+        
+        from utils.identity import ensure_hashed
+        from models import Expense
+        from datetime import date
+        
+        user_id_hash = ensure_hashed(session['user_id'])
+        today = date.today()
+        
+        # Get today's expenses
+        day_expenses = Expense.query_active().filter(
+            Expense.user_id_hash == user_id_hash,
+            Expense.date == today
+        ).all()
+        
+        if not day_expenses:
+            logger.debug(f"No expenses today for user {user_id_hash[:8]}")
+            return '', 200
+        
+        # Calculate category breakdown
+        category_totals = {}
+        total_amount = 0
+        
+        for exp in day_expenses:
+            category = (exp.category or 'Uncategorized').title()
+            amount = float(exp.amount_minor) / 100
+            category_totals[category] = category_totals.get(category, 0) + amount
+            total_amount += amount
+        
+        # Sort by amount descending
+        sorted_categories = sorted(category_totals.items(), key=lambda x: x[1], reverse=True)
+        
+        # Build chart HTML (simple bar chart)
+        chart_html = '<div class="category-chart p-3">'
+        chart_html += f'<h6 class="text-center mb-3">Today\'s Spending: ৳{total_amount:.0f}</h6>'
+        
+        # Color palette for categories
+        category_colors = {
+            'Food': '#28a745',
+            'Transport': '#007bff',
+            'Bills': '#ffc107',
+            'Shopping': '#e83e8c',
+            'Uncategorized': '#6c757d'
+        }
+        
+        for category, amount in sorted_categories:
+            percentage = (amount / total_amount * 100) if total_amount > 0 else 0
+            color = category_colors.get(category, '#6c757d')
+            
+            chart_html += f'''
+            <div class="mb-2">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span style="font-size: 0.875rem;">{category}</span>
+                    <span style="font-size: 0.875rem; font-weight: bold;">৳{amount:.0f} ({percentage:.0f}%)</span>
+                </div>
+                <div class="progress" style="height: 8px;">
+                    <div class="progress-bar" role="progressbar" style="width: {percentage}%; background-color: {color};" 
+                         aria-valuenow="{percentage}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+            '''
+        
+        chart_html += '</div>'
+        
+        logger.debug(f"Chart rendered for user {user_id_hash[:8]}: {len(sorted_categories)} categories")
+        return chart_html, 200
+        
+    except Exception as e:
+        logger.error(f"Error rendering chart: {e}")
+        return '', 200
+
 @pwa_ui.route('/expense/<int:expense_id>')
 def expense_detail(expense_id):
     """

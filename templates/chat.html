@@ -10,21 +10,30 @@
         <p class="hero-subtitle">Quick logging with AI-powered insights</p>
     </header>
 
-    <!-- Smart Nudges Banner (hidden by default, shown via JavaScript) -->
-    <section id="smart-banner" class="card smart-banner hidden">
-        <div class="alert" id="banner-content">
-            <!-- Banner content will be populated by JavaScript -->
+    <!-- Smart Nudges Banner (HTMX-powered, updates on expense-added event) -->
+    <section id="smart-banner" class="card smart-banner">
+        <div id="banner-content"
+             hx-get="/partials/banner" 
+             hx-trigger="load, expense-added from:body"
+             hx-swap="innerHTML">
+            <!-- Banner content will be populated by HTMX -->
         </div>
     </section>
     
-    <!-- Progress Ring (populated by atomic cascade) -->
-    <div id="progress-ring" class="card hidden">
-        <!-- Progress ring content populated by JavaScript -->
+    <!-- Progress Ring (HTMX-powered, updates on expense-added event) -->
+    <div id="progress-ring" class="card"
+         hx-get="/partials/progress" 
+         hx-trigger="load, expense-added from:body"
+         hx-swap="innerHTML">
+        <!-- Progress ring content populated by HTMX -->
     </div>
     
-    <!-- Expense Chart (placeholder for future System 3) -->
-    <div id="expense-chart" class="hidden">
-        <!-- Chart will be rendered here when Chart.js integration is added -->
+    <!-- Expense Chart (HTMX-powered, updates on expense-added event) -->
+    <div id="expense-chart" class="card"
+         hx-get="/partials/chart" 
+         hx-trigger="load, expense-added from:body"
+         hx-swap="innerHTML">
+        <!-- Chart will be rendered here by HTMX -->
     </div>
 
     <!-- Welcome Banner -->

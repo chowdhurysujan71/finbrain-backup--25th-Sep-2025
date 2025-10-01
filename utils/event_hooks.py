@@ -220,7 +220,71 @@ def _evaluate_banner(user_id_hash: str, expense: Expense) -> Optional[Dict[str, 
 
 
 def _check_celebration(user_id_hash: str, expense: Expense) -> Optional[Dict[str, Any]]:
-    """Check if expense triggers a milestone celebration (placeholder for now)"""
-    # TODO: Add milestone detection in System 2 phase
-    # For now, return None - celebrations will be added later
-    return None
+    """Check if expense triggers a milestone celebration"""
+    try:
+        from sqlalchemy import func, distinct
+        
+        # Check for 7-day streak: expenses on 7 consecutive days
+        streak_days = db.session.query(
+            distinct(Expense.date)
+        ).filter(
+            Expense.user_id_hash == user_id_hash,
+            Expense.is_deleted.is_(False)  # type: ignore
+        ).order_by(Expense.date.desc()).limit(7).all()
+        
+        if len(streak_days) == 7:
+            # Check if dates are consecutive
+            dates = sorted([d[0] for d in streak_days])
+            is_consecutive = all(
+                (dates[i+1] - dates[i]).days == 1 
+                for i in range(len(dates)-1)
+            )
+            
+            if is_consecutive:
+                return {
+                    'type': '7_day_streak',
+                    'title': '🔥 7-Day Streak!',
+                    'message': 'Amazing! You\'ve tracked expenses for 7 days straight. Building great financial habits!',
+                    'icon': '🔥',
+                    'style': 'success'
+                }
+        
+        # Check for 100th expense milestone
+        total_expenses = Expense.query.filter(
+            Expense.user_id_hash == user_id_hash,
+            Expense.is_deleted.is_(False)  # type: ignore
+        ).count()
+        
+        if total_expenses == 100:
+            return {
+                'type': '100th_expense',
+                'title': '🎉 100 Expenses Tracked!',
+                'message': 'Congratulations! You\'ve logged 100 expenses. Your financial awareness is on fire!',
+                'icon': '🎉',
+                'style': 'success'
+            }
+        
+        # Check for first expense of the month
+        month_start = expense.date.replace(day=1)
+        month_expenses = Expense.query.filter(
+            Expense.user_id_hash == user_id_hash,
+            Expense.date >= month_start,
+            Expense.date < expense.date + timedelta(days=1),
+            Expense.is_deleted.is_(False)  # type: ignore
+        ).count()
+        
+        if month_expenses == 1:
+            month_name = expense.date.strftime('%B')
+            return {
+                'type': 'first_of_month',
+                'title': f'📅 First Expense of {month_name}!',
+                'message': f'Starting {month_name} strong! Keep tracking to build a complete picture of your spending.',
+                'icon': '📅',
+                'style': 'info'
+            }
+        
+        return None
+        
+    except Exception as e:
+        logger.error(f"Celebration check failed: {e}")
+        return None
