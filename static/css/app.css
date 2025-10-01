@@ -2,31 +2,44 @@
 
 /* ===== CSS CUSTOM PROPERTIES (Google-Grade Palette) ===== */
 :root {
-    /* Primary Colors - Blue 600 (Trust & Future) */
-    --color-primary: #1E88E5;                      /* Google Blue 600 */
-    --color-primary-hover: #1976D2;                /* Blue 700 for hover */
+    /* Primary Colors - Blue (Trust & Future) */
+    --color-primary: #1976D2;                      /* Blue 700 - WCAG compliant */
+    --color-primary-hover: #1565C0;                /* Blue 800 for hover */
     --color-primary-light: #E3F2FD;                /* Blue 50 */
     --color-primary-container: #BBDEFB;            /* Blue 100 */
     
-    /* Secondary Colors - Green 500 (Growth & Balance) */
-    --color-secondary: #43A047;                    /* Google Green 500 */
+    /* Secondary Colors - Green (Growth & Balance) */
+    --color-secondary: #2E7D32;                    /* Green 700 - WCAG compliant */
+    --color-secondary-hover: #1B5E20;              /* Green 800 for hover */
     --color-secondary-light: #C8E6C9;              /* Green 100 */
     --color-secondary-container: #E8F5E9;          /* Green 50 */
     
     /* Tertiary Colors - Magenta (Energy & Celebration) */
-    --color-tertiary: #E91E63;                     /* Magenta/Pink 500 */
+    --color-tertiary: #C2185B;                     /* Pink 700 - WCAG compliant */
+    --color-tertiary-hover: #AD1457;               /* Pink 800 for hover */
     --color-tertiary-light: #FCE4EC;               /* Pink 50 */
     --color-tertiary-container: #F8BBD0;           /* Pink 100 */
     
     /* Semantic Colors */
-    --color-success: #43A047;                      /* Green - growth & positive */
+    --color-success: #2E7D32;                      /* Green 700 - WCAG compliant */
+    --color-success-hover: #1B5E20;
     --color-success-light: #E8F5E9;
-    --color-warning: #FFB300;                      /* Amber - soft alerts */
+    --color-warning: #F57C00;                      /* Orange 600 - WCAG compliant */
+    --color-warning-hover: #E65100;
     --color-warning-light: #FFF8E1;
-    --color-error: #E53935;                        /* Red 600 - errors */
+    --color-error: #C62828;                        /* Red 700 - WCAG compliant */
+    --color-error-hover: #B71C1C;
     --color-error-light: #FFEBEE;
-    --color-info: #42A5F5;                         /* Light Blue 400 */
+    --color-info: #1976D2;                         /* Blue 700 - matches primary */
     --color-info-light: #E1F5FE;
+    
+    /* On-color text (for use on colored backgrounds) */
+    --on-primary: #FFFFFF;
+    --on-secondary: #FFFFFF;
+    --on-tertiary: #FFFFFF;
+    --on-success: #FFFFFF;
+    --on-warning: #FFFFFF;
+    --on-error: #FFFFFF;
     
     /* Neutral Colors - Google Grays */
     --color-bg: #FFFFFF;                           /* Pure white */
@@ -223,7 +236,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .btn-primary {
     background: var(--color-primary);
-    color: white;
+    color: var(--on-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -243,12 +256,12 @@ h1, h2, h3, h4, h5, h6 {
 
 .btn-success {
     background: var(--color-success);
-    color: white;
+    color: var(--on-success);
     font-weight: 600;
 }
 
 .btn-success:hover:not(:disabled) {
-    background: #388E3C;
+    background: var(--color-success-hover);
     transform: translateY(-1px);
 }
 
@@ -416,31 +429,31 @@ h1, h2, h3, h4, h5, h6 {
 
 .alert-success {
     background-color: var(--color-success-light);
-    color: #2E7D32;
+    color: var(--color-success);
     border-left: 4px solid var(--color-success);
 }
 
 .alert-error {
     background-color: var(--color-error-light);
-    color: #C62828;
+    color: var(--color-error);
     border-left: 4px solid var(--color-error);
 }
 
 .alert-warning {
     background-color: var(--color-warning-light);
-    color: #F57C00;
+    color: var(--color-warning);
     border-left: 4px solid var(--color-warning);
 }
 
 .alert-info {
     background-color: var(--color-info-light);
-    color: #1565C0;
+    color: var(--color-info);
     border-left: 4px solid var(--color-info);
 }
 
 .alert-celebration {
     background-color: var(--color-tertiary-light);
-    color: #AD1457;
+    color: var(--color-tertiary);
     border-left: 4px solid var(--color-tertiary);
     font-weight: 600;
 }
@@ -1057,8 +1070,9 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== OFFLINE/PWA SPECIFIC ===== */
 .offline-banner {
-    background: var(--color-warning);
-    color: white;
+    background: var(--color-warning-light);
+    color: var(--color-fg);
+    border-bottom: 3px solid var(--color-warning);
     padding: var(--space-3);
     text-align: center;
     position: fixed;
@@ -1083,7 +1097,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .install-banner {
     background: var(--color-primary);
-    color: white;
+    color: var(--on-primary);
     padding: var(--space-3);
     position: fixed;
     top: 0;
@@ -1217,13 +1231,13 @@ h1, h2, h3, h4, h5, h6 {
 .smart-banner .alert-success {
     background-color: var(--color-success-light);
     border-color: var(--color-secondary-light);
-    color: #2E7D32;
+    color: var(--color-success);
 }
 
 .smart-banner .alert-info {
     background-color: var(--color-info-light);
     border-color: var(--color-primary-container);
-    color: var(--color-primary);
+    color: var(--color-info);
 }
 
 .smart-banner .alert-celebration,
@@ -1346,7 +1360,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== CLARIFICATION UI ===== */
 .clarification-msg {
-    background-color: var(--color-primary-50);
+    background-color: var(--color-primary-light);
     border-left: 4px solid var(--color-primary);
     border-radius: var(--radius-md);
     padding: var(--space-4);
