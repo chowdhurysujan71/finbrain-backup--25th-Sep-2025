@@ -243,12 +243,12 @@ async function loadSummaryData() {
             console.error('[Report] showError function not available');
         }
         
-        // Show error state in summary cards
+        // Show error state in summary cards with retry button
         ['today', 'week', 'month'].forEach(period => {
             const totalElement = document.getElementById(`${period}-total`);
             const changeElement = document.getElementById(`${period}-change`);
-            if (totalElement) totalElement.innerHTML = '<span class="error-text">Error</span>';
-            if (changeElement) changeElement.innerHTML = '<span class="error-text">Unable to load</span>';
+            if (totalElement) totalElement.innerHTML = '<span class="error-text">Failed</span>';
+            if (changeElement) changeElement.innerHTML = '<button class="btn btn-sm btn-primary" onclick="loadSummaryData()" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Retry</button>';
         });
     }
 }
@@ -377,7 +377,7 @@ async function loadInsightsData() {
         console.log('[Report] Insights data loaded successfully');
     } catch (error) {
         console.error('[Report] Failed to load insights data:', error);
-        document.getElementById('insights-list').innerHTML = '<div class="error-text">Unable to generate insights</div>';
+        document.getElementById('insights-list').innerHTML = '<div class="error-text">Unable to generate insights. <button class="btn btn-sm btn-primary" onclick="loadInsightsData()">Retry</button></div>';
     }
 }
 
