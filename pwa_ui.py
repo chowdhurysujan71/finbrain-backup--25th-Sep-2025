@@ -1,10 +1,15 @@
 """
 PWA UI Blueprint - Modern, installable expense tracking interface
 """
+import csv
+import hashlib
 import logging
+import secrets
 import time
+from datetime import timedelta, UTC
+from io import StringIO
 
-from flask import Blueprint, current_app, g, jsonify, render_template, request, Response, redirect
+from flask import Blueprint, current_app, g, jsonify, make_response, render_template, request, Response, redirect
 from typing import Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -568,6 +573,163 @@ def auth_me():
         logger.error(f"Auth check error: {e}")
         return jsonify({"error": "Auth check failed"}), 500
 
+@pwa_ui.route('/auth/forgot-password', methods=['GET'])
+def forgot_password():
+    """
+    Render forgot password form
+    """
+    return render_template('forgot_password.html')
+
+@pwa_ui.route('/auth/forgot-password', methods=['POST'])
+@limiter.limit("5 per hour")
+def forgot_password_submit():
+    """
+    Generate password reset token and log it (email not configured yet)
+    Rate limited to 5 requests per hour
+    """
+    from flask import jsonify
+    from models import PasswordReset, User
+    from db_base import db
+    
+    try:
+        data = request.get_json(silent=True) or {}
+        email = data.get('email', '').lower().strip()
+        
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+        
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            # Security: Don't reveal whether email exists, return success anyway
+            logger.info(f"Password reset requested for non-existent email: {email}")
+            return jsonify({
+                "success": True,
+                "message": "If the email exists, a password reset link will be sent"
+            }), 200
+        
+        # Generate 32-byte token
+        token = secrets.token_urlsafe(32)
+        
+        # Hash token with SHA-256 for storage
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        
+        # Get IP and user agent for security logging
+        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+        user_agent = request.headers.get('User-Agent')
+        
+        # Create password reset token with 1-hour expiry
+        PasswordReset.create_token(
+            user_id_hash=user.user_id_hash,
+            token_hash=token_hash,
+            expires_minutes=60,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        
+        # Log unhashed token since email not configured yet
+        logger.info(f"Password reset token generated for {email}: {token}")
+        logger.info(f"Reset link: /auth/reset-password/{token}")
+        
+        return jsonify({
+            "success": True,
+            "message": "If the email exists, a password reset link will be sent",
+            "token": token  # Include token in response since email not configured
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Forgot password error: {e}")
+        return jsonify({"error": "Failed to process password reset request"}), 500
+
+@pwa_ui.route('/auth/reset-password/<token>', methods=['GET'])
+def reset_password(token):
+    """
+    Validate token and render password reset form
+    """
+    from models import PasswordReset
+    
+    # Hash the token to check validity
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    
+    # Validate token
+    if not PasswordReset.is_valid_token(token_hash):
+        return render_template('reset_password.html', 
+                             error="Invalid or expired reset token",
+                             token=None)
+    
+    return render_template('reset_password.html', token=token)
+
+@pwa_ui.route('/auth/reset-password', methods=['POST'])
+@limiter.limit("5 per hour")
+def reset_password_submit():
+    """
+    Reset password using token and mark token as used
+    Rate limited to 5 requests per hour
+    """
+    from flask import jsonify
+    from werkzeug.security import generate_password_hash
+    from models import PasswordReset, User
+    from db_base import db
+    
+    try:
+        data = request.get_json(silent=True) or {}
+        token = data.get('token', '').strip()
+        new_password = data.get('password', '')
+        
+        if not token or not new_password:
+            return jsonify({"error": "Token and password are required"}), 400
+        
+        # Validate password strength
+        if len(new_password) < 8:
+            return jsonify({"error": "Password must be at least 8 characters"}), 400
+        
+        # Hash the token
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        
+        # Get the password reset record to find the user
+        reset_record = PasswordReset.query.filter(
+            PasswordReset.token_hash == token_hash,
+            PasswordReset.used_at.is_(None)
+        ).first()
+        
+        if not reset_record:
+            return jsonify({"error": "Invalid or already used token"}), 400
+        
+        # Check if token is expired
+        from datetime import datetime, UTC
+        if reset_record.expires_at < datetime.now(UTC):
+            return jsonify({"error": "Token has expired"}), 400
+        
+        # Find the user
+        user = User.query.filter_by(user_id_hash=reset_record.user_id_hash).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Update password
+        user.password_hash = generate_password_hash(new_password)
+        
+        # Mark token as used (atomic operation)
+        success = PasswordReset.mark_used(token_hash)
+        
+        if not success:
+            # Token was already used or expired between checks
+            db.session.rollback()
+            return jsonify({"error": "Token is no longer valid"}), 400
+        
+        # Commit password change
+        db.session.commit()
+        
+        logger.info(f"Password successfully reset for user: {user.email}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Password has been reset successfully"
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Password reset error: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to reset password"}), 500
+
 @pwa_ui.route('/api/auth/csrf-token', methods=['GET'])
 def csrf_token():
     """
@@ -1034,6 +1196,154 @@ def api_profile():
     except Exception as e:
         logger.error(f"Error in api_profile: {e}")
         return jsonify({"error": "Failed to load profile data"}), 500
+
+@pwa_ui.route('/profile/export-csv', methods=['POST'])
+@limiter.limit("3 per hour")
+def export_csv():
+    """
+    Export user expenses as CSV file
+    AUTHENTICATION REQUIRED - Rate limited to 3 per hour
+    """
+    from datetime import datetime
+    from models import Expense
+    
+    try:
+        # Require authentication
+        user = require_auth()
+        
+        # Query all non-deleted expenses for user
+        expenses = Expense.query_active().filter_by(
+            user_id_hash=user.user_id_hash
+        ).order_by(Expense.date.desc()).all()
+        
+        # Generate CSV in memory
+        si = StringIO()
+        writer = csv.writer(si)
+        
+        # Write header
+        writer.writerow(['date', 'category', 'description', 'amount', 'currency'])
+        
+        # Write expense rows
+        for expense in expenses:
+            writer.writerow([
+                expense.date.isoformat() if expense.date else '',
+                expense.category or 'uncategorized',
+                expense.description or '',
+                float(expense.amount) if expense.amount else 0.0,
+                expense.currency or 'BDT'
+            ])
+        
+        # Prepare response
+        output = si.getvalue()
+        si.close()
+        
+        # Generate filename with user email and current date
+        user_email = getattr(user, 'email', 'user')
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        filename = f"finbrain_expenses_{user_email}_{current_date}.csv"
+        
+        # Create response with CSV file
+        response = make_response(output)
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+        
+        logger.info(f"CSV export completed for user: {user.user_id_hash[:8]}... ({len(expenses)} expenses)")
+        return response
+        
+    except Exception as e:
+        logger.error(f"CSV export error: {e}")
+        return jsonify({"error": "Failed to export expenses"}), 500
+
+@pwa_ui.route('/profile/request-deletion', methods=['POST'])
+@limiter.limit("2 per day")
+def request_deletion():
+    """
+    Request account deletion with 7-day hold period
+    AUTHENTICATION REQUIRED - Rate limited to 2 per day
+    """
+    from datetime import datetime, timedelta
+    from models import DeletionRequest
+    from db_base import db
+    
+    try:
+        # Require authentication
+        user = require_auth()
+        
+        # Check if active deletion request already exists
+        active_request = DeletionRequest.get_active_request(user.user_id_hash)
+        if active_request:
+            scheduled_date = active_request.scheduled_delete_at.isoformat()
+            return jsonify({
+                "error": "Deletion request already exists",
+                "scheduled_delete_at": scheduled_date
+            }), 409
+        
+        # Calculate scheduled deletion date (7 days from now)
+        now = datetime.now(UTC)
+        scheduled_delete_at = now + timedelta(days=7)
+        
+        # Get IP address and user agent for audit
+        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+        user_agent = request.headers.get('User-Agent', '')
+        
+        # Create deletion request
+        deletion_request = DeletionRequest.create_request(
+            user_id_hash=user.user_id_hash,
+            hold_days=7,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        
+        logger.info(f"Deletion request created for user: {user.user_id_hash[:8]}... scheduled for {scheduled_delete_at.isoformat()}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Account deletion requested",
+            "scheduled_delete_at": scheduled_delete_at.isoformat(),
+            "hold_days": 7
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Deletion request error: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to request account deletion"}), 500
+
+@pwa_ui.route('/profile/cancel-deletion', methods=['POST'])
+def cancel_deletion():
+    """
+    Cancel pending account deletion request
+    AUTHENTICATION REQUIRED - No rate limit (users should be able to cancel easily)
+    """
+    from datetime import datetime
+    from models import DeletionRequest
+    from db_base import db
+    
+    try:
+        # Require authentication
+        user = require_auth()
+        
+        # Find active deletion request
+        active_request = DeletionRequest.get_active_request(user.user_id_hash)
+        if not active_request:
+            return jsonify({
+                "error": "No active deletion request found"
+            }), 404
+        
+        # Mark as canceled
+        active_request.canceled_at = datetime.now(UTC)
+        db.session.commit()
+        
+        logger.info(f"Deletion request canceled for user: {user.user_id_hash[:8]}...")
+        
+        return jsonify({
+            "success": True,
+            "message": "Account deletion request canceled"
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Deletion cancellation error: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to cancel deletion request"}), 500
 
 @pwa_ui.route('/v1/meta/categories', methods=['GET'])
 def meta_categories():
