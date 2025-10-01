@@ -639,9 +639,8 @@ def forgot_password_submit():
         
         # SECURITY: Only expose token in strict development mode
         import os
-        # TEMPORARY: Force dev mode for testing until email delivery is fully configured
-        is_dev_mode = True  # TODO: Revert to environment check after Resend verification
-        # is_dev_mode = os.getenv('APP_ENV', 'production') == 'development' and os.getenv('EMAIL_DELIVERY_ENABLED', 'true').lower() == 'false'
+        # Production mode: emails are sent via Resend, tokens never exposed
+        is_dev_mode = False  # Set to True only for local testing without email
         
         if is_dev_mode:
             # Development/testing only: log and return token
