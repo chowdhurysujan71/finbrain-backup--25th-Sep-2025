@@ -289,8 +289,14 @@ def profile():
     
     logger.info(f"PWA profile route accessed by user: {user.user_id_hash}")
     
+    # Check for active deletion request
+    from models import DeletionRequest
+    deletion_request = DeletionRequest.get_active_request(user.user_id_hash)
+    
     # Always use profile_v2 (production-ready with logout button and zero-hallucination)
-    response = make_response(render_template('profile_v2.html', user_id=user.user_id_hash))
+    response = make_response(render_template('profile_v2.html', 
+                                            user_id=user.user_id_hash,
+                                            deletion_request=deletion_request))
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'

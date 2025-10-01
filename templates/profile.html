@@ -110,16 +110,50 @@
                 </div>
                 <div class="setting-action">›</div>
             </button>
+        </div>
+    </section>
 
-            <button class="setting-item" onclick="showToast('Data export coming soon!', 'info')">
-                <div class="setting-icon">📊</div>
-                <div class="setting-content">
-                    <span class="setting-title">Export Data</span>
-                    <span class="setting-description">Download your expense history</span>
+    <!-- Data & Privacy -->
+    <section class="card data-privacy-section" aria-labelledby="data-privacy-title">
+        <h2 id="data-privacy-title" class="card-title">Data & Privacy</h2>
+        
+        <div class="privacy-options">
+            <div class="privacy-item">
+                <div class="privacy-content">
+                    <h3 class="privacy-title">Export Your Data</h3>
+                    <p class="privacy-description">Download a CSV file containing all your expense data</p>
                 </div>
-                <div class="setting-action">›</div>
+                <button class="btn btn-primary btn-sm" onclick="exportData()">
+                    <i class="fa fa-download"></i> Export Data
+                </button>
+            </div>
+            
+            <div class="privacy-item danger-zone">
+                <div class="privacy-content">
+                    <h3 class="privacy-title">Delete Account</h3>
+                    <p class="privacy-description">Permanently delete your account and all associated data</p>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="requestAccountDeletion()">
+                    <i class="fa fa-trash"></i> Delete Account
+                </button>
+            </div>
+        </div>
+
+        <!-- Deletion Request Banner -->
+        {% if deletion_request %}
+        <div class="deletion-banner">
+            <div class="deletion-content">
+                <div class="deletion-icon">⚠️</div>
+                <div class="deletion-text">
+                    <strong>Account Deletion Pending</strong>
+                    <p>Your account is scheduled for deletion. You can cancel this request below.</p>
+                </div>
+            </div>
+            <button class="btn btn-neutral btn-sm" onclick="cancelDeletion()">
+                Cancel Deletion
             </button>
         </div>
+        {% endif %}
     </section>
 
     <!-- App Info -->
@@ -291,6 +325,118 @@ async function logoutUser() {
     }
 }
 
+// Data & Privacy functions
+async function exportData() {
+    try {
+        // Get CSRF token
+        const csrfToken = await window.csrfManager.getToken();
+        
+        showToast('Preparing your data export...', 'info');
+        
+        const response = await fetch('/profile/export-csv', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        });
+        
+        if (response.ok) {
+            // Get the CSV content
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'finbrain_expenses_' + new Date().toISOString().split('T')[0] + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            showToast('Data exported successfully!', 'success');
+        } else {
+            const data = await response.json();
+            showToast(data.error || 'Failed to export data', 'error');
+        }
+    } catch (error) {
+        console.error('Export error:', error);
+        showToast('Connection error during export', 'error');
+    }
+}
+
+async function requestAccountDeletion() {
+    const confirmed = confirm(
+        'Are you sure you want to delete your account?\n\n' +
+        'This will permanently delete:\n' +
+        '• All your expense data\n' +
+        '• Your spending insights\n' +
+        '• Your account settings\n\n' +
+        'This action cannot be undone.'
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+        // Get CSRF token
+        const csrfToken = await window.csrfManager.getToken();
+        
+        const response = await fetch('/profile/request-deletion', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            showToast('Account deletion requested. You will receive a confirmation email.', 'success');
+            
+            // Reload page to show deletion banner
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showToast(data.error || 'Failed to request account deletion', 'error');
+        }
+    } catch (error) {
+        console.error('Deletion request error:', error);
+        showToast('Connection error during deletion request', 'error');
+    }
+}
+
+async function cancelDeletion() {
+    try {
+        // Get CSRF token
+        const csrfToken = await window.csrfManager.getToken();
+        
+        const response = await fetch('/profile/cancel-deletion', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            showToast('Account deletion cancelled successfully', 'success');
+            
+            // Reload page to hide deletion banner
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showToast(data.error || 'Failed to cancel deletion', 'error');
+        }
+    } catch (error) {
+        console.error('Cancel deletion error:', error);
+        showToast('Connection error during cancellation', 'error');
+    }
+}
+
 // Initialize auth status on page load
 document.addEventListener('DOMContentLoaded', function() {
     checkAuthStatus();
@@ -319,6 +465,125 @@ document.addEventListener('DOMContentLoaded', function() {
 .link-button.primary:hover,
 .link-button.danger:hover {
     opacity: 0.9;
+}
+
+/* Data & Privacy Section */
+.data-privacy-section {
+    margin-bottom: 1.5rem;
+}
+
+.privacy-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.privacy-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.privacy-item:hover {
+    background-color: var(--color-bg-subtle);
+}
+
+.privacy-item.danger-zone {
+    border-color: #fee2e2;
+    background-color: #fef2f2;
+}
+
+.privacy-item.danger-zone:hover {
+    background-color: #fee2e2;
+}
+
+.privacy-content {
+    flex: 1;
+}
+
+.privacy-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-fg);
+    margin: 0 0 0.25rem 0;
+}
+
+.privacy-description {
+    font-size: 0.875rem;
+    color: var(--color-muted);
+    margin: 0;
+}
+
+.privacy-item button {
+    margin-left: 1rem;
+    white-space: nowrap;
+}
+
+.deletion-banner {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.deletion-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.deletion-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.deletion-text {
+    flex: 1;
+}
+
+.deletion-text strong {
+    display: block;
+    font-weight: 600;
+    color: #92400e;
+    margin-bottom: 0.25rem;
+}
+
+.deletion-text p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #78350f;
+}
+
+@media (max-width: 640px) {
+    .privacy-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .privacy-item button {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .deletion-banner {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .deletion-banner button {
+        width: 100%;
+    }
 }
 </style>
 {% endblock %}
