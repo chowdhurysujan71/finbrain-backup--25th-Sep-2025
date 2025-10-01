@@ -12,7 +12,15 @@ finbrain is an AI-first expense tracking application delivered via a web chat in
 - **Tester Safety**: Ready for controlled tester access (5-10 users initially recommended)
 - **CSRF Protection**: Flask-WTF CSRF protection fully implemented and tested (September 30, 2025)
 
-## Recent Development (September 30, 2025)
+## Recent Development (October 1, 2025)
+✅ **Critical Fix: Goal Saving & CSRF Protection** - Production-ready with zero regressions:
+- ✅ Fixed goal saving functionality by exempting /api blueprint from CSRF (session auth protected)
+- ✅ Created unique index `ux_goals_user_type_active` to prevent duplicate active goals
+- ✅ Deactivated 13 duplicate goals, enforcing one active goal per user/type
+- ✅ Removed debug code, confirmed clean production logs
+- ✅ Architect-verified: Zero regressions, production-ready status
+
+**Previous Development (September 30, 2025)**:
 🚧 **4-System Integrated Architecture** - Building demo-grade finbrain with:
 
 **Foundation Layer (✅ COMPLETE)**:
