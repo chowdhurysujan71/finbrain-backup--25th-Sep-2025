@@ -95,4 +95,4 @@ localPort = 46709
 externalPort = 3003
 
 [agent]
-integrations = ["python_log_in_with_replit==1.0.0", "python_openai==1.0.0", "python_database==1.0.0"]
+integrations = ["python_log_in_with_replit:1.0.0", "python_openai:1.0.0", "python_database:1.0.0", "resend:1.0.0"]

@@ -653,10 +653,21 @@ def forgot_password_submit():
                 "dev_mode": True
             }), 200
         else:
-            # Production: Never log or return token
-            logger.info(f"Password reset token generated for user (email hidden for security)")
-            # TODO: Send email with reset link to user's email address
+            # Production: Send email via Resend
+            from utils.email_service import send_password_reset_email
             
+            email_sent = send_password_reset_email(
+                to_email=email,
+                reset_token=token,
+                user_name=user.name
+            )
+            
+            if email_sent:
+                logger.info(f"Password reset email sent successfully (email hidden for security)")
+            else:
+                logger.error(f"Failed to send password reset email (email hidden for security)")
+            
+            # Always return success to prevent email enumeration
             return jsonify({
                 "success": True,
                 "message": "If the email exists, a password reset link will be sent"
